@@ -1,4 +1,4 @@
-import {useEffect, useMemo, type ComponentProps} from 'react';
+import {useEffect, useMemo, useRef, type ComponentProps} from 'react';
 import {Image,StyleSheet,Text,View} from 'react-native';
 import Svg, {Circle, Defs, Ellipse, G, Line, LinearGradient, Path, RadialGradient, Stop} from 'react-native-svg';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
@@ -127,6 +127,7 @@ export function PrayerWheel({
     ? (sectors[selectedIndex].from + sectors[selectedIndex].to) / 2
     : 0;
   const rotation = useSharedValue(-initialCenter);
+  const previousSelected = useRef(selectedIndex);
   const active = useSharedValue(false);
   const prevTouch = useSharedValue(0);
   const hasTouch = useSharedValue(false);
@@ -139,16 +140,19 @@ export function PrayerWheel({
   // Requests originate from the bottom chips or the "live" button, not from the dial.
   // This avoids re-centering on each segment boundary while the user is dragging.
   useEffect(() => {
-    if (focusRequest === 0 || !sectors[selectedIndex]) return;
+    const autoShift=!isManualSelection && previousSelected.current!==selectedIndex;
+    previousSelected.current=selectedIndex;
+    if ((!autoShift && focusRequest===0) || !sectors[selectedIndex]) return;
+    // Auto-follow when the clock crosses an actual prayer boundary, not each second.
     cancelAnimation(rotation);
     active.value = false;
     hasTouch.value = false;
     const destination = nearestCenterRotation(rotation.value, sectors[selectedIndex]);
     rotation.value = withTiming(destination, {
-      duration: reduceMotion ? 0 : 510,
+      duration: reduceMotion ? 0 : autoShift ? 780 : 510,
       easing: Easing.out(Easing.cubic),
     });
-  }, [focusRequest]); // deliberately triggered by an explicit user action only
+  }, [focusRequest,selectedIndex,isManualSelection]);
 
   const ringStyle = useAnimatedStyle(() => ({
     transform: [{rotateZ: rotation.value + 'deg'}],
@@ -384,7 +388,7 @@ export function PrayerWheel({
             style={{position:'absolute',width:'100%',height:'100%'}}/>
         </View>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.prayerName,{color:colors.text}]}>
-          {isManualSelection?'Seçilen Vakit':(selected?PRAYER_COUNTDOWN_LABELS[selected.key]:'Vakte Kalan')}
+          {isManualSelection?(selected?.label??'Vakit'):(selected?PRAYER_COUNTDOWN_LABELS[selected.key]:'Vakte Kalan')}
         </Text>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countdown,{color:colors.emerald}]}>
           {isManualSelection?selected?.time??'--:--':countdown}
@@ -397,7 +401,7 @@ export function PrayerWheel({
         <View style={{flexDirection:'row',alignItems:'center',gap:4,marginTop:2}}>
           <MaterialCommunityIcons name="map-marker-outline" size={12} color={colors.muted}/>
           <Text style={[styles.caption,{color:colors.muted}]}>
-            {isManualSelection?'Örnek saat':'İstanbul · demo'}
+            {isManualSelection?'Seçilen vakit · örnek':'İstanbul · demo'}
           </Text>
         </View>
       </View>
