@@ -52,7 +52,7 @@ function DailyCard({kind}: {kind: 'ayet' | 'hadis'}) {
 export default function HomeScreen() {
   const {colors, setMode} = useAppTheme();
   const {width} = useWindowDimensions();
-  const wheelSize = Math.min(Math.max(250, width - 74), 326);
+  const wheelSize = Math.min(Math.max(262, width - 54), 338);
   const [now, setNow] = useState(() => new Date());
   const [manualIndex, setManualIndex] = useState<number | null>(null);
   useEffect(() => {
