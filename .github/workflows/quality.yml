@@ -15,3 +15,5 @@ jobs:
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
       - run: cd apps/mobile && npx expo install --check
+      - name: Metro startup smoke test
+        run: node scripts/metro-smoke.mjs
