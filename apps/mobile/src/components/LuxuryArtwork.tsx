@@ -116,3 +116,76 @@ export const GoldenLantern = memo(function GoldenLantern({size=44}: {size?:numbe
     <Path d="M18 52H26M21 52V58M18 58H26" stroke="#C79853" strokeWidth="2"/>
   </Svg>;
 });
+
+
+/** Transparent, scalable architectural emblem for the prayer dial medallion.
+ * Unlike the older scene images this has NO rectangle/background image and blends
+ * cleanly into light and dark central medallions at any phone pixel density.
+ */
+export const MosqueCrest = memo(function MosqueCrest({width,dark}:{width:number;dark:boolean}){
+  const gold=dark?'#DCC48C':'#AF905C';
+  const sage=dark?'#1C9888':'#719D86';
+  const shadow=dark?'#0B3939':'#D9CBA8';
+  return <Svg width={width} height={width*0.52} viewBox="0 0 240 125" pointerEvents="none">
+    <Defs>
+      <RadialGradient id="crestGlow" cx="50%" cy="45%" rx="53%" ry="53%">
+        <Stop offset="0%" stopColor={dark?'#4FCAB1':'#E8C48C'} stopOpacity={dark?'.28':'.42'}/>
+        <Stop offset="72%" stopColor={dark?'#10766D':'#E8D6AB'} stopOpacity=".08"/>
+        <Stop offset="100%" stopColor="#E8D6AB" stopOpacity="0"/>
+      </RadialGradient>
+      <LinearGradient id="crestGold" x1="0%" y1="0%" x2="100%" y2="100%">
+        <Stop offset="0%" stopColor={dark?'#FAE7B8':'#D8B878'}/>
+        <Stop offset="50%" stopColor={gold}/>
+        <Stop offset="100%" stopColor={dark?'#886B4D':'#8A714F'}/>
+      </LinearGradient>
+      <LinearGradient id="crestDome" x1="0%" y1="0%" x2="0%" y2="100%">
+        <Stop offset="0%" stopColor={dark?'#75C9B9':'#A7C7AD'}/>
+        <Stop offset="52%" stopColor={sage}/>
+        <Stop offset="100%" stopColor={shadow}/>
+      </LinearGradient>
+      <LinearGradient id="crestHorizon" x1="0%" y1="0%" x2="0%" y2="100%">
+        <Stop offset="0%" stopColor={dark?'#3A8A7C':'#B5C5A9'} stopOpacity=".31"/>
+        <Stop offset="100%" stopColor={dark?'#062928':'#F8F2E3'} stopOpacity="0"/>
+      </LinearGradient>
+    </Defs>
+    <Ellipse cx="120" cy="77" rx="105" ry="65" fill="url(#crestGlow)"/>
+    <Path d="M0 116 Q30 105 57 113 T119 113 T185 109 T240 115 V125 H0Z"
+      fill="url(#crestHorizon)"/>
+    {Array.from({length:9},(_,i)=>{
+      const x=27+i*23, y=[43,30,39,24,34,23,39,31,41][i];
+      return <Circle key={i} cx={x} cy={y} r={i%3===0?1.15:.65}
+        fill={gold} opacity={dark?.57:.38}/>;
+    })}
+    {/* Slender twin minarets and their balconies */}
+    {[52,187].map((x,i)=><G key={i}>
+      <Path d={'M'+(x-5)+' 109 L'+(x-3.7)+' 43 L'+(x+3.7)+' 43 L'+(x+5)+' 109Z'}
+        fill="url(#crestGold)" opacity=".9"/>
+      <Path d={'M'+(x-7)+' 59 H'+(x+7)+' M'+(x-7)+' 66 H'+(x+7)}
+        stroke={gold} strokeWidth="1.8"/>
+      <Path d={'M'+(x-3.7)+' 43 Q'+x+' 27 '+(x+3.7)+' 43'}
+        fill={dark?'#A2BA96':'#9EBDA8'} stroke={gold} strokeWidth="1.1"/>
+      <Path d={'M'+x+' 31V25 M'+x+' 26 L'+(x+2)+' 24'}
+        stroke={gold} strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+      <Rect x={x-6.5} y="95" width="13" height="13" fill={shadow} opacity=".3"/>
+    </G>)}
+    {/* smaller outer domes give architectural depth */}
+    <G opacity=".86">
+      <Path d="M63 109V80Q74 58 85 80V109Z M154 109V80Q166 58 177 80V109Z"
+        fill="url(#crestDome)" stroke={gold} strokeWidth="1.1"/>
+      <Path d="M74 72V65 M166 72V65" stroke={gold} strokeWidth="1.5"/>
+    </G>
+    {/* central dome: turquoise in dark mode, pale sage in light mode */}
+    <Path d="M84 109V72 Q120 25 156 72V109Z" fill="url(#crestDome)"
+      stroke="url(#crestGold)" strokeWidth="2"/>
+    <Path d="M91 74Q120 40 149 74" fill="none" stroke={gold}
+      strokeWidth="1.2" opacity=".65"/>
+    <Rect x="79" y="91" width="82" height="19" rx="1.5" fill={shadow}/>
+    <Path d="M104 110V91Q120 72 136 91V110Z" fill={dark?'#092E31':'#F4EAD8'}
+      stroke={gold} strokeWidth="1.25"/>
+    <Path d="M120 48V33" stroke={gold} strokeWidth="1.7" strokeLinecap="round"/>
+    <Path d="M120 30C117 26 120 20 125 21 C121 23 121 27 128 28 C125 32 121 32 120 30Z"
+      fill="url(#crestGold)"/>
+    <Path d="M34 109H206" stroke={gold} strokeWidth="1" opacity=".35"/>
+    <Path d="M27 113 Q120 102 213 113" stroke={gold} strokeWidth="1" fill="none" opacity=".35"/>
+  </Svg>;
+});
