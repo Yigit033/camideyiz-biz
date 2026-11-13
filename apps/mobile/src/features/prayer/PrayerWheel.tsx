@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef, type ComponentProps} from 'react';
-import {Image,StyleSheet,Text,View} from 'react-native';
+import {StyleSheet,Text,View} from 'react-native';
 import Svg, {Circle, Defs, Ellipse, G, Line, LinearGradient, Path, RadialGradient, Stop} from 'react-native-svg';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {GestureDetector, usePanGesture} from 'react-native-gesture-handler';
@@ -17,7 +17,7 @@ import {
 } from '@camideyiz/core';
 import {type ColorTokens} from '@/theme/tokens';
 import {DialLighting} from './DialLighting';
-import {MosqueLandscape} from '@/components/LuxuryArtwork';
+import {MosqueCrest} from '@/components/LuxuryArtwork';
 
 export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
   imsak:'#3593B5',
@@ -52,11 +52,38 @@ export function segmentAngles(times: readonly PrayerTime[]): PrayerArc[] {
   if (minutes.some((minute, index) => index > 0 && minute <= minutes[index - 1])) {
     throw new RangeError('Daily times must be ascending');
   }
-  return times.map((item, index) => {
-    const start = (minutes[index] - minutes[0] + 1440) % 1440;
-    const end = index === times.length - 1 ? 1440 : (minutes[index + 1] - minutes[0] + 1440) % 1440;
-    return {...item, from: start / 1440 * 360, to: end / 1440 * 360};
+  // A readable, nonlinear visual scale keeps the overnight Yatsi sector
+  // from consuming half the dial. The separate progress bar uses real time.
+  const lengths=times.map((_,index)=>index===times.length-1
+    ? 1440-minutes[index]+minutes[0]
+    : minutes[index+1]-minutes[index]);
+  const weights=lengths.map(value=>Math.sqrt(value));
+  const total=weights.reduce((a,b)=>a+b,0);
+  let cursor=0;
+  return times.map((item,index)=>{
+    const from=cursor;
+    cursor+=weights[index]/total*360;
+    return {...item,from,to:index===times.length-1?360:cursor};
   });
+}
+
+/** Match a local clock second to its nonlinear *visual* angle.
+ * This transformation is monotonic but not a minute-accurate angular scale.
+ */
+function clockAngle(seconds:number,times:readonly PrayerTime[],sectors:readonly PrayerArc[]){
+  const starts=times.map(item=>timeToMinutes(item.time)*60);
+  if(!starts.length || !sectors.length)return 0;
+  const shifted=seconds<starts[0]?seconds+86400:seconds;
+  const index=starts.findIndex((_,i)=>{
+    const start=starts[i],end=i===starts.length-1?starts[0]+86400:starts[i+1];
+    return shifted>=start&&shifted<end;
+  });
+  if(index<0)return 0;
+  const start=starts[index];
+  const end=index===starts.length-1?starts[0]+86400:starts[index+1];
+  const fraction=Math.max(0,Math.min(1,(shifted-start)/(end-start)));
+  const sector=sectors[index];
+  return sector.from+fraction*(sector.to-sector.from);
 }
 function polar(degrees: number, radius: number) {
   const a = degrees * Math.PI / 180;
@@ -234,8 +261,7 @@ export function PrayerWheel({
     },
   );
 
-  const secondsFromImsak = times.length ? timeToMinutes(times[0].time) * 60 : 0;
-  const currentAngle = ((nowSeconds - secondsFromImsak + 86400) % 86400) / 86400 * 360;
+  const currentAngle = clockAngle(nowSeconds,times,sectors);
   const nowPoint = polar(currentAngle, 170);
   const selected = sectors[selectedIndex];
   const centerFill = colors.isDark ? '#081E21' : '#FFF9EF';
@@ -248,9 +274,8 @@ export function PrayerWheel({
   const progressTint=warningTint??(urgency==='normal'?PRAYER_COLORS[nextKey]:
     nextKey==='aksam'?'#F6B46F':colors.isDark?'#F4D58B':'#B9823D');
   const demoArcs=indicativeWindows.map(window=>{
-    const startSeconds=timeToMinutes(times[0].time)*60;
-    const from=((window.startSeconds-startSeconds+86400)%86400)/86400*360;
-    const to=((window.endSeconds-startSeconds+86400)%86400)/86400*360;
+    const from=clockAngle(window.startSeconds,times,sectors);
+    const to=clockAngle(window.endSeconds,times,sectors);
     return {...window,from,to};
   }).filter(window=>window.to>window.from);
   const nextGlowStrength=0.12+0.5*boost*Math.pow(progress,1.35);
@@ -402,16 +427,7 @@ export function PrayerWheel({
         })}
       </Svg>
       <View style={[styles.center,{width:size*.56}]}>
-        <View style={{width:size*.43,height:size*.43*.48,overflow:'hidden',
-          borderRadius:Math.max(5,size*.016),opacity:colors.isDark?.90:.84}}>
-          <MosqueLandscape width={size*.43} dark={colors.isDark}/>
-          <Image
-            source={colors.isDark
-              ? require('../../../assets/scenes/dark-mosque.webp')
-              : require('../../../assets/scenes/light-mosque.webp')}
-            resizeMode="cover"
-            style={{position:'absolute',width:'100%',height:'100%'}}/>
-        </View>
+        <MosqueCrest width={size*.42} dark={colors.isDark}/>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.prayerName,{color:colors.text}]}>
           {isManualSelection?(selected?.label??'Vakit'):(selected?PRAYER_COUNTDOWN_LABELS[selected.key]:'Vakte Kalan')}
         </Text>
@@ -426,7 +442,7 @@ export function PrayerWheel({
         <View style={{flexDirection:'row',alignItems:'center',gap:4,marginTop:2}}>
           <MaterialCommunityIcons name="map-marker-outline" size={12} color={colors.muted}/>
           <Text style={[styles.caption,{color:colors.muted}]}>
-            {isManualSelection?'Seçilen vakit · örnek':'İstanbul · demo'}
+            {isManualSelection?'Seçilen vakit':'İstanbul'}
           </Text>
         </View>
       </View>
