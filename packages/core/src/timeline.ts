@@ -1,7 +1,7 @@
 import {
   type PrayerKey, type PrayerSchedule, type PrayerTime, PRAYER_KEYS,
   timeToMinutes,
-} from './prayer';
+} from './prayer.ts';
 
 /** All times and dates are local to PrayerSchedule.timezone. */
 export type WarningKind = 'sunrise' | 'zenith' | 'sunset';
