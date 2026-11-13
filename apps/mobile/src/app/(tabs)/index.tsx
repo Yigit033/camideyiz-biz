@@ -7,7 +7,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Svg,{Circle,Defs,LinearGradient,Path,Stop} from 'react-native-svg';
-import {DEMO_SCHEDULE,formatCountdown,zonedClock,calculateTimeAwareness,minutesToNextEvent} from '@camideyiz/core';
+import {DEMO_SCHEDULE,formatCountdown,zonedClock,calculateTimeAwareness,minutesToNextEvent,timeToMinutes} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere,ArabesqueCorner,GoldenLantern} from '@/components/LuxuryArtwork';
@@ -119,6 +119,7 @@ export default function HomeScreen(){
   const wheelSize=Math.min(width-10,366);
   const chipWidth=Math.max(49,(width-26-10)/6);
   const [now,setNow]=useState(()=>new Date());
+  const [timePreview,setTimePreview]=useState<{startSeconds:number;beganAt:number}|null>(null);
   const [manualIndex,setManualIndex]=useState<number|null>(null);
   const [focusRequest,setFocusRequest]=useState(0);
   const handleWheelSelection=useCallback((index:number)=>{
@@ -134,9 +135,27 @@ export default function HomeScreen(){
     return ()=>clearInterval(timer);
   },[]);
   const zoned=useMemo(()=>zonedClock(now,SCHEDULE.timezone),[now]);
+  // QA only. In demo preview the clock is accelerated; never exposed as an official time.
+  const previewSeconds=timePreview
+    ? (timePreview.startSeconds+Math.floor((now.getTime()-timePreview.beganAt)/1000)*20)%86400
+    : zoned.secondsOfDay;
+  const startPreview=(seconds:number)=>{
+    setManualIndex(null);
+    setFocusRequest(n=>n+1);
+    setTimePreview({startSeconds:seconds,beganAt:Date.now()});
+  };
+  const showPreviewOptions=()=>{
+    const maghrib=timeToMinutes(SCHEDULE.times.find(x=>x.key==='aksam')!.time)*60;
+    Alert.alert('Demo zaman önizlemesi',
+      'Zaman ×20 hızda ilerler. Gerçek ibadet saatleri yerine geçmez.',[
+      {text:'Normal saat',onPress:()=>setTimePreview(null)},
+      {text:'Akşama yaklaşım',onPress:()=>startPreview(maghrib-65*60)},
+      {text:'Kerahet örneği',onPress:()=>startPreview(maghrib-44*60)},
+    ]);
+  };
   const awareness=useMemo(
-    ()=>calculateTimeAwareness(SCHEDULE,zoned.secondsOfDay,zoned.dateISO,true),
-    [zoned.secondsOfDay,zoned.dateISO],
+    ()=>calculateTimeAwareness(SCHEDULE,previewSeconds,zoned.dateISO,true),
+    [previewSeconds,zoned.dateISO],
   );
   const {phase,restriction,indicativeWindows}=awareness;
   const upcomingIndex=SCHEDULE.times.findIndex(item=>item.key===phase.next.key);
@@ -196,20 +215,26 @@ export default function HomeScreen(){
         </View>
       </View>
       <DateDivider now={now} dark={dark}/>
-      <View style={[styles.demo,{
-        backgroundColor:dark?'rgba(202,163,92,.10)':'rgba(191,155,89,.12)',
-        borderColor:dark?'rgba(215,179,111,.22)':'rgba(195,156,80,.22)',
-      }]}>
+      <Pressable accessibilityRole="button"
+        accessibilityLabel="Demo saatleri örnektir, zaman önizlemesini aç"
+        onPress={showPreviewOptions}
+        style={[styles.demo,{
+          backgroundColor:dark?'rgba(202,163,92,.10)':'rgba(191,155,89,.12)',
+          borderColor:dark?'rgba(215,179,111,.22)':'rgba(195,156,80,.22)',
+        }]}>
         <Feather name="info" size={12} color={colors.gold}/>
-        <Text style={[styles.demoText,{color:colors.muted}]}>TASARIM DEMOSU · Saatler temsili, ibadette kullanılmaz</Text>
-      </View>
+        <Text style={[styles.demoText,{color:colors.muted}]}>
+          {timePreview?'DEMO SİMÜLASYON ×20 · Saatler temsili':'TASARIM DEMOSU · Saatler temsili, denemek için dokun'}
+        </Text>
+        <Feather name="sliders" size={12} color={colors.gold}/>
+      </Pressable>
 
       <View style={styles.wheelStage}>
         <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
         <PrayerWheel
           times={SCHEDULE.times} selectedIndex={selectedIndex}
           onSelect={handleWheelSelection} focusRequest={focusRequest}
-          nowSeconds={zoned.secondsOfDay} colors={colors}
+          nowSeconds={previewSeconds} colors={colors}
           size={wheelSize} countdown={formatCountdown(phase.secondsRemaining)}
           isManualSelection={manualIndex!==null}
           phaseProgress={phase.progress}
