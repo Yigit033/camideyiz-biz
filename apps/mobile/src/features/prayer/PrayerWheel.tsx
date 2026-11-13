@@ -9,7 +9,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import {scheduleOnRN} from 'react-native-worklets';
-import type {PrayerTime} from '@camideyiz/core';
+import type {PrayerTime,PrayerKey,RestrictionWindow,Urgency} from '@camideyiz/core';
 import {
   timeToMinutes, angleOfTouch, normalizeDegrees,
   nearestCenterRotation, sectorAtNeedle, shortestAngularDelta,
@@ -110,10 +110,16 @@ type Props = {
   countdown: string;
   isManualSelection: boolean;
   nowSeconds: number;
+  phaseProgress: number;
+  urgency: Urgency;
+  nextKey: PrayerKey;
+  restriction: RestrictionWindow | null;
+  indicativeWindows: readonly RestrictionWindow[];
 };
 export function PrayerWheel({
   times, selectedIndex, onSelect, focusRequest, size,
   colors, countdown, isManualSelection, nowSeconds,
+  phaseProgress, urgency, nextKey, restriction, indicativeWindows,
 }: Props) {
   const sectors = useMemo(() => segmentAngles(times), [times]);
   const reduceMotion = useReducedMotion();
@@ -222,6 +228,19 @@ export function PrayerWheel({
   const centerFill = colors.isDark ? '#081E21' : '#FFF9EF';
   const rim = colors.isDark ? '#ECD19B' : '#C39B55';
   const baseStroke = colors.isDark ? '#07332F' : '#E9E3D2';
+  // One-second sampling changes the progress while the physical dial remains UI-thread driven.
+  const progress=Math.max(0,Math.min(1,phaseProgress));
+  const boost=urgency==='normal'?0.12:urgency==='approaching'?0.45:0.8;
+  const warningTint=restriction ? '#EF6F72' : null;
+  const progressTint=warningTint??(urgency==='normal'?PRAYER_COLORS[nextKey]:
+    nextKey==='aksam'?'#F6B46F':colors.isDark?'#F4D58B':'#B9823D');
+  const demoArcs=indicativeWindows.map(window=>{
+    const startSeconds=timeToMinutes(times[0].time)*60;
+    const from=((window.startSeconds-startSeconds+86400)%86400)/86400*360;
+    const to=((window.endSeconds-startSeconds+86400)%86400)/86400*360;
+    return {...window,from,to};
+  }).filter(window=>window.to>window.from);
+  const nextGlowStrength=0.12+0.5*boost*Math.pow(progress,1.35);
 
   return <View style={{width: size, height: size, alignSelf: 'center', justifyContent: 'center'}}>
     <DialLighting size={size} dark={colors.isDark}/>
@@ -252,6 +271,9 @@ export function PrayerWheel({
             })}
             <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="65" fill="none"/>
             {sectors.map((item,index) => <G key={item.key}>
+              {item.key===nextKey && <Path d={arc(item.from+.6,item.to-.6,RADIUS)}
+                stroke={warningTint??PRAYER_COLORS[item.key]} strokeOpacity={nextGlowStrength}
+                strokeWidth={urgency==='normal'?70:77} fill="none"/>}
               {index === selectedIndex && <Path d={arc(item.from+.85,item.to-.85,RADIUS)}
                 stroke={PRAYER_COLORS[item.key]} strokeOpacity=".37" strokeWidth="71" fill="none"/>}
               <Path d={arc(item.from+.9,item.to-.9,RADIUS)}
@@ -271,8 +293,19 @@ export function PrayerWheel({
               return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
                 stroke={colors.isDark?'#062724':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
             })}
+            {/* Approximate Diyanet-inspired demo restriction bands, NEVER asserted as precise. */}
+            {demoArcs.map(window=><G key={'kerahat-'+window.kind}>
+              <Path d={arc(window.from,window.to,166)}
+                stroke={restriction?.kind===window.kind?'#FA7E7E':'#C86569'}
+                strokeOpacity={restriction?.kind===window.kind?.97:.55}
+                strokeWidth={restriction?.kind===window.kind?6.5:4.3} fill="none"
+                strokeDasharray={restriction?.kind===window.kind?'0':'2,2'}/>
+              <Path d={arc(window.from,window.to,166)}
+                stroke="#FFDBB4" strokeOpacity={restriction?.kind===window.kind?.7:.32}
+                strokeWidth=".8" fill="none"/>
+            </G>)}
             {/* Small current-time marker rotates WITH the wheel: not the selection needle. */}
-            <Circle cx={nowPoint.x} cy={nowPoint.y} r="8" fill={rim} fillOpacity=".16"/>
+            <Circle cx={nowPoint.x} cy={nowPoint.y} r="8" fill={restriction?'#E96870':rim} fillOpacity=".21"/>
             <Circle cx={nowPoint.x} cy={nowPoint.y} r="4.1" fill={rim} stroke={centerFill} strokeWidth="1"/>
             <Path d={arc(0,Math.max(.01,currentAngle),167)} stroke={rim}
               strokeOpacity=".58" strokeWidth="1.8" fill="none"/>
@@ -283,6 +316,30 @@ export function PrayerWheel({
         </Animated.View>
       </View>
     </GestureDetector>
+
+    {/* Real-time progress remains fixed, independent from the physical rotating dial. */}
+    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={size} height={size} viewBox="0 0 360 360">
+      <Defs>
+        <LinearGradient id="liveBar" x1="0%" y1="0%" x2="100%" y2="100%">
+          <Stop offset="0%" stopColor={progressTint} stopOpacity=".72"/>
+          <Stop offset="100%" stopColor={progressTint} stopOpacity="1"/>
+        </LinearGradient>
+      </Defs>
+      <Circle cx="180" cy="180" r="175" fill="none"
+        stroke={colors.isDark?'#D1BB8D':'#CBB589'} strokeOpacity=".25" strokeWidth="4"/>
+      {progress>.001?<Path
+        d={arc(0,Math.max(.2,Math.min(359.8,progress*359.8)),175)}
+        fill="none" stroke={progressTint} strokeOpacity={urgency==='normal'?.30:.38}
+        strokeWidth={urgency==='imminent'?12:8} strokeLinecap="round"/>:null}
+      {progress>.001?<Path
+        d={arc(0,Math.max(.2,Math.min(359.8,progress*359.8)),175)}
+        fill="none" stroke="url(#liveBar)" strokeWidth={urgency==='imminent'?5.5:4}
+        strokeLinecap="round"/>:null}
+      {progress>.001 && <Circle cx={polar(progress*359.8,175).x}
+        cy={polar(progress*359.8,175).y}
+        r={urgency==='imminent'?6.4:4.7} fill={progressTint}
+        stroke={colors.isDark?'#082A27':'#FFF8EB'} strokeWidth="1.8"/>}
+    </Svg>
 
     {/* Static top needle: all prayer segments rotate UNDER this indicator. */}
     <View pointerEvents="none" style={[styles.needle, {
