@@ -160,18 +160,23 @@ export default function HomeScreen(){
   const {phase,restriction,indicativeWindows}=awareness;
   const upcomingIndex=SCHEDULE.times.findIndex(item=>item.key===phase.next.key);
   const remainingText=minutesToNextEvent(phase.secondsRemaining);
+  const nafileOnly=phase.current.key==='imsak' && !restriction;
   const accented=restriction
     ? (dark?'#F49A94':'#B84448')
+    : nafileOnly ? (dark?'#E9C484':'#A17B3C')
     : phase.urgency==='imminent'?'#F3AF58'
     : phase.urgency==='approaching'?'#EAC178'
     : colors.emerald;
   const stateTitle=restriction
     ? 'KERA HET · ÖRNEK HESAPLAMA'
+    : nafileOnly ? 'NAFİLE NAMAZ BİLGİSİ'
     : phase.urgency==='imminent' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ ÇOK YAKIN'
     : phase.urgency==='approaching' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ YAKLAŞIYOR'
     : 'VAKİT AKIŞI';
   const stateDescription=restriction
     ? restriction.description
+    : nafileOnly
+    ? 'İmsak ile güneş arasında sabah namazının sünneti dışındaki nafile namazlarla ilgili kısıtlamalar vardır.'
     : phase.urgency!=='normal'
     ? phase.next.label+' vaktine '+remainingText+'. Yaklaştıkça kadranın ışığı güçlenir.'
     : phase.next.label+' vaktine '+remainingText+' · '+Math.round(phase.progress*100)+'% ilerleme.';
@@ -257,6 +262,7 @@ export default function HomeScreen(){
             style={{fontSize:10.2,color:restriction?accented:colors.muted,fontWeight:restriction?'800':'600',flexShrink:1}}>
             {restriction
               ? 'KERA HET · '+restriction.title+' (örnek)'
+              : nafileOnly ? 'İmsak sonrası · Nafile namaz bilgisi'
               : phase.urgency==='normal'
               ? 'Canlı vakit ilerlemesi'
               : phase.next.label+' vaktine '+remainingText}
@@ -315,7 +321,7 @@ export default function HomeScreen(){
         }]}>
         <View style={{height:31,width:31,borderRadius:11,alignItems:'center',justifyContent:'center',
           backgroundColor:restriction?(dark?'#5B3032':'#F4D6D0'):(dark?'#245149':'#D9E9E1')}}>
-          <Feather name={restriction?'alert-triangle':phase.urgency==='normal'?'clock':'sun'}
+          <Feather name={restriction?'alert-triangle':nafileOnly?'book-open':phase.urgency==='normal'?'clock':'sun'}
             size={15} color={accented}/>
         </View>
         <View style={{flex:1,gap:3}}>
