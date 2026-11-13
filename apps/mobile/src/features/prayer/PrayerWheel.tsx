@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useRef} from 'react';
-import {Animated, PanResponder, Pressable, StyleSheet, Text, View} from 'react-native';
+import {Animated, PanResponder, StyleSheet, Text, View} from 'react-native';
 import Svg, {
   Circle, Defs, G, Line, LinearGradient, Path,
   RadialGradient, Stop, Text as SvgText,
@@ -8,7 +8,7 @@ import * as Haptics from 'expo-haptics';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import type {PrayerTime} from '@camideyiz/core';
 import {timeToMinutes} from '@camideyiz/core';
-import {base, type ColorTokens} from '@/theme/tokens';
+import {type ColorTokens} from '@/theme/tokens';
 
 export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
   imsak: '#6BB5C9',
@@ -171,12 +171,12 @@ export function PrayerWheel({
             </LinearGradient>
           ))}
         </Defs>
-        <Circle cx="180" cy="180" r="176" stroke={colors.gold} strokeWidth="0.8" strokeOpacity="0.21" fill="none"/>
+        <Circle cx="180" cy="180" r="178" stroke={colors.gold} strokeWidth="0.8" strokeOpacity="0.21" fill="none"/>
         {Array.from({length: 72}, (_, i) => {
           const angle = i * 5;
           const major = i % 6 === 0;
-          const from = polar(angle, major ? 179 : 181);
-          const to = polar(angle, major ? 188 : 186);
+          const from = polar(angle, major ? 165 : 171);
+          const to = polar(angle, major ? 178 : 176);
           return <Line key={'tick-' + i} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
             stroke={colors.gold} strokeOpacity={major ? 0.82 : 0.29}
             strokeWidth={major ? 1.65 : 0.8}/>;
