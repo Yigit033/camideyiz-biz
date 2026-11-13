@@ -88,7 +88,7 @@ export default function MoreScreen(){
       </Pressable>
     </Panel>
     <Text style={{color:colors.muted,textAlign:'center',fontSize:11}}>
-      Sürüm 0.1.0 · Geliştirme dalı
+      Camideyiz Biz · Sürüm 0.1.0
     </Text>
   </Page>;
 }
