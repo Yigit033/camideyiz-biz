@@ -1,5 +1,5 @@
-import {useEffect, useMemo} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {useEffect, useMemo, type ComponentProps} from 'react';
+import {Image,StyleSheet,Text,View} from 'react-native';
 import Svg, {Circle, Defs, Ellipse, G, Line, LinearGradient, Path, RadialGradient, Stop} from 'react-native-svg';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {GestureDetector, usePanGesture} from 'react-native-gesture-handler';
@@ -17,6 +17,7 @@ import {
 } from '@camideyiz/core';
 import {type ColorTokens} from '@/theme/tokens';
 import {DialLighting} from './DialLighting';
+import {MosqueLandscape} from '@/components/LuxuryArtwork';
 
 export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
   imsak: '#6BB5C9',
@@ -28,8 +29,16 @@ export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
 };
 
 const CENTER = 180;
-const RADIUS = 133;
+const RADIUS = 139;
 const DIAMETER = 360;
+const PRAYER_COUNTDOWN_LABELS:Record<PrayerTime['key'],string> = {
+  imsak:'İmsağa Kalan',gunes:'Güneşe Kalan',ogle:'Öğleye Kalan',
+  ikindi:'İkindiye Kalan',aksam:'Akşama Kalan',yatsi:'Yatsıya Kalan',
+};
+const PRAYER_ICONS: Record<PrayerTime['key'], ComponentProps<typeof MaterialCommunityIcons>['name']> = {
+  imsak:'moon-waning-crescent',gunes:'weather-sunset-up',ogle:'white-balance-sunny',
+  ikindi:'timer-sand',aksam:'weather-sunset-down',yatsi:'weather-night',
+};
 type PrayerArc = PrayerTime & {from: number; to: number};
 
 export function segmentAngles(times: readonly PrayerTime[]): PrayerArc[] {
@@ -60,7 +69,8 @@ function SectorLabel({
   sector: PrayerArc; size: number; rotation: SharedValue<number>; selected: boolean; dark: boolean;
 }) {
   const point = polar((sector.from + sector.to) / 2, RADIUS);
-  const labelWidth = 64 * size / DIAMETER;
+  const iconSize = 14 * size / DIAMETER;
+  const labelWidth = 72 * size / DIAMETER;
   const centerX = point.x * size / DIAMETER;
   const centerY = point.y * size / DIAMETER;
   const style = useAnimatedStyle(() => ({
@@ -71,18 +81,20 @@ function SectorLabel({
     pointerEvents="none"
     style={[
       styles.sectorLabel,
-      {left: centerX - labelWidth / 2, top: centerY - 18 * size / DIAMETER, width: labelWidth,
-        height: 36 * size / DIAMETER},
+      {left: centerX - labelWidth / 2, top: centerY - 28 * size / DIAMETER, width: labelWidth,
+        height: 56 * size / DIAMETER},
       style,
     ]}>
+    <MaterialCommunityIcons name={PRAYER_ICONS[sector.key]} size={iconSize}
+      color={selected || sector.key === 'yatsi' ? '#FFF4DA' : '#164038'}/>
     <Text numberOfLines={1} adjustsFontSizeToFit style={{
-      fontSize: (narrow ? 10.5 : 12.5) * size / DIAMETER,
-      fontWeight: selected ? '900' : '700', letterSpacing: -0.3,
-      color: sector.key === 'yatsi' ? '#FFF7F3' : '#132925', textAlign: 'center',
+      fontSize: (narrow ? 10.1 : 12) * size / DIAMETER,
+      fontFamily:'serif',fontWeight:'700',letterSpacing:-.15,
+      color: selected || sector.key === 'yatsi' ? '#FFFCF3' : '#18372F', textAlign:'center',
     }}>{sector.label}</Text>
     <Text numberOfLines={1} adjustsFontSizeToFit style={{
-      fontSize: (narrow ? 10 : 11.5) * size / DIAMETER,
-      fontWeight: '700', color: sector.key === 'yatsi' ? '#F3EEE9' : '#22483F',
+      fontSize: (narrow ? 9.7 : 11.3) * size / DIAMETER,
+      fontWeight: '700', color: selected || sector.key === 'yatsi' ? '#FFF7E9' : '#23473E',
       textAlign: 'center', marginTop: 2 * size / DIAMETER,
     }}>{sector.time}</Text>
   </Animated.View>;
@@ -207,9 +219,9 @@ export function PrayerWheel({
   const currentAngle = ((nowSeconds - secondsFromImsak + 86400) % 86400) / 86400 * 360;
   const nowPoint = polar(currentAngle, 170);
   const selected = sectors[selectedIndex];
-  const centerFill = colors.isDark ? '#132C27' : '#FFFDF7';
-  const rim = colors.isDark ? '#D3B47A' : '#B7A078';
-  const baseStroke = colors.isDark ? '#28423B' : '#E7E5D9';
+  const centerFill = colors.isDark ? '#081E21' : '#FFF9EF';
+  const rim = colors.isDark ? '#ECD19B' : '#C39B55';
+  const baseStroke = colors.isDark ? '#07332F' : '#E9E3D2';
 
   return <View style={{width: size, height: size, alignSelf: 'center', justifyContent: 'center'}}>
     <DialLighting size={size} dark={colors.isDark}/>
@@ -238,26 +250,26 @@ export function PrayerWheel({
                 x2={end.x} y2={end.y} stroke={rim}
                 strokeWidth={i%6===0?1.7:.75} strokeOpacity={i%6===0?.9:.36}/>;
             })}
-            <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="52" fill="none"/>
+            <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="65" fill="none"/>
             {sectors.map((item,index) => <G key={item.key}>
               {index === selectedIndex && <Path d={arc(item.from+.85,item.to-.85,RADIUS)}
-                stroke={PRAYER_COLORS[item.key]} strokeOpacity=".22" strokeWidth="61" fill="none"/>}
+                stroke={PRAYER_COLORS[item.key]} strokeOpacity=".37" strokeWidth="71" fill="none"/>}
               <Path d={arc(item.from+.9,item.to-.9,RADIUS)}
                 stroke={'url(#fill-'+item.key+')'}
-                strokeWidth={index===selectedIndex?51:47} fill="none"/>
-              <Path d={arc(item.from+2,item.to-2,157)}
+                strokeWidth={index===selectedIndex?63:58} fill="none"/>
+              <Path d={arc(item.from+2,item.to-2,169)}
                 stroke={index===selectedIndex?'#F9E7B8':'#FDFCF5'}
                 strokeOpacity={index===selectedIndex?.86:.34}
-                strokeWidth={index===selectedIndex?2.7:1.1} fill="none"/>
+                strokeWidth={index===selectedIndex?4:1.8} fill="none"/>
             </G>)}
-            <Circle cx="180" cy="180" r="105" stroke={rim} strokeWidth="1.1"
+            <Circle cx="180" cy="180" r="106" stroke={rim} strokeWidth="2.2"
               strokeOpacity=".7" fill="url(#dialInner)"/>
-            <Circle cx="180" cy="180" r="100" stroke={rim} strokeWidth=".6"
+            <Circle cx="180" cy="180" r="101" stroke={rim} strokeWidth=".8"
               strokeOpacity=".28" fill="none"/>
             {sectors.map(item => {
-              const p1=polar(item.from,108),p2=polar(item.from,159);
+              const p1=polar(item.from,108),p2=polar(item.from,169);
               return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                stroke={colors.isDark?'#243A36':'#F9F8F3'} strokeWidth="2.1" opacity=".78"/>;
+                stroke={colors.isDark?'#062724':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
             })}
             {/* Small current-time marker rotates WITH the wheel: not the selection needle. */}
             <Circle cx={nowPoint.x} cy={nowPoint.y} r="8" fill={rim} fillOpacity=".16"/>
@@ -283,28 +295,55 @@ export function PrayerWheel({
       </Svg>
     </View>
 
-    <View pointerEvents="none" style={[styles.center, {width: size*.53}]}>
-      <Svg width={89*scale} height={42*scale} viewBox="0 0 89 42" style={{marginBottom:5}}>
-        <G fill={colors.gold} opacity=".86">
-          <Path d="M19 40V24H26V16H31V12C35 8 41 7 44.5 2C48 7 54 8 58 12V16H63V24H70V40H58V27H31V40Z"/>
-          <Path d="M9 40V14L12 7L15 14V40ZM75 40V14L78 7L81 14V40Z"/>
-          <Ellipse cx="44.5" cy="15" rx="14" ry="6"/>
-        </G>
-        <Path d="M44.5 0V5" stroke={colors.gold} strokeWidth="1.4"/>
+    <View pointerEvents="none" style={{
+      position:'absolute',alignSelf:'center',width:size*.585,height:size*.585,
+      alignItems:'center',justifyContent:'center',
+    }}>
+      <Svg width="100%" height="100%" viewBox="0 0 220 220" style={StyleSheet.absoluteFill}>
+        <Defs>
+          <RadialGradient id="medallion" cx="50%" cy="52%" rx="60%" ry="61%">
+            <Stop offset="0%" stopColor={colors.isDark?'#07282A':'#FFFDF8'}/>
+            <Stop offset="76%" stopColor={colors.isDark?'#052326':'#FEF7EA'}/>
+            <Stop offset="100%" stopColor={colors.isDark?'#082F30':'#DDD6C7'}/>
+          </RadialGradient>
+        </Defs>
+        <Circle cx="110" cy="110" r="108" fill="url(#medallion)" stroke={rim} strokeWidth="1.65"/>
+        <Circle cx="110" cy="110" r="104" fill="none" stroke={rim} strokeOpacity=".38" strokeWidth=".8"/>
+        {Array.from({length:36},(_,i)=>{
+          const a=(i*10)*Math.PI/180;return <Circle key={i}
+            cx={110+101*Math.cos(a)} cy={110+101*Math.sin(a)} r=".68"
+            fill={colors.gold} opacity={colors.isDark?.44:.42}/>;
+        })}
       </Svg>
-      <Text style={[styles.kicker,{color:colors.gold}]}>
-        {isManualSelection?'SEÇİLEN VAKİT':'SIRADAKİ VAKİT'}
-      </Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.prayerName,{color:colors.text}]}>
-        {selected?.label??'Vakit'}
-      </Text>
-      <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countdown,{color:colors.emerald}]}>
-        {isManualSelection?selected?.time??'--:--':countdown}
-      </Text>
-      <View style={{width:37,height:1,backgroundColor:colors.gold,opacity:.7,marginVertical:5}}/>
-      <Text style={[styles.caption,{color:colors.muted}]}>
-        {isManualSelection?'Örnek saat':'Vakte kalan · demo'}
-      </Text>
+      <View style={[styles.center,{width:size*.56}]}>
+        <View style={{width:size*.43,height:size*.43*.48,overflow:'hidden',
+          borderRadius:Math.max(5,size*.016),opacity:colors.isDark?.90:.84}}>
+          <MosqueLandscape width={size*.43} dark={colors.isDark}/>
+          <Image
+            source={colors.isDark
+              ? require('../../../assets/scenes/dark-mosque.webp')
+              : require('../../../assets/scenes/light-mosque.webp')}
+            resizeMode="cover"
+            style={{position:'absolute',width:'100%',height:'100%'}}/>
+        </View>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.prayerName,{color:colors.text}]}>
+          {isManualSelection?'Seçilen Vakit':(selected?PRAYER_COUNTDOWN_LABELS[selected.key]:'Vakte Kalan')}
+        </Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countdown,{color:colors.emerald}]}>
+          {isManualSelection?selected?.time??'--:--':countdown}
+        </Text>
+        <View style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:2}}>
+          <View style={{width:24,height:1,backgroundColor:colors.gold,opacity:.78}}/>
+          <MaterialCommunityIcons name="star-four-points-outline" size={13} color={colors.gold}/>
+          <View style={{width:24,height:1,backgroundColor:colors.gold,opacity:.78}}/>
+        </View>
+        <View style={{flexDirection:'row',alignItems:'center',gap:4,marginTop:2}}>
+          <MaterialCommunityIcons name="map-marker-outline" size={12} color={colors.muted}/>
+          <Text style={[styles.caption,{color:colors.muted}]}>
+            {isManualSelection?'Örnek saat':'İstanbul · demo'}
+          </Text>
+        </View>
+      </View>
     </View>
   </View>;
 }
@@ -312,9 +351,9 @@ export function PrayerWheel({
 const styles=StyleSheet.create({
   sectorLabel:{position:'absolute',alignItems:'center',justifyContent:'center',gap:1},
   needle:{position:'absolute',alignItems:'center',justifyContent:'center'},
-  center:{position:'absolute',alignSelf:'center',alignItems:'center',gap:4},
+  center:{alignItems:'center',justifyContent:'center',gap:3},
   kicker:{fontSize:9,fontWeight:'800',letterSpacing:1.3},
-  prayerName:{fontFamily:'serif',fontSize:23,fontWeight:'700',marginTop:1},
-  countdown:{fontSize:29,fontWeight:'800',fontVariant:['tabular-nums'],letterSpacing:-.7,marginTop:3},
-  caption:{fontSize:10,textAlign:'center'},
+  prayerName:{fontFamily:'serif',fontSize:19,fontWeight:'700',marginTop:-2,textAlign:'center'},
+  countdown:{fontSize:29,fontWeight:'700',fontFamily:'serif',fontVariant:['tabular-nums'],letterSpacing:-.8,marginTop:-1},
+  caption:{fontSize:10.5,fontFamily:'serif',textAlign:'center'},
 });

@@ -3,59 +3,76 @@ import {View} from 'react-native';
 import {Feather, MaterialCommunityIcons} from '@expo/vector-icons';
 import {useAppTheme} from '@/theme/ThemeProvider';
 
-function IconShell({focused, children}: {focused: boolean; children: React.ReactNode}) {
-  const {colors} = useAppTheme();
+function JewelTab({focused,children}: {focused:boolean;children:React.ReactNode}){
+  const {colors}=useAppTheme();
+  const dark=colors.isDark;
   return <View style={{
-    width: 44, height: 33, borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: focused ? colors.soft : 'transparent',
-    borderWidth: focused ? 1 : 0,
-    borderColor: colors.isDark ? '#4B7664' : '#D5E3D9',
-  }}>{children}</View>;
+    alignItems:'center',justifyContent:'center',
+    width:57,height:44,borderRadius:15,
+    backgroundColor:focused?(dark?'#08765E':'#087051'):'transparent',
+    borderWidth:focused?1:0,
+    borderColor:dark?'#5FD8B4':'#BFC99C',
+    shadowColor:focused?'#15D4A4':'transparent',
+    shadowOpacity:focused?.38:0,shadowRadius:9,
+    elevation:focused?5:0,
+  }}>
+    {children}
+    {focused?<View style={{
+      position:'absolute',height:2,width:27,borderRadius:2,
+      bottom:3,backgroundColor:'#F5D28C',
+      shadowColor:'#E2BD73',shadowOpacity:.7,shadowRadius:4,
+    }}/>:null}
+  </View>;
 }
-export default function TabLayout() {
-  const {colors} = useAppTheme();
-  const iconColor = (color: unknown) => typeof color === 'string' ? color : colors.muted;
+export default function TabLayout(){
+  const {colors}=useAppTheme();
+  const dark=colors.isDark;
+  const glyph=(focused:boolean)=>focused?'#F8E9C5':dark?'#D3DDD6':'#3A6254';
   return <Tabs screenOptions={{
-    headerShown: false,
-    tabBarActiveTintColor: colors.isDark ? '#D9C18D' : '#947B51',
-    tabBarInactiveTintColor: colors.muted,
-    tabBarStyle: {
-      backgroundColor: colors.surface,
-      borderTopColor: colors.border, borderTopWidth: 1,
-      height: 78, paddingTop: 7, paddingBottom: 7,
+    headerShown:false,
+    tabBarActiveTintColor:dark?'#EED49E':'#97764A',
+    tabBarInactiveTintColor:dark?'#B7CBC5':'#345749',
+    tabBarStyle:{
+      backgroundColor:dark?'#082827':'#FFFCF6',
+      borderTopColor:dark?'#397968':'#D9C59F',
+      borderTopWidth:1,
+      borderTopLeftRadius:23,borderTopRightRadius:23,
+      height:75,paddingTop:3,paddingBottom:5,
+      shadowColor:'#A58755',shadowOpacity:.17,shadowRadius:14,
+      elevation:10,
     },
-    tabBarLabelStyle: {fontSize: 10, fontWeight: '700', letterSpacing: .05},
-    tabBarItemStyle: {paddingHorizontal: 1},
+    tabBarLabelStyle:{fontFamily:'serif',fontSize:10.2,fontWeight:'700'},
+    tabBarItemStyle:{paddingHorizontal:0},
   }}>
     <Tabs.Screen name="index" options={{
-      title: 'Vakitler',
-      tabBarIcon: ({color, focused}) => <IconShell focused={focused}>
-        <MaterialCommunityIcons name="clock-time-four-outline" color={iconColor(color)} size={23}/>
-      </IconShell>,
+      title:'Vakitler',
+      tabBarIcon:({focused})=><JewelTab focused={focused}>
+        <MaterialCommunityIcons name="mosque" color={glyph(focused)} size={23}/>
+      </JewelTab>,
     }}/>
     <Tabs.Screen name="mosques" options={{
-      title: 'Camiler',
-      tabBarIcon: ({color, focused}) => <IconShell focused={focused}>
-        <MaterialCommunityIcons name="mosque" color={iconColor(color)} size={23}/>
-      </IconShell>,
+      title:'Camiler',
+      tabBarIcon:({focused})=><JewelTab focused={focused}>
+        <MaterialCommunityIcons name="map-marker-radius-outline" color={glyph(focused)} size={23}/>
+      </JewelTab>,
     }}/>
     <Tabs.Screen name="qibla" options={{
-      title: 'Kıble',
-      tabBarIcon: ({color, focused}) => <IconShell focused={focused}>
-        <Feather name="compass" color={iconColor(color)} size={22}/>
-      </IconShell>,
+      title:'Kıble',
+      tabBarIcon:({focused})=><JewelTab focused={focused}>
+        <Feather name="compass" color={glyph(focused)} size={21}/>
+      </JewelTab>,
     }}/>
     <Tabs.Screen name="gallery" options={{
-      title: 'Galeri',
-      tabBarIcon: ({color, focused}) => <IconShell focused={focused}>
-        <Feather name="image" color={iconColor(color)} size={22}/>
-      </IconShell>,
+      title:'Galeri',
+      tabBarIcon:({focused})=><JewelTab focused={focused}>
+        <Feather name="image" color={glyph(focused)} size={21}/>
+      </JewelTab>,
     }}/>
     <Tabs.Screen name="more" options={{
-      title: 'Menü',
-      tabBarIcon: ({color, focused}) => <IconShell focused={focused}>
-        <Feather name="menu" color={iconColor(color)} size={22}/>
-      </IconShell>,
+      title:'Menü',
+      tabBarIcon:({focused})=><JewelTab focused={focused}>
+        <Feather name="menu" color={glyph(focused)} size={22}/>
+      </JewelTab>,
     }}/>
   </Tabs>;
 }
