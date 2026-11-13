@@ -20,17 +20,22 @@ import {DialLighting} from './DialLighting';
 import {MosqueLandscape} from '@/components/LuxuryArtwork';
 
 export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
-  imsak: '#6BB5C9',
-  gunes: '#E7B766',
-  ogle: '#CEB27A',
-  ikindi: '#36BDA0',
-  aksam: '#D78C69',
-  yatsi: '#8980C8',
+  imsak:'#3593B5',
+  gunes:'#D69E44',
+  ogle:'#1EAFB0',
+  ikindi:'#10B981',
+  aksam:'#DA7049',
+  yatsi:'#7162BB',
 };
 
 const CENTER = 180;
 const RADIUS = 139;
 const DIAMETER = 360;
+function blendHex(a:string,b:string,alpha:number):string {
+  const extract=(s:string,n:number)=>parseInt(s.slice(n,n+2),16);
+  const mix=(x:number,y:number)=>Math.round(x*(1-alpha)+y*alpha).toString(16).padStart(2,'0');
+  return '#'+[1,3,5].map(p=>mix(extract(a,p),extract(b,p))).join('');
+}
 const PRAYER_COUNTDOWN_LABELS:Record<PrayerTime['key'],string> = {
   imsak:'İmsağa Kalan',gunes:'Güneşe Kalan',ogle:'Öğleye Kalan',
   ikindi:'İkindiye Kalan',aksam:'Akşama Kalan',yatsi:'Yatsıya Kalan',
@@ -262,10 +267,11 @@ export function PrayerWheel({
                 <Stop offset="100%" stopColor={centerFill}/>
               </RadialGradient>
               {sectors.map(item => <LinearGradient id={'fill-'+item.key} key={item.key}
-                x1="0%" y1="0%" x2="100%" y2="100%">
-                <Stop offset="0%" stopColor={PRAYER_COLORS[item.key]} stopOpacity=".88"/>
-                <Stop offset="60%" stopColor={PRAYER_COLORS[item.key]}/>
-                <Stop offset="100%" stopColor={PRAYER_COLORS[item.key]} stopOpacity=".93"/>
+                x1="12%" y1="5%" x2="92%" y2="98%">
+                <Stop offset="0%" stopColor={blendHex(PRAYER_COLORS[item.key],'#FFFFFF',colors.isDark?.29:.44)}/>
+                <Stop offset="28%" stopColor={PRAYER_COLORS[item.key]}/>
+                <Stop offset="72%" stopColor={blendHex(PRAYER_COLORS[item.key],'#061B1C',colors.isDark?.29:.12)}/>
+                <Stop offset="100%" stopColor={blendHex(PRAYER_COLORS[item.key],'#061B1C',colors.isDark?.48:.26)}/>
               </LinearGradient>)}
             </Defs>
             <Circle cx="180" cy="180" r="176" stroke={rim} strokeWidth="0.8" strokeOpacity=".55" fill="none"/>
@@ -279,18 +285,33 @@ export function PrayerWheel({
             })}
             <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="65" fill="none"/>
             {sectors.map((item,index) => <G key={item.key}>
-              {item.key===nextKey && <Path d={arc(item.from+.6,item.to-.6,RADIUS)}
-                stroke={warningTint??PRAYER_COLORS[item.key]} strokeOpacity={nextGlowStrength}
-                strokeWidth={urgency==='normal'?70:77} fill="none"/>}
+              {item.key===nextKey && <>
+                <Path d={arc(item.from+.6,item.to-.6,RADIUS)}
+                  stroke={warningTint??PRAYER_COLORS[item.key]}
+                  strokeOpacity={nextGlowStrength*.46}
+                  strokeWidth={urgency==='normal'?80:88} fill="none"/>
+                <Path d={arc(item.from+.6,item.to-.6,RADIUS)}
+                  stroke={warningTint??blendHex(PRAYER_COLORS[item.key],'#FCECCB',.25)}
+                  strokeOpacity={nextGlowStrength}
+                  strokeWidth={urgency==='normal'?71:77} fill="none"/>
+              </>}
               {index === selectedIndex && <Path d={arc(item.from+.85,item.to-.85,RADIUS)}
                 stroke={PRAYER_COLORS[item.key]} strokeOpacity=".37" strokeWidth="71" fill="none"/>}
               <Path d={arc(item.from+.9,item.to-.9,RADIUS)}
                 stroke={'url(#fill-'+item.key+')'}
                 strokeWidth={index===selectedIndex?63:58} fill="none"/>
               <Path d={arc(item.from+2,item.to-2,169)}
-                stroke={index===selectedIndex?'#F9E7B8':'#FDFCF5'}
-                strokeOpacity={index===selectedIndex?.86:.34}
-                strokeWidth={index===selectedIndex?4:1.8} fill="none"/>
+                stroke={index===selectedIndex?'#FFE9B7':'#F9F2DC'}
+                strokeOpacity={index===selectedIndex?.94:.37}
+                strokeWidth={index===selectedIndex?4.3:1.8} fill="none"/>
+              <Path d={arc(item.from+2,item.to-2,114)}
+                stroke={index===selectedIndex?'#FFF6DC':'#F8E9C8'}
+                strokeOpacity={index===selectedIndex?.42:.18}
+                strokeWidth={index===selectedIndex?4.2:2.1} fill="none"/>
+              <Path d={arc(item.from+2,item.to-2,149)}
+                stroke="#FFF9E4"
+                strokeOpacity={index===selectedIndex?.15:.07}
+                strokeWidth="11" fill="none"/>
             </G>)}
             <Circle cx="180" cy="180" r="106" stroke={rim} strokeWidth="2.2"
               strokeOpacity=".7" fill="url(#dialInner)"/>
