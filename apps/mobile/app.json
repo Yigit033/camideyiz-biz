@@ -1,10 +1,30 @@
 {
-  "expo":{
-    "name":"Camideyiz Biz","slug":"camideyiz-biz","scheme":"camideyizbiz",
-    "version":"0.1.0","orientation":"portrait","userInterfaceStyle":"automatic",
-    "newArchEnabled":true,
-    "ios":{"supportsTablet":true,"bundleIdentifier":"biz.camideyiz.app","infoPlist":{"NSLocationWhenInUseUsageDescription":"Kıble yönünü hesaplamak ve konumunuza uygun namaz vakitlerini seçebilmek için konum erişimi gerekir."}},
-    "android":{"package":"biz.camideyiz.app","edgeToEdgeEnabled":true,"permissions":["ACCESS_COARSE_LOCATION","ACCESS_FINE_LOCATION"]},
-    "plugins":["expo-router","expo-location"],"experiments":{"typedRoutes":true}
+  "expo": {
+    "name": "Camideyiz Biz",
+    "slug": "camideyiz-biz",
+    "scheme": "camideyizbiz",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "biz.camideyiz.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Kıble yönünü hesaplamak ve konumunuza uygun namaz vakitlerini seçebilmek için konum erişimi gerekir."
+      }
+    },
+    "android": {
+      "package": "biz.camideyiz.app",
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location"
+    ]
   }
 }
