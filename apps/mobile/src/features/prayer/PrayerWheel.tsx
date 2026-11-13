@@ -128,6 +128,7 @@ export function PrayerWheel({
     : 0;
   const rotation = useSharedValue(-initialCenter);
   const previousSelected = useRef(selectedIndex);
+  const previousFocus = useRef(focusRequest);
   const active = useSharedValue(false);
   const prevTouch = useSharedValue(0);
   const hasTouch = useSharedValue(false);
@@ -141,8 +142,11 @@ export function PrayerWheel({
   // This avoids re-centering on each segment boundary while the user is dragging.
   useEffect(() => {
     const autoShift=!isManualSelection && previousSelected.current!==selectedIndex;
+    const explicitlyRequested=previousFocus.current!==focusRequest;
     previousSelected.current=selectedIndex;
-    if ((!autoShift && focusRequest===0) || !sectors[selectedIndex]) return;
+    previousFocus.current=focusRequest;
+    // Do not interrupt the user dragging the dial when selection changes.
+    if ((!explicitlyRequested && !autoShift) || !sectors[selectedIndex]) return;
     // Auto-follow when the clock crosses an actual prayer boundary, not each second.
     cancelAnimation(rotation);
     active.value = false;
