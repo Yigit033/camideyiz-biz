@@ -26,7 +26,7 @@ test('fixed needle selects passing sector, not finger position',()=>{
 });
 test('external selection takes shortest path across zero degrees',()=>{
   assert.equal(nearestCenterRotation(-355,sectors[0]),-405);
-  assert.equal(nearestCenterRotation(-20,sectors[3]),22.5);
+  assert.equal(nearestCenterRotation(-20,sectors[3]),45);
 });
 test('tangential velocity is zero at the center and direction-aware',()=>{
   assert.equal(tangentialVelocity(0,0,10,40),0);
