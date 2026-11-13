@@ -1,2 +1,2 @@
-export * from './prayer.ts';
-export * from './qibla.ts';
+export * from './prayer';
+export * from './qibla';
