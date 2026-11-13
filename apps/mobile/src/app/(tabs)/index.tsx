@@ -7,7 +7,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Svg,{Circle,Defs,LinearGradient,Path,Stop} from 'react-native-svg';
-import {DEMO_SCHEDULE,formatCountdown,nextPrayerAtSeconds,zonedClock} from '@camideyiz/core';
+import {DEMO_SCHEDULE,formatCountdown,zonedClock,calculateTimeAwareness,minutesToNextEvent} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere,ArabesqueCorner,GoldenLantern} from '@/components/LuxuryArtwork';
@@ -134,8 +134,28 @@ export default function HomeScreen(){
     return ()=>clearInterval(timer);
   },[]);
   const zoned=useMemo(()=>zonedClock(now,SCHEDULE.timezone),[now]);
-  const next=nextPrayerAtSeconds(SCHEDULE,zoned.secondsOfDay);
-  const upcomingIndex=SCHEDULE.times.findIndex(item=>item.key===next.prayer.key);
+  const awareness=useMemo(
+    ()=>calculateTimeAwareness(SCHEDULE,zoned.secondsOfDay,zoned.dateISO,true),
+    [zoned.secondsOfDay,zoned.dateISO],
+  );
+  const {phase,restriction,indicativeWindows}=awareness;
+  const upcomingIndex=SCHEDULE.times.findIndex(item=>item.key===phase.next.key);
+  const remainingText=minutesToNextEvent(phase.secondsRemaining);
+  const accented=restriction
+    ? (dark?'#F49A94':'#B84448')
+    : phase.urgency==='imminent'?'#F3AF58'
+    : phase.urgency==='approaching'?'#EAC178'
+    : colors.emerald;
+  const stateTitle=restriction
+    ? 'KERA HET · ÖRNEK HESAPLAMA'
+    : phase.urgency==='imminent' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ ÇOK YAKIN'
+    : phase.urgency==='approaching' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ YAKLAŞIYOR'
+    : 'VAKİT AKIŞI';
+  const stateDescription=restriction
+    ? restriction.description
+    : phase.urgency!=='normal'
+    ? phase.next.label+' vaktine '+remainingText+'. Yaklaştıkça kadranın ışığı güçlenir.'
+    : phase.next.label+' vaktine '+remainingText+' · '+Math.round(phase.progress*100)+'% ilerleme.';
   const selectedIndex=manualIndex??upcomingIndex;
   const selectedPrayer=SCHEDULE.times[selectedIndex];
   const compact=height<730;
@@ -190,8 +210,13 @@ export default function HomeScreen(){
           times={SCHEDULE.times} selectedIndex={selectedIndex}
           onSelect={handleWheelSelection} focusRequest={focusRequest}
           nowSeconds={zoned.secondsOfDay} colors={colors}
-          size={wheelSize} countdown={formatCountdown(next.secondsRemaining)}
+          size={wheelSize} countdown={formatCountdown(phase.secondsRemaining)}
           isManualSelection={manualIndex!==null}
+          phaseProgress={phase.progress}
+          urgency={phase.urgency}
+          nextKey={phase.next.key}
+          restriction={restriction}
+          indicativeWindows={indicativeWindows}
         />
         <View style={{position:'absolute',right:8,top:22,alignItems:'flex-end',gap:3}}
           pointerEvents="none">
@@ -211,7 +236,7 @@ export default function HomeScreen(){
             <Feather name="rotate-ccw" size={12} color={colors.emerald}/>
             <Text style={{fontSize:11,color:colors.emerald,fontWeight:'700'}}>Canlıya dön</Text>
           </Pressable>
-          :<Text style={{fontSize:10,color:colors.muted}}>Parmağınla döndür</Text>}
+          :<Text style={{fontSize:10,color:colors.muted}}>Çevre halkası: %{Math.round(phase.progress*100)}</Text>}
       </View>
 
       <View style={[styles.chipsContainer,{
@@ -241,12 +266,38 @@ export default function HomeScreen(){
       </View>
 
       <DailyContent dark={dark}/>
-      <View style={[styles.kerahetNote,{borderColor:colors.border}]}>
-        <Feather name="alert-circle" size={12} color={colors.warning}/>
-        <Text style={{fontSize:10,color:colors.muted,flex:1}}>
-          Kerahet dilimleri, onaylı hesaplama bağlanınca çembere eklenecek.
+      <Pressable accessibilityRole="button"
+        accessibilityLabel="Güncel zaman durumu ve kerahet açıklamasını oku"
+        onPress={()=>Alert.alert(
+          restriction?'Kerahet vakti (örnek)':phase.next.label+' vaktine kalan',
+          restriction
+            ? restriction.description+'\n\nBu aralıklar genel Diyanet açıklamasından türetilmiş yaklaşık DEMO örnekleridir. Farklı namaz türleri için hükümler ve istisnalar bulunmaktadır. Gerçek ibadet için kullanılmamalıdır.'
+            : 'Vakit zaman çizelgesinin yaklaşık %'+Math.round(phase.progress*100)+' kısmı geçti. Sonraki vakte '+remainingText+' var. Saatler sadece tasarım örneğidir.',
+        )}
+        style={[styles.kerahetNote,{
+          borderColor:restriction ? (dark?'#B96364':'#D59A98') : colors.border,
+          backgroundColor:restriction
+            ? (dark?'rgba(165,56,61,.22)':'#FCF0ED')
+            : (dark?'rgba(13,59,54,.72)':'rgba(255,255,255,.67)'),
+          borderWidth:1,borderRadius:14,padding:10,
+        }]}>
+        <View style={{height:31,width:31,borderRadius:11,alignItems:'center',justifyContent:'center',
+          backgroundColor:restriction?(dark?'#5B3032':'#F4D6D0'):(dark?'#245149':'#D9E9E1')}}>
+          <Feather name={restriction?'alert-triangle':phase.urgency==='normal'?'clock':'sun'}
+            size={15} color={accented}/>
+        </View>
+        <View style={{flex:1,gap:3}}>
+          <Text style={{fontSize:10,letterSpacing:.85,fontWeight:'800',color:accented}}>{stateTitle}</Text>
+          <Text style={{fontSize:11,color:colors.text,lineHeight:16}}>{stateDescription}</Text>
+          <Text style={{fontSize:9.5,color:colors.muted}}>Tahmini aralıklar · Diyanet esaslı örnek model</Text>
+        </View>
+        <Feather name="chevron-right" size={14} color={colors.muted}/>
+      </Pressable>
+      {phase.current.key==='ikindi' && !restriction
+        ?<Text style={{fontSize:10,color:colors.muted,paddingHorizontal:10}}>
+          İkindi farzı kılındıktan sonra nafile namazlar konusunda ayrıca kısıtlamalar vardır.
         </Text>
-      </View>
+        :null}
       <Text style={{textAlign:'center',color:colors.muted,fontSize:10,marginBottom:11}}>
         Camideyiz Biz · Vakitler ve günlük içerikler demo amaçlıdır
       </Text>
