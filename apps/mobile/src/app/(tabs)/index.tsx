@@ -88,12 +88,12 @@ function DailyContent({dark}: {dark:boolean}){
       <ArabesqueCorner dark width={98}/>
       <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
         <MaterialCommunityIcons name="book-open-page-variant-outline" color="#F1CC86" size={22}/>
-        <Text style={[styles.dailyHeading,{color:'#F1D49D'}]}>Günün Ayeti</Text>
+        <Text style={[styles.dailyHeading,{color:'#F1D49D'}]}>Seçme Ayet</Text>
       </View>
       <Text numberOfLines={3} style={[styles.dailyBody,{color:'#F9F3E6'}]}>
-        “Şüphesiz namaz, mü’minler üzerine vakitleri belirlenmiş bir farzdır.”
+        “Namaz, müminler üzerine vakitleri belli olarak yazılmış bir ödevdir.”
       </Text>
-      <Text style={[styles.dailyCredit,{color:'#C3D8C4'}]}>Nisâ 103 · Örnek meal</Text>
+      <Text style={[styles.dailyCredit,{color:'#C3D8C4'}]}>Nisâ 4:103 · Diyanet Kur'an Yolu</Text>
     </View>
     <View style={[styles.dailyHadis,{
       backgroundColor:dark?'#172827':'#FFFBF3',
@@ -101,13 +101,13 @@ function DailyContent({dark}: {dark:boolean}){
     }]}>
       <ArabesqueCorner dark width={80}/>
       <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
-        <Text style={[styles.dailyHeading,{color:colors.text}]}>Günün Hadisi</Text>
+        <Text style={[styles.dailyHeading,{color:colors.text}]}>Seçme Hadis</Text>
         <GoldenLantern size={21}/>
       </View>
       <Text numberOfLines={3} style={[styles.dailyBody,{color:colors.text}]}>
-        Kaynağı doğrulanmış hadisler burada yer alacak.
+        “Ameller niyete göredir.”
       </Text>
-      <Text style={[styles.dailyCredit,{color:colors.muted}]}>İçerik hazırlanıyor</Text>
+      <Text style={[styles.dailyCredit,{color:colors.muted}]}>Buhârî, Bed'ü'l-vahy, 1</Text>
     </View>
   </View>;
 }
@@ -146,7 +146,7 @@ export default function HomeScreen(){
   };
   const showPreviewOptions=()=>{
     const maghrib=timeToMinutes(SCHEDULE.times.find(x=>x.key==='aksam')!.time)*60;
-    Alert.alert('Demo zaman önizlemesi',
+    Alert.alert('Geliştirici zaman önizlemesi',
       'Zaman ×20 hızda ilerler. Gerçek ibadet saatleri yerine geçmez.',[
       {text:'Normal saat',onPress:()=>setTimePreview(null)},
       {text:'Akşama yaklaşım',onPress:()=>startPreview(maghrib-65*60)},
@@ -168,7 +168,7 @@ export default function HomeScreen(){
     : phase.urgency==='approaching'?'#EAC178'
     : colors.emerald;
   const stateTitle=restriction
-    ? 'KERA HET · ÖRNEK HESAPLAMA'
+    ? 'KERAHET · TAHMİNÎ ARALIK'
     : nafileOnly ? 'NAFİLE NAMAZ BİLGİSİ'
     : phase.urgency==='imminent' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ ÇOK YAKIN'
     : phase.urgency==='approaching' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ YAKLAŞIYOR'
@@ -178,7 +178,7 @@ export default function HomeScreen(){
     : nafileOnly
     ? 'İmsak ile güneş arasında sabah namazının sünneti dışındaki nafile namazlarla ilgili kısıtlamalar vardır.'
     : phase.urgency!=='normal'
-    ? phase.next.label+' vaktine '+remainingText+'. Yaklaştıkça kadranın ışığı güçlenir.'
+    ? phase.next.label+' vaktine '+remainingText+'. '
     : phase.next.label+' vaktine '+remainingText+' · '+Math.round(phase.progress*100)+'% ilerleme.';
   const selectedIndex=manualIndex??upcomingIndex;
   const selectedPrayer=SCHEDULE.times[selectedIndex];
@@ -194,7 +194,7 @@ export default function HomeScreen(){
           style={[styles.location,{borderColor:dark?'#42665D':'#D4CCBB',backgroundColor:dark?'rgba(10,43,41,.86)':'rgba(255,255,255,.7)'}]}>
           <Feather name="map-pin" size={14} color={colors.emerald}/>
           <Text style={[styles.locationName,{color:colors.text}]}>İstanbul</Text>
-          <Feather name="chevron-down" size={11} color={colors.text}/>
+          <Feather name="info" size={11} color={colors.muted}/>
         </Pressable>
         <View style={styles.centralBrand}>
           <Svg width={59} height={23} viewBox="0 0 59 23">
@@ -215,23 +215,25 @@ export default function HomeScreen(){
             onPress={()=>Alert.alert('Bildirimler','Bildirim ayarları resmî namaz vakitleri entegrasyonu tamamlandıktan sonra açılacak.')}
             style={[styles.smallRound,{backgroundColor:dark?'#0C3833':'rgba(255,255,255,.82)',borderColor:colors.border}]}>
             <Feather name="bell" size={17} color={colors.text}/>
-            <View style={styles.notificationDot}/>
+
           </Pressable>
         </View>
       </View>
       <DateDivider now={now} dark={dark}/>
       <Pressable accessibilityRole="button"
-        accessibilityLabel="Demo saatleri örnektir, zaman önizlemesini aç"
-        onPress={showPreviewOptions}
+        accessibilityLabel="Örnek vakitlerin kaynağı hakkında bilgi"
+        onPress={()=>Alert.alert('Vakit kaynağı',
+          'Ekrandaki saatler örnektir; gerçek namaz vakitleri değildir. Diyanet servisinden doğrulanmış veri henüz bağlı değil. Gerçek ibadet için bu saatleri kullanmayın.')}
+        onLongPress={__DEV__?showPreviewOptions:undefined}
         style={[styles.demo,{
-          backgroundColor:dark?'rgba(202,163,92,.10)':'rgba(191,155,89,.12)',
-          borderColor:dark?'rgba(215,179,111,.22)':'rgba(195,156,80,.22)',
+          backgroundColor:'transparent',
+          borderColor:'transparent',
         }]}>
         <Feather name="info" size={12} color={colors.gold}/>
         <Text style={[styles.demoText,{color:colors.muted}]}>
-          {timePreview?'DEMO SİMÜLASYON ×20 · Saatler temsili':'TASARIM DEMOSU · Saatler temsili, denemek için dokun'}
+          {timePreview?'Hızlandırılmış zaman önizlemesi etkin':'Örnek vakitler · Resmî kaynak henüz bağlı değil'}
         </Text>
-        <Feather name="sliders" size={12} color={colors.gold}/>
+
       </Pressable>
 
       <View style={styles.wheelStage}>
@@ -307,9 +309,9 @@ export default function HomeScreen(){
       <Pressable accessibilityRole="button"
         accessibilityLabel="Güncel zaman durumu ve kerahet açıklamasını oku"
         onPress={()=>Alert.alert(
-          restriction?'Kerahet vakti (örnek)':phase.next.label+' vaktine kalan',
+          restriction?'Yaklaşık kerahet aralığı':phase.next.label+' vaktine kalan',
           restriction
-            ? restriction.description+'\n\nBu aralıklar genel Diyanet açıklamasından türetilmiş yaklaşık DEMO örnekleridir. Farklı namaz türleri için hükümler ve istisnalar bulunmaktadır. Gerçek ibadet için kullanılmamalıdır.'
+            ? restriction.description+'\n\nBu aralıklar genel Diyanet açıklamasından türetilmiş yaklaşık değerlendirmelerdir. Farklı namaz türleri için hükümler ve istisnalar bulunmaktadır. Gerçek ibadet için kullanılmamalıdır.'
             : 'Vakit zaman çizelgesinin yaklaşık %'+Math.round(phase.progress*100)+' kısmı geçti. Sonraki vakte '+remainingText+' var. Saatler sadece tasarım örneğidir.',
         )}
         style={[styles.kerahetNote,{
@@ -327,7 +329,7 @@ export default function HomeScreen(){
         <View style={{flex:1,gap:3}}>
           <Text style={{fontSize:10,letterSpacing:.85,fontWeight:'800',color:accented}}>{stateTitle}</Text>
           <Text style={{fontSize:11,color:colors.text,lineHeight:16}}>{stateDescription}</Text>
-          <Text style={{fontSize:9.5,color:colors.muted}}>Tahmini aralıklar · Diyanet esaslı örnek model</Text>
+          <Text style={{fontSize:9.5,color:colors.muted}}>Yaklaşık bilgi · Resmî vakit takvimi değil</Text>
         </View>
         <Feather name="chevron-right" size={14} color={colors.muted}/>
       </Pressable>
@@ -337,7 +339,7 @@ export default function HomeScreen(){
         </Text>
         :null}
       <Text style={{textAlign:'center',color:colors.muted,fontSize:10,marginBottom:11}}>
-        Camideyiz Biz · Vakitler ve günlük içerikler demo amaçlıdır
+        Camideyiz Biz · Kaynaklı ayet ve hadis seçkisi
       </Text>
     </ScrollView>
   </SafeAreaView>;
@@ -356,9 +358,9 @@ const styles=StyleSheet.create({
   dateLine:{width:27,height:1,opacity:.65},
   dateText:{fontFamily:'serif',fontSize:13.1,fontWeight:'600'},
   hijri:{fontFamily:'serif',fontSize:11},
-  demo:{paddingHorizontal:8,paddingVertical:5,borderRadius:10,borderWidth:1,
+  demo:{paddingHorizontal:6,paddingVertical:2,borderRadius:10,borderWidth:0,
     flexDirection:'row',justifyContent:'center',alignItems:'center',gap:6,alignSelf:'center',marginTop:3},
-  demoText:{fontSize:9.5,fontWeight:'600',textAlign:'center'},
+  demoText:{fontSize:10,fontWeight:'500',textAlign:'center'},
   wheelStage:{alignItems:'center',justifyContent:'center',position:'relative',marginTop:-2,marginBottom:-12},
   halo:{position:'absolute',height:235,width:235,borderRadius:118},
   tinyActions:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:7,minHeight:26},
