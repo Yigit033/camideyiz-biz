@@ -13,7 +13,7 @@ import type {PrayerTime,PrayerKey,RestrictionWindow,Urgency} from '@camideyiz/co
 import {
   timeToMinutes, angleOfTouch, normalizeDegrees,
   nearestCenterRotation, sectorAtNeedle, shortestAngularDelta,
-  tangentialVelocity,
+  tangentialVelocity, makeVisualDialSectors, clockSecondsToVisualAngle,
 } from '@camideyiz/core';
 import {type ColorTokens} from '@/theme/tokens';
 import {DialLighting} from './DialLighting';
@@ -46,44 +46,9 @@ const PRAYER_ICONS: Record<PrayerTime['key'], ComponentProps<typeof MaterialComm
 };
 type PrayerArc = PrayerTime & {from: number; to: number};
 
-export function segmentAngles(times: readonly PrayerTime[]): PrayerArc[] {
-  if (!times.length) return [];
-  const minutes = times.map(item => timeToMinutes(item.time));
-  if (minutes.some((minute, index) => index > 0 && minute <= minutes[index - 1])) {
-    throw new RangeError('Daily times must be ascending');
-  }
-  // A readable, nonlinear visual scale keeps the overnight Yatsi sector
-  // from consuming half the dial. The separate progress bar uses real time.
-  const lengths=times.map((_,index)=>index===times.length-1
-    ? 1440-minutes[index]+minutes[0]
-    : minutes[index+1]-minutes[index]);
-  const weights=lengths.map(value=>Math.sqrt(value));
-  const total=weights.reduce((a,b)=>a+b,0);
-  let cursor=0;
-  return times.map((item,index)=>{
-    const from=cursor;
-    cursor+=weights[index]/total*360;
-    return {...item,from,to:index===times.length-1?360:cursor};
-  });
-}
-
-/** Match a local clock second to its nonlinear *visual* angle.
- * This transformation is monotonic but not a minute-accurate angular scale.
- */
-function clockAngle(seconds:number,times:readonly PrayerTime[],sectors:readonly PrayerArc[]){
-  const starts=times.map(item=>timeToMinutes(item.time)*60);
-  if(!starts.length || !sectors.length)return 0;
-  const shifted=seconds<starts[0]?seconds+86400:seconds;
-  const index=starts.findIndex((_,i)=>{
-    const start=starts[i],end=i===starts.length-1?starts[0]+86400:starts[i+1];
-    return shifted>=start&&shifted<end;
-  });
-  if(index<0)return 0;
-  const start=starts[index];
-  const end=index===starts.length-1?starts[0]+86400:starts[index+1];
-  const fraction=Math.max(0,Math.min(1,(shifted-start)/(end-start)));
-  const sector=sectors[index];
-  return sector.from+fraction*(sector.to-sector.from);
+/** Nonlinear visual proportions. Real minutes remain in the separate progress bar. */
+export function segmentAngles(times:readonly PrayerTime[]):PrayerArc[] {
+  return makeVisualDialSectors(times);
 }
 function polar(degrees: number, radius: number) {
   const a = degrees * Math.PI / 180;
@@ -261,7 +226,7 @@ export function PrayerWheel({
     },
   );
 
-  const currentAngle = clockAngle(nowSeconds,times,sectors);
+  const currentAngle = clockSecondsToVisualAngle(nowSeconds,times,sectors);
   const nowPoint = polar(currentAngle, 170);
   const selected = sectors[selectedIndex];
   const centerFill = colors.isDark ? '#081E21' : '#FFF9EF';
@@ -274,8 +239,8 @@ export function PrayerWheel({
   const progressTint=warningTint??(urgency==='normal'?PRAYER_COLORS[nextKey]:
     nextKey==='aksam'?'#F6B46F':colors.isDark?'#F4D58B':'#B9823D');
   const demoArcs=indicativeWindows.map(window=>{
-    const from=clockAngle(window.startSeconds,times,sectors);
-    const to=clockAngle(window.endSeconds,times,sectors);
+    const from=clockSecondsToVisualAngle(window.startSeconds,times,sectors);
+    const to=clockSecondsToVisualAngle(window.endSeconds,times,sectors);
     return {...window,from,to};
   }).filter(window=>window.to>window.from);
   const nextGlowStrength=0.12+0.5*boost*Math.pow(progress,1.35);
