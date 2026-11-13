@@ -226,9 +226,16 @@ export default function HomeScreen(){
       </View>
 
       <View style={styles.tinyActions}>
-        <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
-          <View style={{height:6,width:6,borderRadius:3,backgroundColor:colors.gold}}/>
-          <Text style={{fontSize:10,color:colors.muted}}>Altın işaret: seçili vakit</Text>
+        <View style={{flexDirection:'row',alignItems:'center',gap:6,flex:1}}>
+          <View style={{height:7,width:7,borderRadius:4,backgroundColor:accented}}/>
+          <Text numberOfLines={1} adjustsFontSizeToFit
+            style={{fontSize:10.2,color:restriction?accented:colors.muted,fontWeight:restriction?'800':'600',flexShrink:1}}>
+            {restriction
+              ? 'KERA HET · '+restriction.title+' (örnek)'
+              : phase.urgency==='normal'
+              ? 'Canlı vakit ilerlemesi'
+              : phase.next.label+' vaktine '+remainingText}
+          </Text>
         </View>
         {manualIndex!==null
           ?<Pressable accessibilityRole="button" onPress={()=>focusIndex(null)}
