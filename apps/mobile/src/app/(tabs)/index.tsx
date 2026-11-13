@@ -1,10 +1,11 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   Alert, Pressable, ScrollView, StyleSheet, Text,
   useWindowDimensions, View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather, MaterialCommunityIcons} from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import Svg, {Circle, Defs, LinearGradient, Path, Stop} from 'react-native-svg';
 import {DEMO_SCHEDULE, formatCountdown, nextPrayerAtSeconds, zonedClock} from '@camideyiz/core';
 import {PrayerWheel, PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
@@ -55,6 +56,15 @@ export default function HomeScreen() {
   const wheelSize = Math.min(Math.max(262, width - 54), 338);
   const [now, setNow] = useState(() => new Date());
   const [manualIndex, setManualIndex] = useState<number | null>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
+  const handleWheelSelection = useCallback((index: number) => {
+    setManualIndex(index);
+    Haptics.selectionAsync().catch(() => undefined);
+  }, []);
+  const focusIndex = (index: number | null) => {
+    setManualIndex(index);
+    setFocusRequest(n => n + 1);
+  };
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
@@ -152,7 +162,8 @@ export default function HomeScreen() {
         <PrayerWheel
           times={SCHEDULE.times}
           selectedIndex={selectedIndex}
-          onSelect={setManualIndex}
+          onSelect={handleWheelSelection}
+          focusRequest={focusRequest}
           nowSeconds={zoned.secondsOfDay}
           colors={colors}
           size={wheelSize}
@@ -163,7 +174,7 @@ export default function HomeScreen() {
         <View style={styles.heroFooter}>
           {manualIndex === null ? <>
             <Feather name="rotate-cw" size={14} color={colors.gold}/>
-            <Text style={[styles.heroHint, {color: colors.muted}]}>Parmağınla çevir, vakitleri keşfet</Text>
+            <Text style={[styles.heroHint, {color: colors.muted}]}>Parmağınla halkayı çevir</Text>
             <View style={styles.nowLegend}>
               <View style={[styles.nowDot, {backgroundColor: colors.gold}]}/>
               <Text style={[styles.heroHint, {color: colors.muted}]}>Şimdi</Text>
@@ -173,7 +184,7 @@ export default function HomeScreen() {
               <View style={[styles.nowDot, {backgroundColor: PRAYER_COLORS[selectedPrayer.key]}]}/>
               <Text style={[styles.heroHint, {color: colors.muted}]}>{selectedPrayer.label} · {selectedPrayer.time}</Text>
             </View>
-            <Pressable onPress={() => setManualIndex(null)} accessibilityRole="button"
+            <Pressable onPress={() => focusIndex(null)} accessibilityRole="button"
               style={styles.resetButton} accessibilityLabel="Canlı geri sayıma dön">
               <Feather name="rotate-ccw" size={13} color={colors.emerald}/>
               <Text style={{fontSize: 11, color: colors.emerald, fontWeight: '800'}}>Canlıya dön</Text>
@@ -191,7 +202,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel={item.label + ' ' + item.time}
             accessibilityState={{selected: active}}
-            onPress={() => setManualIndex(index)}
+            onPress={() => focusIndex(index)}
             style={[styles.timeChip, {
               backgroundColor: active ? (colors.isDark ? '#1B3B35' : '#EAF3EA') : colors.surface,
               borderColor: active ? PRAYER_COLORS[item.key] : colors.border,

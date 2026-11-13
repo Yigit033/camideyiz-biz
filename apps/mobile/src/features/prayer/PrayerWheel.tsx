@@ -1,14 +1,22 @@
-import {useEffect, useMemo, useRef} from 'react';
-import {Animated, PanResponder, StyleSheet, Text, View} from 'react-native';
-import Svg, {
-  Circle, Defs, G, Line, LinearGradient, Path,
-  RadialGradient, Stop, Text as SvgText,
-} from 'react-native-svg';
-import * as Haptics from 'expo-haptics';
+import {useEffect, useMemo} from 'react';
+import {StyleSheet, Text, View} from 'react-native';
+import Svg, {Circle, Defs, Ellipse, G, Line, LinearGradient, Path, RadialGradient, Stop} from 'react-native-svg';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
+import {GestureDetector, usePanGesture} from 'react-native-gesture-handler';
+import Animated, {
+  cancelAnimation, Easing, useAnimatedReaction, useAnimatedStyle,
+  useReducedMotion, useSharedValue, withDecay, withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
+import {scheduleOnRN} from 'react-native-worklets';
 import type {PrayerTime} from '@camideyiz/core';
-import {timeToMinutes} from '@camideyiz/core';
+import {
+  timeToMinutes, angleOfTouch, normalizeDegrees,
+  nearestCenterRotation, sectorAtNeedle, shortestAngularDelta,
+  tangentialVelocity,
+} from '@camideyiz/core';
 import {type ColorTokens} from '@/theme/tokens';
+import {DialLighting} from './DialLighting';
 
 export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
   imsak: '#6BB5C9',
@@ -18,225 +26,295 @@ export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
   aksam: '#D78C69',
   yatsi: '#8980C8',
 };
+
 const CENTER = 180;
-const RING_RADIUS = 132;
-const WHEEL_BAND = 48;
+const RADIUS = 133;
+const DIAMETER = 360;
+type PrayerArc = PrayerTime & {from: number; to: number};
 
-export type PrayerArc = PrayerTime & {from: number; to: number};
-
-/** Clockwise arc for each distinct boundary. Day begins at imsak, not midnight. */
 export function segmentAngles(times: readonly PrayerTime[]): PrayerArc[] {
-  if (times.length === 0) return [];
+  if (!times.length) return [];
   const minutes = times.map(item => timeToMinutes(item.time));
   if (minutes.some((minute, index) => index > 0 && minute <= minutes[index - 1])) {
-    throw new RangeError('Prayer times must be in ascending local time order');
+    throw new RangeError('Daily times must be ascending');
   }
-  return times.map((time, index) => {
+  return times.map((item, index) => {
     const start = (minutes[index] - minutes[0] + 1440) % 1440;
-    const end = index === times.length - 1
-      ? 1440
-      : (minutes[index + 1] - minutes[0] + 1440) % 1440;
-    return {...time, from: start / 1440 * 360, to: end / 1440 * 360};
+    const end = index === times.length - 1 ? 1440 : (minutes[index + 1] - minutes[0] + 1440) % 1440;
+    return {...item, from: start / 1440 * 360, to: end / 1440 * 360};
   });
 }
-
-const polar = (degrees: number, radius: number) => {
-  const radians = degrees * Math.PI / 180;
-  return {x: CENTER + radius * Math.sin(radians), y: CENTER - radius * Math.cos(radians)};
-};
+function polar(degrees: number, radius: number) {
+  const a = degrees * Math.PI / 180;
+  return {x: CENTER + radius * Math.sin(a), y: CENTER - radius * Math.cos(a)};
+}
 function arc(from: number, to: number, radius: number) {
-  const start = polar(from, radius);
-  const end = polar(to, radius);
-  const span = to - from;
-  return [
-    'M', start.x.toFixed(2), start.y.toFixed(2),
-    'A', radius, radius, 0, span > 180 ? 1 : 0, 1, end.x.toFixed(2), end.y.toFixed(2),
-  ].join(' ');
+  const start = polar(from, radius), end = polar(to, radius);
+  return 'M ' + start.x.toFixed(3) + ' ' + start.y.toFixed(3) +
+    ' A ' + radius + ' ' + radius + ' 0 ' + (to - from > 180 ? 1 : 0) +
+    ' 1 ' + end.x.toFixed(3) + ' ' + end.y.toFixed(3);
+}
+function SectorLabel({
+  sector, size, rotation, selected, dark,
+}: {
+  sector: PrayerArc; size: number; rotation: SharedValue<number>; selected: boolean; dark: boolean;
+}) {
+  const point = polar((sector.from + sector.to) / 2, RADIUS);
+  const labelWidth = 64 * size / DIAMETER;
+  const centerX = point.x * size / DIAMETER;
+  const centerY = point.y * size / DIAMETER;
+  const style = useAnimatedStyle(() => ({
+    transform: [{rotateZ: (-rotation.value) + 'deg'}],
+  }));
+  const narrow = sector.to - sector.from < 28;
+  return <Animated.View
+    pointerEvents="none"
+    style={[
+      styles.sectorLabel,
+      {left: centerX - labelWidth / 2, top: centerY - 18 * size / DIAMETER, width: labelWidth,
+        height: 36 * size / DIAMETER},
+      style,
+    ]}>
+    <Text numberOfLines={1} adjustsFontSizeToFit style={{
+      fontSize: (narrow ? 10.5 : 12.5) * size / DIAMETER,
+      fontWeight: selected ? '900' : '700', letterSpacing: -0.3,
+      color: sector.key === 'yatsi' ? '#FFF7F3' : '#132925', textAlign: 'center',
+    }}>{sector.label}</Text>
+    <Text numberOfLines={1} adjustsFontSizeToFit style={{
+      fontSize: (narrow ? 10 : 11.5) * size / DIAMETER,
+      fontWeight: '700', color: sector.key === 'yatsi' ? '#F3EEE9' : '#22483F',
+      textAlign: 'center', marginTop: 2 * size / DIAMETER,
+    }}>{sector.time}</Text>
+  </Animated.View>;
 }
 
-type WheelProps = {
+type Props = {
   times: readonly PrayerTime[];
   selectedIndex: number;
   onSelect: (index: number) => void;
+  focusRequest: number;
   size: number;
   colors: ColorTokens;
   countdown: string;
   isManualSelection: boolean;
   nowSeconds: number;
 };
-function SegmentLabel({segment, index, selected}: {segment: PrayerArc; index: number; selected: boolean}) {
-  const centerAngle = (segment.from + segment.to) / 2;
-  const point = polar(centerAngle, 132);
-  const contrast = segment.key === 'yatsi' ? '#FAF8F4' : '#132A28';
-  const font = segment.to - segment.from < 24 ? 10.2 : 11.3;
-  return <G key={segment.key}>
-    <SvgText
-      x={point.x} y={point.y - 4} textAnchor="middle"
-      fontSize={font} fontWeight={selected ? '800' : '700'}
-      fill={contrast}>{segment.label}</SvgText>
-    <SvgText
-      x={point.x} y={point.y + 11} textAnchor="middle"
-      fontSize={font - 0.5} fontWeight="600" fill={contrast}
-    >{segment.time}</SvgText>
-  </G>;
-}
-
-/** Interactive circular time-line. All displayed times are provided by the caller. */
 export function PrayerWheel({
-  times, selectedIndex, onSelect, size, colors,
-  countdown, isManualSelection, nowSeconds,
-}: WheelProps) {
-  const segments = useMemo(() => segmentAngles(times), [times]);
-  const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
-  const sizeRef = useRef(size);
-  sizeRef.current = size;
-  const selectedRef = useRef(selectedIndex);
-  selectedRef.current = selectedIndex;
-  const segmentsRef = useRef(segments);
-  segmentsRef.current = segments;
+  times, selectedIndex, onSelect, focusRequest, size,
+  colors, countdown, isManualSelection, nowSeconds,
+}: Props) {
+  const sectors = useMemo(() => segmentAngles(times), [times]);
+  const reduceMotion = useReducedMotion();
+  const initialCenter = sectors[selectedIndex]
+    ? (sectors[selectedIndex].from + sectors[selectedIndex].to) / 2
+    : 0;
+  const rotation = useSharedValue(-initialCenter);
+  const active = useSharedValue(false);
+  const prevTouch = useSharedValue(0);
+  const hasTouch = useSharedValue(false);
+  const scale = size / DIAMETER;
+  const centerPt = size / 2;
+  const sectorBounds = useMemo(
+    () => sectors.map(({from, to}) => ({from, to})), [sectors],
+  );
 
-  const fade = useRef(new Animated.Value(1)).current;
+  // Requests originate from the bottom chips or the "live" button, not from the dial.
+  // This avoids re-centering on each segment boundary while the user is dragging.
   useEffect(() => {
-    fade.setValue(0.55);
-    Animated.timing(fade, {toValue: 1, duration: 230, useNativeDriver: true}).start();
-  }, [selectedIndex, fade]);
+    if (focusRequest === 0 || !sectors[selectedIndex]) return;
+    cancelAnimation(rotation);
+    active.value = false;
+    hasTouch.value = false;
+    const destination = nearestCenterRotation(rotation.value, sectors[selectedIndex]);
+    rotation.value = withTiming(destination, {
+      duration: reduceMotion ? 0 : 510,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [focusRequest]); // deliberately triggered by an explicit user action only
 
-  const currentAngle = useMemo(() => {
-    if (!times.length) return 0;
-    const startSeconds = timeToMinutes(times[0].time) * 60;
-    return ((nowSeconds - startSeconds + 86400) % 86400) / 86400 * 360;
-  }, [nowSeconds, times]);
+  const ringStyle = useAnimatedStyle(() => ({
+    transform: [{rotateZ: rotation.value + 'deg'}],
+  }));
 
-  const selected = segments[Math.max(0, Math.min(selectedIndex, segments.length - 1))];
-  const selectedAngle = selected ? (selected.from + selected.to) / 2 : 0;
-  const handle = polar(selectedAngle, 163);
-  const liveMarker = polar(currentAngle, 174);
-
-  const handlePoint = (x: number, y: number) => {
-    const x1 = x * 360 / sizeRef.current;
-    const y1 = y * 360 / sizeRef.current;
-    const radius = Math.hypot(x1 - CENTER, y1 - CENTER);
-    if (radius < 102 || radius > 179) return;
-    const degrees = (Math.atan2(x1 - CENTER, CENTER - y1) * 180 / Math.PI + 360) % 360;
-    const idx = segmentsRef.current.findIndex(item => degrees >= item.from && degrees < item.to);
-    if (idx < 0 || idx === selectedRef.current) return;
-    selectedRef.current = idx;
-    onSelectRef.current(idx);
-    Haptics.selectionAsync().catch(() => undefined);
-  };
-
-  const responder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: ({nativeEvent}) => {
-      const x = nativeEvent.locationX * 360 / sizeRef.current;
-      const y = nativeEvent.locationY * 360 / sizeRef.current;
-      const r = Math.hypot(x - CENTER, y - CENTER);
-      return r >= 99 && r <= 180;
+  const panGesture = usePanGesture({
+    minDistance: 2,
+    maxPointers: 1,
+    onActivate: (event) => {
+      'worklet';
+      const x = event.x - centerPt, y = event.y - centerPt;
+      const r = Math.sqrt(x * x + y * y);
+      // Only the annular surface behaves as the physical dial.
+      if (r < size * .255 || r > size * .505) {
+        active.value = false;
+        hasTouch.value = false;
+        return;
+      }
+      cancelAnimation(rotation);
+      prevTouch.value = angleOfTouch(event.x, event.y, centerPt);
+      hasTouch.value = true;
+      active.value = true;
     },
-    onMoveShouldSetPanResponder: ({nativeEvent}) => {
-      const x = nativeEvent.locationX * 360 / sizeRef.current;
-      const y = nativeEvent.locationY * 360 / sizeRef.current;
-      const r = Math.hypot(x - CENTER, y - CENTER);
-      return r >= 99 && r <= 180;
+    onUpdate: (event) => {
+      'worklet';
+      if (!active.value || !hasTouch.value) return;
+      const x = event.x - centerPt, y = event.y - centerPt;
+      if (x * x + y * y < (size * .125) ** 2) return;
+      const angle = angleOfTouch(event.x, event.y, centerPt);
+      const delta = shortestAngularDelta(prevTouch.value, angle);
+      // Unwrapped rotation is continuous through 0/360: one physical revolution is one turn.
+      rotation.value += delta;
+      prevTouch.value = angle;
     },
-    onPanResponderGrant: ({nativeEvent}) => handlePoint(nativeEvent.locationX, nativeEvent.locationY),
-    onPanResponderMove: ({nativeEvent}) => handlePoint(nativeEvent.locationX, nativeEvent.locationY),
-  }), []);
+    onDeactivate: (event) => {
+      'worklet';
+      if (!active.value || !hasTouch.value) return;
+      hasTouch.value = false;
+      if (event.canceled || reduceMotion) {
+        const idx = sectorAtNeedle(rotation.value, sectorBounds);
+        if (idx >= 0) {
+          rotation.value = withTiming(
+            nearestCenterRotation(rotation.value, sectorBounds[idx]),
+            {duration: reduceMotion ? 0 : 260, easing: Easing.out(Easing.cubic)},
+            () => {active.value = false;},
+          );
+        } else active.value = false;
+        return;
+      }
+      const dx = event.x - centerPt, dy = event.y - centerPt;
+      const velocity = tangentialVelocity(dx, dy, event.velocityX, event.velocityY);
+      rotation.value = withDecay({velocity, deceleration: .966}, (finished) => {
+        if (!finished) return;
+        const idx = sectorAtNeedle(rotation.value, sectorBounds);
+        if (idx < 0) {active.value = false;return;}
+        const target = nearestCenterRotation(rotation.value, sectorBounds[idx]);
+        rotation.value = withTiming(target, {
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
+        }, () => {active.value = false;});
+      });
+    },
+  });
 
-  const centerFill = colors.isDark ? '#142C29' : '#FFFFFF';
-  const centerHighlight = colors.isDark ? '#23483F' : '#FCFAF3';
-  const ringBack = colors.isDark ? '#18322E' : '#E8E9E0';
-  const border = colors.isDark ? '#577268' : '#D3DAD0';
+  // Only send semantic changes across the UI/RN thread boundary, not every touch frame.
+  useAnimatedReaction(
+    () => active.value ? sectorAtNeedle(rotation.value, sectorBounds) : -1,
+    (index, previous) => {
+      if (index >= 0 && index !== previous) scheduleOnRN(onSelect, index);
+    },
+  );
 
-  return <View
-    style={{width: size, height: size, alignSelf: 'center', justifyContent: 'center'}}
-    accessibilityLabel="Namaz vakitleri çemberi; dokunarak ve kaydırarak vakit seçin"
-  >
-    <View style={StyleSheet.absoluteFill} {...responder.panHandlers}>
-      <Svg width={size} height={size} viewBox="0 0 360 360" pointerEvents="none">
-        <Defs>
-          <RadialGradient id="inner" cx="50%" cy="43%" rx="70%" ry="70%">
-            <Stop offset="0%" stopColor={centerHighlight}/>
-            <Stop offset="100%" stopColor={centerFill}/>
-          </RadialGradient>
-          <LinearGradient id="rim" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={colors.gold} stopOpacity="0.90"/>
-            <Stop offset="48%" stopColor={colors.gold} stopOpacity="0.12"/>
-            <Stop offset="100%" stopColor={colors.gold} stopOpacity="0.73"/>
-          </LinearGradient>
-          {segments.map((segment) => (
-            <LinearGradient key={'gradient-' + segment.key} id={'arc-' + segment.key} x1="0%" y1="0%" x2="100%" y2="100%">
-              <Stop offset="0%" stopColor={PRAYER_COLORS[segment.key]} stopOpacity="0.90"/>
-              <Stop offset="100%" stopColor={PRAYER_COLORS[segment.key]} stopOpacity="1"/>
-            </LinearGradient>
-          ))}
-        </Defs>
-        <Circle cx="180" cy="180" r="178" stroke={colors.gold} strokeWidth="0.8" strokeOpacity="0.21" fill="none"/>
-        {Array.from({length: 72}, (_, i) => {
-          const angle = i * 5;
-          const major = i % 6 === 0;
-          const from = polar(angle, major ? 165 : 171);
-          const to = polar(angle, major ? 178 : 176);
-          return <Line key={'tick-' + i} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-            stroke={colors.gold} strokeOpacity={major ? 0.82 : 0.29}
-            strokeWidth={major ? 1.65 : 0.8}/>;
-        })}
-        <Circle cx="180" cy="180" r={RING_RADIUS} stroke={ringBack} strokeWidth={WHEEL_BAND + 3} fill="none"/>
-        {segments.map((item, index) => {
-          const from = item.from + 0.8;
-          const to = item.to - 0.8;
-          if (to <= from) return null;
-          return <G key={item.key}>
-            {selectedIndex === index && <Path d={arc(from, to, RING_RADIUS)}
-              stroke={PRAYER_COLORS[item.key]} strokeOpacity="0.23" strokeWidth="59"
-              strokeLinecap="butt" fill="none"/>}
-            <Path d={arc(from, to, RING_RADIUS)} stroke={'url(#arc-' + item.key + ')'}
-              strokeWidth={selectedIndex === index ? 49 : 45} fill="none"/>
-          </G>;
-        })}
-        <Circle cx="180" cy="180" r="109" stroke="url(#rim)" strokeWidth="2" fill="url(#inner)"/>
-        <Circle cx="180" cy="180" r="104" stroke={border} strokeWidth="0.7" strokeOpacity="0.45" fill="none"/>
-        {segments.map((item, index) => <SegmentLabel key={item.key} segment={item} index={index} selected={index === selectedIndex}/>)}
-        {segments.map(item => {
-          const a = polar(item.from, 108);
-          const b = polar(item.from, 158);
-          return <Line key={'edge-' + item.key} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-            stroke={colors.isDark ? '#213A36' : '#FAFAF7'} strokeWidth="2.5" opacity="0.90"/>;
-        })}
-        <Circle cx={handle.x} cy={handle.y} r="12" fill={colors.gold} fillOpacity="0.15"/>
-        <Circle cx={handle.x} cy={handle.y} r="8.2" fill="#FAF7EE" stroke={colors.gold} strokeWidth="2.5"/>
-        <Circle cx={handle.x} cy={handle.y} r="2.7" fill="#24594C"/>
-        <Circle cx={liveMarker.x} cy={liveMarker.y} r="4.7"
-          fill={colors.isDark ? '#E7C98C' : '#9B7944'} stroke={centerFill} strokeWidth="1.5"/>
-        <Circle cx={liveMarker.x} cy={liveMarker.y} r="9"
-          stroke={colors.gold} strokeWidth="0.9" strokeOpacity="0.58" fill="none"/>
+  const secondsFromImsak = times.length ? timeToMinutes(times[0].time) * 60 : 0;
+  const currentAngle = ((nowSeconds - secondsFromImsak + 86400) % 86400) / 86400 * 360;
+  const nowPoint = polar(currentAngle, 170);
+  const selected = sectors[selectedIndex];
+  const centerFill = colors.isDark ? '#132C27' : '#FFFDF7';
+  const rim = colors.isDark ? '#D3B47A' : '#B7A078';
+  const baseStroke = colors.isDark ? '#28423B' : '#E7E5D9';
+
+  return <View style={{width: size, height: size, alignSelf: 'center', justifyContent: 'center'}}>
+    <DialLighting size={size} dark={colors.isDark}/>
+    <GestureDetector gesture={panGesture}>
+      <View style={{width: size, height: size}} collapsable={false}>
+        <Animated.View style={[{width: size, height: size}, ringStyle]}>
+          <Svg width={size} height={size} viewBox="0 0 360 360" pointerEvents="none">
+            <Defs>
+              <RadialGradient id="dialInner" cx="46%" cy="40%" rx="72%" ry="72%">
+                <Stop offset="0%" stopColor={colors.isDark ? '#294B40' : '#FFFFFF'}/>
+                <Stop offset="100%" stopColor={centerFill}/>
+              </RadialGradient>
+              {sectors.map(item => <LinearGradient id={'fill-'+item.key} key={item.key}
+                x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor={PRAYER_COLORS[item.key]} stopOpacity=".88"/>
+                <Stop offset="60%" stopColor={PRAYER_COLORS[item.key]}/>
+                <Stop offset="100%" stopColor={PRAYER_COLORS[item.key]} stopOpacity=".93"/>
+              </LinearGradient>)}
+            </Defs>
+            <Circle cx="180" cy="180" r="176" stroke={rim} strokeWidth="0.8" strokeOpacity=".55" fill="none"/>
+            <Circle cx="180" cy="180" r="169" stroke={rim} strokeWidth="1" strokeOpacity=".36" fill="none"/>
+            {Array.from({length: 72}, (_,i) => {
+              const a = i*5;
+              const start = polar(a, i%6===0 ? 172:174),end=polar(a,i%6===0?179:177);
+              return <Line key={'tick-'+i} x1={start.x} y1={start.y}
+                x2={end.x} y2={end.y} stroke={rim}
+                strokeWidth={i%6===0?1.7:.75} strokeOpacity={i%6===0?.9:.36}/>;
+            })}
+            <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="52" fill="none"/>
+            {sectors.map((item,index) => <G key={item.key}>
+              {index === selectedIndex && <Path d={arc(item.from+.85,item.to-.85,RADIUS)}
+                stroke={PRAYER_COLORS[item.key]} strokeOpacity=".22" strokeWidth="61" fill="none"/>}
+              <Path d={arc(item.from+.9,item.to-.9,RADIUS)}
+                stroke={'url(#fill-'+item.key+')'}
+                strokeWidth={index===selectedIndex?51:47} fill="none"/>
+              <Path d={arc(item.from+2,item.to-2,157)}
+                stroke={index===selectedIndex?'#F9E7B8':'#FDFCF5'}
+                strokeOpacity={index===selectedIndex?.86:.34}
+                strokeWidth={index===selectedIndex?2.7:1.1} fill="none"/>
+            </G>)}
+            <Circle cx="180" cy="180" r="105" stroke={rim} strokeWidth="1.1"
+              strokeOpacity=".7" fill="url(#dialInner)"/>
+            <Circle cx="180" cy="180" r="100" stroke={rim} strokeWidth=".6"
+              strokeOpacity=".28" fill="none"/>
+            {sectors.map(item => {
+              const p1=polar(item.from,108),p2=polar(item.from,159);
+              return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+                stroke={colors.isDark?'#243A36':'#F9F8F3'} strokeWidth="2.1" opacity=".78"/>;
+            })}
+            {/* Small current-time marker rotates WITH the wheel: not the selection needle. */}
+            <Circle cx={nowPoint.x} cy={nowPoint.y} r="8" fill={rim} fillOpacity=".16"/>
+            <Circle cx={nowPoint.x} cy={nowPoint.y} r="4.1" fill={rim} stroke={centerFill} strokeWidth="1"/>
+            <Path d={arc(0,Math.max(.01,currentAngle),167)} stroke={rim}
+              strokeOpacity=".58" strokeWidth="1.8" fill="none"/>
+          </Svg>
+          {sectors.map((item,index) => <SectorLabel
+            key={item.key} sector={item} size={size}
+            rotation={rotation} selected={index===selectedIndex} dark={colors.isDark}/>)}
+        </Animated.View>
+      </View>
+    </GestureDetector>
+
+    {/* Static top needle: all prayer segments rotate UNDER this indicator. */}
+    <View pointerEvents="none" style={[styles.needle, {
+      left: centerPt-10, top: 8*scale, width:20*scale, height:31*scale,
+    }]}>
+      <Svg width="100%" height="100%" viewBox="0 0 20 31">
+        <Path d="M10 0 L19 11 L10 25 L1 11 Z" fill={rim}/>
+        <Circle cx="10" cy="10" r="2.8" fill={colors.isDark?'#18362E':'#FBF8EA'}/>
+        <Path d="M10 24 L10 31" stroke={rim} strokeWidth="1.5"/>
       </Svg>
     </View>
 
-    <Animated.View pointerEvents="none" style={[styles.center, {width: size * .56, opacity: fade}]}>
-      <MaterialCommunityIcons name="mosque" size={26} color={colors.gold}/>
-      <View style={[styles.goldenDivider, {backgroundColor: colors.gold}]}/>
-      <Text style={[styles.caption, {color: colors.muted}]}>
-        {isManualSelection ? 'SEÇİLEN VAKİT' : 'SIRADAKİ VAKİT'}
+    <View pointerEvents="none" style={[styles.center, {width: size*.53}]}>
+      <Svg width={89*scale} height={42*scale} viewBox="0 0 89 42" style={{marginBottom:5}}>
+        <G fill={colors.gold} opacity=".86">
+          <Path d="M19 40V24H26V16H31V12C35 8 41 7 44.5 2C48 7 54 8 58 12V16H63V24H70V40H58V27H31V40Z"/>
+          <Path d="M9 40V14L12 7L15 14V40ZM75 40V14L78 7L81 14V40Z"/>
+          <Ellipse cx="44.5" cy="15" rx="14" ry="6"/>
+        </G>
+        <Path d="M44.5 0V5" stroke={colors.gold} strokeWidth="1.4"/>
+      </Svg>
+      <Text style={[styles.kicker,{color:colors.gold}]}>
+        {isManualSelection?'SEÇİLEN VAKİT':'SIRADAKİ VAKİT'}
       </Text>
-      <Text style={[styles.prayer, {color: colors.text}]} adjustsFontSizeToFit numberOfLines={1}>
-        {selected?.label ?? 'Vakit'}
+      <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.prayerName,{color:colors.text}]}>
+        {selected?.label??'Vakit'}
       </Text>
-      <Text style={[styles.countdown, {color: colors.emerald}]} adjustsFontSizeToFit numberOfLines={1}>
-        {isManualSelection ? selected?.time ?? '--:--' : countdown}
+      <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countdown,{color:colors.emerald}]}>
+        {isManualSelection?selected?.time??'--:--':countdown}
       </Text>
-      <Text style={[styles.hint, {color: colors.muted}]}>
-        {isManualSelection ? 'Örnek vakit saati' : 'Vakte kalan süre'}
+      <View style={{width:37,height:1,backgroundColor:colors.gold,opacity:.7,marginVertical:5}}/>
+      <Text style={[styles.caption,{color:colors.muted}]}>
+        {isManualSelection?'Örnek saat':'Vakte kalan · demo'}
       </Text>
-    </Animated.View>
+    </View>
   </View>;
 }
 
-const styles = StyleSheet.create({
-  center: {position: 'absolute', alignSelf: 'center', alignItems: 'center', gap: 3},
-  goldenDivider: {height: 1, width: 28, opacity: .85, marginTop: 1, marginBottom: 5},
-  caption: {letterSpacing: 1.7, fontSize: 9, fontWeight: '800', marginTop: 1},
-  prayer: {fontSize: 23, fontFamily: 'serif', fontWeight: '700', paddingTop: 2},
-  countdown: {fontSize: 30, fontWeight: '700', fontVariant: ['tabular-nums'], letterSpacing: -.7, marginTop: 3},
-  hint: {fontSize: 10, letterSpacing: .1, marginTop: 5},
+const styles=StyleSheet.create({
+  sectorLabel:{position:'absolute',alignItems:'center',justifyContent:'center',gap:1},
+  needle:{position:'absolute',alignItems:'center',justifyContent:'center'},
+  center:{position:'absolute',alignSelf:'center',alignItems:'center',gap:4},
+  kicker:{fontSize:9,fontWeight:'800',letterSpacing:1.3},
+  prayerName:{fontFamily:'serif',fontSize:23,fontWeight:'700',marginTop:1},
+  countdown:{fontSize:29,fontWeight:'800',fontVariant:['tabular-nums'],letterSpacing:-.7,marginTop:3},
+  caption:{fontSize:10,textAlign:'center'},
 });
