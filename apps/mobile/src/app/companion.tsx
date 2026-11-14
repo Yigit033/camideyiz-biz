@@ -13,6 +13,7 @@ import {useAppTheme} from '@/theme/ThemeProvider';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {useCompanion} from '@/features/companion/CompanionProvider';
 import {CHANNEL_AUDIBLE,CHANNEL_SILENT,setPrayerChannels} from '@/features/companion/notificationService';
+import {isExpoGoRuntime} from '@/features/native/nativeRuntime';
 
 const NAMES:Record<PrayerKey,string>={
   imsak:'İmsak',gunes:'Güneş',ogle:'Öğle',ikindi:'İkindi',aksam:'Akşam',yatsi:'Yatsı',
@@ -107,7 +108,9 @@ function WidgetShowcase({now}: {now:number}){
         {Platform.OS==='ios'
           ?'iOS widget’ında sistem tarafından güncellenen canlı geri sayım kullanılır. Yenileme zamanlarını iOS yönetir.'
           :'Android widget’ı sonraki vaktin saatini gösterir. Güncelleme uygulama açıldığında yapılır; arka planda sürekli sayaç garantisi yoktur.'}
-        {'\nExpo Go widget desteklemez; uygulamanın yeniden derlenmiş development/production sürümü gerekir.'}
+        {isExpoGoRuntime()
+          ?'\nExpo Go: Bu kartlar tasarım önizlemesidir. Ana ekrana widget eklemek için native uygulama derlemesi gerekir.'
+          :'\nAna ekran widget’ları yüklü native uygulama üzerinden yönetilir.'}
       </Text>
     </View>
     <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10}}>
@@ -159,7 +162,9 @@ export default function CompanionScreen(){
         trigger:{
           type:Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds:5,
-          channelId:settings.sound==='silent'?CHANNEL_SILENT:CHANNEL_AUDIBLE,
+          ...(isExpoGoRuntime()?{}:{
+            channelId:settings.sound==='silent'?CHANNEL_SILENT:CHANNEL_AUDIBLE,
+          }),
         },
       });
       Alert.alert('Test ayarlandı','Test bildirimi yaklaşık 5 saniye sonra görüntülenecek.');
