@@ -61,12 +61,12 @@ export default function MoreScreen(){
         <Text style={[styles.headingText,{color:colors.text}]}>Kaynaklar ve doğruluk</Text>
       </View>
       <View style={{borderRadius:14,backgroundColor:colors.soft,padding:14,gap:7}}>
-        <Text style={{fontSize:13,color:colors.text,fontWeight:'700'}}>Namaz vakti kaynağı henüz etkin değil</Text>
+        <Text style={{fontSize:13,color:colors.text,fontWeight:'700'}}>Ücretsiz namaz vakitleri kaynağı</Text>
         <Text style={{fontSize:12,lineHeight:19,color:colors.muted}}>
-          Ana ekrandaki vakitler örnektir, ibadet için kullanılmamalıdır. Diyanet API erişimi ve şehir doğrulaması tamamlandığında gerçek saatler gösterilecek.
+          İdamedya, Diyanet tarafından yayımlandığını belirttiği namaz vakitlerini ücretsiz aktarıyor. Bu bağımsız servis, Diyanet'in resmî API'si değildir. Güncel veri doğrulanırsa ekranda gösterilir; resmî Diyanet API entegrasyonumuz ayrı olarak hazır tutuluyor.
         </Text>
       </View>
-      <Resource title="Diyanet Namaz Vakti Servisi" subtitle="Resmî API ve hesaplama bilgileri"
+      <Resource title="Diyanet Namaz Vakti Servisi" subtitle="Resmî API ve başvuru bilgileri"
         icon="clock" onPress={()=>open(SOURCES.prayer)}/>
       <Resource title="Kerahet vakitleri" subtitle="Din İşleri Yüksek Kurulunun açıklamaları"
         icon="info" onPress={()=>open(SOURCES.rules)}/>

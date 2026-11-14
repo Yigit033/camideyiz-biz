@@ -14,6 +14,10 @@ jobs:
       # Lockfile generated after first networked clean install.
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
+      - name: Live free-calendar endpoint smoke test (non-blocking)
+        # Provider outages are observable without breaking unrelated code checks.
+        continue-on-error: true
+        run: node --experimental-strip-types scripts/calendar-live-smoke.mjs
       - name: Build secure Diyanet API service
         run: npm run build --workspace @camideyiz/api
       - run: cd apps/mobile && npx expo install --check

@@ -2,7 +2,7 @@
 
 iOS ve Android için namaz vakitleri ve günlük ibadet rehberi. **Expo SDK 58 / React Native / TypeScript** mobil uygulaması, **Next.js** yönetim paneli prototipi ve ortak TypeScript çekirdeği.
 
-> **ÖNEMLİ: yalnızca prototip.** Namaz vakitleri örnek veridir; gerçek ibadet vakti olarak kullanılmamalıdır. Resmî veri kaynağı, kerahet aralıkları, bildirimler ve widget'lar henüz uygulanmadı.
+> **Yayın öncesi sürüm:** Ana ekran, ücretsiz üçüncü taraf İdamedya takvim servisi üzerinden yayımlanmış vakitleri okuyabilir. Bu Diyanet'in resmî API'si değildir; kaynak uygulamada açıkça etiketlenir. Resmî API onayı, bildirimler, widget'lar ve cihaz testleri tamamlanmış değildir.
 
 ## Kurulum
 
@@ -24,13 +24,13 @@ Ek komutlar: \`npm run android\`, \`npm run ios\` (iOS için Mac/Xcode gerekir),
 - \`packages/core\`: platform bağımsız namaz vakti ve kıble yardımcıları, testler.
 - \`docs/\`: ürün, tasarım ve mimari kararları.
 
-**Güvenlik:** API secret değerlerini istemciye koymayın. Admin kimlik doğrulama, RBAC/RLS kurulmadan yönetim fonksiyonu açmayın. Diyanet veri kaynağı ve izinleri doğrulanmadan gerçek namaz vakti yayınlamayın. Mevcut demo verisi dinî referans yerine geçmez.
+**Güvenlik:** API secret değerlerini istemciye koymayın. Admin kimlik doğrulama, RBAC/RLS kurulmadan yönetim fonksiyonu açmayın. Üçüncü taraf kaynak resmî Diyanet API olarak etiketlenmez; geçersiz tarihler/saatler canlı gösterilmez.
 
 İlk sürüm gerçek cihazlarda veya CI bağımlılık kurulumunda henüz doğrulanmadı.
 
 ## Resmî Diyanet entegrasyonu
 
-Yetkili sunucu, il/ilçe senkronizasyonu ve doğrulanmış üç günlük mobil takvim kurulum adımları: [docs/DIYANET_INTEGRATION.md](docs/DIYANET_INTEGRATION.md). Sunucu paketi `apps/api`, SQL migrations `infra/supabase/migrations/` altındadır. API hesabı/DB/URL yapılandırılmadan mobil örnek namaz vakti **göstermez**.
+Yetkili sunucu, il/ilçe senkronizasyonu ve doğrulanmış üç günlük mobil takvim kurulum adımları: [docs/DIYANET_INTEGRATION.md](docs/DIYANET_INTEGRATION.md). Sunucu paketi `apps/api`, SQL migrations `infra/supabase/migrations/` altındadır. API hesabı/DB/URL yapılandırılmadan mobil uygulama ücretsiz üçüncü taraf takvim servisini deneyebilir; bağlantı başarısızsa **uydurma vakit göstermez**.
 
 ## Camiler — Ücretsiz Harita Araması
 
@@ -39,3 +39,7 @@ Yetkili sunucu, il/ilçe senkronizasyonu ve doğrulanmış üç günlük mobil t
 ## Kıble 2.0
 
 Altın/zümrüt referans tasarımından geliştirilmiş canlı gerçek kuzey pusulası, Kâbe yönü, sensör kalibrasyon rehberi ve harici harita bağlantısı: [Teknik notlar](docs/QIBLA_2_REFERENCE.md). Sensör doğruluğu için gerçek cihaz testi zorunludur.
+
+## Ana Ekran — Ücretsiz Takvim Kaynağı
+
+Orijinal namaz çemberi, günlük kartlar ve çevrimli vakit akışı; ücretsiz İdamedya servisinden alınan, Diyanet kaynaklı olduğu belirtilen takvim kayıtlarıyla görüntülenebilir. Resmî Diyanet API onayı beklerken ayrı sağlayıcı/adapör: [ücretsiz kaynak teknik kılavuzu](docs/FREE_CALENDAR.md).
