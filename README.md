@@ -35,3 +35,7 @@ Yetkili sunucu, il/ilçe senkronizasyonu ve doğrulanmış üç günlük mobil t
 ## Camiler — Ücretsiz Harita Araması
 
 Ücretli SDK/Places/OSM backend bağımlılığı olmadan Google Haritalar uygulamasına geçiş. Ücretsiz, anahtarsız Maps URLs; bölge alanı ve tek dokunuşla harita araması: [Kurulum ve QA](docs/MOSQUES_2.md).
+
+## Kıble 2.0
+
+Altın/zümrüt referans tasarımından geliştirilmiş canlı gerçek kuzey pusulası, Kâbe yönü, sensör kalibrasyon rehberi ve harici harita bağlantısı: [Teknik notlar](docs/QIBLA_2_REFERENCE.md). Sensör doğruluğu için gerçek cihaz testi zorunludur.
