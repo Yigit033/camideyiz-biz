@@ -220,6 +220,7 @@ export default function QiblaScreen(){
       <View style={{marginTop:4,marginBottom:0}}>
         <QiblaCompass size={compassSize}
           relative={hasValidHeading?relative:null}
+          heading={hasValidHeading?heading:null}
           available={hasValidHeading} aligned={aligned}/>
       </View>
 
