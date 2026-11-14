@@ -23,7 +23,7 @@ Uygulama bu kaynağı ayrı açıkça etiketler.
 ## Veri ve güvenlik mimarisi
 - Mobil cihazdaki ücretsiz kaynak istemcisi HTTPS üzerinden JSON GET kullanır.
 - Cihazda veya başka bir API ile **astronomik vakit hesaplaması yapılmaz**.
-- Üç ardışık gün bulunmalı (önceki/bugün/ertesi): doğru gece yarısı/imsak hesabı için.
+- Bugün ve yarının ardışık verileri zorunludur; dünkü kayıt isteğe bağlıdır. Kaynak bugünden itibaren veri yayımlar. Gece yarısından sonraki imsak geri sayımı gerçek bugünkü imsak ile hesaplanır; dünkü yatsı olmadan önceki geceye ait ilerleme oranı uydurulmaz.
 - Her vaktin HH:MM formatı, kronolojik dizilişi, tarih ve ilçe ID bilgisi doğrulanır.
 - İdamedya cache süresi belgede 1 saat: cihazda 55 dakikadan eski veriler canlı kullanılmaz;
   45 dakika civarı yenilenir; açık ekran 10 dakikalık kontrolle yenileme dener.
@@ -84,3 +84,15 @@ Resmî entegrasyonda yalnızca sunucu uygulamasına yetkili Diyanet anahtarları
   incelenmesi. Ücretsiz halka açık API, bir SLA veya dağıtım sözleşmesi değildir.
 - Ana sayfa farklı ekran ölçüleri, kaydırma, ekran okuyucu, konum değişimi, tema.
 - Diyanet resmî API geldiğinde eski mirror cache'i resmî doğrulanmış kaynak olarak tanımama testi.
+
+## Canlı API regresyon testi (14.11.2026)
+
+Ekranda görülen “Takvim bekleniyor” hatasının nedeni şuydu: İdamedya vakit dizisini bugünden başlatırken parser `previous` için dünkü kayıt zorunlu tutuyordu; doğrulanmış bugünkü altı vakit de bu yüzden reddediliyordu. Parser artık bugünü ve yarını zorunlu, dünü isteğe bağlı kabul ediyor. `calculateMirrorPhase` bugün ve yarının gerçek saatlerini kullanıyor; dünkü saat yoksa geçmişe ait saat uydurmuyor.
+
+Aynı gün için gerçek JSON biçimiyle regresyon testleri ve canlı servise bağlanan opsiyonel kontrol eklendi:
+
+```powershell
+node --experimental-strip-types scripts/calendar-live-smoke.mjs
+```
+
+CI içindeki opsiyonel harici kontrol başarısız olsa bile TypeScript/bundle/birim testleri çalışmaya devam eder. Yayın öncesi gerçek cihazda ağ, konum değiştirme ve veri gösterimini doğrulamak gerekir.
