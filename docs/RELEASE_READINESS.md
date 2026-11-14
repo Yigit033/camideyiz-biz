@@ -34,3 +34,14 @@
 - Diyanet kerahat guidance: https://yayin.diyanet.gov.tr/File/Download?id=389&path=fetvalar.pdf
 - Diyanet Nisa 4:103: https://kuran.diyanet.gov.tr/tefsir/Nis%C3%A2-suresi/596/103-ayet-tefsiri
 - Diyanet Hadislerle İslam, Niyet ve Davranış: https://hadislerleislam.diyanet.gov.tr/pdf/hadislerle_islam_cilt3.pdf
+
+
+## 14.11.2026 — Diyanet entegrasyonu geliştirme dalına eklendi
+
+- Ayrı `apps/api` Next.js servisi: resmî Diyanet authentication/refresh, istek kotalarını sınırlayan durable sync leasing, RLS korumalı Supabase takvim/konum önbelleği
+- Türkiye Diyanet il / ilçe seçimi, gerçek tarihe bağlı 3 günlük doğrulanmış takvim, gece yarısında ertesi günün imsak saati
+- Cihazda yalnızca gerçek tarih ve kaynak doğrulamasını geçmiş offline takvim; kaynak gelmezse demo yerine açıklamalı boş durum
+- Yalnızca yetkili sunucuya açık sync/target/cron rotaları, otomatik Vercel günlük cron tanımı; **hiçbiri henüz üretimde aktive edilmedi**
+- Resmî Diyanet API hesabı, Supabase migration onayı, service-role secrets ve HTTPS API deployment gereklidir
+- Kesin kerahet, ezan/bildirim ve mağaza sürümü hâlâ yayına hazır değildir
+- Tekil cron 6 kayıt / gün ile sınırlı; yüksek kullanıcı ve ilçe sayısı için planlı indeksleme ve genişletilmiş iş kuyruğu gerekecektir
