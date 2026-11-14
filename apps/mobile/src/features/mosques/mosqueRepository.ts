@@ -91,8 +91,12 @@ export async function loadMosques(
     const raw=await fetchRaw(center,controller.signal);
     const elements=(raw as {elements:unknown[]}).elements;
     const items=parseOverpassMosques(raw,center);
-    await save(center,elements);
-    return {items,fetchedAt:Date.now(),source:'network',center};
+    const response=raw as {stale?:boolean;fetchedAt?:string};
+    const stale=response.stale===true;
+    const serverTime=response.fetchedAt?Date.parse(response.fetchedAt):NaN;
+    const stamped=Number.isFinite(serverTime)?serverTime:Date.now();
+    if(!stale)await save(center,elements);
+    return {items,fetchedAt:stamped,source:stale?'stale':'network',center};
   }catch(error){
     if(signal?.aborted)throw error;
     if(old)return {items:parseOverpassMosques({elements:old.elements},center),
