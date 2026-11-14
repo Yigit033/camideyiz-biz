@@ -1,335 +1,338 @@
-import {useCallback,useEffect,useMemo,useRef,useState,type ComponentProps} from 'react';
+import {memo,useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {
-  ActivityIndicator,Alert,FlatList,Linking,Pressable,ScrollView,
+  ActivityIndicator,Alert,FlatList,Keyboard,Linking,Platform,Pressable,ScrollView,
   StyleSheet,Text,TextInput,View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import * as Location from 'expo-location';
-import MapView,{Marker,type Region} from 'react-native-maps';
+import MapView,{Marker,PROVIDER_GOOGLE,type Region} from 'react-native-maps';
+import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import {
-  ISTANBUL_CENTER, type Coordinate,type MosqueFilter,type MosqueRecord,
-  distanceMeters,filterMosques,formatMosqueDistance,MOSQUE_RADIUS_METERS,
+  type GoogleMosque,type GoogleMosqueDetails,ISTANBUL_CENTER,
+  distanceMeters,googleSearchRadius,formatMosqueDistance,
 } from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {Atmosphere,MosqueCrest} from '@/components/LuxuryArtwork';
-import {MosqueCard} from '@/features/mosques/MosqueCard';
-import {MosqueDetail} from '@/features/mosques/MosqueDetail';
-import {loadMosques,type MosqueSearchResult} from '@/features/mosques/mosqueRepository';
-import {useMosqueFavorites} from '@/features/mosques/useMosqueFavorites';
+import {GoogleMosqueCard} from '@/features/mosques/GoogleMosqueCard';
+import {GoogleMosqueDetail} from '@/features/mosques/GoogleMosqueDetail';
+import {useGoogleMosqueFavorites} from '@/features/mosques/useGoogleMosqueFavorites';
+import {configuredGooglePlaces,getGoogleMosqueDetails,searchGoogleMosques} from '@/features/mosques/googlePlacesClient';
 
-const DEFAULT_REGION:Region={...ISTANBUL_CENTER,latitudeDelta:.075,longitudeDelta:.075};
-const FILTERS:{key:MosqueFilter;label:string;icon:'grid'|'heart'|'image'|'check-circle'}[]=[
-  {key:'all',label:'Tümü',icon:'grid'},
-  {key:'favorites',label:'Favoriler',icon:'heart'},
-  {key:'photographed',label:'Fotoğraf etiketi',icon:'image'},
-  {key:'accessible',label:'Erişilebilir',icon:'check-circle'},
-];
-const GOOGLE_NIGHT_STYLE:NonNullable<ComponentProps<typeof MapView>['customMapStyle']>=[
-  {elementType:'geometry',stylers:[{color:'#172E2B'}]},
-  {elementType:'labels.text.fill',stylers:[{color:'#B8CFC0'}]},
-  {elementType:'labels.text.stroke',stylers:[{color:'#19322F'}]},
-  {featureType:'water',elementType:'geometry',stylers:[{color:'#0C222B'}]},
-  {featureType:'road',elementType:'geometry',stylers:[{color:'#2C4F46'}]},
+const INITIAL:Region={...ISTANBUL_CENTER,latitudeDelta:.18,longitudeDelta:.18};
+const GOOGLE_MAPS_READY=Platform.OS==='android'||
+  (Platform.OS==='ios'&&Constants.appOwnership!=='expo'&&
+    Constants.expoConfig?.extra?.googleMapsIosConfigured===true);
+const DARK_MAP_STYLE:NonNullable<React.ComponentProps<typeof MapView>['customMapStyle']>=[
+  {elementType:'geometry',stylers:[{color:'#1B332F'}]},
+  {elementType:'labels.text.fill',stylers:[{color:'#D5E1D8'}]},
+  {elementType:'labels.text.stroke',stylers:[{color:'#172D2A'}]},
+  {featureType:'water',elementType:'geometry',stylers:[{color:'#0E2630'}]},
+  {featureType:'road',elementType:'geometry',stylers:[{color:'#34554C'}]},
   {featureType:'poi',stylers:[{visibility:'off'}]},
 ];
-function formatFetchTime(time:number){
-  const elapsed=Math.max(0,Date.now()-time);
-  if(elapsed<60*60*1000)return 'Güncel bölge verisi';
-  if(elapsed<24*60*60*1000)return 'Önbellek · '+Math.floor(elapsed/(60*60*1000))+' sa önce';
-  return 'Önbellek · '+Math.floor(elapsed/(24*60*60*1000))+' gün önce';
-}
-function Chip({label,selected,onPress,icon}:{
-  label:string;selected:boolean;onPress:()=>void;icon:typeof FILTERS[number]['icon'];
+type Mode='map'|'list';
+const NativeMosqueMap=memo(function NativeMosqueMap({
+  regionRef,onMove,places,selected,onSelect,mapRef,showLocation,dark,
+}:{
+  regionRef:{current:Region};onMove:(region:Region)=>void;
+  places:GoogleMosque[];selected:string|null;onSelect:(place:GoogleMosque)=>void;
+  mapRef:React.RefObject<MapView|null>;showLocation:boolean;dark:boolean;
 }){
+  return <MapView
+    ref={mapRef} provider={PROVIDER_GOOGLE}
+    initialRegion={regionRef.current}
+    style={StyleSheet.absoluteFill}
+    customMapStyle={dark?DARK_MAP_STYLE:undefined}
+    showsUserLocation={showLocation}
+    showsMyLocationButton={false}
+    showsCompass
+    mapPadding={{top:18,left:12,right:12,bottom:35}}
+    moveOnMarkerPress={false}
+    onRegionChangeComplete={onMove}>
+    {places.map(place=><Marker
+      key={place.id} identifier={place.id}
+      coordinate={{latitude:place.latitude,longitude:place.longitude}}
+      title={place.name} description={place.address??undefined}
+      pinColor={selected===place.id?'#D5A45E':'#087E63'}
+      onPress={()=>onSelect(place)}/>)}
+  </MapView>;
+});
+function ErrorExplanation({message,onRetry}: {message:string;onRetry:()=>void}){
   const {colors}=useAppTheme();
-  return <Pressable accessibilityRole="button" accessibilityState={{selected}} onPress={onPress}
-    style={[styles.chip,{
-      backgroundColor:selected?(colors.isDark?'#08745E':'#087557'):colors.surface,
-      borderColor:selected?(colors.isDark?'#78D0A9':'#087557'):colors.border,
-    }]}>
-    <Feather name={icon} size={13} color={selected?'#FFEDC9':colors.gold}/>
-    <Text style={{fontSize:11,fontWeight:'700',color:selected?'#FFFEF9':colors.text}}>{label}</Text>
-  </Pressable>;
-}
-function MosquePin({focused}: {focused:boolean}){
-  const {colors}=useAppTheme();
-  return <View style={{alignItems:'center',justifyContent:'center',height:53,width:45}}>
-    <View style={{
-      width:focused?42:35,height:focused?42:35,borderRadius:focused?19:16,
-      borderWidth:focused?3:2,borderColor:focused?'#F4D391':colors.isDark?'#CDB77F':'#FFFFFF',
-      backgroundColor:focused?'#08795C':colors.isDark?'#0F564A':'#10785B',
-      alignItems:'center',justifyContent:'center',
-      shadowColor:'#0C342D',shadowOpacity:.25,shadowRadius:6,elevation:4,
-    }}>
-      <MaterialCommunityIcons name="mosque" color="#FFF4D8" size={focused?22:18}/>
-    </View>
-    <View style={{width:8,height:8,transform:[{rotate:'45deg'}],marginTop:-5,
-      backgroundColor:focused?'#08795C':colors.isDark?'#0F564A':'#10785B'}}/>
-  </View>;
-}
-function Attribution(){
-  const {colors}=useAppTheme();
-  return <Pressable accessibilityRole="link"
-    onPress={()=>Linking.openURL('https://www.openstreetmap.org/copyright').catch(()=>undefined)}
-    style={[styles.attribution,{backgroundColor:colors.isDark?'rgba(4,24,22,.9)':'rgba(255,255,255,.9)'}]}>
-    <Text style={{color:colors.muted,fontSize:9,fontWeight:'600'}}>© OpenStreetMap katkıda bulunanlar · ODbL</Text>
+  return <Pressable accessibilityRole="button" onPress={onRetry}
+    style={[styles.error,{backgroundColor:colors.surface,borderColor:colors.border}]}>
+    <Feather name="alert-circle" size={19} color={colors.warning}/>
+    <Text style={{color:colors.text,fontSize:12,flex:1,lineHeight:18}}>{message}</Text>
+    <Feather name="refresh-cw" size={16} color={colors.emerald}/>
   </Pressable>;
 }
 export default function MosquesScreen(){
   const {colors}=useAppTheme();
-  const dark=colors.isDark;
-  const mapRef=useRef<MapView>(null),mounted=useRef(true),requestSeq=useRef(0);
-  const [mode,setMode]=useState<'map'|'list'>('map');
-  const [filter,setFilter]=useState<MosqueFilter>('all'),[query,setQuery]=useState('');
-  const [region,setRegion]=useState<Region>(DEFAULT_REGION);
-  const [pendingCenter,setPendingCenter]=useState<Coordinate|null>(null);
-  const [result,setResult]=useState<MosqueSearchResult|null>(null);
+  const mapRef=useRef<MapView>(null),regionRef=useRef<Region>(INITIAL);
+  const mounted=useRef(true),controller=useRef<AbortController|null>(null);
+  const initialSearch=useRef(false),sequence=useRef(0),favoritesLoading=useRef(false);
+  const [mode,setMode]=useState<Mode>('map');
+  const [places,setPlaces]=useState<GoogleMosque[]>([]);
+  const [favoritePlaces,setFavoritePlaces]=useState<GoogleMosque[]>([]);
+  const [filter,setFilter]=useState<'all'|'favorites'>('all');
+  const [query,setQuery]=useState(''),[searchText,setSearchText]=useState('');
+  const [selected,setSelected]=useState<GoogleMosque|null>(null);
+  const [detail,setDetail]=useState<GoogleMosque|null>(null);
+  const [searchCenter,setSearchCenter]=useState<{latitude:number;longitude:number}|null>(null);
+  const [areaChanged,setAreaChanged]=useState(true);
   const [loading,setLoading]=useState(false),[locating,setLocating]=useState(false);
+  const [favoritesBusy,setFavoritesBusy]=useState(false);
   const [error,setError]=useState<string|null>(null),[hasLocation,setHasLocation]=useState(false);
-  const [currentLocation,setCurrentLocation]=useState<Coordinate|null>(null);
-  const [selected,setSelected]=useState<MosqueRecord|null>(null),[detail,setDetail]=useState<MosqueRecord|null>(null);
-  const {saved,ids,toggle,ready}=useMosqueFavorites();
+  const {ids,items:favoriteIds,toggle}=useGoogleMosqueFavorites();
+  useEffect(()=>()=>{mounted.current=false;controller.current?.abort();sequence.current++;},[]);
 
-  const searchArea=useCallback(async(center:Coordinate,force=false)=>{
-    const seq=++requestSeq.current;
-    setLoading(true);setError(null);
+  const perform=useCallback(async(center:{latitude:number;longitude:number},latitudeDelta:number,q='')=>{
+    const token=++sequence.current;
+    controller.current?.abort();
+    const ctrl=new AbortController();
+    controller.current=ctrl;
+    Keyboard.dismiss();setLoading(true);setError(null);setSelected(null);
     try{
-      const data=await loadMosques(center,{force});
-      if(seq!==requestSeq.current||!mounted.current)return;
-      setResult(data);setSelected(null);setPendingCenter(null);
+      const result=await searchGoogleMosques(center.latitude,center.longitude,googleSearchRadius(latitudeDelta),q,ctrl.signal);
+      if(ctrl.signal.aborted||!mounted.current||token!==sequence.current)return;
+      setPlaces(result.places);
+      setSearchCenter(result.center);setAreaChanged(false);
+      setSearchText(q.trim());
     }catch(e){
-      if(seq!==requestSeq.current||!mounted.current)return;
-      setError(e instanceof Error&&e.message==='MOSQUE_API_NOT_CONFIGURED'
-        ?'Cami servisi yayın için yapılandırılmamış. Testte Expo Go geliştirme modunu kullanın.'
-        :'Cami kayıtları alınamadı. İnternet bağlantınızı kontrol edip yeniden deneyin.');
-    }finally{if(seq===requestSeq.current&&mounted.current)setLoading(false);}
+      if(ctrl.signal.aborted||!mounted.current||token!==sequence.current)return;
+      const code=e instanceof Error?e.message:'';
+      const message=code==='GOOGLE_PLACES_SERVER_NOT_CONFIGURED'?
+        'Google Places sunucusu henüz bağlı değil. API adresini ve Google Cloud anahtarlarını yapılandırın.':
+        code==='google_places_not_configured'?
+          'Google Cloud Places API anahtarı sunucuda bulunmuyor.':
+        code==='query_rate_limited'||code==='provider_quota'?
+          'Arama sınırına ulaşıldı. Daha sonra yeniden deneyin.':
+          'Google Places cami sonuçlarına ulaşılamadı. Bağlantıyı kontrol edin.';
+      setError(message);
+    }finally{
+      if(mounted.current&&token===sequence.current)setLoading(false);
+    }
   },[]);
-  useEffect(()=>{
-    mounted.current=true;
-    searchArea(ISTANBUL_CENTER);
-    return ()=>{mounted.current=false;requestSeq.current++;};
-  },[searchArea]);
+  const searchArea=useCallback(()=>{
+    const r=regionRef.current;
+    perform({latitude:r.latitude,longitude:r.longitude},r.latitudeDelta,query);
+  },[perform,query]);
 
+  const onMove=useCallback((r:Region)=>{
+    regionRef.current=r;
+    const center={latitude:r.latitude,longitude:r.longitude};
+    // This callback performs no network request or heavy record parsing.
+    const isDifferent=!searchCenter||
+      distanceMeters(center,searchCenter)>380||
+      googleSearchRadius(r.latitudeDelta)>googleSearchRadius(INITIAL.latitudeDelta)+500;
+    setAreaChanged(old=>old===isDifferent?old:isDifferent);
+  },[searchCenter]);
   const locate=useCallback(async()=>{
     setLocating(true);
     try{
-      const perm=await Location.requestForegroundPermissionsAsync();
-      if(perm.status!=='granted'){
-        Alert.alert('Konum izni verilmedi','Haritayı ve camileri konum izni olmadan da kullanabilirsiniz. Dilerseniz haritayı istediğiniz bölgeye taşıyın.');
+      const permission=await Location.requestForegroundPermissionsAsync();
+      if(permission.status!=='granted'){
+        Alert.alert('Konum izni verilmedi','Haritayı kaydırıp istediğiniz bölgede arama yapabilirsiniz.');
         return;
       }
-      const loc=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});
-      const center={latitude:loc.coords.latitude,longitude:loc.coords.longitude};
-      setHasLocation(true);setCurrentLocation(center);
-      mapRef.current?.animateToRegion({...center,latitudeDelta:.06,longitudeDelta:.06},370);
-      await searchArea(center);
-    }catch{Alert.alert('Konum belirlenemedi','Konum hizmetini açın veya haritayı elle hareket ettirin.');}
-    finally{setLocating(false);}
-  },[searchArea]);
-  const onMove=useCallback((r:Region)=>{
-    setRegion(r);
-    if(!result)return;
-    const point={latitude:r.latitude,longitude:r.longitude};
-    const delta=distanceMeters(point,result.center);
-    setPendingCenter(delta>800?point:null);
-  },[result]);
-  const displayed=useMemo(()=>{
-    const origin=currentLocation??result?.center??ISTANBUL_CENTER;
-    const input=filter==='favorites'
-      ?saved.map(x=>({...x,distanceMeters:distanceMeters(origin,x)}))
-      :result?.items??[];
-    return filterMosques(input,query,filter,ids);
-  },[result,filter,query,ids,saved,currentLocation]);
-  const visiblePins=useMemo(()=>displayed.slice(0,130),[displayed]);
-  const errorMessage=error&&!result?error:null;
-  const showRefresh=pendingCenter!==null&&filter!=='favorites';
-  const isNear=selected?selected.distanceMeters<20000:false;
-  return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:colors.canvas}}>
-    <Atmosphere dark={dark}/>
-    <View style={styles.header}>
-      <View style={{gap:1,flex:1}}>
-        <Text style={{color:colors.gold,letterSpacing:2,fontSize:10,fontWeight:'800'}}>YAKINIMDA · KEŞFET</Text>
-        <Text style={{fontFamily:'serif',fontSize:29,fontWeight:'700',color:colors.text,letterSpacing:-.5}}>
-          Camiler
+      const position=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.Balanced});
+      const center={latitude:position.coords.latitude,longitude:position.coords.longitude};
+      const r:Region={...center,latitudeDelta:.065,longitudeDelta:.065};
+      regionRef.current=r;setHasLocation(true);
+      mapRef.current?.animateToRegion(r,350);
+      await perform(center,r.latitudeDelta,query);
+    }catch{Alert.alert('Konum alınamadı','Konum servislerini kontrol edin veya haritayı elle taşıyın.');}
+    finally{if(mounted.current)setLocating(false);}
+  },[perform,query]);
+  const visible=useMemo(()=>{
+    const list=filter==='favorites'?favoritePlaces:places;
+    return list.filter(p=>!searchText||p.name.toLocaleLowerCase('tr-TR').includes(searchText.toLocaleLowerCase('tr-TR'))||
+      (p.address??'').toLocaleLowerCase('tr-TR').includes(searchText.toLocaleLowerCase('tr-TR')));
+  },[places,favoritePlaces,filter,searchText]);
+  const choose=useCallback((p:GoogleMosque)=>{
+    setSelected(p);setDetail(null);
+  },[]);
+  const selectFavoriteTab=useCallback(async()=>{
+    setFilter('favorites');setSelected(null);
+    if(!favoriteIds.length){setFavoritePlaces([]);return;}
+    if(favoritesLoading.current)return;
+    favoritesLoading.current=true;setFavoritesBusy(true);
+    // Place IDs are the only persisted data. Names/location are refetched
+    // on explicit user action to comply with Google Maps caching policy.
+    try{
+      const groups=favoriteIds.slice(0,20);
+      const resolved:GoogleMosque[]=[];
+      // Fetch in small batches to avoid blocking UI or creating a burst.
+      for(let i=0;i<groups.length;i+=3){
+        if(!mounted.current)break;
+        const batch=await Promise.allSettled(groups.slice(i,i+3).map(id=>getGoogleMosqueDetails(id)));
+        batch.forEach(x=>{if(x.status==='fulfilled'){
+          const d=x.value;
+          resolved.push({...d,distanceMeters:distanceMeters(regionRef.current,d)});
+        }});
+        if(mounted.current)setFavoritePlaces([...resolved]);
+      }
+    }finally{favoritesLoading.current=false;if(mounted.current)setFavoritesBusy(false);}
+  },[favoriteIds]);
+  const label=searchCenter?'Google Places · '+places.length+' sonuç':'Haritada bir alan seçin';
+  const unavailable=!GOOGLE_MAPS_READY;
+  if(unavailable){
+    return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:colors.canvas}}>
+      <Atmosphere dark={colors.isDark}/>
+      <View style={styles.setup}>
+        <MosqueCrest width={220} dark={colors.isDark}/>
+        <Text style={{fontFamily:'serif',fontSize:25,fontWeight:'700',color:colors.text,textAlign:'center'}}>
+          Google Maps haritası
+        </Text>
+        <Text style={{color:colors.muted,lineHeight:22,textAlign:'center'}}>
+          iOS Expo Go uygulaması Google Maps iOS SDK'sını içermez. Google Places verilerini Apple Maps üzerinde göstermiyoruz.
+          iOS'ta Google Maps kullanmak için Google SDK anahtarıyla özel geliştirme derlemesi oluşturmalısınız.
         </Text>
       </View>
-      <View style={{flexDirection:'row',alignItems:'center',gap:7}}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Konumuma git"
-          onPress={locate} disabled={locating}
-          style={[styles.headerButton,{backgroundColor:colors.surface,borderColor:colors.border}]}>
-          {locating?<ActivityIndicator size="small" color={colors.emerald}/>
-            :<MaterialCommunityIcons name="crosshairs-gps" size={21} color={colors.emerald}/>}
-        </Pressable>
-        <View style={[styles.counter,{borderColor:colors.border,backgroundColor:colors.surface}]}>
-          <MaterialCommunityIcons name="mosque" size={17} color={colors.gold}/>
-          <Text style={{color:colors.text,fontSize:12,fontWeight:'800'}}>{displayed.length}</Text>
-        </View>
+    </SafeAreaView>;
+  }
+  return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:colors.canvas}}>
+    <Atmosphere dark={colors.isDark}/>
+    <View style={styles.heading}>
+      <View style={{flex:1,gap:3}}>
+        <Text style={{color:colors.gold,letterSpacing:2,fontSize:9,fontWeight:'800'}}>HARİTADA KEŞFET</Text>
+        <Text style={{fontFamily:'serif',fontSize:29,fontWeight:'700',color:colors.text}}>Camiler</Text>
       </View>
+      <Pressable onPress={locate} disabled={locating}
+        accessibilityRole="button" accessibilityLabel="Konumumda cami ara"
+        style={[styles.iconButton,{backgroundColor:colors.surface,borderColor:colors.border}]}>
+        {locating?<ActivityIndicator color={colors.emerald}/>
+          :<MaterialCommunityIcons name="crosshairs-gps" color={colors.emerald} size={23}/>}
+      </Pressable>
     </View>
-
-    <View style={[styles.search,{borderColor:colors.border,backgroundColor:colors.surface}]}>
-      <Feather name="search" size={19} color={colors.gold}/>
-      <TextInput value={query} onChangeText={setQuery} autoCorrect={false}
-        placeholder="Bu bölgedeki camilerde ara…" placeholderTextColor={colors.muted}
-        returnKeyType="search" selectionColor={colors.emerald}
-        style={{flex:1,color:colors.text,fontSize:14}}/>
-      {query?<Pressable accessibilityRole="button" accessibilityLabel="Aramayı temizle" onPress={()=>setQuery('')}>
-        <Feather name="x-circle" color={colors.muted} size={17}/>
+    <View style={[styles.searchBox,{backgroundColor:colors.surface,borderColor:colors.border}]}>
+      <Feather name="search" size={18} color={colors.gold}/>
+      <TextInput value={query} onChangeText={setQuery}
+        placeholder="Cami veya bölge adı yaz…" placeholderTextColor={colors.muted}
+        returnKeyType="search" onSubmitEditing={searchArea}
+        style={{flex:1,fontSize:14,color:colors.text}} autoCorrect={false}/>
+      {query?<Pressable onPress={()=>{setQuery('');setSearchText('');}} accessibilityLabel="Aramayı temizle">
+        <Feather name="x" color={colors.muted} size={16}/>
       </Pressable>:null}
+      <Pressable onPress={searchArea} accessibilityRole="button" disabled={loading}
+        style={{backgroundColor:colors.isDark?'#126D55':'#0C7858',padding:9,borderRadius:11}}>
+        <Feather name="arrow-right" color="#FFF" size={18}/>
+      </Pressable>
     </View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}
-      keyboardShouldPersistTaps="always"
-      contentContainerStyle={{paddingHorizontal:14,gap:7,alignItems:'center',paddingVertical:5}}
-      style={{flexGrow:0,minHeight:45}}>
-      {FILTERS.map(item=><Chip key={item.key} label={item.label} icon={item.icon}
-        selected={filter===item.key}
-        onPress={()=>{setFilter(item.key);setSelected(null);}}/>)}
-    </ScrollView>
-    <View style={styles.modeBar}>
-      <View style={[styles.segmented,{borderColor:colors.border,backgroundColor:colors.soft}]}>
-        {(['map','list'] as const).map(v=><Pressable key={v} onPress={()=>setMode(v)}
-          accessibilityRole="button" accessibilityState={{selected:mode===v}}
-          style={[styles.segment,{backgroundColor:mode===v?colors.surface:'transparent'}]}>
-          <Feather name={v==='map'?'map':'list'} size={15} color={mode===v?colors.emerald:colors.muted}/>
-          <Text style={{fontWeight:'700',color:mode===v?colors.text:colors.muted,fontSize:12}}>
-            {v==='map'?'Harita':'Liste'}
+    <View style={styles.controls}>
+      <View style={[styles.tabs,{backgroundColor:colors.soft,borderColor:colors.border}]}>
+        {(['map','list'] as Mode[]).map(key=><Pressable key={key}
+          onPress={()=>setMode(key)} accessibilityRole="button" accessibilityState={{selected:mode===key}}
+          style={[styles.tab,{backgroundColor:mode===key?colors.surface:'transparent'}]}>
+          <Feather name={key==='map'?'map':'list'} size={15} color={mode===key?colors.emerald:colors.muted}/>
+          <Text style={{fontWeight:'700',fontSize:12,color:mode===key?colors.text:colors.muted}}>
+            {key==='map'?'Harita':'Liste'}
           </Text>
         </Pressable>)}
       </View>
-      <View style={{flex:1,alignItems:'flex-end'}}>
-        {result?<Text numberOfLines={1} style={{fontSize:10,color:colors.muted}}>
-          {result.source==='stale'?'Çevrimdışı kayıt · ':''}{formatFetchTime(result.fetchedAt)}
-        </Text>
-          :<Text style={{fontSize:10,color:colors.muted}}>Harita konumu · İstanbul</Text>}
-        <Text style={{fontSize:9,color:colors.muted}}>Yarıçap {MOSQUE_RADIUS_METERS/1000} km · OSM verisi</Text>
+      <View style={{flexDirection:'row',gap:6}}>
+        <Pressable onPress={()=>{setFilter('all');setSelected(null);}}
+          style={[styles.smallFilter,{borderColor:filter==='all'?colors.gold:colors.border,backgroundColor:colors.surface}]}>
+          <Text style={{fontSize:11,fontWeight:'700',color:colors.text}}>Tümü</Text>
+        </Pressable>
+        <Pressable onPress={selectFavoriteTab}
+          style={[styles.smallFilter,{borderColor:filter==='favorites'?colors.gold:colors.border,backgroundColor:colors.surface}]}>
+          <Feather name="heart" size={13} color={colors.gold}/>
+          <Text style={{fontSize:11,fontWeight:'700',color:colors.text}}>Favoriler</Text>
+        </Pressable>
       </View>
     </View>
-    {mode==='map'
-      ?<View style={[styles.mapContainer,{borderColor:colors.border}]}>
-        <MapView ref={mapRef} style={StyleSheet.absoluteFill}
-          initialRegion={region}
-          showsUserLocation={hasLocation}
-          showsMyLocationButton={false} showsCompass
-          customMapStyle={dark?[...GOOGLE_NIGHT_STYLE]:undefined}
-          onRegionChangeComplete={onMove}
-          moveOnMarkerPress={false}
-          mapType="standard">
-          {visiblePins.map(item=><Marker key={item.id}
-            coordinate={{latitude:item.latitude,longitude:item.longitude}}
-            tracksViewChanges={selected?.id===item.id}
-            onPress={()=>setSelected(item)}
-            accessibilityLabel={item.name}>
-            <MosquePin focused={selected?.id===item.id}/>
-          </Marker>)}
-        </MapView>
-        {showRefresh?<Pressable accessibilityRole="button" disabled={loading}
-          onPress={()=>pendingCenter&&searchArea(pendingCenter,true)}
-          style={[styles.searchAreaButton,{backgroundColor:colors.isDark?'#134C40':'#FFFFFF',borderColor:colors.gold}]}>
-          {loading?<ActivityIndicator size="small" color={colors.emerald}/>
-            :<Feather name="refresh-cw" color={colors.emerald} size={15}/>}
-          <Text style={{color:colors.text,fontWeight:'800',fontSize:12}}>Bu bölgede ara</Text>
-        </Pressable>:null}
-        {loading?<View style={[styles.loader,{backgroundColor:colors.surface,borderColor:colors.border}]}>
-          <ActivityIndicator size="small" color={colors.emerald}/>
-          <Text style={{color:colors.text,fontSize:12,fontWeight:'700'}}>Camiler yükleniyor…</Text>
+    <Text style={{marginHorizontal:18,marginBottom:6,fontSize:10,color:colors.muted}}>
+      {filter==='favorites'?'Kaydedilen konumlar · Google Places':label} · Her aramada en fazla 20 sonuç
+    </Text>
+    <View style={{flex:1,minHeight:230}}>
+      <View style={[styles.mapFrame,{
+        display:mode==='map'?'flex':'none',borderColor:colors.border,
+      }]}>
+        <NativeMosqueMap
+          regionRef={regionRef} mapRef={mapRef} places={visible}
+          selected={selected?.id??null} onMove={onMove} onSelect={choose}
+          showLocation={hasLocation} dark={colors.isDark}/>
+        <View pointerEvents="none" style={styles.target}>
+          <Feather name="plus" size={24} color="#086C54"/>
+        </View>
+        <Pressable onPress={searchArea} accessibilityRole="button" disabled={loading}
+          style={[styles.areaButton,{backgroundColor:colors.isDark?'#123F35':'#FFFFFF',borderColor:colors.gold}]}>
+          {loading?<ActivityIndicator size="small" color={colors.emerald}/>:<Feather name="search" color={colors.emerald} size={17}/>}
+          <Text style={{color:colors.text,fontWeight:'800',fontSize:13}}>
+            {loading?'Camiler aranıyor…':'Bu bölgede ara'}
+          </Text>
+        </Pressable>
+        {error?<ErrorExplanation message={error} onRetry={searchArea}/>:null}
+        {!places.length&&!loading&&!error&&filter==='all'?<View style={[styles.hint,{backgroundColor:colors.surface,borderColor:colors.border}]}>
+          <Text style={{color:colors.text,fontSize:11,textAlign:'center',lineHeight:18}}>
+            Haritayı kaydır, yakınlaştır veya konumunu seç. Ardından “Bu bölgede ara” düğmesine dokun.
+          </Text>
         </View>:null}
-        {error&&!loading?<Pressable accessibilityRole="button" onPress={()=>searchArea(pendingCenter??result?.center??ISTANBUL_CENTER,true)}
-          style={[styles.error,{backgroundColor:colors.surface,borderColor:colors.warning}]}>
-          <Feather name="alert-circle" color={colors.warning} size={16}/>
-          <Text style={{color:colors.text,fontSize:11,flex:1}}>{error}</Text>
-          <Feather name="refresh-cw" color={colors.emerald} size={15}/>
-        </Pressable>:null}
-        {!loading&&!error&&result&&displayed.length===0?<View style={[styles.emptyMap,{backgroundColor:colors.surface,borderColor:colors.border}]}>
-          <Feather name="search" size={18} color={colors.gold}/>
-          <Text style={{color:colors.text,fontSize:12,flex:1}}>Bu bölgede filtreye uygun cami bulunamadı.</Text>
-        </View>:null}
-        {selected?<View style={[styles.selectedCard,{backgroundColor:colors.surface,borderColor:colors.border}]}>
-          <View style={[styles.miniIcon,{backgroundColor:colors.soft}]}>
-            <MosqueCrest width={72} dark={dark}/>
+        {selected?<View style={[styles.selected,{backgroundColor:colors.surface,borderColor:colors.border}]}>
+          <View style={[styles.miniArt,{backgroundColor:colors.soft}]}>
+            <MosqueCrest width={70} dark={colors.isDark}/>
           </View>
-          <Pressable style={{flex:1,gap:5}} accessibilityRole="button"
-            onPress={()=>setDetail(selected)}>
-            <Text numberOfLines={1} style={{color:colors.text,fontSize:16,fontFamily:'serif',fontWeight:'700'}}>
-              {selected.name}
-            </Text>
-            <Text numberOfLines={1} style={{fontSize:11,color:colors.muted}}>
-              {selected.address??'Konum haritada kayıtlı'}
-            </Text>
+          <Pressable accessibilityRole="button" onPress={()=>setDetail(selected)} style={{flex:1,gap:5}}>
+            <Text numberOfLines={1} style={{fontFamily:'serif',fontSize:17,fontWeight:'700',color:colors.text}}>{selected.name}</Text>
+            <Text numberOfLines={1} style={{fontSize:11,color:colors.muted}}>{selected.address??'Google Maps konumu'}</Text>
             <Text style={{fontSize:11,color:colors.emerald,fontWeight:'800'}}>
-              {isNear?formatMosqueDistance(selected.distanceMeters):'Konuma git'} · Detayları gör
+              {formatMosqueDistance(selected.distanceMeters)} · Detayı aç
             </Text>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cami detaylarını aç"
-            onPress={()=>setDetail(selected)} style={[styles.openDetail,{backgroundColor:colors.soft}]}>
-            <Feather name="arrow-up-right" size={20} color={colors.emerald}/>
+          <Pressable onPress={()=>setDetail(selected)} accessibilityLabel="Cami detayını aç">
+            <Feather name="arrow-up-right" color={colors.emerald} size={21}/>
           </Pressable>
         </View>:null}
-        <Attribution/>
       </View>
-      :<View style={{flex:1}}>
-        {loading&&!result?<ActivityIndicator size="large" color={colors.emerald} style={{marginTop:70}}/>:null}
-        {errorMessage?<Pressable onPress={()=>searchArea(ISTANBUL_CENTER,true)}
-          style={{paddingHorizontal:24,paddingTop:30,flexDirection:'row',alignItems:'center',gap:12}}>
-          <Feather name="alert-triangle" color={colors.warning} size={22}/>
-          <Text style={{color:colors.text,flex:1}}>{errorMessage} · Yeniden dene</Text>
-        </Pressable>:null}
-        <FlatList data={displayed} keyExtractor={item=>item.id}
-          keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
-          contentContainerStyle={{paddingHorizontal:14,paddingTop:8,paddingBottom:28,gap:9,flexGrow:1}}
-          renderItem={({item})=><MosqueCard place={item}
-            favorite={ids.has(item.id)} onFavorite={()=>toggle(item)} onOpen={()=>setDetail(item)}/>}
-          ListEmptyComponent={loading?undefined:<View style={{alignItems:'center',paddingTop:45,gap:13}}>
-            <MosqueCrest width={160} dark={dark}/>
-            <Text style={{fontFamily:'serif',fontSize:19,fontWeight:'700',color:colors.text}}>
-              Burada henüz kayıt görünmüyor
-            </Text>
-            <Text style={{fontSize:12,color:colors.muted,textAlign:'center',lineHeight:20,paddingHorizontal:24}}>
-              Haritayı hareket ettirip bu bölgede ara veya başka filtre seç.
-            </Text>
-          </View>}
-          ListFooterComponent={<Pressable accessibilityRole="link" onPress={()=>
-            Linking.openURL('https://www.openstreetmap.org/copyright').catch(()=>undefined)}
-            style={{paddingVertical:13,alignItems:'center'}}>
-            <Text style={{fontSize:10,color:colors.muted}}>
-              © OpenStreetMap katkıda bulunanlar · ODbL · Kayıtlar eksik olabilir
-            </Text>
-          </Pressable>}/>
-      </View>}
-    <MosqueDetail place={detail} isFavorite={detail?ids.has(detail.id):false}
-      onFavorite={toggle} onClose={()=>setDetail(null)}/>
+      {mode==='list'?<FlatList data={visible} keyExtractor={p=>p.id}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{padding:14,gap:8,flexGrow:1}}
+        ListHeaderComponent={<Text style={{fontSize:11,color:colors.muted,marginBottom:4}}>
+          Veriler Google Maps tarafından sağlanmaktadır.
+        </Text>}
+        renderItem={({item})=><GoogleMosqueCard
+          place={item} favorite={ids.has(item.id)}
+          open={()=>setDetail(item)} toggle={()=>toggle(item.id)}/>}
+        ListEmptyComponent={<View style={{alignItems:'center',gap:12,paddingTop:35}}>
+          {favoritesBusy?<ActivityIndicator color={colors.emerald}/>:<MosqueCrest width={160} dark={colors.isDark}/>}
+          <Text style={{color:colors.text,fontWeight:'700'}}>
+            {filter==='favorites'?'Favoriler yükleniyor veya henüz kaydın yok':'Haritada bölge seçerek aramaya başla'}
+          </Text>
+        </View>}
+        ListFooterComponent={<Text style={{textAlign:'center',fontSize:11,color:colors.muted,padding:20}}>
+          Google Maps · Sonuçlar harita bölgesine ve Google Places kapsamına bağlıdır.
+        </Text>}
+      />:null}
+    </View>
+    <GoogleMosqueDetail place={detail} favorite={detail?ids.has(detail.id):false}
+      toggle={toggle} close={()=>setDetail(null)}/>
   </SafeAreaView>;
 }
 const styles=StyleSheet.create({
-  header:{height:82,marginHorizontal:16,flexDirection:'row',alignItems:'center',gap:12},
-  headerButton:{height:43,width:43,borderRadius:14,borderWidth:1,alignItems:'center',justifyContent:'center'},
-  counter:{height:43,minWidth:62,borderRadius:14,borderWidth:1,paddingHorizontal:10,
-    flexDirection:'row',alignItems:'center',justifyContent:'center',gap:6},
-  search:{height:49,marginHorizontal:14,marginBottom:4,paddingHorizontal:13,
-    borderWidth:1,borderRadius:16,flexDirection:'row',alignItems:'center',gap:10,
-    shadowColor:'#42544B',shadowOpacity:.06,shadowRadius:7},
-  chip:{minHeight:32,borderRadius:20,borderWidth:1,paddingHorizontal:13,
-    flexDirection:'row',alignItems:'center',gap:7},
-  modeBar:{height:49,paddingHorizontal:14,alignItems:'center',flexDirection:'row',justifyContent:'space-between',gap:9},
-  segmented:{height:36,borderRadius:13,borderWidth:1,padding:3,flexDirection:'row',gap:4},
-  segment:{borderRadius:10,paddingHorizontal:11,flexDirection:'row',alignItems:'center',gap:5},
-  mapContainer:{flex:1,marginHorizontal:11,marginBottom:8,
-    borderRadius:23,borderWidth:1.1,overflow:'hidden',minHeight:240,backgroundColor:'#E3E9E3'},
-  searchAreaButton:{position:'absolute',alignSelf:'center',top:15,minHeight:41,
-    paddingHorizontal:17,flexDirection:'row',alignItems:'center',
-    borderRadius:23,borderWidth:1,gap:8,
-    shadowColor:'#34493E',shadowOpacity:.13,shadowRadius:8,elevation:3},
-  loader:{position:'absolute',alignSelf:'center',top:65,paddingHorizontal:15,paddingVertical:9,
-    flexDirection:'row',alignItems:'center',borderWidth:1,borderRadius:20,gap:9},
-  error:{position:'absolute',top:63,left:12,right:12,borderWidth:1,padding:11,
-    borderRadius:14,flexDirection:'row',alignItems:'center',gap:7},
-  emptyMap:{position:'absolute',top:70,left:16,right:16,padding:13,borderWidth:1,
-    borderRadius:14,flexDirection:'row',alignItems:'center',gap:10},
-  selectedCard:{position:'absolute',bottom:35,left:9,right:9,minHeight:100,padding:10,
-    flexDirection:'row',alignItems:'center',gap:12,borderRadius:20,borderWidth:1,
-    shadowColor:'#0A2A22',shadowOpacity:.14,shadowRadius:15,elevation:5},
-  miniIcon:{height:75,width:76,borderRadius:14,alignItems:'center',justifyContent:'center'},
-  openDetail:{width:37,height:37,borderRadius:12,alignItems:'center',justifyContent:'center'},
-  attribution:{position:'absolute',bottom:5,alignSelf:'center',paddingHorizontal:8,
-    paddingVertical:3,borderRadius:6},
+  heading:{height:77,paddingHorizontal:16,flexDirection:'row',alignItems:'center',justifyContent:'space-between'},
+  iconButton:{width:45,height:45,borderRadius:15,borderWidth:1,alignItems:'center',justifyContent:'center'},
+  searchBox:{height:49,marginHorizontal:14,marginBottom:8,borderWidth:1,borderRadius:16,
+    flexDirection:'row',alignItems:'center',paddingHorizontal:12,gap:10},
+  controls:{minHeight:46,marginHorizontal:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:6},
+  tabs:{height:37,borderRadius:13,borderWidth:1,padding:3,flexDirection:'row',gap:3},
+  tab:{paddingHorizontal:10,borderRadius:10,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},
+  smallFilter:{minHeight:34,paddingHorizontal:10,borderRadius:13,borderWidth:1,
+    flexDirection:'row',alignItems:'center',justifyContent:'center',gap:5},
+  mapFrame:{flex:1,borderRadius:21,borderWidth:1,marginHorizontal:10,marginBottom:8,overflow:'hidden',
+    backgroundColor:'#E5E9E3'},
+  target:{position:'absolute',left:0,right:0,top:'47%',alignItems:'center',justifyContent:'center'},
+  areaButton:{position:'absolute',top:17,alignSelf:'center',minHeight:43,
+    borderWidth:1,borderRadius:23,paddingHorizontal:19,
+    flexDirection:'row',alignItems:'center',gap:8,elevation:5,
+    shadowColor:'#132D25',shadowOpacity:.2,shadowRadius:10},
+  error:{position:'absolute',top:73,left:11,right:11,padding:12,borderRadius:15,
+    borderWidth:1,flexDirection:'row',alignItems:'center',gap:9},
+  hint:{position:'absolute',bottom:28,left:20,right:20,padding:12,borderWidth:1,borderRadius:14},
+  selected:{position:'absolute',bottom:15,left:9,right:9,minHeight:94,padding:10,
+    borderWidth:1,borderRadius:18,flexDirection:'row',alignItems:'center',gap:10,
+    shadowColor:'#182E28',shadowOpacity:.15,shadowRadius:12,elevation:4},
+  miniArt:{width:68,height:72,borderRadius:13,alignItems:'center',justifyContent:'center'},
+  setup:{flex:1,paddingHorizontal:27,alignItems:'center',justifyContent:'center',gap:17},
 });

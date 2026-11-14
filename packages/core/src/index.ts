@@ -6,3 +6,4 @@ export * from './visualDial';
 export * from './diyanet';
 export * from './verifiedSchedule';
 export * from './mosques';
+export * from './googleMosques';
