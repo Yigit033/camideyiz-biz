@@ -135,3 +135,48 @@ iPhone:
 - Diyanet resmî API ayrı doğrulama süreci.
 
 Yayınlamadan önce bu kapılar onaylanmalıdır.
+
+
+## 14 Kasım 2026 — Expo Go / native runtime ayrımı
+
+Gözlenen iki hata: `Cannot find native module 'ExpoWidgets'` ve Android
+`ExpoNotificationChannelManager.setNotificationChannelAsync` sırasında
+`NullPointerException`.
+
+- Expo Go yalnızca **uygulama içi widget görsellerini** gösterebilir;
+  ExpoWidgets native modülü içermediğinden işletim sistemi widget'ı
+  yüklenmez. Runtime kontrolü `Constants.expoGoConfig` ve eski
+  `appOwnership` göstergelerini birlikte kullanır (development client
+  yanlışlıkla devre dışı bırakılmaz).
+- `widgetSync.android.ts` ve `widgetSync.ios.ts` içinde native
+  widget giriş dosyaları artık Expo Go'da Metro'nun önceden
+  değerlendirebildiği `import()` parçaları üzerinden açılmaz.
+  Native modül sadece native build ortamında koşullu `require()` ile
+  çağrılır; yöntem bulunamazsa açık hata döndürülür.
+- Bildirim kanalları **genel ayar kapalıyken oluşturulmaz**. Native
+  Android'de kullanıcı etkinleştirdiğinde kanallar oluşturulur.
+  Expo Go'da özel kanal kurma çağrısından kaçınılır; varsa sistemin
+  varsayılan kanalıyla yalnızca sınırlı local notification testi denenir.
+  Bu Expo Go için teslim garantisi veya OS widget desteği iddiası değildir.
+- SDK 58 / Android 16'da artık kullanılmayan
+  `android.edgeToEdgeEnabled` kaldırıldı.
+
+### Regresyon kabul testi
+
+1. `npm run mobile` ile Expo Go: uygulama açılmalı, Widget ve
+   Bildirimler sayfasındaki iki önizleme görünmeli; `ExpoWidgets`
+   kırmızı hata ekranı veya boş/sahte native widget durumu olmamalı.
+2. İlk kurulumda bildirimler kapalıyken Android kanal oluşturma
+   `NullPointerException` hatası oluşmamalı.
+3. İzin/onay sonrası Expo Go'da yerel bildirimleri denemek **opsiyonel**
+   ve garanti edilmez. Native Android uygulamasında 5 sn test bildirimi,
+   gerçek vakit planı, ses/sessiz kanal ayrımı, izin ret ve ilçe
+   değişimi tek tek sınanmalı.
+4. `npx expo run:android` ile **yeni native APK** derlenip emülatör
+   ana ekranında 2×2 ve 4×2 widget kurulum/tıklama/güncelleme
+   kontrol edilmeli. `expo prebuild` tek başına APK yüklemez.
+5. iOS WidgetKit cihaz/Xcode kod imzalama kontrolü **hâlâ bekliyor**.
+
+Bu düzeltmenin GitHub CI'da TypeScript, Expo export ve prebuild
+kontrollerinden geçmesi **fiziksel Android/iPhone kabul testi** yerine
+geçmez; üretime alma kapıları değişmemiştir.
