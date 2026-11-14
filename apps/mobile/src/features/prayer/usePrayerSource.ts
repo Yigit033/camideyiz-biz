@@ -66,6 +66,12 @@ export function usePrayerSource(now:Date){
     await AsyncStorage.setItem(officialConfigured?OFFICIAL_PLACE_KEY:MIRROR_PLACE_KEY,JSON.stringify(next));
   },[officialConfigured]);
   const retry=useCallback(()=>setRefresh(n=>n+1),[]);
+  // Re-check the time-limited third-party cache while the app remains foregrounded.
+  useEffect(()=>{
+    if(officialConfigured)return;
+    const timer=setInterval(()=>setRefresh(value=>value+1),10*60*1000);
+    return ()=>clearInterval(timer);
+  },[officialConfigured]);
   useEffect(()=>{
     if(!booted)return;
     if(!place){setData(null);setStatus('choose-location');return;}
@@ -87,8 +93,9 @@ export function usePrayerSource(now:Date){
       if(cached){
         setData(cached);
         setStatus(officialConfigured?'offline':'mirror-cached');
-        // Third-party's published caching limit: 1 hour. Do not unnecessarily refetch.
-        if(!officialConfigured)return;
+        // A public cached mirror response can be reused for ~45 minutes.
+        // Refresh before 55m expiry, without hitting the upstream on every view.
+        if(!officialConfigured&&Date.now()-Date.parse(cached.today.fetchedAt)<45*60*1000)return;
       }
       try{
         const next=officialConfigured
