@@ -5,3 +5,4 @@ export * from './timeline';
 export * from './visualDial';
 export * from './diyanet';
 export * from './verifiedSchedule';
+export * from './mosques';
