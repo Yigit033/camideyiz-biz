@@ -1,44 +1,86 @@
-# Camideyiz Biz — Camiler 2.0
+# Camideyiz Biz — Camiler 2.1: Google Maps + Google Places
 
-## Durum ve kapsam
-Bu geliştirme, Expo SDK 58 ve React Native için gerçek harita içeren cami keşif deneyimidir. Namaz vakitleri/Diyanet koduna dokunmaz.
+## Why the previous version froze or seemed limited to Fatih
+The prior iteration mixed a Google Maps **base map** on Android with OSM/Overpass for **place search**.
+Its initial Istanbul center was near Fatih, with a 3.5 km radius; it wasn't an all-city search.
+Fetching/parsing large JSON datasets, O(n²) near-duplicate checks and rendering up to 130
+custom view markers could block JS or increase native map redraw overhead.
 
-### Uygulanan özellikler
-- react-native-maps 1.29.11: Android Google Maps, iOS Apple Maps, Expo Go geliştirme testi.
-- Gerçek OpenStreetMap node / way / relation cami verisi, yakınında ara (3.5 km), isim/adres araması, liste-harita anahtarı ve harita üzerinde dokunulabilir pinler.
-- 'Bu bölgede ara' yalnızca kullanıcı haritayı taşıyıp düğmeye bastığında sorgu gönderir. Konum izni yalnızca istenince alınır; reddedilirse İstanbul başlangıç haritası manuel taşınabilir.
-- Tümü, favoriler, fotoğraf etiketi, erişilebilirlik filtreleri. Kaynakta alan yoksa tesis/erişilebilirlik bilgisi uydurulmaz.
-- Cami detay sayfası: kaynakla eşlenen lisanslı Wikimedia Commons fotoğrafı varsa gösterim, yoksa özel vektör amblem; koordinat, varsa adres/telefon/site/erişilebilirlik, paylaşım, harici harita yol tarifi, OSM kaynak kaydı.
-- Yerel favoriler (AsyncStorage), konum bazlı 12 saatlik önbellek ve azami 7 günlük açıkça belirtilmiş çevrimdışı OSM POI bilgisi.
-- OSM/ODbL atfı. İsim veya verilerin resmen doğrulandığı iddia edilmez.
-- apps/api/src/app/api/v1/mosques/route.ts: production endpoint iskeleti, giriş doğrulama, sınırlı yarıçap, 12 saat isolate-içi cache ve basit eşzamanlı istek kontrolü.
+## What changed
+- **Google Maps SDK** as the native basemap on Android and iOS (iOS requires a dedicated Google SDK development/production binary).
+- **Google Places API (New)** as the mosque search source. Request type="mosque", localized name/address, explicit "Bu bölgede ara" user action, at most 20 results per request.
+- Supports map gestures/zoom and searching the new map center, on-demand geolocation, and typed text searches scoped toward the chosen map center.
+- Lightweight native Google map markers instead of up to 130 custom Marker children.
+- Small, explicit field masks to reduce billing; no auto-API calls while panning.
+- In-app map or list, Google Maps data attribution, place details on tap, source photos with author attribution and link, Google Maps walking navigation.
+- Favorited **Place IDs only** persisted on device; names/locations/details and photo names are not stored in AsyncStorage or a database.
+- No Diyanet prayer-time logic changed.
 
-### Bilgisayarda test
-PowerShell:
+## Important caveats
+1. **Map ≠ Places.** Google Maps SDK renders maps. Google Places (New) must be enabled separately to return mosque results.
+2. A Nearby Search request returns at most **20 places**, NOT all mosques in Istanbul. Search a different region or zoom; do not claim completeness.
+3. **Google Cloud project with billing is mandatory.** Maps SDK Android, Maps SDK iOS and Places API (New) need their respective enabled services and restricted keys.
+4. **iOS Expo Go cannot provide a native Google Maps SDK**. Test iOS with an Expo development build or EAS custom build. The app refuses to display Google Places on an Apple basemap to avoid Google Maps Platform policy issues.
+5. No Place details, names, coordinates, photos or addresses are stored in persistent app cache. The only persistent favorite data is the Google Place ID. Google content and photo names are subject to license and caching restrictions.
+6. Public Places proxy contains only best-effort per-process throttling. A **durable/distributed rate limiter + app attestation + server-side quotas** are required before an unrestricted public rollout. Otherwise key abuse may incur unexpected bills.
+7. Photos are fetched from current Place Details results via short-lived media endpoint; credit is displayed when Google requires author attributions.
+8. The server must never leak GOOGLE_PLACES_API_KEY to an Expo public variable, JavaScript bundle, screenshot or GitHub.
+9. Privacy notice must explain that the selected map center/location is sent to the app server and Google when the user searches; no silent background searches.
+10. True device-frame performance, iOS setup, accessibility, varied screen sizes and real Google Places API data cannot be verified without configured keys and hardware QA.
+11. Legacy OSM/Overpass runtime is retired for this feature. Do not silently fall back to OSM when a Google request fails.
+
+## Setup: Google Cloud
+Create or select a Google Cloud project and attach an active Billing account.
+
+Enable:
+- **Places API (New)** — Places server key
+- **Maps SDK for Android** — native Android map key
+- **Maps SDK for iOS** — native iOS map key
+
+Create **three different restricted API keys**:
+1. GOOGLE_PLACES_API_KEY (server only, API-restricted to Places API New; add appropriate server IP restrictions when stable outbound IPs exist).
+2. GOOGLE_MAPS_ANDROID_API_KEY (Android app restriction by \`biz.camideyiz.app\` + your signing SHA-1).
+3. GOOGLE_MAPS_IOS_API_KEY (iOS app restriction by \`biz.camideyiz.app\`).
+
+Set quotas to safe limits; configure billing budget alerts (alerts alone do not guarantee a hard spending cap).
+Use Google Places FieldMask and a per-user/app verified quota before production.
+
+### Development on Windows, Android phone on same Wi-Fi
+Run two terminals. Files \`.env.local\` must not be committed.
+
+Terminal A:
+\`\`\`powershell
 cd C:\active_projects\camideyiz-biz
 git fetch origin
-git switch --track origin/feat/mosques-2-premium-explore
+git switch feat/mosques-2-premium-explore
+git pull --ff-only origin feat/mosques-2-premium-explore
 npm install
-cd apps\mobile
+# Add GOOGLE_PLACES_API_KEY in apps/api/.env.local (server ONLY).
+npm run dev --workspace @camideyiz/api
+\`\`\`
+
+Terminal B:
+\`\`\`powershell
+cd C:\active_projects\camideyiz-biz\apps\mobile
+# Create .env.local with your PC LAN address:
+# EXPO_PUBLIC_MOSQUE_API_URL=http://192.168.1.100:3001
 npx expo start --clear
+\`\`\`
 
-Expo Go geliştirme sürümünde EXPO_PUBLIC_MOSQUE_API_URL boşken kamuya açık Overpass servisine sınırlı sorgu yapılır. Bu ücretsiz servis geliştirme testi içindir, kalıcı yüksek trafikli backend değildir. İstekler 429 veya 503 döndüğünde uygulama yeniden deneme ve önbellek kullanma seçeneklerini gösterir.
+If Android device and PC share Wi-Fi, replace 192.168.1.100 with the actual LAN IPv4 address.
+The standalone Android build needs a restricted Google Maps native SDK key.
+For iOS Google Maps, create a development build with GOOGLE_MAPS_IOS_API_KEY configured in EAS.
 
-### Yayın öncesi zorunlu
-1. Production için kendi veya sözleşmeli, kota güvenceli cami POI sunucusu sağlayın. Public Overpass sunucuları çok kullanıcıya hizmet vermek üzere tasarlanmamıştır.
-2. Özel API HTTPS kökünü mobil ortamda EXPO_PUBLIC_MOSQUE_API_URL ile tanımlayın. Namaz vakitleri API'si ile aynı apps/api deployment'ı kullanılabilir; Diyanet giriş bilgileri Camiler için gerekmez.
-3. Android bağımsız build için Google Maps API anahtarını EAS/CI secret GOOGLE_MAPS_ANDROID_API_KEY altında kısıtlayın. app.config.js bu anahtarı yalnızca native build'e geçirir. Expo Go için ayrıca anahtar gerekmez.
-4. iOS Apple Maps'i ve Android Google Maps'i gerçek cihazlarda doğrulayın; GPS reddi, farklı ekranlar, koyu/açık tema, erişilebilirlik, 150 marker ve ağ kesintisini sınayın.
-5. Fotoğraf lisansı zorunludur. Wikimedia Commons imageinfo metadata'sı CC/PD lisans ve eser sahibi sunmuyorsa görsel yerleştirilmez. İçerik telif denetimi sürdürülmelidir.
-6. OSM noktaları topluluk verisidir; adresler ve camilerin varlığı değişebilir. Üretim kalitesi için veri doğrulama, kayıt bildirme/düzeltme ve mümkünse resmî cami listeleriyle karşılaştırma gerekir.
-7. Harici yol tarifi telefon harita uygulamasında açılır; uygulama içinde rota hesaplama veya trafik tahmini yapılmaz.
-8. Favoriler yalnızca mevcut cihazdadır, hesaplar arası sync yoktur.
+## Operator / release gate
+- DO NOT deploy until you have billing limits, durable shared throttling and allowed-host/proxy security.
+- DO NOT store Google Places content in Supabase/Postgres as if it were OSM. Place IDs are the persistent favorite key.
+- Device QA: map movement keeps 60 fps where reasonably possible; search explicitly triggers at most one call; spinner does not block gestures; errors show retry; country/region movement works; favorites survive restart by ID; photo credits and Google logo are visible.
+- No astronomical prayers. Only officially approved Diyanet API provides namaz vakitleri separately.
 
-### Kaynaklar
+### Verified documentation
 - https://docs.expo.dev/versions/v58.0.0/sdk/map-view/
-- https://wiki.openstreetmap.org/wiki/Overpass_API
-- https://www.openstreetmap.org/copyright
-- https://www.mediawiki.org/wiki/API:Imageinfo
-
-### Özellik dışı
-Namaz vakitlerinde yalnızca resmî Diyanet API onayı beklenir; astronomik hesaplamaya geçilmez. Topluluk/Galeri ve Widget projeleri ayrı geliştirme aşamalarıdır.
+- https://developers.google.com/maps/documentation/places/web-service/nearby-search
+- https://developers.google.com/maps/documentation/places/web-service/place-types
+- https://developers.google.com/maps/documentation/places/web-service/policies
+- https://developers.google.com/maps/documentation/places/web-service/usage-and-billing
+- https://developers.google.com/maps/documentation/places/web-service/place-photos

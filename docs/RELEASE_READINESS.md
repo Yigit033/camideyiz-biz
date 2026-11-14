@@ -53,3 +53,13 @@
 - Yüksek trafikli yayın için public Overpass uygun değil: onaylı OSM veri sağlayıcısı/kendi servis ve paylaşımlı kalıcı cache henüz yok
 - OSM kayıtları resmî/eksiksiz cami envanteri olarak sunulmaz; veri kalitesi kontrolü gerekir
 - Yayın onayı, production deploy veya main merge yapılmadı
+
+## 14 Nov 2026 — Google Maps + Places replacement for Camiler
+
+- Legacy OSM/Overpass data is retired from Camiler runtime. Google Maps SDK (native, both platforms in dedicated builds) plus Google Places New for search/details/photos.
+- User-controlled "Bu bölgede ara" instead of auto-fetch on pan. Max 20 Nearby results per call. Native pins instead of up to 130 custom markers.
+- Android Expo Go supports Google basemap; iOS Google Maps needs an app-built native binary with restricted Maps SDK key.
+- Google Cloud billing, Maps Android/iOS keys and server-only Places API New key not configured here; no paid live requests made.
+- Google Place names/addresses/media cannot be stored in persistent cache; favorites persist Place IDs only.
+- Production blockers: real iOS/Android SDK builds; API keys and billing quota; distributed rate-limit/app-attestation; privacy policy, photo credits, device performance tests and Google Maps attribution.
+- Diyanet official approval still pending; **no astronomical calculation added**.
