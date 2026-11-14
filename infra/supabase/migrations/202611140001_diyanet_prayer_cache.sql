@@ -56,7 +56,7 @@ create or replace function public.claim_diyanet_sync(
 ) returns text language plpgsql security definer set search_path=public as $$
 declare claimed uuid;
 begin
- if p_key !~ '^(states|cities:[1-9][0-9]{0,7}|monthly:[1-9][0-9]{0,7}|weekly:[1-9][0-9]{0,7})$'
+ if p_key !~ '^(states|cities:[1-9][0-9]{0,7}|monthly:[1-9][0-9]{0,7}:[0-9]{4}-(0[1-9]|1[0-2])|weekly:[1-9][0-9]{0,7})$'
     or p_minimum_minutes not between 1 and 43200 then
    raise exception 'Invalid sync request';
  end if;
