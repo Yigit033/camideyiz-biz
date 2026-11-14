@@ -44,8 +44,9 @@ Yeterli doğrulanmış tarih yoksa mobil örnek saat göstermez.
    İller/ilçeler listesinde Diyanet'ten gelen gerçek ID'leri kullanın, internetten tahmini ID girmeyin.
 5. \`GET /api/v1/states\`, \`/api/v1/cities?stateId=...\`, \`/api/v1/prayer-times?cityId=...&date=YYYY-MM-DD\` ile kaynak, tarih ve 3-gün formatını test edin.
 6. \`apps/mobile/.env.local\` içerisine **yalnızca** \`EXPO_PUBLIC_PRAYER_API_URL=https://your-api\` yazın ve \`npx expo start --clear\` ile yeniden başlatın.
-7. İlk açılışta il ve ilçe seçin. Kaynak veri yoksa açıklamalı boş durum çıkar; demo namaz saati çıkmaz.
-8. Diyanet kotasını ve sözleşme koşullarını izleyin. İlçe verisi güncellemelerini güvenilir, yetkili sunucu cron işine bağlayın. Yeniden güncelleme için uygulamada kullanıcıların canlı API çağrısı yapmasına izin VERMEYİN.
+7. Yetkili POST `/api/internal/targets` isteğine `{"cityId":<onaylanmış Diyanet ilçe ID>,"enabled":true}` gövdesi gönderin. Böylece ilçe günlük otomatik güncelleme listesine eklenir. `apps/api/vercel.json` günde bir kez (01:00 UTC, Türkiye'de 04:00 civarı) `/api/internal/cron` tetikler; bu uç noktaya Vercel tarafından yalnızca `Authorization: Bearer CRON_SECRET` ile erişilir. Her çalışmada en fazla 6 **önceden onaylanmış** ilçe işlenir; daha büyük katalog için ayrı kuyruğa/işleyiciye geçilmelidir.
+8. İlk açılışta il ve ilçe seçin. Kaynak veri yoksa açıklamalı boş durum çıkar; demo namaz saati çıkmaz.
+9. Diyanet kotasını ve sözleşme koşullarını izleyin. Otomatik cron yalnızca ilgili Vercel uygulaması production'a **onaylı bir deployment** yapıldığında çalışır; şu an aktif değildir. Mobil kullanıcıların canlı Diyanet API çağrısı başlatmasına izin VERMEYİN.
 
 ## Tasarım ve güvenlik tercihleri
 - Production kişisel verilere erişim yok: seçili ilçe sadece cihazda AsyncStorage'a kaydedilir.
@@ -61,4 +62,4 @@ Yeterli doğrulanmış tarih yoksa mobil örnek saat göstermez.
 - Gerçek API hesabı, Supabase anahtarları, canlı Next deployment ve gerçek telefon testi yok.
 - Diyanet ile gerçek uçtan uca bağlantı ancak yetkilendirme yapıldıktan sonra doğrulanabilir.
 - İlk sürümde il/ilçe manuel seçilir; GPS koordinatlarından Diyanet ilçe ID eşlemesi yapılmaz.
-- Public API'de geniş kapsamlı kayıt talebi/izleme, günlük otomatik cron ve Android/iOS widget / ezan bildirimi sonraki üretim aşamalarıdır.
+- Onaylı ilçe için Vercel günlük cron iskeleti eklendi ancak canlıya alınmadı. Public talep kuyruğu, kotaya göre ölçeklenebilir job runner, API erişim izni, gerçek canlı veri testleri, widget ve ezan bildirimi sonraki aşamadır.
