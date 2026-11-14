@@ -60,6 +60,7 @@ export default function QiblaScreen(){
   const pending=useRef(false);
   const headingSample=useRef<{angle:number;time:number}|null>(null);
   const lastAlignedHaptic=useRef(0);
+  const lastLocationFixAt=useRef(0);
   const compassSize=Math.min(Math.max(255,width-42),352);
   const locationReady=bearing!==null;
   const relative=locationReady&&heading!==null?relativeQiblaAngle(bearing,heading):null;
@@ -88,6 +89,7 @@ export default function QiblaScreen(){
       const position=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High});
       if(!mounted.current)return;
       const nextBearing=qiblaBearing(position.coords.latitude,position.coords.longitude);
+      lastLocationFixAt.current=Date.now();
       setBearing(nextBearing);
       setLocationAccuracy(position.coords.accuracy??null);
       setHeadingEnabled(true);
@@ -115,25 +117,45 @@ export default function QiblaScreen(){
 
   useEffect(()=>{
     mounted.current=true;
-    Location.getForegroundPermissionsAsync().then(permission=>{
-      if(mounted.current&&permission.granted)void locate(false);
-    }).catch(()=>undefined);
     return ()=>{mounted.current=false;};
-  },[locate]);
+  },[]);
+
+  // Refresh coordinates on screen focus after time away from this tab.
+  // Merely opening the screen never triggers a new permission prompt.
+  useFocusEffect(useCallback(()=>{
+    let active=true;
+    if(Date.now()-lastLocationFixAt.current>=90_000){
+      Location.getForegroundPermissionsAsync().then(permission=>{
+        if(active&&permission.granted)void locate(false);
+      }).catch(()=>undefined);
+    }
+    return ()=>{active=false;};
+  },[locate]));
 
   useFocusEffect(useCallback(()=>{
     if(!headingEnabled)return;
     let active=true;
     let subscription:Location.LocationSubscription|null=null;
     headingSample.current=null;
+    // Do not carry a compass reading from a prior session while the sensor warms up.
+    setHeading(null);
+    setCompassAccuracy(null);
+    const staleCheck=setInterval(()=>{
+      const sample=headingSample.current;
+      if(active&&(!sample||Date.now()-sample.time>4500)){
+        setHeading(null);
+        setCompassAccuracy(null);
+      }
+    },2200);
     Location.watchHeadingAsync(reading=>{
       if(!active||!Number.isFinite(reading.trueHeading)||reading.trueHeading<0){
-        if(active){setHeading(null);setCompassAccuracy(null);}
+        if(active){headingSample.current=null;setHeading(null);setCompassAccuracy(null);}
         return;
       }
-      const accuracy=Math.max(0,Math.min(3,Math.trunc(reading.accuracy))) as CompassAccuracy;
+      const accuracy=Number.isFinite(reading.accuracy)
+        ?Math.max(0,Math.min(3,Math.trunc(reading.accuracy))) as CompassAccuracy:0;
       setCompassAccuracy(old=>old===accuracy?old:accuracy);
-      if(accuracy===0){setHeading(null);return;}
+      if(accuracy===0){headingSample.current=null;setHeading(null);return;}
       const now=Date.now();
       const previous=headingSample.current;
       const delta=previous?Math.abs(((reading.trueHeading-previous.angle+540)%360)-180):360;
@@ -154,7 +176,13 @@ export default function QiblaScreen(){
         setMessage('Bu cihazda pusula sensörüne erişilemiyor.');
       }
     });
-    return ()=>{active=false;subscription?.remove();};
+    return ()=>{
+      active=false;
+      clearInterval(staleCheck);
+      headingSample.current=null;
+      subscription?.remove();
+      if(mounted.current){setHeading(null);setCompassAccuracy(null);}
+    };
   },[headingEnabled,cycle]));
 
   useEffect(()=>{
@@ -345,7 +373,7 @@ export default function QiblaScreen(){
   </SafeAreaView>;
 }
 const styles=StyleSheet.create({
-  content:{paddingTop:14,paddingBottom:31,alignItems:'center',gap:12},
+  content:{paddingTop:12,paddingBottom:31,alignItems:'center',gap:10},
   brand:{height:33,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10},
   headline:{alignItems:'center',gap:3},
   eyebrow:{flexDirection:'row',alignItems:'center',gap:12},
