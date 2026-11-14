@@ -17,6 +17,6 @@
     "src/prayer.ts",
     "src/qibla.ts",
     "src/timeline.ts",
-    "src/mosques.ts"
+    "src/mapsUrl.ts"
   ]
 }

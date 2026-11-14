@@ -11,7 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "biz.camideyiz.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Yakındaki camileri bulmak, kıble yönünü hesaplamak ve konumunuza uygun namaz vakitlerini seçebilmek için konum erişimi gerekir."
+        "NSLocationWhenInUseUsageDescription": "Kıble yönünü hesaplamak ve konumunuza uygun namaz vakitlerini seçebilmek için konum erişimi gerekir."
       }
     },
     "android": {

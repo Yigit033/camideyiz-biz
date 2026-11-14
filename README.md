@@ -32,6 +32,6 @@ Ek komutlar: \`npm run android\`, \`npm run ios\` (iOS için Mac/Xcode gerekir),
 
 Yetkili sunucu, il/ilçe senkronizasyonu ve doğrulanmış üç günlük mobil takvim kurulum adımları: [docs/DIYANET_INTEGRATION.md](docs/DIYANET_INTEGRATION.md). Sunucu paketi `apps/api`, SQL migrations `infra/supabase/migrations/` altındadır. API hesabı/DB/URL yapılandırılmadan mobil örnek namaz vakti **göstermez**.
 
-## Camiler 2.0
+## Camiler — Ücretsiz Harita Araması
 
-Google Maps + Google Places (New) ile kullanıcı kontrollü bölgesel cami araması, Google fotoğrafları, kaynaklı detaylar ve Place ID tabanlı favoriler için [Camiler 2.1 teknik kılavuzu](docs/MOSQUES_2.md).
+Ücretli SDK/Places/OSM backend bağımlılığı olmadan Google Haritalar uygulamasına geçiş. Ücretsiz, anahtarsız Maps URLs; bölge alanı ve tek dokunuşla harita araması: [Kurulum ve QA](docs/MOSQUES_2.md).
