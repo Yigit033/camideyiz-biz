@@ -112,13 +112,20 @@ type Props = {
   nextKey: PrayerKey;
   restriction: RestrictionWindow | null;
   indicativeWindows: readonly RestrictionWindow[];
+  /** Explicit no-schedule state: a visual, manually rotatable wheel with no computed times. */
+  preview?: boolean;
+  locationName?: string;
 };
 export function PrayerWheel({
   times, selectedIndex, onSelect, focusRequest, size,
   colors, countdown, isManualSelection, nowSeconds,
   phaseProgress, urgency, nextKey, restriction, indicativeWindows,
+  preview=false, locationName,
 }: Props) {
-  const sectors = useMemo(() => segmentAngles(times), [times]);
+  // Placeholders must NEVER be parsed as real clock times or used to calculate phases.
+  const sectors = useMemo(() => preview
+    ?times.map((item,index)=>({...item,from:index*60,to:(index+1)*60}))
+    :segmentAngles(times), [times,preview]);
   const reduceMotion = useReducedMotion();
   const initialCenter = sectors[selectedIndex]
     ? (sectors[selectedIndex].from + sectors[selectedIndex].to) / 2
@@ -226,7 +233,7 @@ export function PrayerWheel({
     },
   );
 
-  const currentAngle = clockSecondsToVisualAngle(nowSeconds,times,sectors);
+  const currentAngle = preview?0:clockSecondsToVisualAngle(nowSeconds,times,sectors);
   const nowPoint = polar(currentAngle, 170);
   const selected = sectors[selectedIndex];
   const centerFill = colors.isDark ? '#081E21' : '#FFF9EF';
@@ -238,7 +245,7 @@ export function PrayerWheel({
   const warningTint=restriction ? '#EF6F72' : null;
   const progressTint=warningTint??(urgency==='normal'?PRAYER_COLORS[nextKey]:
     nextKey==='aksam'?'#F6B46F':colors.isDark?'#F4D58B':'#B9823D');
-  const demoArcs=indicativeWindows.map(window=>{
+  const demoArcs=(preview?[]:indicativeWindows).map(window=>{
     const from=clockSecondsToVisualAngle(window.startSeconds,times,sectors);
     const to=clockSecondsToVisualAngle(window.endSeconds,times,sectors);
     return {...window,from,to};
@@ -275,7 +282,7 @@ export function PrayerWheel({
             })}
             <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="65" fill="none"/>
             {sectors.map((item,index) => <G key={item.key}>
-              {item.key===nextKey && <>
+              {!preview && item.key===nextKey && <>
                 <Path d={arc(item.from+.6,item.to-.6,RADIUS)}
                   stroke={warningTint??PRAYER_COLORS[item.key]}
                   strokeOpacity={nextGlowStrength*.46}
@@ -324,10 +331,12 @@ export function PrayerWheel({
                 strokeWidth=".8" fill="none"/>
             </G>)}
             {/* Small current-time marker rotates WITH the wheel: not the selection needle. */}
-            <Circle cx={nowPoint.x} cy={nowPoint.y} r="8" fill={restriction?'#E96870':rim} fillOpacity=".21"/>
-            <Circle cx={nowPoint.x} cy={nowPoint.y} r="4.1" fill={rim} stroke={centerFill} strokeWidth="1"/>
-            <Path d={arc(0,Math.max(.01,currentAngle),167)} stroke={rim}
-              strokeOpacity=".58" strokeWidth="1.8" fill="none"/>
+            {!preview?<G>
+              <Circle cx={nowPoint.x} cy={nowPoint.y} r="8" fill={restriction?'#E96870':rim} fillOpacity=".21"/>
+              <Circle cx={nowPoint.x} cy={nowPoint.y} r="4.1" fill={rim} stroke={centerFill} strokeWidth="1"/>
+              <Path d={arc(0,Math.max(.01,currentAngle),167)} stroke={rim}
+                strokeOpacity=".58" strokeWidth="1.8" fill="none"/>
+            </G>:null}
           </Svg>
           {sectors.map((item,index) => <SectorLabel
             key={item.key} sector={item} size={size}
@@ -346,7 +355,7 @@ export function PrayerWheel({
       </Defs>
       <Circle cx="180" cy="180" r="175" fill="none"
         stroke={colors.isDark?'#D1BB8D':'#CBB589'} strokeOpacity=".25" strokeWidth="4"/>
-      {progress>.001?<Path
+      {!preview && progress>.001?<Path
         d={arc(0,Math.max(.2,Math.min(359.8,progress*359.8)),175)}
         fill="none" stroke={progressTint} strokeOpacity={urgency==='normal'?.30:.38}
         strokeWidth={urgency==='imminent'?12:8} strokeLinecap="round"/>:null}
@@ -354,7 +363,7 @@ export function PrayerWheel({
         d={arc(0,Math.max(.2,Math.min(359.8,progress*359.8)),175)}
         fill="none" stroke="url(#liveBar)" strokeWidth={urgency==='imminent'?5.5:4}
         strokeLinecap="round"/>:null}
-      {progress>.001 && <Circle cx={polar(progress*359.8,175).x}
+      {!preview && progress>.001 && <Circle cx={polar(progress*359.8,175).x}
         cy={polar(progress*359.8,175).y}
         r={urgency==='imminent'?6.4:4.7} fill={progressTint}
         stroke={colors.isDark?'#082A27':'#FFF8EB'} strokeWidth="1.8"/>}
@@ -394,10 +403,10 @@ export function PrayerWheel({
       <View style={[styles.center,{width:size*.56}]}>
         <MosqueCrest width={size*.42} dark={colors.isDark}/>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.prayerName,{color:colors.text}]}>
-          {isManualSelection?(selected?.label??'Vakit'):(selected?PRAYER_COUNTDOWN_LABELS[selected.key]:'Vakte Kalan')}
+          {preview?'Namaz vakitleri':isManualSelection?(selected?.label??'Vakit'):(selected?PRAYER_COUNTDOWN_LABELS[selected.key]:'Vakte Kalan')}
         </Text>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countdown,{color:colors.emerald}]}>
-          {isManualSelection?selected?.time??'--:--':countdown}
+          {preview?'--:--':isManualSelection?selected?.time??'--:--':countdown}
         </Text>
         <View style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:2}}>
           <View style={{width:24,height:1,backgroundColor:colors.gold,opacity:.78}}/>
@@ -407,7 +416,7 @@ export function PrayerWheel({
         <View style={{flexDirection:'row',alignItems:'center',gap:4,marginTop:2}}>
           <MaterialCommunityIcons name="map-marker-outline" size={12} color={colors.muted}/>
           <Text style={[styles.caption,{color:colors.muted}]}>
-            {isManualSelection?'Seçilen vakit':'İstanbul'}
+            {preview?'Resmî takvim bekleniyor':isManualSelection?'Seçilen vakit':locationName??'Konum'}
           </Text>
         </View>
       </View>
