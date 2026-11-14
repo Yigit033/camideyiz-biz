@@ -17,6 +17,7 @@
     "src/prayer.ts",
     "src/qibla.ts",
     "src/timeline.ts",
-    "src/mapsUrl.ts"
+    "src/mapsUrl.ts",
+    "src/mirrorCalendar.ts"
   ]
 }
