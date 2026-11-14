@@ -219,7 +219,6 @@ export default function MosquesScreen(){
           showsMyLocationButton={false} showsCompass
           customMapStyle={dark?[...GOOGLE_NIGHT_STYLE]:undefined}
           onRegionChangeComplete={onMove}
-          onPress={()=>setSelected(null)}
           moveOnMarkerPress={false}
           mapType="standard">
           {visiblePins.map(item=><Marker key={item.id}
@@ -294,7 +293,7 @@ export default function MosquesScreen(){
             <Text style={{fontSize:12,color:colors.muted,textAlign:'center',lineHeight:20,paddingHorizontal:24}}>
               Haritayı hareket ettirip bu bölgede ara veya başka filtre seç.
             </Text>
-          </View>:null}
+          </View>}
           ListFooterComponent={<Pressable accessibilityRole="link" onPress={()=>
             Linking.openURL('https://www.openstreetmap.org/copyright').catch(()=>undefined)}
             style={{paddingVertical:13,alignItems:'center'}}>
