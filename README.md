@@ -51,3 +51,8 @@ Yayımlanmış il/ilçe namaz vakitlerine dayalı üç yaklaşık kerahat bandı
 ## Widget ve Bildirimler 2.0
 
 Expo SDK 58 ile iOS/Android native namaz vakti widget'ları (2 boyut), 6 vakte özel cihaz içi hatırlatmalar, ses/sessiz kontrolü ve cihazda saklanan gözlenen bildirim geçmişi: [mimari, kurulum ve test koşulları](docs/WIDGETS_AND_NOTIFICATIONS_2.md). Expo Go gerçek ana ekran widget'larını **göstermez**; yeni native uygulama derlemesi ve cihaz QA şarttır.
+
+
+## Windows'ta APK testi
+
+Reanimated/CMake/Ninja uzun dosya yolu hatasını aşmak ve emülatör olmadan kendi Android telefonuna yüklenebilir release APK oluşturmayı denemek için [Windows native APK kılavuzu](docs/WINDOWS_ANDROID_APK.md) ve `scripts/build-android-windows.ps1` betiğini kullan. Betik ayrı `C:\\cb` checkout'unda çalışır; asıl proje dizinine dokunmaz. Android cihaz testi hâlâ tamamlanması gereken bir kalite kapısıdır.
