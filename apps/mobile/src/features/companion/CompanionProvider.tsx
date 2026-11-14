@@ -27,7 +27,7 @@ const EMPTY_WIDGET:WidgetSyncResult={
 Notifications.setNotificationHandler({
   handleNotification:async(notification)=>({
     shouldShowBanner:true,shouldShowList:true,shouldSetBadge:false,
-    shouldPlaySound:notification.request.content.sound!==false,
+    shouldPlaySound:notification.request.content.sound==='default',
   }),
 });
 type CompanionContextValue={

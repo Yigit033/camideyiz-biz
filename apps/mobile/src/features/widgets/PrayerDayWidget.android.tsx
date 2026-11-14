@@ -19,7 +19,7 @@ const PrayerDayWidget=(props:Props)=>{
       </Text>
       <Text color="#B9DCCB" maxLines={1} style={{fontSize:11}}>{props.city}</Text>
     </Row>
-    <Text color="#FFFFFF" style={{fontSize:12,fontWeight:'semibold'}}>
+    <Text color="#FFFFFF" style={{fontSize:12,fontWeight:'bold'}}>
       {props.ready?'Bugünün namaz vakitleri':'Takvim bekleniyor'}
     </Text>
     {props.ready?<Column verticalArrangement={{spacedBy:3}}>

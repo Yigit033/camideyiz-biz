@@ -17,13 +17,13 @@ import {CHANNEL_AUDIBLE,CHANNEL_SILENT,setPrayerChannels} from '@/features/compa
 const NAMES:Record<PrayerKey,string>={
   imsak:'İmsak',gunes:'Güneş',ogle:'Öğle',ikindi:'İkindi',aksam:'Akşam',yatsi:'Yatsı',
 };
-const ICONS:Record<PrayerKey,typeof Feather.glyphMap[keyof typeof Feather.glyphMap]>={
+const ICONS:Record<PrayerKey,keyof typeof Feather.glyphMap>={
   imsak:'moon',gunes:'sunrise',ogle:'sun',ikindi:'clock',aksam:'sunset',yatsi:'moon',
 };
 const LEADS=[0,5,10,15,30,45,60] as const;
 
 function InfoPill({text,icon}:{
-  text:string;icon:typeof Feather.glyphMap[keyof typeof Feather.glyphMap];
+  text:string;icon:keyof typeof Feather.glyphMap;
 }){
   const {colors}=useAppTheme();
   return <View style={[styles.infoPill,{borderColor:colors.border,backgroundColor:colors.soft}]}>
@@ -58,17 +58,17 @@ function WidgetShowcase({now}: {now:number}){
           <Text style={styles.widgetBrand}>Camideyiz Biz</Text>
         </View>
         <Text style={{fontSize:11,color:'#B1D9C8'}} numberOfLines={1}>
-          {preview.ready?preview.city:'Takvim seçilmedi'}
+          {preview.status==='ready'?preview.city:'Takvim seçilmedi'}
         </Text>
         <View style={{gap:2,flex:1,justifyContent:'center'}}>
           <Text style={{fontSize:11,color:'#DCE9DD'}}>
-            {preview.ready?'Sıradaki · '+preview.nextName:'Güncel veri bekleniyor'}
+            {preview.status==='ready'?'Sıradaki · '+preview.nextName:'Güncel veri bekleniyor'}
           </Text>
           <Text style={{fontSize:33,fontWeight:'800',color:'#F1CF8D'}}>
-            {preview.ready?preview.nextTime:'—'}
+            {preview.status==='ready'?preview.nextTime:'—'}
           </Text>
           <Text style={{fontSize:10,color:'#BCDCCC'}}>
-            {preview.ready?'Vakte yaklaşık '+preview.remainingMinutes+' dakika':'Takvimi aç'}
+            {preview.status==='ready'?'Vakte yaklaşık '+preview.remainingMinutes+' dakika':'Takvimi aç'}
           </Text>
         </View>
         <Text style={{fontSize:9,color:'#8EB8A9'}}>Sıradaki Vakit · 2×2</Text>
@@ -93,7 +93,7 @@ function WidgetShowcase({now}: {now:number}){
             </Text>}
         </View>
         <Text style={{fontSize:9,color:'#A0C8B9'}}>
-          {preview.ready?'Sıradaki: '+preview.nextName+' · '+preview.nextTime:'Uygulamayı açarak yenile'}
+          {preview.status==='ready'?'Sıradaki: '+preview.nextName+' · '+preview.nextTime:'Uygulamayı açarak yenile'}
         </Text>
       </View>
     </ScrollView>

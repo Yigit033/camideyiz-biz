@@ -18,7 +18,7 @@ const NextPrayerWidget=(props:Props)=>{
     </Text>
     <Text color="#B2E0C9" maxLines={1}
       style={{fontSize:11}}>{props.ready?props.city:'Konum seç'}</Text>
-    <Text color="#F7F0DE" style={{fontSize:12,fontWeight:'medium'}}>
+    <Text color="#F7F0DE" style={{fontSize:12,fontWeight:'bold'}}>
       {props.ready?'Sıradaki · '+props.nextName:'Takvim verisi bekleniyor'}
     </Text>
     <Text color="#F3CB83" style={{fontSize:29,fontWeight:'bold'}}>

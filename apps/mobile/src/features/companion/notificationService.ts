@@ -66,7 +66,7 @@ export function alertContent(event:PrayerAlertEvent,cityId:number,sound:'default
     priority:Notifications.AndroidNotificationPriority.HIGH,
     data:{
       kind:KIND,eventKey:event.key,cityId,localTime:event.localTime,
-      dateISO:event.dateISO,prayer:event.prayer,
+      dateISO:event.dateISO,prayer:event.prayer,soundMode:sound,
     },
     color:'#0C6752',
   };
@@ -74,17 +74,6 @@ export function alertContent(event:PrayerAlertEvent,cityId:number,sound:'default
 const owned=(request:Notifications.NotificationRequest):boolean=>{
   const d=request.content.data;
   return d?.kind===KIND&&typeof d.eventKey==='string';
-};
-const signature=(request:Notifications.NotificationRequest):string=>{
-  const d=request.content.data;
-  return [
-    String(d?.eventKey),String(d?.cityId),
-    String(request.content.title),String(request.content.body),
-    String(request.content.sound),
-    // Native trigger date is serialized differently on Android/iOS. The
-    // local event key and exact source time are encoded into content data.
-    String(d?.localTime),
-  ].join('|');
 };
 export async function reconcilePrayerNotifications(
   days:readonly PrayerSchedule[],cityId:number,settings:PrayerAlertSettings,
@@ -97,16 +86,19 @@ export async function reconcilePrayerNotifications(
     const ours=all.filter(r=>owned(r));
     const enabled=settings.enabled&&permission==='granted';
     const desired=enabled?createPrayerAlertPlan(days,settings,nowMs):[];
-    const existingByKey=new Map(ours.map(r=>[String(r.content.data.eventKey),r]));
+    const existingByKey=new Map(ours.map(r=>[String(r.content.data?.eventKey),r]));
     const wanted=new Set(desired.map(e=>e.key));
     // Reconcile ONLY Camideyiz prayer requests; never cancel unrelated app alerts.
     for(const old of ours){
-      const key=String(old.content.data.eventKey);
+      const key=String(old.content.data?.eventKey);
       const next=desired.find(e=>e.key===key);
-      const correct=next&&
-        signature(old)===signature({
-          ...old,content:{...old.content,...alertContent(next,cityId,settings.sound)},
-        });
+      const expected=next?alertContent(next,cityId,settings.sound):null;
+      const correct=Boolean(next&&expected&&
+        old.content.data?.cityId===cityId &&
+        old.content.data?.soundMode===settings.sound &&
+        old.content.data?.localTime===next.localTime &&
+        old.content.title===expected.title &&
+        old.content.body===expected.body);
       if(!wanted.has(key)||!correct){
         await Notifications.cancelScheduledNotificationAsync(old.identifier);
         existingByKey.delete(key);
