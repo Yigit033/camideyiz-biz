@@ -9,7 +9,7 @@ function JewelTab({focused,children}: {focused:boolean;children:React.ReactNode}
   const dark=colors.isDark;
   return <View style={{
     alignItems:'center',justifyContent:'center',
-    width:47,height:39,borderRadius:focused?23:14,
+    width:45,height:34,borderRadius:focused?20:13,
     backgroundColor:focused?(dark?'#0A5041':'#E7DDC4'):'transparent',
     borderWidth:focused?1.7:0,
     borderColor:dark?'#F4D38E':'#B48C53',
@@ -20,7 +20,7 @@ function JewelTab({focused,children}: {focused:boolean;children:React.ReactNode}
     {children}
     {focused?<View style={{
       position:'absolute',height:2,width:27,borderRadius:2,
-      bottom:-8,backgroundColor:'#F5D28C',
+      bottom:2,backgroundColor:'#F5D28C',
       shadowColor:'#E2BD73',shadowOpacity:.7,shadowRadius:4,
     }}/>:null}
   </View>;
@@ -40,11 +40,11 @@ export default function TabLayout(){
       borderTopColor:dark?'#A3844C':'#D9C59F',
       borderTopWidth:1,
       borderTopLeftRadius:23,borderTopRightRadius:23,
-      height:72+bottomSpace,paddingTop:7,paddingBottom:bottomSpace,
+      height:76+bottomSpace,paddingTop:9,paddingBottom:bottomSpace,
       shadowColor:'#A58755',shadowOpacity:.17,shadowRadius:14,
       elevation:10,
     },
-    tabBarLabelStyle:{fontFamily:'serif',fontSize:11,fontWeight:'600',marginTop:2,lineHeight:15},
+    tabBarLabelStyle:{fontFamily:'serif',fontSize:11,fontWeight:'600',marginTop:6,lineHeight:16},
     tabBarItemStyle:{paddingHorizontal:0,paddingTop:0},
   }}>
     <Tabs.Screen name="index" options={{

@@ -17,3 +17,37 @@ export function qiblaBearing(latitude: number, longitude: number): number {
 export function relativeQiblaAngle(bearing: number, trueHeading: number): number {
   return normalizeBearing(bearing - trueHeading);
 }
+
+
+/** Direction to rotate the TOP edge of the phone to face the Kaaba.
+ * Signed error is in [-180, 180], positive means turn clockwise/right.
+ * This is a nominal heading difference, not a certified device accuracy.
+ */
+export type QiblaGuidance = {
+  direction: 'right' | 'left' | 'near';
+  turnDegrees: number;
+  signedError: number;
+  clockwiseAngle: number;
+};
+export function qiblaGuidance(
+  absoluteQiblaBearing: number,
+  deviceTrueHeading: number,
+  toleranceDegrees = 7,
+): QiblaGuidance {
+  if (!Number.isFinite(absoluteQiblaBearing) || !Number.isFinite(deviceTrueHeading))
+    throw new RangeError('Qibla and heading must be finite degrees');
+  if (!Number.isFinite(toleranceDegrees) || toleranceDegrees < 0 || toleranceDegrees > 30)
+    throw new RangeError('Invalid guidance tolerance');
+  const clockwiseAngle = relativeQiblaAngle(absoluteQiblaBearing, deviceTrueHeading);
+  const signedError = ((clockwiseAngle + 540) % 360) - 180;
+  const difference = Math.abs(signedError);
+  if (difference <= toleranceDegrees) {
+    return { direction:'near',turnDegrees:0,signedError,clockwiseAngle };
+  }
+  return {
+    direction:signedError>0?'right':'left',
+    turnDegrees:Math.max(1,Math.round(difference)),
+    signedError,
+    clockwiseAngle,
+  };
+}

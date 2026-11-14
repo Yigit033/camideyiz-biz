@@ -9,7 +9,7 @@ import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import Svg,{Defs,LinearGradient,Rect,Stop} from 'react-native-svg';
-import {qiblaBearing,relativeQiblaAngle} from '@camideyiz/core';
+import {qiblaBearing,relativeQiblaAngle,qiblaGuidance} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {QiblaBackdrop,QiblaCompass,QiblaKaabaGlyph} from '@/features/qibla/QiblaArtwork';
 
@@ -17,14 +17,6 @@ const KAABA_MAP_URL='https://www.google.com/maps/search/?api=1&query=21.4225%2C3
 const GOLD='#EDCE8A';
 type CompassAccuracy=0|1|2|3;
 
-function directionLabel(degrees:number):string{
-  const names=['Kuzey','Kuzeydoğu','Doğu','Güneydoğu','Güney','Güneybatı','Batı','Kuzeybatı'];
-  return names[Math.round(degrees/45)%8];
-}
-function alignmentError(relative:number|null){
-  if(relative===null)return null;
-  return Math.abs(((relative+540)%360)-180);
-}
 function statusName(value:CompassAccuracy|null){
   switch(value){
     case 3:return 'Yüksek';
@@ -71,9 +63,11 @@ export default function QiblaScreen(){
   const compassSize=Math.min(Math.max(255,width-42),352);
   const locationReady=bearing!==null;
   const relative=locationReady&&heading!==null?relativeQiblaAngle(bearing,heading):null;
-  const deviation=alignmentError(relative);
-  const aligned=deviation!==null&&deviation<7&&compassAccuracy===3;
-  const hasValidHeading=relative!==null&&compassAccuracy!==null&&compassAccuracy>0;
+  // Low calibration does not yield actionable turn directions.
+  const hasValidHeading=relative!==null&&compassAccuracy!==null&&compassAccuracy>=2;
+  const guidance=useMemo(()=>hasValidHeading&&bearing!==null&&heading!==null
+    ?qiblaGuidance(bearing,heading):null,[hasValidHeading,bearing,heading]);
+  const aligned=guidance?.direction==='near'&&compassAccuracy===3;
 
   const locate=useCallback(async(requestPermission:boolean)=>{
     if(pending.current)return;
@@ -182,14 +176,24 @@ export default function QiblaScreen(){
     try{await Linking.openURL(KAABA_MAP_URL);}
     catch{Alert.alert('Harita açılamadı','Kâbe konumunu açmak için tarayıcı ayarlarını kontrol et.');}
   };
-  const angleDescription=useMemo(()=>{
-    return bearing===null?'—°  Kıble yönü':Math.round(bearing)+'° '+directionLabel(bearing);
-  },[bearing]);
-  const headingStatus=locationReady
-    ?!hasValidHeading?'Pusula sinyali bekleniyor'
-      :compassAccuracy===1?'Pusulayı kalibre et'
-        :aligned?'Kıble doğrultusuna yakınsın':'Kıble yönü bulundu'
-    :'Konumunu etkinleştir';
+  // Relative live turn guidance is the primary instruction. Absolute bearing is
+  // shown only as a labelled reference, never presented as a turn instruction.
+  const turnInstruction=!locationReady?'Konum bekleniyor'
+    :compassAccuracy===1?'Önce pusulayı kalibre et'
+    :!guidance?'Pusula yönü bekleniyor'
+    :guidance.direction==='near'
+      ?compassAccuracy===3?'Kıble doğrultusuna yakınsın':'Doğrultuya yakın · kalibre et'
+      :guidance.direction==='right'?'Sağa '+guidance.turnDegrees+'° dön'
+      :'Sola '+guidance.turnDegrees+'° dön';
+  const absoluteBearingText=bearing===null
+    ?'Kâbe açısı konum alındığında hesaplanır'
+    :'Kâbe açısı '+Math.round(bearing)+'° · Gerçek kuzeye göre';
+  const headingStatus=!locationReady?'Konumunu etkinleştir'
+    :compassAccuracy===1?'Kalibrasyon gerekli'
+    :!hasValidHeading?'Pusula sinyali bekleniyor'
+    :aligned?'Kıble doğrultusuna yakınsın'
+    :guidance?.direction==='near'?'Sensör doğruluğunu artır'
+    :'İbreyi takip ederek yönel';
   const detailMessage=compassAccuracy===1
     ?'Pusula sinyali düşük. Metal eşyalardan uzaklaş ve cihazı kalibre et.'
     :message;
@@ -239,14 +243,26 @@ export default function QiblaScreen(){
         borderColor:colors.gold,
         backgroundColor:dark?'rgba(5,55,43,.85)':'rgba(255,252,240,.89)',
       }]}>
-        <View style={[styles.goldDiamond,{backgroundColor:colors.gold}]}/>
-        <Text adjustsFontSizeToFit numberOfLines={1} minimumFontScale={.78}
-          style={{fontFamily:'serif',fontWeight:'700',color:colors.text,
-            fontSize:26,letterSpacing:-.4,flexShrink:1}}>
-          {angleDescription}
-        </Text>
-        <QiblaKaabaGlyph size={32}/>
-        <View style={[styles.goldDiamond,{backgroundColor:colors.gold}]}/>
+        <View style={styles.guidanceRow}>
+          <Feather name={guidance?.direction==='right'?'rotate-cw'
+            :guidance?.direction==='left'?'rotate-ccw'
+            :aligned?'check-circle':'compass'}
+            size={22} color={colors.gold}/>
+          <Text adjustsFontSizeToFit numberOfLines={1} minimumFontScale={.68}
+            accessibilityLabel={turnInstruction}
+            style={{fontFamily:'serif',fontWeight:'700',color:colors.text,
+              fontSize:25,letterSpacing:-.4,flexShrink:1,textAlign:'center'}}>
+            {turnInstruction}
+          </Text>
+          <QiblaKaabaGlyph size={30}/>
+        </View>
+        <View style={styles.azimuthRow}>
+          <View style={[styles.goldDiamond,{backgroundColor:colors.gold}]}/>
+          <Text style={{color:colors.muted,fontSize:11,fontWeight:'600',textAlign:'center',flexShrink:1}}>
+            {absoluteBearingText}
+          </Text>
+          <View style={[styles.goldDiamond,{backgroundColor:colors.gold}]}/>
+        </View>
       </View>
 
       <View style={[styles.locationCard,{
@@ -322,7 +338,8 @@ export default function QiblaScreen(){
           Konum hassasiyeti düşük (~{Math.round(locationAccuracy)} m). Açık alanda yeniden dene.
         </Text>:null}
       <Text style={{fontSize:10,lineHeight:17,color:colors.muted,textAlign:'center',marginTop:3}}>
-        Pusula manyetik alanlardan etkilenebilir. Harita Kâbe'nin konumunu açar; yönün kendisi pusulada gösterilir.
+        Telefonun üst kenarını ibrenin gösterdiği yöne çevir. Pusula manyetik alanlardan etkilenebilir;
+        derece göstergesi sensörün kesin doğruluğunu garanti etmez.
       </Text>
     </ScrollView>
   </SafeAreaView>;
@@ -336,9 +353,13 @@ const styles=StyleSheet.create({
   status:{borderWidth:1.3,borderRadius:26,paddingHorizontal:21,
     minHeight:44,flexDirection:'row',alignItems:'center',gap:11,
     shadowOffset:{width:0,height:1},elevation:3},
-  anglePlaque:{maxWidth:370,width:'92%',minHeight:54,borderWidth:1.4,borderRadius:23,
-    alignSelf:'center',flexDirection:'row',alignItems:'center',justifyContent:'center',
-    gap:10,paddingHorizontal:11},
+  anglePlaque:{maxWidth:370,width:'94%',minHeight:77,borderWidth:1.4,borderRadius:23,
+    alignSelf:'center',alignItems:'center',justifyContent:'center',
+    gap:5,paddingHorizontal:11,paddingVertical:10},
+  guidanceRow:{flexDirection:'row',alignItems:'center',justifyContent:'center',
+    width:'100%',gap:10},
+  azimuthRow:{flexDirection:'row',alignItems:'center',
+    justifyContent:'center',gap:11,width:'100%'},
   goldDiamond:{height:7,width:7,transform:[{rotate:'45deg'}],opacity:.8,marginHorizontal:2},
   locationCard:{marginTop:4,width:'100%',minHeight:81,borderRadius:19,borderWidth:1,
     flexDirection:'row',alignItems:'center',paddingHorizontal:16,paddingVertical:11,gap:11},
