@@ -45,3 +45,11 @@ Kaynaklar:
 - Diyanet ve Camiler'in ücretsiz Google Maps URLs akışı değiştirilmedi.
 - Fiziksel iOS/Android pusula doğruluğu, animasyon davranışı ve piksel yerleşimi **henüz cihazda doğrulanmadı**. Yayın öncesi zorunlu.
 - Daha fazla ayrıntı: [Qibla 2.0 implementation](QIBLA_2_REFERENCE.md).
+
+
+### Kıble follow-up (14 Kasım 2026)
+- Prominent main text is now **relative, live phone-turn instruction** (right/left by angle), not a fixed geographic label.
+- Labelled "Kâbe açısı" remains secondary and calculated from live location.
+- Invalid/low-accuracy/stale trueHeading no longer presents actionable turn cues.
+- On foreground tab focus, location is refreshed if older than 90s; sensor is unsubscribed on blur.
+- Kıble bottom-tab label overlap corrected; physical Android/iOS screenshot QA still pending.

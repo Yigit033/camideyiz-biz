@@ -39,3 +39,15 @@ Expo SDK 58 sensor docs: https://docs.expo.dev/versions/v58.0.0/sdk/location/
 
 ### Visual asset fidelity
 A compact (~3.2 KB) WebP atmospheric crop from the user-approved, image-generated reference is included at `apps/mobile/assets/qibla/reference-istanbul-skyline.webp`. The functional compass, UI texts, tabs and action states are drawn by native React components and SVG, rather than baking the reference screenshot as an inert image. The WebP is decorative only and never used as factual map imagery.
+
+
+## 14 Nov 2026 — Live turn guidance and usability correction
+- The initial UI displayed the **absolute** Kâbe bearing as a prominent "152° Güneydoğu" string. That value was correctly calculated from Istanbul coordinates, not a hardcoded copy of the reference. **But it was inappropriate as the primary instruction** because it does not say how to turn the phone.
+- Main guidance card now uses \`qiblaGuidance(absoluteBearing,deviceTrueHeading)\`: "Sağa N° dön" for the shortest clockwise turn, "Sola N° dön" for the shortest counterclockwise turn, or a near-alignment cue.
+- The absolute geographic azimuth is an explicitly labelled **secondary** line: "Kâbe açısı 152° · Gerçek kuzeye göre" (derived from live location). No static "Güneydoğu" string remains.
+- Sensor \`accuracy=1\` is not considered reliable enough for actionable turn instructions. \`accuracy=2\` may show approximate guidance with no hard alignment certification; \`accuracy=3\` plus a <7° nominal delta permits a qualified *near-alignment* cue, not a definitive degree guarantee.
+- On tab focus, foreground GPS fix is refreshed if more than 90 seconds old without an unprompted new location permission request.
+- On tab blur, heading subscription is removed and heading invalidated. A compass reading older than 4.5 seconds is invalidated to avoid displaying stale instructions.
+- Bottom navigation active Kıble ring has a smaller, contained indicator and additional label separation; this fixes overlap visible in the real-device screenshot.
+- Mathematically tested both turn directions, 0°/360° wrapping, changes in source location, and invalid bearing inputs.
+- Screenshot used for QA: 921×2048 phone display; physical rendering and actual sensor uncertainty are **still** device test items. Automated tests cannot assert pixel-perfect layout or calibration.
