@@ -124,13 +124,31 @@ export function parseOverpassMosques(raw:unknown,origin:Coordinate):MosqueRecord
     .filter((x):x is MosqueRecord=>x!==null);
   const seen=new Set<string>();
   const unique:MosqueRecord[]=[];
-  // Prefer a mapped building/area over a duplicate point for the same mosque.
+  // O(n) average near-neighbour dedup; the old unique.some loop was O(n²)
+  // and blocked the mobile JS thread on dense parts of İstanbul.
+  const buckets=new Map<string,MosqueRecord[]>();
+  const scale=0.0003; // ~33m latitude; neighbouring buckets cover the 35m threshold.
+  const key=(lat:number,lon:number)=>lat+':'+lon;
   all.sort((a,b)=>moreComplete(b)-moreComplete(a));
   for(const item of all){
     if(seen.has(item.id))continue;
-    if(unique.some(x=>normalized(x.name)===normalized(item.name)&&
-      distanceMeters(x,item)<35))continue;
+    const x=Math.floor(item.latitude/scale),y=Math.floor(item.longitude/scale);
+    const name=normalized(item.name);
+    let duplicate=false;
+    for(let dx=-2;dx<=2&&!duplicate;dx++){
+      for(let dy=-2;dy<=2&&!duplicate;dy++){
+        for(const older of buckets.get(key(x+dx,y+dy))??[]){
+          if(normalized(older.name)===name && distanceMeters(older,item)<35){
+            duplicate=true;break;
+          }
+        }
+      }
+    }
+    if(duplicate)continue;
     seen.add(item.id);unique.push(item);
+    const bucket=key(x,y);
+    const peers=buckets.get(bucket)??[];
+    peers.push(item);buckets.set(bucket,peers);
   }
   return unique.sort((a,b)=>a.distanceMeters-b.distanceMeters||a.name.localeCompare(b.name,'tr')).slice(0,MAX_RECORDS);
 }
