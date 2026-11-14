@@ -157,7 +157,7 @@ export function CompanionProvider({children}:PropsWithChildren){
         if(days.length===0&&settings.enabled){
           // Remove alerts for a previous city or now-disabled rules while
           // preserving still-valid events for the selected city.
-          try{await prunePrayerNotifications(cityId,settings);}
+          if(cityId>0)try{await prunePrayerNotifications(cityId,settings);}
           catch{/* Native scheduling errors are surfaced on next full sync */}
           if(active&&id===syncVersion.current)setSyncing(false);
           return;

@@ -11,9 +11,9 @@ type Props={
 const NextPrayerWidget=(props:Props)=>{
   'widget';
   return <Column
-    verticalArrangement={{spacedBy:5}}
-    modifiers={[fillMaxSize(),background('#07372F'),cornerRadius(19),paddingAll(14)]}>
-    <Text color="#F1CD89" style={{fontSize:13,fontWeight:'bold',fontFamily:'serif'}}>
+    verticalArrangement={{spacedBy:2}}
+    modifiers={[fillMaxSize(),background('#07372F'),cornerRadius(17),paddingAll(9)]}>
+    <Text color="#F1CD89" style={{fontSize:12,fontWeight:'bold',fontFamily:'serif'}}>
       ☪  Camideyiz Biz
     </Text>
     <Text color="#B2E0C9" maxLines={1}
@@ -21,12 +21,12 @@ const NextPrayerWidget=(props:Props)=>{
     <Text color="#F7F0DE" style={{fontSize:12,fontWeight:'bold'}}>
       {props.ready?'Sıradaki · '+props.nextName:'Takvim verisi bekleniyor'}
     </Text>
-    <Text color="#F3CB83" style={{fontSize:29,fontWeight:'bold'}}>
+    <Text color="#F3CB83" style={{fontSize:25,fontWeight:'bold'}}>
       {props.ready?props.nextTime:'—'}
     </Text>
-    <Text color="#B5D9CC" maxLines={2} style={{fontSize:10}}>
+    <Text color="#B5D9CC" maxLines={2} style={{fontSize:9}}>
       {props.ready
-        ?'Son yenilemede '+props.remainingMinutes+' dk kalmıştı · Güncellemek için dokun'
+        ?'Son yenileme: '+props.remainingMinutes+' dk kalmıştı'
         :'Gerçek saatler için uygulamayı aç'}
     </Text>
   </Column>;

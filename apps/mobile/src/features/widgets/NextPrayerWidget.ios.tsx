@@ -18,9 +18,9 @@ const NextPrayerWidget=(props:Props,env:WidgetEnvironment)=>{
     containerBackground('#07352E','widget'),
     clipShape('containerRelativeShape'),widgetURL('camideyizbiz:///'),
   ]}>
-    <VStack alignment="leading" spacing={compact?8:10}
+    <VStack alignment="leading" spacing={compact?3:10}
       modifiers={[frame({maxWidth:Infinity,maxHeight:Infinity,alignment:'leading'}),
-        padding({all:compact?15:18})]}>
+        padding({all:compact?11:18})]}>
       <HStack spacing={6}>
         <Image systemName="moon.stars.fill" size={15} color={gold}/>
         <Text modifiers={[font({size:11,weight:'semibold',design:'serif'}),
@@ -30,19 +30,19 @@ const NextPrayerWidget=(props:Props,env:WidgetEnvironment)=>{
       <Text modifiers={[font({size:12,weight:'medium'}),foregroundStyle(mint),lineLimit(1)]}>
         {props.ready?props.city:'Konum seç'}
       </Text>
-      {props.ready?<VStack alignment="leading" spacing={5}>
+      {props.ready?<VStack alignment="leading" spacing={compact?1:5}>
         <Text modifiers={[font({size:12,weight:'medium'}),foregroundStyle(ivory)]}>
           Sıradaki · {props.nextName}
         </Text>
-        <Text modifiers={[font({size:compact?33:36,weight:'bold',design:'rounded'}),
+        <Text modifiers={[font({size:compact?27:36,weight:'bold',design:'rounded'}),
           foregroundStyle(gold),monospacedDigit()]}>
           {props.nextTime}
         </Text>
-        <Text modifiers={[font({size:10}),foregroundStyle(mint)]}>Vakte kalan</Text>
+        {!compact?<Text modifiers={[font({size:10}),foregroundStyle(mint)]}>Vakte kalan</Text>:null}
         <Text
           timerInterval={{lower:new Date(props.updatedAt),upper:new Date(props.nextAt)}}
           countsDown
-          modifiers={[font({size:compact?17:22,weight:'semibold',design:'rounded'}),
+          modifiers={[font({size:compact?15:22,weight:'semibold',design:'rounded'}),
             monospacedDigit(),foregroundStyle(ivory)]}/>
       </VStack>:<VStack alignment="leading" spacing={6}>
         <Text modifiers={[font({size:20,weight:'bold',design:'serif'}),
@@ -52,9 +52,9 @@ const NextPrayerWidget=(props:Props,env:WidgetEnvironment)=>{
         </Text>
       </VStack>}
       {!compact?<Spacer/>:null}
-      <Text modifiers={[font({size:9}),foregroundStyle('#BDD3CA'),lineLimit(1)]}>
+      {!compact?<Text modifiers={[font({size:9}),foregroundStyle('#BDD3CA'),lineLimit(1)]}>
         {props.ready?'Türkiye takvimi · Uygulamayı aç':'Uygulamayı aç'}
-      </Text>
+      </Text>:null}
     </VStack>
   </ZStack>;
 };

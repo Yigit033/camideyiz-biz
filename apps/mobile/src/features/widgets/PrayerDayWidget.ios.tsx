@@ -32,13 +32,24 @@ const PrayerDayWidget=(props:Props,env:WidgetEnvironment)=>{
       <Text modifiers={[font({size:large?13:11,weight:'semibold'}),foregroundStyle(white)]}>
         {props.ready?'Bugünün vakitleri':'Takvim bekleniyor'}
       </Text>
-      {props.ready?<VStack alignment="leading" spacing={large?11:5}>
-        {props.times.map(item=><HStack key={item.key} spacing={10}>
-          <Text modifiers={[font({size:large?14:12}),foregroundStyle(pale),frame({maxWidth:Infinity,alignment:'leading'})]}>
+      {props.ready?<VStack alignment="leading" spacing={large?9:5}>
+        {large?props.times.map(item=><HStack key={item.key}>
+          <Text modifiers={[font({size:14}),foregroundStyle(pale),
+            frame({maxWidth:Infinity,alignment:'leading'})]}>
             {item.label}
           </Text>
-          <Text modifiers={[font({size:large?15:12,weight:'semibold'}),
+          <Text modifiers={[font({size:15,weight:'semibold'}),
             foregroundStyle(white)]}>{item.time}</Text>
+        </HStack>):
+        [0,1,2].map(index=><HStack key={index} spacing={6}>
+          <Text modifiers={[font({size:10.5}),foregroundStyle(pale),
+            frame({maxWidth:Infinity,alignment:'leading'}),lineLimit(1)]}>
+            {props.times[index]?.label}  {props.times[index]?.time}
+          </Text>
+          <Text modifiers={[font({size:10.5}),foregroundStyle(white),
+            frame({maxWidth:Infinity,alignment:'leading'}),lineLimit(1)]}>
+            {props.times[index+3]?.label}  {props.times[index+3]?.time}
+          </Text>
         </HStack>)}
       </VStack>:<Text modifiers={[font({size:12}),foregroundStyle(pale)]}>
         Namaz vakitlerini görüntülemek için uygulamayı aç.
