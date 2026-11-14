@@ -9,3 +9,4 @@ export * from './mapsUrl';
 export * from './mirrorCalendar';
 export * from './kerahat';
 export * from './dailyWisdom';
+export * from './prayerCompanion';

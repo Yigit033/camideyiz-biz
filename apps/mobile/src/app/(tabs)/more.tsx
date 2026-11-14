@@ -1,5 +1,6 @@
 import {Alert,Linking,Pressable,Share,StyleSheet,Text,View} from 'react-native';
 import {Feather} from '@expo/vector-icons';
+import {router} from 'expo-router';
 import {Page,Panel} from '@/components/Page';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import type {ThemeMode} from '@/theme/tokens';
@@ -54,6 +55,24 @@ export default function MoreScreen(){
           <Text style={{color:colors.text,fontSize:12,fontWeight:'700'}}>{item.title}</Text>
         </Pressable>)}
       </View>
+    </Panel>
+    <Panel>
+      <View style={styles.heading}>
+        <Feather name="bell" size={19} color={colors.gold}/>
+        <Text style={[styles.headingText,{color:colors.text}]}>Widget ve Bildirimler</Text>
+      </View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Widget ve namaz vakti bildirimlerini yönet"
+        onPress={()=>router.push('/companion')}
+        style={[styles.share,{backgroundColor:colors.soft}]}>
+        <Feather name="smartphone" size={18} color={colors.emerald}/>
+        <View style={{flex:1,gap:4}}>
+          <Text style={{color:colors.text,fontSize:14,fontWeight:'800'}}>Ana ekran widget’ları ve uyarılar</Text>
+          <Text style={{color:colors.muted,fontSize:11,lineHeight:17}}>
+            İki widget, vakte özel bildirimler, ses/sessiz ve bildirim geçmişi
+          </Text>
+        </View>
+        <Feather name="chevron-right" size={19} color={colors.gold}/>
+      </Pressable>
     </Panel>
     <Panel>
       <View style={styles.heading}>

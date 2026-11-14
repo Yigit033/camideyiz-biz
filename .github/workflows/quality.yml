@@ -14,6 +14,27 @@ jobs:
       # Lockfile generated after first networked clean install.
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
+      - name: Parse Windows APK build script
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('scripts/build-android-windows.ps1', [ref]$tokens, [ref]$errors)
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host 'PowerShell syntax OK'
+          # Regression: invoking android/gradlew.bat from apps/mobile alone
+          # makes Gradle fail to locate android/settings.gradle.
+          $script = Get-Content 'scripts/build-android-windows.ps1' -Raw
+          if ($script -notmatch '(?s)Push-Location \$androidDir\s*try\s*\{.*?Invoke-Checked "Build native') {
+            throw 'Windows builder must switch into android/ before invoking Gradle'
+          }
+          if ($script -notmatch 'settingsFiles = @\(') {
+            throw 'Windows builder must validate Android settings.gradle'
+          }
+          Write-Host 'Gradle Android project-root contract OK'
       - name: Live free-calendar endpoint smoke test (non-blocking)
         # Provider outages are observable without breaking unrelated code checks.
         continue-on-error: true
@@ -21,6 +42,8 @@ jobs:
       - name: Build secure Diyanet API service
         run: npm run build --workspace @camideyiz/api
       - run: cd apps/mobile && npx expo install --check
+      - name: Native widget Android CNG prebuild smoke test
+        run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo prebuild --platform android --no-install --clean
       - name: Expo Android bundle smoke test
         run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo export --platform android --output-dir ../../.expo-export-check
       - name: Metro startup smoke test

@@ -68,6 +68,8 @@ export type MirrorTriplet={
   dateISO:string;
   city:{id:number;name:string;state_id:number};
   previous:MirrorPrayerDay|null;
+  /** Forward-looking published calendar entries for OS-local alerts and widgets. */
+  upcoming:readonly MirrorPrayerDay[];
   today:MirrorPrayerDay;
   next:MirrorPrayerDay;
 };
@@ -115,8 +117,15 @@ export function parseMirrorTriplet(raw:unknown,cityId:number,dateISO:string,loca
   // The documented public API starts at *today*. Yesterday's record will
   // normally be absent, which must not invalidate every legitimate prayer time.
   const previous=byDate.get(shiftedDate(dateISO,-1))??null;
+  const upcoming:MirrorPrayerDay[]=[];
+  // Provider can return 15 days or more; only store consecutive published days.
+  for(let i=0;i<16;i++){
+    const published=byDate.get(shiftedDate(dateISO,i));
+    if(!published)break;
+    upcoming.push(published);
+  }
   return {source:MIRROR_SOURCE,dateISO,city:{id:cityId,name:label,state_id:0},
-    previous,today,next};
+    previous,today,next,upcoming};
 }
 export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:string,now=Date.now()):MirrorTriplet{
   const t=object(value);
@@ -141,6 +150,29 @@ export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:
       const minutes=timeToMinutes(x.time);
       if(minutes<=last)throw new Error('Invalid cached time order');
       last=minutes;
+    });
+  }
+  const future=t.upcoming;
+  if(!Array.isArray(future)||future.length<2||future.length>16)
+    throw new Error('Cached provider calendar incomplete');
+  for(let i=0;i<future.length;i++){
+    const entry=object(future[i]);
+    if(entry.dateISO!==shiftedDate(dateISO,i)||entry.cityId!==cityId||
+       entry.source!==MIRROR_SOURCE||entry.isDemo!==false||
+       entry.timezone!=='Europe/Istanbul'||!Array.isArray(entry.times)||
+       entry.times.length!==6||typeof entry.fetchedAt!=='string')
+      throw new Error('Cached future date invalid');
+    const age=now-Date.parse(entry.fetchedAt);
+    if(!Number.isFinite(age)||age<0||age>MIRROR_CACHE_MS)
+      throw new Error('Cached future source expired');
+    let last=-1;
+    (entry.times as unknown[]).forEach((row,index)=>{
+      const x=object(row);
+      if(x.key!==PRAYER_KEYS[index]||typeof x.time!=='string')
+        throw new Error('Cached future time invalid');
+      const minute=timeToMinutes(x.time);
+      if(minute<=last)throw new Error('Cached future clock not ordered');
+      last=minute;
     });
   }
   return t as MirrorTriplet;
