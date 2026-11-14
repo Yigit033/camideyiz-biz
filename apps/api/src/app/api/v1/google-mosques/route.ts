@@ -32,7 +32,7 @@ export async function GET(request:Request){
     const endpoint=isText?'places:searchText':'places:searchNearby';
     const body=isText?{
       textQuery:query+' cami',includedType:'mosque',strictTypeFiltering:true,
-      maxResultCount:20,languageCode:'tr',regionCode:'TR',
+      pageSize:20,languageCode:'tr',regionCode:'TR',
       locationBias:{circle:{center,radius}},
     }:{
       includedTypes:['mosque'],maxResultCount:20,rankPreference:'DISTANCE',
