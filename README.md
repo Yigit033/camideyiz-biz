@@ -2,7 +2,7 @@
 
 iOS ve Android için namaz vakitleri ve günlük ibadet rehberi. **Expo SDK 58 / React Native / TypeScript** mobil uygulaması, **Next.js** yönetim paneli prototipi ve ortak TypeScript çekirdeği.
 
-> **Yayın öncesi sürüm:** Ana ekran, ücretsiz üçüncü taraf İdamedya takvim servisi üzerinden yayımlanmış vakitleri okuyabilir. Bu Diyanet'in resmî API'si değildir; kaynak uygulamada açıkça etiketlenir. Resmî API onayı, bildirimler, widget'lar ve cihaz testleri tamamlanmış değildir.
+> **Yayın öncesi sürüm:** Ana ekran, ücretsiz üçüncü taraf İdamedya takvim servisi üzerinden yayımlanmış vakitleri okuyabilir. Bu Diyanet'in resmî API'si değildir; kaynak uygulamada açıkça etiketlenir. Resmî API onayı ve cihaz testleri tamamlanmış değildir; native widget ve yerel bildirim modülleri geliştirme dalında test aşamasındadır.
 
 ## Kurulum
 
@@ -47,3 +47,7 @@ Orijinal namaz çemberi, günlük kartlar ve çevrimli vakit akışı; ücretsiz
 ## Kerahat 2.0 ve Günün Seçkisi 2.0
 
 Yayımlanmış il/ilçe namaz vakitlerine dayalı üç yaklaşık kerahat bandı, manuel gösterim ayarları, kaynaklı açıklamalar; ayrıca 12 ayet ve 7 hadisten oluşan offline günlük seçki, favoriler ve paylaşım: [Teknik karar ve QA](docs/KERAHAT_AND_DAILY_WISDOM_2.md).
+
+## Widget ve Bildirimler 2.0
+
+Expo SDK 58 ile iOS/Android native namaz vakti widget'ları (2 boyut), 6 vakte özel cihaz içi hatırlatmalar, ses/sessiz kontrolü ve cihazda saklanan gözlenen bildirim geçmişi: [mimari, kurulum ve test koşulları](docs/WIDGETS_AND_NOTIFICATIONS_2.md). Expo Go gerçek ana ekran widget'larını **göstermez**; yeni native uygulama derlemesi ve cihaz QA şarttır.
