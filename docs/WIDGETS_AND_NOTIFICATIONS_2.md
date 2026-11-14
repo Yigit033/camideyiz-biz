@@ -180,3 +180,7 @@ Gözlenen iki hata: `Cannot find native module 'ExpoWidgets'` ve Android
 Bu düzeltmenin GitHub CI'da TypeScript, Expo export ve prebuild
 kontrollerinden geçmesi **fiziksel Android/iPhone kabul testi** yerine
 geçmez; üretime alma kapıları değişmemiştir.
+
+## Windows native APK build (Reanimated/Ninja)
+
+Windows üzerinde `react-native-reanimated:buildCMakeRelWithDebInfo` ve `ninja: error: mkdir(...): No such file or directory` başarısızlığı için ayrı kısa checkout, Windows uzun yol desteği ve CMake 3.31.6/Ninja 1.12.1 kullanan test betiği eklendi. Bu işlem gerçek cihaz testlerinin geçtiği anlamına gelmez. Kurulum: [WINDOWS_ANDROID_APK.md](WINDOWS_ANDROID_APK.md).
