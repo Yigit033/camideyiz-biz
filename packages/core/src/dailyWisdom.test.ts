@@ -45,3 +45,15 @@ test('invalid date is never silently mapped to a different editorial selection',
  assert.throws(()=>dailyWisdom('2026-14-99'));
  assert.throws(()=>dailyWisdom('x'));
 });
+
+test('paired 12-verse and 7-hadith rotation produces 84 distinct daily combinations',()=>{
+ const seen=new Set<string>();
+ for(let i=0;i<84;i++){
+   const date=new Date(Date.UTC(2026,10,1+i)).toISOString().slice(0,10);
+   const {verse,hadith}=dailyWisdom(date);
+   const pair=verse.id+'/'+hadith.id;
+   assert.ok(!seen.has(pair),'Repeated pair in first 84 days: '+pair);
+   seen.add(pair);
+ }
+ assert.equal(seen.size,84);
+});
