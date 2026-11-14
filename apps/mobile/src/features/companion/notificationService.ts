@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import {Platform} from 'react-native';
+import {isExpoGoRuntime} from '../native/nativeRuntime';
 import {
   createPrayerAlertPlan,
   type PrayerAlertEvent,type PrayerAlertSettings,type PrayerSchedule,
@@ -18,7 +19,9 @@ export type NativePrayerEvent={
   cityId:number|null;
 };
 export async function setPrayerChannels():Promise<void>{
-  if(Platform.OS!=='android')return;
+  // Expo Go does not contain our native notification channel configuration;
+  // its platform fallback is used for best-effort local notification tests.
+  if(Platform.OS!=='android'||isExpoGoRuntime())return;
   await Notifications.setNotificationChannelAsync(CHANNEL_AUDIBLE,{
     name:'Namaz vakti hatırlatmaları',
     description:'Namaz vaktinde veya seçtiğiniz süre öncesinde sistem sesli bildirim',
@@ -32,7 +35,7 @@ export async function setPrayerChannels():Promise<void>{
     description:'Ses çıkarmadan namaz vakti bildirimi',
     importance:Notifications.AndroidImportance.DEFAULT,
     sound:null,
-    vibrationPattern:[0],
+    enableVibrate:false,
   });
 }
 export function permissionAllowed(p:Notifications.NotificationPermissionsStatus):boolean{
@@ -80,11 +83,13 @@ export async function reconcilePrayerNotifications(
   nowMs=Date.now(),
 ):Promise<NotificationSyncReport>{
   try{
-    await setPrayerChannels();
     const permission=await getPrayerPermission();
     const all=await Notifications.getAllScheduledNotificationsAsync();
     const ours=all.filter(r=>owned(r));
     const enabled=settings.enabled&&permission==='granted';
+    // Do not create native channels at startup while reminders are OFF.
+    // Channels are needed only before scheduling an enabled reminder.
+    if(enabled)await setPrayerChannels();
     const desired=enabled?createPrayerAlertPlan(days,settings,nowMs):[];
     const existingByKey=new Map(ours.map(r=>[String(r.content.data?.eventKey),r]));
     const wanted=new Set(desired.map(e=>e.key));
@@ -111,7 +116,9 @@ export async function reconcilePrayerNotifications(
         trigger:{
           type:Notifications.SchedulableTriggerInputTypes.DATE,
           date:new Date(event.fireAt),
-          channelId:settings.sound==='silent'?CHANNEL_SILENT:CHANNEL_AUDIBLE,
+          ...(isExpoGoRuntime()?{}:{
+            channelId:settings.sound==='silent'?CHANNEL_SILENT:CHANNEL_AUDIBLE,
+          }),
           delivery:'bestEffort',
         },
       });
