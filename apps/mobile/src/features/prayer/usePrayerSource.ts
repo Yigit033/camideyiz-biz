@@ -77,7 +77,15 @@ export function usePrayerSource(now:Date){
     if(!place){setData(null);setStatus('choose-location');return;}
     let live=true;
     const key=(officialConfigured?OFFICIAL_CACHE_PREFIX:MIRROR_CACHE_PREFIX)+place.id+'/'+dateISO;
-    setData(null);setStatus('loading');
+    // Keep a still-valid schedule on screen during periodic revalidation.
+    // A different district/date/provider or expired mirror data cannot leak through.
+    setData(previous=>{
+      if(!previous||previous.city.id!==place.id||previous.dateISO!==dateISO||
+        previous.source!==(officialConfigured?'diyanet-awqat-salah':'idamedya-diyanet-republished'))return null;
+      if(!officialConfigured&&Date.now()-Date.parse(previous.today.fetchedAt)>55*60*1000)return null;
+      return previous;
+    });
+    setStatus('loading');
     (async()=>{
       let cached:PrayerSourceTriplet|null=null;
       try{
