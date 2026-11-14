@@ -15,8 +15,8 @@ Reference: 14 Nov 2026 "Camideyiz Biz" generated emerald/gold portrait screen in
 - Coordinates -> \`qiblaBearing\` is WGS84 initial great-circle bearing to the Kaaba. Istanbul center is approx 151.62° true north.
 - Sensor \`Location.watchHeadingAsync\` **trueHeading** is required. A \`trueHeading=-1\` is not considered valid; no silent fallback to magnetic north.
 - Expo compass calibration accuracy is a **category 0/1/2/3**, not a ±2° measurement. UI shows Yüksek / Orta / Düşük / Güvenilmez / Bekleniyor, never fake numerical confidence.
-- Green aligned state requires an angular deviation <7° and sensor accuracy >=2. This is a visual guide, **not a guarantee of true compass error within 7°**.
-- Haptic confirmation is rate-limited (>=12 seconds) and only triggers on aligned transitions.
+- Green near-alignment state requires a nominal angular deviation <7° and sensor accuracy 3 (highest category). This is a visual guide, **not a guarantee of true compass error within 7°**.
+- Haptic near-alignment feedback is rate-limited (>=12 seconds) and only triggers on aligned transitions.
 - User authorizes location once. If previously granted, foreground coordinates are refreshed; heading watcher runs only while Qibla tab is focused and enabled.
 - "Yeniden Kalibre Et" restarts the heading watcher and displays the *manual* figure-eight guide. It does **not** claim to calibrate the phone's hardware programmatically.
 - If sensor has no true heading, no needle / correct-direction indicator is shown. Permission denied / geocoding unavailable show informative fallbacks.
@@ -36,3 +36,6 @@ Reference: 14 Nov 2026 "Camideyiz Biz" generated emerald/gold portrait screen in
 CI TypeScript / Metro / Android JS bundle and geodesic core unit tests check code but **cannot certify native compass accuracy**, which depends on device and magnetic interference. The owner must review reference fidelity on an actual screen before release.
 
 Expo SDK 58 sensor docs: https://docs.expo.dev/versions/v58.0.0/sdk/location/
+
+### Visual asset fidelity
+A compact (~3.2 KB) WebP atmospheric crop from the user-approved, image-generated reference is included at `apps/mobile/assets/qibla/reference-istanbul-skyline.webp`. The functional compass, UI texts, tabs and action states are drawn by native React components and SVG, rather than baking the reference screenshot as an inert image. The WebP is decorative only and never used as factual map imagery.
