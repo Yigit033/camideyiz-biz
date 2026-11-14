@@ -13,6 +13,10 @@
     ]
   },
   "include": [
-    "src/**/*.ts"
+    "src/index.ts",
+    "src/prayer.ts",
+    "src/qibla.ts",
+    "src/timeline.ts",
+    "src/mosques.ts"
   ]
 }
