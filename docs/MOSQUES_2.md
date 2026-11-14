@@ -43,6 +43,9 @@ Create **three different restricted API keys**:
 3. GOOGLE_MAPS_IOS_API_KEY (iOS app restriction by \`biz.camideyiz.app\`).
 
 Set quotas to safe limits; configure billing budget alerts (alerts alone do not guarantee a hard spending cap).
+For testing, set both `GOOGLE_PLACES_API_KEY=...` and `GOOGLE_PLACES_API_ENABLED=true`
+in `apps/api/.env.local`. The paid upstream integration is **disabled by default**
+until the owner explicitly enables it. Never commit keys.
 Use Google Places FieldMask and a per-user/app verified quota before production.
 
 ### Development on Windows, Android phone on same Wi-Fi
