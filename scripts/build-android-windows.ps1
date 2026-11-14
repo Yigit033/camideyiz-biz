@@ -112,11 +112,30 @@ try {
     Invoke-Checked 'Generate native Android project' {
       & npx.cmd expo prebuild --platform android --no-install --clean
     }
-    $gradlew = Join-Path (Get-Location).Path 'android\gradlew.bat'
-    if (-not (Test-Path -LiteralPath $gradlew)) { throw "Gradle wrapper not generated: $gradlew" }
+    $androidDir = Join-Path (Get-Location).Path 'android'
+    $gradlew = Join-Path $androidDir 'gradlew.bat'
+    if (-not (Test-Path -LiteralPath $gradlew -PathType Leaf)) {
+      throw "Gradle wrapper not generated: $gradlew"
+    }
+    $settingsFiles = @('settings.gradle', 'settings.gradle.kts', 'settings.gradle.dcl')
+    $settingsFound = @($settingsFiles | Where-Object {
+      Test-Path -LiteralPath (Join-Path $androidDir $_) -PathType Leaf
+    }).Count -gt 0
+    if (-not $settingsFound) {
+      throw "Android Gradle project missing settings.gradle[.kts] in $androidDir; check expo prebuild output"
+    }
     $task = if ($Configuration -eq 'Release') { ':app:assembleRelease' } else { ':app:assembleDebug' }
-    Invoke-Checked "Build native $Configuration APK (arm64)" {
-      & $gradlew $task --no-daemon --stacktrace '-PreactNativeArchitectures=arm64-v8a'
+    # Gradle must run WITHIN the Android project root. Invoking the wrapper by
+    # full path from apps/mobile makes Gradle incorrectly search for settings.gradle
+    # in apps/mobile, producing 'Directory does not contain a Gradle build'.
+    Push-Location $androidDir
+    try {
+      Write-Host "Gradle project root: $((Get-Location).Path)" -ForegroundColor Cyan
+      Invoke-Checked "Build native $Configuration APK (arm64)" {
+        & $gradlew $task --no-daemon --stacktrace '-PreactNativeArchitectures=arm64-v8a'
+      }
+    } finally {
+      Pop-Location
     }
     $output = Join-Path (Get-Location).Path ("android\app\build\outputs\apk\"+$Configuration.ToLowerInvariant())
     $apk = Get-ChildItem -Path $output -Filter '*.apk' -File -ErrorAction SilentlyContinue |
