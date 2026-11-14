@@ -1,4 +1,5 @@
-import {validGooglePlaceId, type GoogleMosqueDetails} from '@camideyiz/core';
+import {validGooglePlaceId,validCoordinates, type GoogleMosqueDetails} from '@camideyiz/core';
+import {googlePlacesKey,allowPlacesRequest} from '@/lib/googleQuota';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 const ROOT='https://places.googleapis.com/v1/places/';
@@ -6,11 +7,20 @@ const MASK='id,displayName,location,formattedAddress,primaryType,types,googleMap
 function text(value:unknown,max=320):string|null {
   return typeof value==='string'&&value.length>0&&value.length<=max?value:null;
 }
-export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
+function safeURL(value:unknown):string|null{
+  const v=text(value,450);
+  if(!v)return null;
+  try{
+    const u=new URL(v);
+    return u.protocol==='https:'&&!u.username&&!u.password?u.toString():null;
+  }catch{return null;}
+}
+export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){
   const {id}=await params;
   if(!validGooglePlaceId(id))return Response.json({error:'invalid_place_id'},{status:400});
-  const key=process.env.GOOGLE_PLACES_API_KEY;
+  const key=googlePlacesKey();
   if(!key)return Response.json({error:'google_places_not_configured'},{status:503});
+  if(!allowPlacesRequest(request,3))return Response.json({error:'query_rate_limited'},{status:429});
   try{
     const response=await fetch(ROOT+encodeURIComponent(id),{
       cache:'no-store',signal:AbortSignal.timeout(11000),
@@ -27,6 +37,7 @@ export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
     };
     if(raw.id!==id||!raw.displayName?.text||
        typeof raw.location?.latitude!=='number'||typeof raw.location?.longitude!=='number'||
+       !validCoordinates({latitude:raw.location.latitude,longitude:raw.location.longitude})||
        !(raw.primaryType==='mosque'||raw.types?.includes('mosque'))) {
       return Response.json({error:'not_a_mosque'},{status:404});
     }
@@ -44,8 +55,8 @@ export async function GET(_:Request,{params}:{params:Promise<{id:string}>}){
       address:text(raw.formattedAddress),primaryType:text(raw.primaryType,70),
       distanceMeters:0,
       phone:text(raw.nationalPhoneNumber,80),
-      website:text(raw.websiteUri),
-      googleMapsUri:text(raw.googleMapsUri),
+      website:safeURL(raw.websiteUri),
+      googleMapsUri:safeURL(raw.googleMapsUri),
       accessibleEntrance:typeof raw.accessibilityOptions?.wheelchairAccessibleEntrance==='boolean'
         ?raw.accessibilityOptions.wheelchairAccessibleEntrance:null,
       openingHours:Array.isArray(raw.regularOpeningHours?.weekdayDescriptions)
