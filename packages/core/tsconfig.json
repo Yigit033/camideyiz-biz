@@ -8,13 +8,15 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "lib": [
-      "ES2022"
+      "ES2022",
+      "DOM"
     ]
   },
   "include": [
     "src/index.ts",
     "src/prayer.ts",
     "src/qibla.ts",
-    "src/timeline.ts"
+    "src/timeline.ts",
+    "src/mapsUrl.ts"
   ]
 }

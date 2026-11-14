@@ -31,3 +31,7 @@ Ek komutlar: \`npm run android\`, \`npm run ios\` (iOS için Mac/Xcode gerekir),
 ## Resmî Diyanet entegrasyonu
 
 Yetkili sunucu, il/ilçe senkronizasyonu ve doğrulanmış üç günlük mobil takvim kurulum adımları: [docs/DIYANET_INTEGRATION.md](docs/DIYANET_INTEGRATION.md). Sunucu paketi `apps/api`, SQL migrations `infra/supabase/migrations/` altındadır. API hesabı/DB/URL yapılandırılmadan mobil örnek namaz vakti **göstermez**.
+
+## Camiler — Ücretsiz Harita Araması
+
+Ücretli SDK/Places/OSM backend bağımlılığı olmadan Google Haritalar uygulamasına geçiş. Ücretsiz, anahtarsız Maps URLs; bölge alanı ve tek dokunuşla harita araması: [Kurulum ve QA](docs/MOSQUES_2.md).
