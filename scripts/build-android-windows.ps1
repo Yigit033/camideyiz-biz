@@ -98,14 +98,14 @@ if (-not (Test-Path -LiteralPath $CheckoutPath)) {
   }
   $dirty = & git -C $CheckoutPath status --porcelain
   if ($LASTEXITCODE -ne 0 -or $dirty) {
-    throw "$CheckoutPath has uncommitted changes. Preserve/review them before building."
+    throw "$CheckoutPath has uncommitted changes. Preserve/review them before building; use a different short CheckoutPath for a clean build."
   }
   Invoke-Checked 'Fast-forward isolated checkout' { & git -C $CheckoutPath pull --ff-only origin $Branch }
 }
 
 Push-Location $CheckoutPath
 try {
-  Invoke-Checked 'Install workspace dependencies' { & npm.cmd install --no-audit --no-fund }
+  Invoke-Checked 'Install workspace dependencies' { & npm.cmd install --package-lock=false --no-audit --no-fund }
   Push-Location 'apps\mobile'
   try {
     # Isolated checkout means regenerating native files cannot overwrite the main worktree.
