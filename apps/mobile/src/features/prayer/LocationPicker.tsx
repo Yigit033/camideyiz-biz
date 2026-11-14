@@ -3,7 +3,7 @@ import {ActivityIndicator,FlatList,Modal,Pressable,StyleSheet,Text,TextInput,Vie
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather} from '@expo/vector-icons';
 import {useAppTheme} from '@/theme/ThemeProvider';
-import {getStates,getCities,type CityOption,type StateOption,type PrayerPlaceSelection} from './prayerApi';
+import {getStates,getCities,configuredPrayerApi,type CityOption,type StateOption,type PrayerPlaceSelection} from './prayerApi';
 
 type Props={
   visible:boolean;
@@ -22,14 +22,14 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
     if(!visible)return;
     let active=true;setLoading(true);setError('');setState(null);setFilter('');
     getStates().then(items=>{if(active)setStates(items);})
-      .catch(()=>{if(active)setError('İl listesi alınamadı. API sunucusunu ve veri senkronizasyonunu kontrol et.');})
+      .catch(()=>{if(active)setError('İl listesi alınamadı. İnternet bağlantısını veya takvim kaynağını kontrol et.');})
       .finally(()=>{if(active)setLoading(false);});
     return ()=>{active=false;};
   },[visible]);
   const showCities=async(next:StateOption)=>{
     setState(next);setFilter('');setError('');setLoading(true);setCities([]);
     try{setCities(await getCities(next.id));}
-    catch{setError('İlçeler yüklenemedi. Bu il henüz senkronize edilmemiş olabilir.');}
+    catch{setError('İlçeler alınamadı. Kaynak hizmet geçici olarak yanıt vermiyor olabilir.');}
     finally{setLoading(false);}
   };
   const filtered=useMemo(()=>{
@@ -49,7 +49,7 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
             {state?state.name:'Konum Seçimi'}
           </Text>
           <Text style={{color:colors.muted,fontSize:11,marginTop:3}}>
-            {state?'İlçeni seç':'Diyanet il ve ilçe rehberi'}
+            {state?'İlçeni seç':configuredPrayerApi()?'Diyanet resmî il/ilçe rehberi':'İdamedya · üçüncü taraf il/ilçe rehberi'}
           </Text>
         </View>
         <View style={{width:42}}/>

@@ -7,7 +7,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Svg,{Circle,Defs,LinearGradient,Path,Stop} from 'react-native-svg';
-import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,type PrayerTime} from '@camideyiz/core';
+import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,type PrayerTime} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere,ArabesqueCorner,GoldenLantern} from '@/components/LuxuryArtwork';
@@ -484,7 +484,11 @@ export default function HomeScreen(){
     return ()=>clearInterval(timer);
   },[]);
   const official=usePrayerSource(now);
-  return official.days
+  const usable=official.days&&(
+    official.days.source!==MIRROR_SOURCE||
+    now.getTime()-Date.parse(official.days.today.fetchedAt)<=MIRROR_CACHE_MS
+  );
+  return usable
     ?<ConfiguredHome key={official.place?.id??0} official={official} now={now}/>
     :<CalendarLoadingHome official={official} now={now}/>;
 }
