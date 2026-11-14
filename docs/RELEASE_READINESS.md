@@ -1,8 +1,23 @@
 # Camideyiz Biz — Release Readiness (14 Kasım 2026)
 
+## 14 Kasım 2026 — Ücretsiz takvimli ana ekran
+
+- [x] Ana ekranın bütünü Diyanet sunucusu eksik diye gizlenmiyor.
+- [x] İdamedya (üçüncü taraf) il/ilçe/takvim JSON kaynağı eklendi; ücretsiz ve anahtarsız.
+- [x] Yayımlanmış takvim verisi kullanılıyor; cihazda astronomik vakit hesabı yok.
+- [x] Tarih/kimlik/saat doğrulaması, 55 dakika cache, kaynak etiketleri.
+- [x] Kaynak yanıtı yoksa yanlış namaz saati üretmeyen tam tasarım.
+- [x] İstanbul 14.11.2026 vakitleri resmi Diyanet web takvimiyle örnek karşılaştırmada eşleşti.
+- [ ] Gerçek Android/iOS cihaz ve diğer il/ilçelerde veri/kullanım koşulları QA.
+- [ ] Haftalık görünüm, çoklu konum, dönen ayet/hadis paneli, ezan bildirimleri, widget ve Galeri ürün özellikleri.
+
+Ayrıntı: [FREE_CALENDAR.md](FREE_CALENDAR.md). Resmî Awqat Salah beklemeye devam ediyor.
+
+
+
 ## Özelliklerin güncel durumu
 - **Ana ekran / namaz çemberi:** Expo React Native / TypeScript, açık/koyu tema, fiziksel çember etkileşimi ve zaman dilimi mantığı kodlandı. Gerçek cihaz UX/performans QA hâlâ gerekli.
-- **Diyanet namaz vakitleri:** Resmî Awqat Salah API için sunucu, doğrulama, kota bilinçli senkronizasyon, il/ilçe seçimi ve üç günlük çevrimdışı takvim altyapısı kodlandı. **Resmî hesap onayı, veritabanı migration ve HTTPS yayına alma yok; bu nedenle namaz vakitleri canlı gösterilmez.** Astronomik hesaplama fallback eklenmeyecek.
+- **Diyanet namaz vakitleri:** Resmî Awqat Salah API için sunucu, doğrulama, kota bilinçli senkronizasyon, il/ilçe seçimi ve üç günlük çevrimdışı takvim altyapısı kodlandı. **Resmî hesap onayı, veritabanı migration ve HTTPS yayına alma yok; resmî API aktif değil. Ancak ayrı ücretsiz üçüncü taraf takvim kaynağıyla doğrulanan vakitler artık ana ekranda görüntülenebilir.** Astronomik hesaplama fallback eklenmeyecek.
 - **Camiler:** Ücretsiz Google Maps URL yönlendirmesi. Premium açık/koyu temalı arama ekranı, seçilen il/ilçe/semt veya yakınımdaki camiler araması, açılış hata yönetimi. **Yerel native harita, cami verisi, Google Places API, Google Maps SDK, OSM/Overpass endpoint, Google API anahtarı veya faturalandırma yok.** Fotoğraf, yorum, rota ve sonuçlar harici Google Haritalar tarafından sunulur.
 - **Kıble:** Konum + true-north sensörüne dayalı temel ekran var. Gerçek cihaz doğrulama/kalibrasyon/premium tasarım bekliyor.
 - **Galeri/Topluluk:** Henüz üretim kullanıcı içeriği ve moderasyon altyapısı yok.
