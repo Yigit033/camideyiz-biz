@@ -71,12 +71,12 @@ export default function MosquesScreen(){
   const {colors}=useAppTheme();
   const mapRef=useRef<MapView>(null),regionRef=useRef<Region>(INITIAL);
   const mounted=useRef(true),controller=useRef<AbortController|null>(null);
-  const initialSearch=useRef(false),sequence=useRef(0),favoritesLoading=useRef(false);
+  const sequence=useRef(0),favoritesLoading=useRef(false);
   const [mode,setMode]=useState<Mode>('map');
   const [places,setPlaces]=useState<GoogleMosque[]>([]);
   const [favoritePlaces,setFavoritePlaces]=useState<GoogleMosque[]>([]);
   const [filter,setFilter]=useState<'all'|'favorites'>('all');
-  const [query,setQuery]=useState(''),[searchText,setSearchText]=useState('');
+  const [query,setQuery]=useState('');
   const [selected,setSelected]=useState<GoogleMosque|null>(null);
   const [detail,setDetail]=useState<GoogleMosque|null>(null);
   const [searchCenter,setSearchCenter]=useState<{latitude:number;longitude:number}|null>(null);
@@ -98,7 +98,15 @@ export default function MosquesScreen(){
       if(ctrl.signal.aborted||!mounted.current||token!==sequence.current)return;
       setPlaces(result.places);
       setSearchCenter(result.center);setAreaChanged(false);
-      setSearchText(q.trim());
+      // Text search may find a named location outside the currently visible
+      // viewport. Focus its first result so the map doesn't look empty.
+      if(q.trim().length>=2&&result.places.length){
+        const first=result.places[0];
+        const region:Region={latitude:first.latitude,longitude:first.longitude,
+          latitudeDelta:.05,longitudeDelta:.05};
+        regionRef.current=region;
+        mapRef.current?.animateToRegion(region,360);
+      }
     }catch(e){
       if(ctrl.signal.aborted||!mounted.current||token!==sequence.current)return;
       const code=e instanceof Error?e.message:'';
@@ -125,7 +133,7 @@ export default function MosquesScreen(){
     // This callback performs no network request or heavy record parsing.
     const isDifferent=!searchCenter||
       distanceMeters(center,searchCenter)>380||
-      googleSearchRadius(r.latitudeDelta)>googleSearchRadius(INITIAL.latitudeDelta)+500;
+      distanceMeters(center,searchCenter)>380;
     setAreaChanged(old=>old===isDifferent?old:isDifferent);
   },[searchCenter]);
   const locate=useCallback(async()=>{
@@ -145,16 +153,13 @@ export default function MosquesScreen(){
     }catch{Alert.alert('Konum alınamadı','Konum servislerini kontrol edin veya haritayı elle taşıyın.');}
     finally{if(mounted.current)setLocating(false);}
   },[perform,query]);
-  const visible=useMemo(()=>{
-    const list=filter==='favorites'?favoritePlaces:places;
-    return list.filter(p=>!searchText||p.name.toLocaleLowerCase('tr-TR').includes(searchText.toLocaleLowerCase('tr-TR'))||
-      (p.address??'').toLocaleLowerCase('tr-TR').includes(searchText.toLocaleLowerCase('tr-TR')));
-  },[places,favoritePlaces,filter,searchText]);
+  const visible=useMemo(()=>filter==='favorites'
+    ?favoritePlaces.filter(p=>ids.has(p.id)):places,[places,favoritePlaces,filter,ids]);
   const choose=useCallback((p:GoogleMosque)=>{
     setSelected(p);setDetail(null);
   },[]);
   const selectFavoriteTab=useCallback(async()=>{
-    setFilter('favorites');setSelected(null);
+    setFilter('favorites');setSelected(null);setQuery('');
     if(!favoriteIds.length){setFavoritePlaces([]);return;}
     if(favoritesLoading.current)return;
     favoritesLoading.current=true;setFavoritesBusy(true);
@@ -212,7 +217,7 @@ export default function MosquesScreen(){
         placeholder="Cami veya bölge adı yaz…" placeholderTextColor={colors.muted}
         returnKeyType="search" onSubmitEditing={searchArea}
         style={{flex:1,fontSize:14,color:colors.text}} autoCorrect={false}/>
-      {query?<Pressable onPress={()=>{setQuery('');setSearchText('');}} accessibilityLabel="Aramayı temizle">
+      {query?<Pressable onPress={()=>setQuery('')} accessibilityLabel="Aramayı temizle">
         <Feather name="x" color={colors.muted} size={16}/>
       </Pressable>:null}
       <Pressable onPress={searchArea} accessibilityRole="button" disabled={loading}
@@ -261,7 +266,7 @@ export default function MosquesScreen(){
           style={[styles.areaButton,{backgroundColor:colors.isDark?'#123F35':'#FFFFFF',borderColor:colors.gold}]}>
           {loading?<ActivityIndicator size="small" color={colors.emerald}/>:<Feather name="search" color={colors.emerald} size={17}/>}
           <Text style={{color:colors.text,fontWeight:'800',fontSize:13}}>
-            {loading?'Camiler aranıyor…':'Bu bölgede ara'}
+            {loading?'Camiler aranıyor…':areaChanged?'Bu bölgede ara':'Bölgede yeniden ara'}
           </Text>
         </Pressable>
         {error?<ErrorExplanation message={error} onRetry={searchArea}/>:null}
@@ -329,8 +334,8 @@ const styles=StyleSheet.create({
     shadowColor:'#132D25',shadowOpacity:.2,shadowRadius:10},
   error:{position:'absolute',top:73,left:11,right:11,padding:12,borderRadius:15,
     borderWidth:1,flexDirection:'row',alignItems:'center',gap:9},
-  hint:{position:'absolute',bottom:28,left:20,right:20,padding:12,borderWidth:1,borderRadius:14},
-  selected:{position:'absolute',bottom:15,left:9,right:9,minHeight:94,padding:10,
+  hint:{position:'absolute',bottom:48,left:20,right:20,padding:12,borderWidth:1,borderRadius:14},
+  selected:{position:'absolute',bottom:46,left:9,right:9,minHeight:94,padding:10,
     borderWidth:1,borderRadius:18,flexDirection:'row',alignItems:'center',gap:10,
     shadowColor:'#182E28',shadowOpacity:.15,shadowRadius:12,elevation:4},
   miniArt:{width:68,height:72,borderRadius:13,alignItems:'center',justifyContent:'center'},
