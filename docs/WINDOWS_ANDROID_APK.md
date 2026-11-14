@@ -106,3 +106,22 @@ Sources:
 - Expo: https://docs.expo.dev/troubleshooting/windows-long-paths/
 - Reanimated: https://docs.swmansion.com/react-native-reanimated/docs/guides/building-on-windows/
 - Microsoft: https://learn.microsoft.com/en-us/windows/win32/fileio/maximum-file-path-limitation
+
+## 14 November 2026 — Gradle project-root regression fix
+
+If a failed local build says `Directory 'C:\\cb\\apps\\mobile' does not contain a Gradle build` or `settings.gradle not found`, this was caused by our Windows APK script invoking `android\\gradlew.bat` with `apps\\mobile` as its **current working directory**. Gradle resolves its build from the current directory, not automatically from the wrapper's location.
+
+The script now verifies `android\\settings.gradle[.kts]` and uses `Push-Location $androidDir` / `Pop-Location` around the Gradle invocation. A CI contract check prevents that incorrect call pattern from silently returning.
+
+If you already generated `C:\\cb\\apps\\mobile\\android`, you can continue **without cloning or repeating Expo prebuild**:
+
+```powershell
+cd C:\\cb\\apps\\mobile\\android
+$env:GRADLE_USER_HOME = 'C:\\g'
+$env:TEMP = 'C:\\t'
+$env:TMP = 'C:\\t'
+Test-Path .\\settings.gradle
+.\\gradlew.bat :app:assembleRelease --no-daemon --stacktrace '-PreactNativeArchitectures=arm64-v8a'
+```
+
+Do not run `gradlew init`: the Android project already exists; it was only invoked from the wrong directory. If `Test-Path` returns `False`, rerun the updated script to regenerate the Android directory.
