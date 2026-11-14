@@ -7,3 +7,5 @@ export * from './diyanet';
 export * from './verifiedSchedule';
 export * from './mapsUrl';
 export * from './mirrorCalendar';
+export * from './kerahat';
+export * from './dailyWisdom';
