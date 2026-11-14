@@ -25,6 +25,16 @@ jobs:
             exit 1
           }
           Write-Host 'PowerShell syntax OK'
+          # Regression: invoking android/gradlew.bat from apps/mobile alone
+          # makes Gradle fail to locate android/settings.gradle.
+          $script = Get-Content 'scripts/build-android-windows.ps1' -Raw
+          if ($script -notmatch '(?s)Push-Location \$androidDir\s*try\s*\{.*?Invoke-Checked "Build native') {
+            throw 'Windows builder must switch into android/ before invoking Gradle'
+          }
+          if ($script -notmatch 'settingsFiles = @\(') {
+            throw 'Windows builder must validate Android settings.gradle'
+          }
+          Write-Host 'Gradle Android project-root contract OK'
       - name: Live free-calendar endpoint smoke test (non-blocking)
         # Provider outages are observable without breaking unrelated code checks.
         continue-on-error: true
