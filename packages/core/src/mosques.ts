@@ -46,11 +46,12 @@ export function commonsTitle(value:unknown):string|null{
   const raw=string(value,350);
   if(!raw)return null;
   let name=raw;
+  if(/^https?:\/\//i.test(name)&&!/^https:\/\/commons\.wikimedia\.org\/wiki\/File:/i.test(name))return null;
   if(/^https:\/\/commons\.wikimedia\.org\/wiki\/File:/i.test(name)){
     name=decodeURIComponent(name.split('/wiki/')[1]);
   }
   name=name.replace(/^File:/i,'').replace(/_/g,' ');
-  if(!/\.(?:jpg|jpeg|png|webp)$/i.test(name)||/[<>\n\r#?]/.test(name)||name.length>220)
+  if(!/\.(?:jpg|jpeg|png|webp)$/i.test(name)||/[<>\n\r#?\/\\]/.test(name)||name.length>220)
     return null;
   return 'File:'+name;
 }
@@ -87,8 +88,8 @@ function parseOSM(raw:unknown,origin:Coordinate):MosqueRecord|null{
   if(!isRecord(raw))return null;
   const type=raw.type;
   const id=raw.id;
-  if(typeof type!=='string'||!OSM_TYPES.has(type)||!Number.isSafeInteger(id)||Number(id)<=0)return null;
-  const tags=isRecord(raw.tags)?raw.tags:{};
+  if(typeof type!=='string'||!OSM_TYPES.has(type)||typeof id!=='number'||!Number.isSafeInteger(id)||id<=0)return null;
+  const tags:Record<string,unknown>=isRecord(raw.tags)?raw.tags:{};
   const worship=tags.amenity==='place_of_worship'&&tags.religion==='muslim';
   const mosqueBuilding=tags.building==='mosque';
   if(!worship&&!mosqueBuilding)return null;
