@@ -18,6 +18,8 @@
     "src/qibla.ts",
     "src/timeline.ts",
     "src/mapsUrl.ts",
-    "src/mirrorCalendar.ts"
+    "src/mirrorCalendar.ts",
+    "src/kerahat.ts",
+    "src/dailyWisdom.ts"
   ]
 }

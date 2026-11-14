@@ -245,7 +245,7 @@ export function PrayerWheel({
   const warningTint=restriction ? '#EF6F72' : null;
   const progressTint=warningTint??(urgency==='normal'?PRAYER_COLORS[nextKey]:
     nextKey==='aksam'?'#F6B46F':colors.isDark?'#F4D58B':'#B9823D');
-  const demoArcs=(preview?[]:indicativeWindows).map(window=>{
+  const kerahatArcs=(preview?[]:indicativeWindows).map(window=>{
     const from=clockSecondsToVisualAngle(window.startSeconds,times,sectors);
     const to=clockSecondsToVisualAngle(window.endSeconds,times,sectors);
     return {...window,from,to};
@@ -319,13 +319,13 @@ export function PrayerWheel({
               return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
                 stroke={colors.isDark?'#062724':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
             })}
-            {/* Approximate Diyanet-inspired demo restriction bands, NEVER asserted as precise. */}
-            {demoArcs.map(window=><G key={'kerahat-'+window.kind}>
+            {/* Approximate kerahat estimates for the selected published calendar; NOT a religious ruling. */}
+            {kerahatArcs.map(window=><G key={'kerahat-'+window.kind}>
               <Path d={arc(window.from,window.to,166)}
                 stroke={restriction?.kind===window.kind?'#FA7E7E':'#C86569'}
-                strokeOpacity={restriction?.kind===window.kind?.97:.55}
-                strokeWidth={restriction?.kind===window.kind?6.5:4.3} fill="none"
-                strokeDasharray={restriction?.kind===window.kind?'0':'2,2'}/>
+                strokeOpacity={restriction?.kind===window.kind?.99:.91}
+                strokeWidth={restriction?.kind===window.kind?8:5.8} fill="none"
+                strokeDasharray={restriction?.kind===window.kind?'0':'3,2'}/>
               <Path d={arc(window.from,window.to,166)}
                 stroke="#FFDBB4" strokeOpacity={restriction?.kind===window.kind?.7:.32}
                 strokeWidth=".8" fill="none"/>

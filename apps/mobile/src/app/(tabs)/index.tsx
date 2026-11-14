@@ -6,11 +6,14 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Svg,{Circle,Defs,LinearGradient,Path,Stop} from 'react-native-svg';
-import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,calculateMirrorPhase,type PrayerTime} from '@camideyiz/core';
+import Svg,{Path} from 'react-native-svg';
+import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,calculateMirrorPhase,getKerahatView,type PrayerTime} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
-import {Atmosphere,ArabesqueCorner,GoldenLantern} from '@/components/LuxuryArtwork';
+import {Atmosphere} from '@/components/LuxuryArtwork';
+import {useKerahatSettings} from '@/features/prayer/useKerahatSettings';
+import {KerahatPanel} from '@/features/prayer/KerahatPanel';
+import {DailyWisdomSection} from '@/features/wisdom/DailyWisdomSection';
 import {usePrayerSource} from '@/features/prayer/usePrayerSource';
 import {LocationPicker} from '@/features/prayer/LocationPicker';
 
@@ -64,58 +67,10 @@ function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
       <Text style={[styles.chipTime,{color:active?'#FDF6E5':colors.text}]}>{clock}</Text>
     </Pressable>;
 }
-function DailyContent({dark}: {dark:boolean}){
-  const {colors}=useAppTheme();
-  return <View style={styles.dailyRow}>
-    <View style={[styles.dailyAyet,{
-      borderColor:dark?'#557961':'#D5B771',
-      backgroundColor:dark?'#083A34':'#086446',
-    }]}>
-      <Svg width="100%" height="100%" viewBox="0 0 230 136" preserveAspectRatio="xMidYMid slice"
-        pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <Defs>
-          <LinearGradient id="ayat" x1="0%" y1="0%" x2="100%" y2="100%">
-            <Stop offset="0%" stopColor={dark?'#12645A':'#0C7A5A'}/>
-            <Stop offset="55%" stopColor={dark?'#06332E':'#075D44'}/>
-            <Stop offset="100%" stopColor="#031E20"/>
-          </LinearGradient>
-        </Defs>
-        <Path d="M0 0H230V136H0Z" fill="url(#ayat)"/>
-        <Circle cx="16" cy="132" r="88" stroke="#D2AC69" strokeOpacity=".22" fill="none"/>
-        <Circle cx="16" cy="132" r="74" stroke="#D2AC69" strokeOpacity=".11" fill="none"/>
-        <Path d="M0 16Q28 42 48 0M210 136Q181 103 230 78"
-          stroke="#D5B77B" strokeOpacity=".25" fill="none"/>
-      </Svg>
-      <ArabesqueCorner dark width={98}/>
-      <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
-        <MaterialCommunityIcons name="book-open-page-variant-outline" color="#F1CC86" size={22}/>
-        <Text style={[styles.dailyHeading,{color:'#F1D49D'}]}>Seçme Ayet</Text>
-      </View>
-      <Text numberOfLines={3} style={[styles.dailyBody,{color:'#F9F3E6'}]}>
-        “Namaz, müminler üzerine vakitleri belli olarak yazılmış bir ödevdir.”
-      </Text>
-      <Text style={[styles.dailyCredit,{color:'#C3D8C4'}]}>Nisâ 4:103 · Diyanet Kur'an Yolu</Text>
-    </View>
-    <View style={[styles.dailyHadis,{
-      backgroundColor:dark?'#172827':'#FFFBF3',
-      borderColor:dark?'#72624B':'#E2C99B',
-    }]}>
-      <ArabesqueCorner dark width={80}/>
-      <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
-        <Text style={[styles.dailyHeading,{color:colors.text}]}>Seçme Hadis</Text>
-        <GoldenLantern size={21}/>
-      </View>
-      <Text numberOfLines={3} style={[styles.dailyBody,{color:colors.text}]}>
-        “Ameller niyete göredir.”
-      </Text>
-      <Text style={[styles.dailyCredit,{color:colors.muted}]}>Buhârî, Bed'ü'l-vahy, 1</Text>
-    </View>
-  </View>;
-}
-
 function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSource>;now:Date}){
   const SCHEDULE=official.days!.today;
   const isOfficial=official.days!.source==='diyanet-awqat-salah';
+  const {settings:kerahatSettings,update:updateKerahatSettings}=useKerahatSettings();
   const {colors,mode,setMode}=useAppTheme();
   const {width,height}=useWindowDimensions();
   const dark=colors.isDark;
@@ -157,7 +112,12 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     ()=>calculateTimeAwareness(SCHEDULE,previewSeconds,zoned.dateISO,true),
     [previewSeconds,zoned.dateISO],
   );
-  const {restriction,indicativeWindows}=awareness;
+  // Live estimates use the selected city's actual published prayer clock values.
+  // Settings modify only the approximation bands, never the prayer clock.
+  const kerahat=useMemo(()=>getKerahatView(SCHEDULE,zoned.dateISO,previewSeconds,kerahatSettings),
+    [SCHEDULE,zoned.dateISO,previewSeconds,kerahatSettings]);
+  const restriction=kerahat.active;
+  const indicativeWindows=kerahat.windows;
   const phase=official.days && !timePreview
     ? official.days.source===MIRROR_SOURCE
       ? calculateMirrorPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
@@ -272,7 +232,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           <Text numberOfLines={1} adjustsFontSizeToFit
             style={{fontSize:10.2,color:restriction?accented:colors.muted,fontWeight:restriction?'800':'600',flexShrink:1}}>
             {restriction
-              ? 'KERA HET · '+restriction.title+' (örnek)'
+              ? 'KERAHAT · '+restriction.title+' (yaklaşık)'
               : nafileOnly ? 'İmsak sonrası · Nafile namaz bilgisi'
               : phase.urgency==='normal'
               ? 'Canlı vakit ilerlemesi'
@@ -314,7 +274,9 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         <View style={[styles.tickTrack,{backgroundColor:colors.gold,opacity:.32}]}/>
       </View>
 
-      <DailyContent dark={dark}/>
+      <KerahatPanel view={kerahat} settings={kerahatSettings}
+        update={updateKerahatSettings} locationName={SCHEDULE.locationName}/>
+      <DailyWisdomSection dateISO={zoned.dateISO} dark={dark}/>
       <Pressable accessibilityRole="button"
         accessibilityLabel="Güncel zaman durumu ve kerahet açıklamasını oku"
         onPress={()=>Alert.alert(
@@ -446,7 +408,7 @@ function CalendarLoadingHome({official,now}:{
             }}/>)}
         </View>
       </View>
-      <DailyContent dark={dark}/>
+      <DailyWisdomSection dateISO={zonedClock(now,'Europe/Istanbul').dateISO} dark={dark}/>
       <View style={[styles.kerahetNote,{
         backgroundColor:colors.surface,borderColor:colors.border,
         borderWidth:1,borderRadius:16,paddingVertical:14,paddingHorizontal:13,
