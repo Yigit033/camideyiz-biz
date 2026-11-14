@@ -1,4 +1,4 @@
-import {memo,useEffect,useRef} from 'react';
+import {memo,useEffect,useMemo,useRef} from 'react';
 import {StyleSheet,View} from 'react-native';
 import Svg,{
   Circle,Defs,Ellipse,G,Line,LinearGradient,Path,Polygon,
@@ -118,8 +118,8 @@ export const QiblaBackdrop=memo(function QiblaBackdrop({dark}: {dark:boolean}){
 });
 
 export const QiblaCompass=memo(function QiblaCompass({
-  size,relative,available,aligned,
-}: {size:number;relative:number|null;available:boolean;aligned:boolean}){
+  size,relative,heading,available,aligned,
+}: {size:number;relative:number|null;heading:number|null;available:boolean;aligned:boolean}){
   const animatedAngle=useSharedValue(0);
   const lastAngle=useRef(0);
   useEffect(()=>{
@@ -135,11 +135,29 @@ export const QiblaCompass=memo(function QiblaCompass({
     transform:[{rotate: animatedAngle.value+'deg'}],
   }));
   const outer=available?'#FAE2A4':'#C6AC80';
-  return <View accessible accessibilityRole="image"
-    accessibilityLabel={available&&relative!==null
-      ?'Kıble yönü pusulada saat yönünde '+Math.round(relative)+' derece'
-      :'Kıble pusulası yön verisi bekliyor'}
-    style={{width:size,height:size,alignSelf:'center'}}>
+  // True north labels move around the fixed bezel as the device rotates.
+  // Letter glyphs remain upright for readability.
+  const cardinalLabels=useMemo(()=>{
+    if(heading===null||!available)return [];
+    return ([
+      {name:'K',worldAngle:0},
+      {name:'D',worldAngle:90},
+      {name:'G',worldAngle:180},
+      {name:'B',worldAngle:270},
+    ] as const).map(point=>{
+      const radians=(point.worldAngle-heading)*Math.PI/180;
+      return {
+        ...point,
+        x:180+114*Math.sin(radians),
+        y:180-114*Math.cos(radians),
+        outerX:180+149*Math.sin(radians),
+        outerY:180-149*Math.cos(radians),
+      };
+    });
+  },[heading,available]);
+  // The complex gold bezel and 168 decorative tick/engraving groups are
+  // static: updating the sensor does not reconstruct these React elements.
+  const face=useMemo(()=>(
     <Svg width={size} height={size} viewBox={'0 0 '+DIAL+' '+DIAL}
       pointerEvents="none">
       <Defs>
@@ -205,17 +223,24 @@ export const QiblaCompass=memo(function QiblaCompass({
         <Polygon points="180,88 196,166 180,180" fill={i%2===0?'#4D8878':'#195648'} opacity=".83"/>
         <Path d="M180 88V180" fill="none" stroke="#D3E2B9" strokeWidth=".6" strokeOpacity=".38"/>
       </G>)}
-      {(['K','D','G','B'] as const).map((letter,i)=>{
-        const v=[{x:180,y:77},{x:285,y:190},{x:180,y:304},{x:75,y:190}][i];
-        return <SvgText key={letter} x={v.x} y={v.y}
-          fontSize="27" fontFamily="serif" fontWeight="700" textAnchor="middle"
-          fill="#FFF0D1" stroke="#624A2C" strokeWidth=".3">{letter}</SvgText>;
-      })}
-      <Path d="M180 29L186 42L180 50L174 42Z" fill="#EBC77D" stroke="#724A22" strokeWidth=".8"/>
-      <Path d="M180 310L186 322L180 330L174 322Z" fill="#EBC77D" stroke="#724A22" strokeWidth=".8"/>
-      <Path d="M31 180L42 174L50 180L42 186Z M310 180L320 174L329 180L320 186Z"
-        fill="#EBC77D" stroke="#724A22" strokeWidth=".8"/>
       <Circle cx="180" cy="180" r="151" stroke="#FFF3CB" strokeOpacity=".16" fill="none"/>
+    </Svg>
+  ),[size]);
+  return <View accessible accessibilityRole="image"
+    accessibilityLabel={available&&relative!==null
+      ?'Kıble yönü pusulada saat yönünde '+Math.round(relative)+' derece'
+      :'Kıble pusulası yön verisi bekliyor'}
+    style={{width:size,height:size,alignSelf:'center'}}>
+    {face}
+    <Svg width={size} height={size} viewBox={'0 0 '+DIAL+' '+DIAL}
+      pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {cardinalLabels.map(label=><G key={label.name}>
+        <Circle cx={label.outerX} cy={label.outerY} r="4.4"
+          fill="#EBC77D" stroke="#74572D" strokeWidth=".7"/>
+        <SvgText x={label.x} y={label.y+9} textAnchor="middle"
+          fontSize="27" fontFamily="serif" fontWeight="700"
+          fill="#FFF0D1" stroke="#624A2C" strokeWidth=".3">{label.name}</SvgText>
+      </G>)}
     </Svg>
     {/* The needle is animated independently; the SVG bezel is never rerendered with heading ticks. */}
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,animatedStyle]}>
