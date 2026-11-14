@@ -1,24 +1,30 @@
-import Constants from 'expo-constants';
 import {
-  buildPrayerWidgetTimeline,buildPrayerWidgetSnapshot,
-  type PrayerSchedule,
+  buildPrayerWidgetTimeline,type PrayerSchedule,
 } from '@camideyiz/core';
+import {isExpoGoRuntime} from '../native/nativeRuntime';
 import {toWidgetProps,type WidgetSyncResult} from './widgetSyncShared';
+
+// Do not use import() for a native widget entrypoint: Metro can eagerly
+// evaluate the chunk when running Expo Go, even before our runtime guard.
+declare const require:(path:string)=>unknown;
 
 export async function syncPrayerWidgets(
   days:readonly PrayerSchedule[],nowMs:number,
 ):Promise<WidgetSyncResult>{
-  if(Constants.appOwnership==='expo')return {
-    available:false,updated:false,detail:'Widget için development/production build gerekli',
+  if(isExpoGoRuntime())return {
+    available:false,updated:false,
+    detail:'Expo Go: yalnızca widget önizlemesi. WidgetKit için iOS native derlemesi gerekli.',
   };
   try{
-    // The native registry is loaded ONLY in custom builds, never in Expo Go.
-    const [next,day]=await Promise.all([
-      import('./NextPrayerWidget.ios'),
-      import('./PrayerDayWidget.ios'),
-    ]);
     const timeline=buildPrayerWidgetTimeline(days,nowMs);
     if(!timeline.length)throw new Error('Güncellenebilir takvim yok');
+    const next=require('./NextPrayerWidget.ios') as typeof import('./NextPrayerWidget.ios');
+    const day=require('./PrayerDayWidget.ios') as typeof import('./PrayerDayWidget.ios');
+    if(typeof next.default?.updateTimeline!=='function'||
+       typeof day.default?.updateTimeline!=='function'){
+      return {available:false,updated:false,
+        detail:'Native WidgetKit eklentisi bulunamadı; iOS uygulamasını yeniden derle.'};
+    }
     const entries=timeline.map(({date,snapshot})=>({
       date:new Date(date),props:toWidgetProps(snapshot),
     }));
@@ -27,7 +33,8 @@ export async function syncPrayerWidgets(
     return {available:true,updated:true,
       detail:timeline.length+' zaman geçişi iOS WidgetKit’e gönderildi'};
   }catch(e){
-    return {available:true,updated:false,
-      detail:e instanceof Error?e.message:'iOS widget güncellenemedi'};
+    return {available:false,updated:false,
+      detail:'iOS widget güncellenemedi: '+
+        (e instanceof Error?e.message:'bilinmeyen hata')};
   }
 }
