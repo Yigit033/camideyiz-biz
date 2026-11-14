@@ -32,7 +32,7 @@ test('mirror data produces strictly typed real-time triplet with independent sou
 });
 test('mirror validation rejects fabricated dates, missing source and impossible time order',()=>{
  assert.throws(()=>parseMirrorTriplet({...raw,data:{...raw.data,kaynak:'Unknown'}},city,date,'İstanbul',fetchTime));
- assert.throws(()=>parseMirrorTriplet({...raw,data:{...raw.data,gunler:[day(1),day(2)]}},city,date,'İstanbul',fetchTime));
+ assert.throws(()=>parseMirrorTriplet({...raw,data:{...raw.data,gunler:[day(0),day(2)]}},city,date,'İstanbul',fetchTime));
  assert.throws(()=>parseMirrorTriplet({...raw,data:{...raw.data,gunler:[day(0),{...day(1),aksam:'11:00'},day(2)]}},city,date,'İstanbul',fetchTime));
 });
 test('mirror local cache expires according to public service terms',()=>{
