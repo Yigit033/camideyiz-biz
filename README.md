@@ -43,3 +43,7 @@ Altın/zümrüt referans tasarımından geliştirilmiş canlı gerçek kuzey pus
 ## Ana Ekran — Ücretsiz Takvim Kaynağı
 
 Orijinal namaz çemberi, günlük kartlar ve çevrimli vakit akışı; ücretsiz İdamedya servisinden alınan, Diyanet kaynaklı olduğu belirtilen takvim kayıtlarıyla görüntülenebilir. Resmî Diyanet API onayı beklerken ayrı sağlayıcı/adapör: [ücretsiz kaynak teknik kılavuzu](docs/FREE_CALENDAR.md).
+
+## Kerahat 2.0 ve Günün Seçkisi 2.0
+
+Yayımlanmış il/ilçe namaz vakitlerine dayalı üç yaklaşık kerahat bandı, manuel gösterim ayarları, kaynaklı açıklamalar; ayrıca 12 ayet ve 7 hadisten oluşan offline günlük seçki, favoriler ve paylaşım: [Teknik karar ve QA](docs/KERAHAT_AND_DAILY_WISDOM_2.md).
