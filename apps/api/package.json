@@ -1,0 +1,22 @@
+{
+  "name": "@camideyiz/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@camideyiz/core": "file:../../packages/core",
+    "next": "16.4.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "~19.3.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "~6.0.3"
+  }
+}

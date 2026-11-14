@@ -1,0 +1,23 @@
+name: TypeScript and Expo dependency check
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      # Lockfile generated after first networked clean install.
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm run typecheck
+      - name: Build secure Diyanet API service
+        run: npm run build --workspace @camideyiz/api
+      - run: cd apps/mobile && npx expo install --check
+      - name: Expo Android bundle smoke test
+        run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo export --platform android --output-dir ../../.expo-export-check
+      - name: Metro startup smoke test
+        run: node scripts/metro-smoke.mjs

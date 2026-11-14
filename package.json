@@ -1,0 +1,6 @@
+{
+  "name":"camideyiz-biz","private":true,"version":"0.1.0",
+  "workspaces":["apps/*","packages/*"],
+  "scripts":{"mobile":"npm run start --workspace @camideyiz/mobile","android":"npm run android --workspace @camideyiz/mobile","ios":"npm run ios --workspace @camideyiz/mobile","admin":"npm run dev --workspace @camideyiz/admin","test":"node --experimental-strip-types --test packages/core/src/*.test.ts","typecheck":"npm run typecheck --workspaces --if-present"},
+  "engines":{"node":">=22.13.0"}
+}
