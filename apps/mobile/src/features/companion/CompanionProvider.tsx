@@ -66,6 +66,7 @@ export function CompanionProvider({children}:PropsWithChildren){
   const [permission,setPermission]=useState<'granted'|'denied'|'unknown'>('unknown');
   const lastForegroundSync=useRef(0);
   const syncVersion=useRef(0);
+  const syncQueue=useRef<Promise<void>>(Promise.resolve());
   const deletedIds=useRef<Set<string>>(new Set());
 
   useEffect(()=>{
@@ -155,11 +156,15 @@ export function CompanionProvider({children}:PropsWithChildren){
         // If the upstream is temporarily offline, do not erase a user's
         // already scheduled valid reminders for the same district.
         if(days.length===0&&settings.enabled){
-          // Remove alerts for a previous city or now-disabled rules while
-          // preserving still-valid events for the selected city.
-          if(cityId>0)try{await prunePrayerNotifications(cityId,settings);}
-          catch{/* Native scheduling errors are surfaced on next full sync */}
-          if(active&&id===syncVersion.current)setSyncing(false);
+          // Remove previous-city alerts while keeping still-valid reminders
+          // when only the data source is temporarily offline.
+          if(cityId>0){
+            try{await prunePrayerNotifications(cityId,settings);}
+            catch{/* retry on next source update */}
+            // Clear old-city native widget contents; no fabricated time.
+            const placeholder=await syncPrayerWidgets([],Date.now());
+            if(active&&id===syncVersion.current)setWidget(placeholder);
+          }
           return;
         }
         const report=await reconcilePrayerNotifications(days,cityId,settings);
@@ -175,7 +180,17 @@ export function CompanionProvider({children}:PropsWithChildren){
         if(active&&id===syncVersion.current)setSyncing(false);
       }
     };
-    void reconcile();
+    // Serialize native scheduling. Rapid toggle/location changes must never
+    // let an older asynchronous run overwrite a newer set of 60 OS requests.
+    syncQueue.current=syncQueue.current.catch(()=>undefined)
+      .then(()=>active?reconcile():Promise.resolve())
+      .catch(error=>{
+        if(active&&id===syncVersion.current){
+          setSync(current=>({...current,error:
+            error instanceof Error?error.message:'Bildirim eşitleme hatası'}));
+          setSyncing(false);
+        }
+      });
     return ()=>{active=false;};
   },[ready,days,cityId,settings,sequence]);
 
