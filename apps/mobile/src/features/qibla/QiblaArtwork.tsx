@@ -1,5 +1,5 @@
 import {memo,useEffect,useMemo,useRef} from 'react';
-import {StyleSheet,View} from 'react-native';
+import {Image,StyleSheet,View} from 'react-native';
 import Svg,{
   Circle,Defs,Ellipse,G,Line,LinearGradient,Path,Polygon,
   RadialGradient,Rect,Stop,Text as SvgText,
@@ -114,6 +114,15 @@ export const QiblaBackdrop=memo(function QiblaBackdrop({dark}: {dark:boolean}){
         </G>)}
       </G>
     </Svg>
+    <Image
+      source={require('../../../assets/qibla/reference-istanbul-skyline.webp')}
+      resizeMode="stretch"
+      accessibilityIgnoresInvertColors
+      style={{
+        position:'absolute',right:-3,top:126,
+        width:179,height:361,
+        opacity:dark?.84:.15,
+      }}/>
   </View>;
 });
 
