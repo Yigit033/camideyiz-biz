@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState,type ComponentProps} from 'react';
 import {
   ActivityIndicator,Alert,FlatList,Linking,Pressable,ScrollView,
   StyleSheet,Text,TextInput,View,
@@ -19,20 +19,20 @@ import {loadMosques,type MosqueSearchResult} from '@/features/mosques/mosqueRepo
 import {useMosqueFavorites} from '@/features/mosques/useMosqueFavorites';
 
 const DEFAULT_REGION:Region={...ISTANBUL_CENTER,latitudeDelta:.075,longitudeDelta:.075};
-const FILTERS:{key:MosqueFilter;label:string;icon:'grid'|'heart'|'image'|'accessibility'}[]=[
+const FILTERS:{key:MosqueFilter;label:string;icon:'grid'|'heart'|'image'|'check-circle'}[]=[
   {key:'all',label:'Tümü',icon:'grid'},
   {key:'favorites',label:'Favoriler',icon:'heart'},
   {key:'photographed',label:'Fotoğraf etiketi',icon:'image'},
-  {key:'accessible',label:'Erişilebilir',icon:'accessibility'},
+  {key:'accessible',label:'Erişilebilir',icon:'check-circle'},
 ];
-const GOOGLE_NIGHT_STYLE=[
+const GOOGLE_NIGHT_STYLE:NonNullable<ComponentProps<typeof MapView>['customMapStyle']>=[
   {elementType:'geometry',stylers:[{color:'#172E2B'}]},
   {elementType:'labels.text.fill',stylers:[{color:'#B8CFC0'}]},
   {elementType:'labels.text.stroke',stylers:[{color:'#19322F'}]},
   {featureType:'water',elementType:'geometry',stylers:[{color:'#0C222B'}]},
   {featureType:'road',elementType:'geometry',stylers:[{color:'#2C4F46'}]},
   {featureType:'poi',stylers:[{visibility:'off'}]},
-] as const;
+];
 function formatFetchTime(time:number){
   const elapsed=Math.max(0,Date.now()-time);
   if(elapsed<60*60*1000)return 'Güncel bölge verisi';
@@ -213,7 +213,7 @@ export default function MosquesScreen(){
     </View>
     {mode==='map'
       ?<View style={[styles.mapContainer,{borderColor:colors.border}]}>
-        <MapView ref={mapRef} style={StyleSheet.absoluteFillObject}
+        <MapView ref={mapRef} style={StyleSheet.absoluteFill}
           initialRegion={DEFAULT_REGION}
           showsUserLocation={hasLocation}
           showsMyLocationButton={false} showsCompass
@@ -286,7 +286,7 @@ export default function MosquesScreen(){
           contentContainerStyle={{paddingHorizontal:14,paddingTop:8,paddingBottom:28,gap:9,flexGrow:1}}
           renderItem={({item})=><MosqueCard place={item}
             favorite={ids.has(item.id)} onFavorite={()=>toggle(item)} onOpen={()=>setDetail(item)}/>}
-          ListEmptyComponent={!loading?<View style={{alignItems:'center',paddingTop:45,gap:13}}>
+          ListEmptyComponent={loading?undefined:<View style={{alignItems:'center',paddingTop:45,gap:13}}>
             <MosqueCrest width={160} dark={dark}/>
             <Text style={{fontFamily:'serif',fontSize:19,fontWeight:'700',color:colors.text}}>
               Burada henüz kayıt görünmüyor
