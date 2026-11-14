@@ -72,7 +72,7 @@ export default function QiblaScreen(){
   const locationReady=bearing!==null;
   const relative=locationReady&&heading!==null?relativeQiblaAngle(bearing,heading):null;
   const deviation=alignmentError(relative);
-  const aligned=deviation!==null&&deviation<7&&compassAccuracy!==null&&compassAccuracy>=2;
+  const aligned=deviation!==null&&deviation<7&&compassAccuracy===3;
   const hasValidHeading=relative!==null&&compassAccuracy!==null&&compassAccuracy>0;
 
   const locate=useCallback(async(requestPermission:boolean)=>{
@@ -188,7 +188,7 @@ export default function QiblaScreen(){
   const headingStatus=locationReady
     ?!hasValidHeading?'Pusula sinyali bekleniyor'
       :compassAccuracy===1?'Pusulayı kalibre et'
-        :aligned?'Kıble yönüne hizalandın':'Kıble yönü bulundu'
+        :aligned?'Kıble doğrultusuna yakınsın':'Kıble yönü bulundu'
     :'Konumunu etkinleştir';
   const detailMessage=compassAccuracy===1
     ?'Pusula sinyali düşük. Metal eşyalardan uzaklaş ve cihazı kalibre et.'
