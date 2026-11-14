@@ -21,6 +21,8 @@ jobs:
       - name: Build secure Diyanet API service
         run: npm run build --workspace @camideyiz/api
       - run: cd apps/mobile && npx expo install --check
+      - name: Native widget Android CNG prebuild smoke test
+        run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo prebuild --platform android --no-install --clean
       - name: Expo Android bundle smoke test
         run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo export --platform android --output-dir ../../.expo-export-check
       - name: Metro startup smoke test

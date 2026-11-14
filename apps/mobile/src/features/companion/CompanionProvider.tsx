@@ -12,12 +12,13 @@ import {
 } from '@camideyiz/core';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {getPrayerPermission,requestPrayerPermission,reconcilePrayerNotifications,
-  toInboxEvent,type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
+  toInboxEvent,prunePrayerNotifications,type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
 import {syncPrayerWidgets} from '@/features/widgets/widgetSync';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
 
 const PREFS='@camideyiz/prayer-alert-prefs/v2';
 const INBOX='@camideyiz/observed-reminders/v2';
+const SUPPRESSED='@camideyiz/inbox-deleted/v2';
 const EMPTY_REPORT:NotificationSyncReport={
   permission:'unknown',scheduled:0,nextAt:null,error:null,
 };
@@ -41,8 +42,8 @@ type CompanionContextValue={
 };
 const Context=createContext<CompanionContextValue|null>(null);
 function appendUnique(history:readonly NativePrayerEvent[],
-  event:NativePrayerEvent|null):NativePrayerEvent[]{
-  if(!event)return [...history];
+  event:NativePrayerEvent|null,deleted:ReadonlySet<string>):NativePrayerEvent[]{
+  if(!event||deleted.has(event.id))return [...history];
   return [event,...history.filter(x=>x.eventKey!==event.eventKey)]
     .sort((a,b)=>b.receivedAt-a.receivedAt).slice(0,120);
 }
@@ -65,16 +66,25 @@ export function CompanionProvider({children}:PropsWithChildren){
   const [permission,setPermission]=useState<'granted'|'denied'|'unknown'>('unknown');
   const lastForegroundSync=useRef(0);
   const syncVersion=useRef(0);
+  const deletedIds=useRef<Set<string>>(new Set());
 
   useEffect(()=>{
     let live=true;
-    Promise.all([AsyncStorage.getItem(PREFS),AsyncStorage.getItem(INBOX)])
-      .then(([prefs,history])=>{
+    Promise.all([AsyncStorage.getItem(PREFS),AsyncStorage.getItem(INBOX),
+      AsyncStorage.getItem(SUPPRESSED)])
+      .then(([prefs,history,suppressed])=>{
         if(!live)return;
         try{if(prefs)setSettings(validateAlertSettings(JSON.parse(prefs) as unknown));}
         catch{/* corrupted settings revert to OFF; never enable without consent */}
-        try{if(history)setInbox(validInbox(JSON.parse(history) as unknown));}
-        catch{/* corrupt inbox ignored */}
+        try{
+          if(suppressed){
+            const parsed:unknown=JSON.parse(suppressed);
+            if(Array.isArray(parsed)&&parsed.every(id=>typeof id==='string'))
+              deletedIds.current=new Set((parsed as string[]).slice(-512));
+          }
+          if(history)setInbox(validInbox(JSON.parse(history) as unknown)
+            .filter(item=>!deletedIds.current.has(item.id)));
+        }catch{/* corrupt inbox/deletion history ignored */}
       }).catch(()=>undefined).finally(()=>{if(live)setReady(true);});
     getPrayerPermission().then(p=>{if(live)setPermission(p);}).catch(()=>undefined);
     return ()=>{live=false;};
@@ -87,11 +97,11 @@ export function CompanionProvider({children}:PropsWithChildren){
   },[ready,inbox]);
   useEffect(()=>{
     const received=Notifications.addNotificationReceivedListener(notification=>{
-      setInbox(prev=>appendUnique(prev,toInboxEvent(notification)));
+      setInbox(prev=>appendUnique(prev,toInboxEvent(notification),deletedIds.current));
     });
     const response=Notifications.addNotificationResponseReceivedListener(response=>{
       const event=toInboxEvent(response.notification);
-      setInbox(prev=>appendUnique(prev,event));
+      setInbox(prev=>appendUnique(prev,event,deletedIds.current));
       if(event)router.replace('/(tabs)');
     });
     // Recover any delivered items still present in the OS notification list.
@@ -99,7 +109,7 @@ export function CompanionProvider({children}:PropsWithChildren){
       Notifications.getPresentedNotificationsAsync().then(items=>{
         setInbox(prev=>{
           let next=prev;
-          for(const item of items)next=appendUnique(next,toInboxEvent(item));
+          for(const item of items)next=appendUnique(next,toInboxEvent(item),deletedIds.current);
           return next;
         });
       }).catch(()=>undefined);
@@ -119,7 +129,7 @@ export function CompanionProvider({children}:PropsWithChildren){
     if(last){
       const found=toInboxEvent(last.notification);
       if(found){
-        setInbox(prev=>appendUnique(prev,found));
+        setInbox(prev=>appendUnique(prev,found,deletedIds.current));
         router.replace('/(tabs)');
       }
       Notifications.clearLastNotificationResponse();
@@ -145,6 +155,10 @@ export function CompanionProvider({children}:PropsWithChildren){
         // If the upstream is temporarily offline, do not erase a user's
         // already scheduled valid reminders for the same district.
         if(days.length===0&&settings.enabled){
+          // Remove alerts for a previous city or now-disabled rules while
+          // preserving still-valid events for the selected city.
+          try{await prunePrayerNotifications(cityId,settings);}
+          catch{/* Native scheduling errors are surfaced on next full sync */}
           if(active&&id===syncVersion.current)setSyncing(false);
           return;
         }
@@ -190,8 +204,19 @@ export function CompanionProvider({children}:PropsWithChildren){
     source.retry();
     setSequence(i=>i+1);
   },[source.retry]);
-  const clearInbox=useCallback(()=>setInbox([]),[]);
-  const deleteInbox=useCallback((id:string)=>setInbox(old=>old.filter(x=>x.id!==id)),[]);
+  const rememberDeletion=useCallback((ids:readonly string[])=>{
+    const next=[...new Set([...deletedIds.current,...ids])].slice(-512);
+    deletedIds.current=new Set(next);
+    AsyncStorage.setItem(SUPPRESSED,JSON.stringify(next)).catch(()=>undefined);
+  },[]);
+  const clearInbox=useCallback(()=>{
+    rememberDeletion(inbox.map(item=>item.id));
+    setInbox([]);
+  },[inbox,rememberDeletion]);
+  const deleteInbox=useCallback((id:string)=>{
+    rememberDeletion([id]);
+    setInbox(old=>old.filter(item=>item.id!==id));
+  },[rememberDeletion]);
   const value=useMemo(()=>({
     settings,ready,permission,sync,widget,syncing,inbox,
     setEnabled,setSound,setRule,refresh,clearInbox,deleteInbox,

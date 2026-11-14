@@ -126,6 +126,32 @@ export async function reconcilePrayerNotifications(
       error:error instanceof Error?error.message:'Bildirimleri ayarlama başarısız'};
   }
 }
+
+/** A location switch must never leave old-city alerts active while the new
+ * calendar is loading or unavailable. Preserve only valid same-city rules.
+ */
+export async function prunePrayerNotifications(
+  cityId:number,settings:PrayerAlertSettings,
+):Promise<number>{
+  const all=await Notifications.getAllScheduledNotificationsAsync();
+  let removed=0;
+  for(const item of all){
+    if(!owned(item))continue;
+    const data=item.content.data;
+    const key=data?.prayer;
+    const rule=typeof key==='string'&&key in settings.rules
+      ?settings.rules[key as keyof typeof settings.rules]:null;
+    const eventKey=String(data?.eventKey??'');
+    const isEarly=eventKey.includes(':before:');
+    if(data?.cityId!==cityId||!rule?.enabled||
+       (isEarly?rule.minutesBefore!==Number(eventKey.split(':').at(-1)):!rule.atTime)){
+      await Notifications.cancelScheduledNotificationAsync(item.identifier);
+      removed++;
+    }
+  }
+  return removed;
+}
+
 export function toInboxEvent(n:Notifications.Notification):NativePrayerEvent|null{
   const data=n.request.content.data;
   if(data?.kind!==KIND||typeof data.eventKey!=='string')return null;
