@@ -61,9 +61,9 @@ function arc(from: number, to: number, radius: number) {
     ' 1 ' + end.x.toFixed(3) + ' ' + end.y.toFixed(3);
 }
 function SectorLabel({
-  sector, size, rotation, selected, dark,
+  sector, size, rotation, selected, dark, preview=false,
 }: {
-  sector: PrayerArc; size: number; rotation: SharedValue<number>; selected: boolean; dark: boolean;
+  sector: PrayerArc; size: number; rotation: SharedValue<number>; selected: boolean; dark: boolean;preview?:boolean;
 }) {
   const point = polar((sector.from + sector.to) / 2, RADIUS);
   const iconSize = 14 * size / DIAMETER;
@@ -93,7 +93,7 @@ function SectorLabel({
       fontSize: (narrow ? 9.7 : 11.3) * size / DIAMETER,
       fontWeight: '700', color: selected || sector.key === 'yatsi' ? '#FFF7E9' : '#23473E',
       textAlign: 'center', marginTop: 2 * size / DIAMETER,
-    }}>{sector.time}</Text>
+    }}>{preview?'':sector.time}</Text>
   </Animated.View>;
 }
 
@@ -340,7 +340,7 @@ export function PrayerWheel({
           </Svg>
           {sectors.map((item,index) => <SectorLabel
             key={item.key} sector={item} size={size}
-            rotation={rotation} selected={index===selectedIndex} dark={colors.isDark}/>)}
+            rotation={rotation} selected={index===selectedIndex} dark={colors.isDark} preview={preview}/>)}
         </Animated.View>
       </View>
     </GestureDetector>
@@ -403,10 +403,10 @@ export function PrayerWheel({
       <View style={[styles.center,{width:size*.56}]}>
         <MosqueCrest width={size*.42} dark={colors.isDark}/>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.prayerName,{color:colors.text}]}>
-          {preview?'Namaz vakitleri':isManualSelection?(selected?.label??'Vakit'):(selected?PRAYER_COUNTDOWN_LABELS[selected.key]:'Vakte Kalan')}
+          {preview?'Namaz Vakitleri':isManualSelection?(selected?.label??'Vakit'):(selected?PRAYER_COUNTDOWN_LABELS[selected.key]:'Vakte Kalan')}
         </Text>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countdown,{color:colors.emerald}]}>
-          {preview?'--:--':isManualSelection?selected?.time??'--:--':countdown}
+          {preview?'Takvim bekleniyor':isManualSelection?selected?.time??'--:--':countdown}
         </Text>
         <View style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:2}}>
           <View style={{width:24,height:1,backgroundColor:colors.gold,opacity:.78}}/>
