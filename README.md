@@ -34,4 +34,4 @@ Yetkili sunucu, il/ilçe senkronizasyonu ve doğrulanmış üç günlük mobil t
 
 ## Camiler 2.0
 
-Uygulama içi native harita, OSM keşif ve telif denetimli cami fotoğrafları için [Camiler 2.0 teknik kılavuzu](docs/MOSQUES_2.md).
+Google Maps + Google Places (New) ile kullanıcı kontrollü bölgesel cami araması, Google fotoğrafları, kaynaklı detaylar ve Place ID tabanlı favoriler için [Camiler 2.1 teknik kılavuzu](docs/MOSQUES_2.md).
