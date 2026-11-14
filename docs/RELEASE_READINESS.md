@@ -1,65 +1,36 @@
-# Release readiness — Camideyiz Biz (2026-11-14)
+# Camideyiz Biz — Release Readiness (14 Kasım 2026)
 
-## What is implemented on the feature branch
-- React Native / Expo Android + iOS application skeleton and light/dark themes
-- Interactive physically rotating prayer-time dial, fixed selection needle, and a separate time-progress ring
-- Unique transparent **SVG mosque crest** inside the dial; former screenshot-photo crop is no longer rendered
-- Nonlinear readability-weighted sectors; chronological time-to-angle mapping tested in the core
-- 22+ timeline/core tests, Android bundle and Metro startup CI checks
-- On-demand device permission for nearby-mosque Google Maps search
-- Basic location- and true-north-based qibla direction screen
-- Verse/hadith share cards with source links, and a source-aware settings screen
-- Tab-bar safe-area adjustment; remaining physical-device visual check required
+## Özelliklerin güncel durumu
+- **Ana ekran / namaz çemberi:** Expo React Native / TypeScript, açık/koyu tema, fiziksel çember etkileşimi ve zaman dilimi mantığı kodlandı. Gerçek cihaz UX/performans QA hâlâ gerekli.
+- **Diyanet namaz vakitleri:** Resmî Awqat Salah API için sunucu, doğrulama, kota bilinçli senkronizasyon, il/ilçe seçimi ve üç günlük çevrimdışı takvim altyapısı kodlandı. **Resmî hesap onayı, veritabanı migration ve HTTPS yayına alma yok; bu nedenle namaz vakitleri canlı gösterilmez.** Astronomik hesaplama fallback eklenmeyecek.
+- **Camiler:** Ücretsiz Google Maps URL yönlendirmesi. Premium açık/koyu temalı arama ekranı, seçilen il/ilçe/semt veya yakınımdaki camiler araması, açılış hata yönetimi. **Yerel native harita, cami verisi, Google Places API, Google Maps SDK, OSM/Overpass endpoint, Google API anahtarı veya faturalandırma yok.** Fotoğraf, yorum, rota ve sonuçlar harici Google Haritalar tarafından sunulur.
+- **Kıble:** Konum + true-north sensörüne dayalı temel ekran var. Gerçek cihaz doğrulama/kalibrasyon/premium tasarım bekliyor.
+- **Galeri/Topluluk:** Henüz üretim kullanıcı içeriği ve moderasyon altyapısı yok.
+- **Widget / bildirim / ezan:** Yayına hazır değil.
+- **Yönetim paneli:** Yetkilendirme olmayan prototip, production'a deploy edilmemeli.
 
-## BLOCKERS — NOT YET A PRODUCTION/STORE-READY PRODUCT
+## Camiler kabul testi (bu branch)
+- [x] Google Maps URLs anahtarsız, doğru encode edilen ve uzunluğu sınırlı arama URL'si
+- [x] Ücretli Places/SDK/OSM arama dosyaları ve bağımlılıkları silindi
+- [x] Camiler sekmesi otomatik konum izni veya dış veri fetch'i yapmıyor
+- [x] Açık ve koyu tema için premium responsive keşif ekranı
+- [ ] Android cihazda Google Maps uygulamasına veya tarayıcıya geçişi fiziksel olarak test et
+- [ ] iPhone'da Google Maps uygulaması yüklü/yüklü değil senaryolarını test et
+- [ ] 320dp telefon, büyük yazı ve ekran okuyucuyla UI QA yap
+- [ ] Ağ yokken Linking hatası / tarayıcı davranışı test et
 
-1. **Prayer times are still a demo sample**. The official Diyanet Awqat Salah API requires an approved user account/credentials and quota-compliant server-to-server integration. It cannot be honestly shown as live without this.
-   https://awqatsalah.diyanet.gov.tr/
-2. **Kerahat periods are estimated prototype ranges**, not precise religious judgments. Different prayer categories and special conditions change the ruling; do not enable as official guidance before review by qualified specialists.
-3. Authenticated server component, city-ID mapping, offline timestamped caching, next-day schedule fetch and source-verified time-zone transitions are not connected.
-4. Prayer notifications, prayer sounds, iOS/Android widgets and system-time/background refresh are not implemented.
-5. Gallery is currently a small curated, shareable selection, **not** a production content management system.
-6. Nearby mosques open Google Maps; an in-app nationwide mosque database/list is not implemented.
-7. Admin panel remains a **non-authenticated visual prototype**. It must NOT be deployed publicly.
-8. Store assets, privacy/data safety disclosures, signed builds, automated accessibility tests and real-device QA are incomplete.
+## Diğer yayın engelleri
+- Resmî Diyanet API hesabı, yetkili veri kaynağına uçtan uca bağlantı, production secret'ları ve migration onayı
+- Kesin kerahet yorumları için uzman incelemesi
+- Bildirimler ve widget'ların gerçek vakitlerle takvimlendirilmesi
+- Gerçek Android/iOS cihaz kalite ve performans testleri, store asset/privacy ve imzalı build'ler
 
-## Release gate
-- Do not merge the draft feature PR to main for a public production release until official data and the above checks are signed off.
-- DO NOT hide the one discreet data-provenance notice while displaying sample prayer hours.
-- Do not claim the source is Diyanet until data is actually retrieved from the authorized service.
-- QA required on multiple Android phones and iPhones, including screen-reader/fat-font, rotation jank, touch vs vertical scroll, and safe-area overlaps.
+## Branch ve güvenlik
+- Camiler geliştirmeleri: `feat/mosques-2-premium-explore`, taslak PR #2, base `feat/mobile-foundation-prayer-wheel`.
+- `main` merge, production deploy ve production migration yapılmadı.
+- Google Cloud billing ve API key eklemek Camiler için GEREKMİYOR.
+- Diyanet sistemine dokunulmadı; resmî erişim bekleniyor.
 
-## Sources
-- Diyanet Awqat Salah official service: https://awqatsalah.diyanet.gov.tr/
-- Diyanet kerahat guidance: https://yayin.diyanet.gov.tr/File/Download?id=389&path=fetvalar.pdf
-- Diyanet Nisa 4:103: https://kuran.diyanet.gov.tr/tefsir/Nis%C3%A2-suresi/596/103-ayet-tefsiri
-- Diyanet Hadislerle İslam, Niyet ve Davranış: https://hadislerleislam.diyanet.gov.tr/pdf/hadislerle_islam_cilt3.pdf
-
-
-## 14.11.2026 — Diyanet entegrasyonu geliştirme dalına eklendi
-
-- Ayrı `apps/api` Next.js servisi: resmî Diyanet authentication/refresh, istek kotalarını sınırlayan durable sync leasing, RLS korumalı Supabase takvim/konum önbelleği
-- Türkiye Diyanet il / ilçe seçimi, gerçek tarihe bağlı 3 günlük doğrulanmış takvim, gece yarısında ertesi günün imsak saati
-- Cihazda yalnızca gerçek tarih ve kaynak doğrulamasını geçmiş offline takvim; kaynak gelmezse demo yerine açıklamalı boş durum
-- Yalnızca yetkili sunucuya açık sync/target/cron rotaları, otomatik Vercel günlük cron tanımı; **hiçbiri henüz üretimde aktive edilmedi**
-- Resmî Diyanet API hesabı, Supabase migration onayı, service-role secrets ve HTTPS API deployment gereklidir
-- Kesin kerahet, ezan/bildirim ve mağaza sürümü hâlâ yayına hazır değildir
-- Tekil cron 6 kayıt / gün ile sınırlı; yüksek kullanıcı ve ilçe sayısı için planlı indeksleme ve genişletilmiş iş kuyruğu gerekecektir
-
-## 2026-11-14 — Camiler 2.0
-- Uygulama içi native harita ve liste, OSM verisi, filtre, favori, kaynaklı detay, yönlendirme, telif doğrulamalı Commons fotoğrafları geliştirme dalında
-- Expo Go içindeki başlangıç geliştirme senaryosu internet varsa çalışır; gerçek cihazda doğrulama henüz yapılmadı
-- Android bağımsız build için Google Maps API anahtarı gerekli; EAS/CI secret olarak ayarlanmalı
-- Yüksek trafikli yayın için public Overpass uygun değil: onaylı OSM veri sağlayıcısı/kendi servis ve paylaşımlı kalıcı cache henüz yok
-- OSM kayıtları resmî/eksiksiz cami envanteri olarak sunulmaz; veri kalitesi kontrolü gerekir
-- Yayın onayı, production deploy veya main merge yapılmadı
-
-## 14 Nov 2026 — Google Maps + Places replacement for Camiler
-
-- Legacy OSM/Overpass data is retired from Camiler runtime. Google Maps SDK (native, both platforms in dedicated builds) plus Google Places New for search/details/photos.
-- User-controlled "Bu bölgede ara" instead of auto-fetch on pan. Max 20 Nearby results per call. Native pins instead of up to 130 custom markers.
-- Android Expo Go supports Google basemap; iOS Google Maps needs an app-built native binary with restricted Maps SDK key.
-- Google Cloud billing, Maps Android/iOS keys and server-only Places API New key not configured here; no paid live requests made.
-- Google Place names/addresses/media cannot be stored in persistent cache; favorites persist Place IDs only.
-- Production blockers: real iOS/Android SDK builds; API keys and billing quota; distributed rate-limit/app-attestation; privacy policy, photo credits, device performance tests and Google Maps attribution.
-- Diyanet official approval still pending; **no astronomical calculation added**.
+Kaynaklar:
+- Google Maps URLs: https://developers.google.com/maps/documentation/urls/get-started
+- Diyanet Awqat Salah: https://awqatsalah.diyanet.gov.tr/
