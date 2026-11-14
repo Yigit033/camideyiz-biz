@@ -45,3 +45,11 @@
 - Resmî Diyanet API hesabı, Supabase migration onayı, service-role secrets ve HTTPS API deployment gereklidir
 - Kesin kerahet, ezan/bildirim ve mağaza sürümü hâlâ yayına hazır değildir
 - Tekil cron 6 kayıt / gün ile sınırlı; yüksek kullanıcı ve ilçe sayısı için planlı indeksleme ve genişletilmiş iş kuyruğu gerekecektir
+
+## 2026-11-14 — Camiler 2.0
+- Uygulama içi native harita ve liste, OSM verisi, filtre, favori, kaynaklı detay, yönlendirme, telif doğrulamalı Commons fotoğrafları geliştirme dalında
+- Expo Go içindeki başlangıç geliştirme senaryosu internet varsa çalışır; gerçek cihazda doğrulama henüz yapılmadı
+- Android bağımsız build için Google Maps API anahtarı gerekli; EAS/CI secret olarak ayarlanmalı
+- Yüksek trafikli yayın için public Overpass uygun değil: onaylı OSM veri sağlayıcısı/kendi servis ve paylaşımlı kalıcı cache henüz yok
+- OSM kayıtları resmî/eksiksiz cami envanteri olarak sunulmaz; veri kalitesi kontrolü gerekir
+- Yayın onayı, production deploy veya main merge yapılmadı

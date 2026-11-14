@@ -31,3 +31,7 @@ Ek komutlar: \`npm run android\`, \`npm run ios\` (iOS için Mac/Xcode gerekir),
 ## Resmî Diyanet entegrasyonu
 
 Yetkili sunucu, il/ilçe senkronizasyonu ve doğrulanmış üç günlük mobil takvim kurulum adımları: [docs/DIYANET_INTEGRATION.md](docs/DIYANET_INTEGRATION.md). Sunucu paketi `apps/api`, SQL migrations `infra/supabase/migrations/` altındadır. API hesabı/DB/URL yapılandırılmadan mobil örnek namaz vakti **göstermez**.
+
+## Camiler 2.0
+
+Uygulama içi native harita, OSM keşif ve telif denetimli cami fotoğrafları için [Camiler 2.0 teknik kılavuzu](docs/MOSQUES_2.md).
