@@ -1,3 +1,4 @@
+import {googlePlacesKey,allowPlacesRequest} from '@/lib/googleQuota';
 export const runtime='nodejs';
 export const dynamic='force-dynamic';
 export async function GET(request:Request){
@@ -5,8 +6,9 @@ export async function GET(request:Request){
   if(name.length>1100||
     !/^places\/[A-Za-z0-9_-]{5,250}\/photos\/[A-Za-z0-9_-]{8,1000}$/.test(name))
     return Response.json({error:'invalid_photo_reference'},{status:400});
-  const key=process.env.GOOGLE_PLACES_API_KEY;
+  const key=googlePlacesKey();
   if(!key)return Response.json({error:'google_places_not_configured'},{status:503});
+  if(!allowPlacesRequest(request,2))return Response.json({error:'query_rate_limited'},{status:429});
   try{
     const source=await fetch('https://places.googleapis.com/v1/'+name+'/media?maxWidthPx=1000&skipHttpRedirect=true',{
       headers:{'X-Goog-Api-Key':key},cache:'no-store',signal:AbortSignal.timeout(9000),
