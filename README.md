@@ -27,3 +27,7 @@ Ek komutlar: \`npm run android\`, \`npm run ios\` (iOS için Mac/Xcode gerekir),
 **Güvenlik:** API secret değerlerini istemciye koymayın. Admin kimlik doğrulama, RBAC/RLS kurulmadan yönetim fonksiyonu açmayın. Diyanet veri kaynağı ve izinleri doğrulanmadan gerçek namaz vakti yayınlamayın. Mevcut demo verisi dinî referans yerine geçmez.
 
 İlk sürüm gerçek cihazlarda veya CI bağımlılık kurulumunda henüz doğrulanmadı.
+
+## Resmî Diyanet entegrasyonu
+
+Yetkili sunucu, il/ilçe senkronizasyonu ve doğrulanmış üç günlük mobil takvim kurulum adımları: [docs/DIYANET_INTEGRATION.md](docs/DIYANET_INTEGRATION.md). Sunucu paketi `apps/api`, SQL migrations `infra/supabase/migrations/` altındadır. API hesabı/DB/URL yapılandırılmadan mobil örnek namaz vakti **göstermez**.
