@@ -20,7 +20,13 @@ export async function POST(request:Request){
   const id=mode==='cities'?idNumber(String(input.stateId??'')):
     mode==='states'?null:idNumber(String(input.cityId??''));
   if(mode!=='states'&&id===null)return publicError('invalid_id',400);
-  const key=mode==='states'?'states':mode+':'+id;
+  // Monthly keys MUST include the month. A 20-day lease from the prior month
+  // must not prevent the next month's schedule from being populated.
+  const turkeyMonth=new Intl.DateTimeFormat('sv-SE',{
+    year:'numeric',month:'2-digit',timeZone:'Europe/Istanbul',
+  }).format(new Date());
+  const key=mode==='states'?'states':mode==='monthly'
+    ?'monthly:'+id+':'+turkeyMonth:mode+':'+id;
   const minimumMinutes=mode==='states'?30*24*60:mode==='cities'?7*24*60:mode==='monthly'?20*24*60:22*60;
   let lease:string|null;
   try{lease=await claim(key,minimumMinutes);}
