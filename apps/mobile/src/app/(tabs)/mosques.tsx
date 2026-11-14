@@ -111,12 +111,6 @@ export default function MosquesScreen(){
     return ()=>{mounted.current=false;requestSeq.current++;};
   },[searchArea]);
 
-  const focus=useCallback((place:MosqueRecord)=>{
-    setSelected(place);setMode('map');
-    const next:Region={latitude:place.latitude,longitude:place.longitude,
-      latitudeDelta:.023,longitudeDelta:.023};
-    mapRef.current?.animateToRegion(next,360);
-  },[]);
   const locate=useCallback(async()=>{
     setLocating(true);
     try{
@@ -214,7 +208,7 @@ export default function MosquesScreen(){
     {mode==='map'
       ?<View style={[styles.mapContainer,{borderColor:colors.border}]}>
         <MapView ref={mapRef} style={StyleSheet.absoluteFill}
-          initialRegion={DEFAULT_REGION}
+          initialRegion={region}
           showsUserLocation={hasLocation}
           showsMyLocationButton={false} showsCompass
           customMapStyle={dark?[...GOOGLE_NIGHT_STYLE]:undefined}
