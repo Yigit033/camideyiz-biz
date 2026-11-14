@@ -7,12 +7,14 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Svg,{Circle,Defs,LinearGradient,Path,Stop} from 'react-native-svg';
-import {DEMO_SCHEDULE,formatCountdown,zonedClock,calculateTimeAwareness,minutesToNextEvent,timeToMinutes} from '@camideyiz/core';
+import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere,ArabesqueCorner,GoldenLantern} from '@/components/LuxuryArtwork';
+import {usePrayerSource} from '@/features/prayer/usePrayerSource';
+import {LocationPicker} from '@/features/prayer/LocationPicker';
+import {UnavailablePrayerScreen} from '@/features/prayer/UnavailablePrayerScreen';
 
-const SCHEDULE=DEMO_SCHEDULE;
 const ICONS={
   imsak:'moon-waning-crescent',
   gunes:'weather-sunset-up',
@@ -29,10 +31,10 @@ function formatHijri(now:Date){
     }).format(now);
   } catch {return null;}
 }
-function DateDivider({now,dark}: {now:Date;dark:boolean}) {
+function DateDivider({now,dark,timezone,hijriDate}: {now:Date;dark:boolean;timezone:string;hijriDate:string|null}) {
   const {colors}=useAppTheme();
-  const date=new Intl.DateTimeFormat('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:SCHEDULE.timezone}).format(now);
-  const hijri=useMemo(()=>formatHijri(now),[now.getDate()]);
+  const date=new Intl.DateTimeFormat('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone}).format(now);
+  const hijri=hijriDate??formatHijri(now);
   return <View style={styles.dateSection}>
     <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10}}>
       <View style={[styles.dateLine,{backgroundColor:colors.gold}]}/>
@@ -40,7 +42,7 @@ function DateDivider({now,dark}: {now:Date;dark:boolean}) {
       <Text style={[styles.dateText,{color:colors.text}]}>{date}</Text>
       <View style={[styles.dateLine,{backgroundColor:colors.gold}]}/>
     </View>
-    {hijri?<Text style={[styles.hijri,{color:dark?'#A6D8C3':'#4B806D'}]}>{hijri} · Hicrî (yaklaşık)</Text>:null}
+    {hijri?<Text style={[styles.hijri,{color:dark?'#A6D8C3':'#4B806D'}]}>{hijri} · {hijriDate?'Hicrî · Diyanet':'Hicrî (yaklaşık)'}</Text>:null}
   </View>;
 }
 function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
@@ -112,13 +114,14 @@ function DailyContent({dark}: {dark:boolean}){
   </View>;
 }
 
-export default function HomeScreen(){
+function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSource>;now:Date}){
+  const SCHEDULE=official.days!.today;
   const {colors,mode,setMode}=useAppTheme();
   const {width,height}=useWindowDimensions();
   const dark=colors.isDark;
   const wheelSize=Math.min(width-10,366);
   const chipWidth=Math.max(49,(width-26-10)/6);
-  const [now,setNow]=useState(()=>new Date());
+  const [pickerOpen,setPickerOpen]=useState(false);
   const [timePreview,setTimePreview]=useState<{startSeconds:number;beganAt:number}|null>(null);
   const [manualIndex,setManualIndex]=useState<number|null>(null);
   const [focusRequest,setFocusRequest]=useState(0);
@@ -130,11 +133,8 @@ export default function HomeScreen(){
     setManualIndex(index);
     setFocusRequest(value=>value+1);
   };
-  useEffect(()=>{
-    const timer=setInterval(()=>setNow(new Date()),1000);
-    return ()=>clearInterval(timer);
-  },[]);
-  const zoned=useMemo(()=>zonedClock(now,SCHEDULE.timezone),[now]);
+  useEffect(()=>{setManualIndex(null);setTimePreview(null);},[official.place?.id]);
+  const zoned=useMemo(()=>zonedClock(now,SCHEDULE.timezone),[now,SCHEDULE.timezone]);
   // QA only. In demo preview the clock is accelerated; never exposed as an official time.
   const previewSeconds=timePreview
     ? (timePreview.startSeconds+Math.floor((now.getTime()-timePreview.beganAt)/1000)*20)%86400
@@ -157,7 +157,10 @@ export default function HomeScreen(){
     ()=>calculateTimeAwareness(SCHEDULE,previewSeconds,zoned.dateISO,true),
     [previewSeconds,zoned.dateISO],
   );
-  const {phase,restriction,indicativeWindows}=awareness;
+  const {restriction,indicativeWindows}=awareness;
+  const phase=official.days && !timePreview
+    ? calculateVerifiedPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
+    : awareness.phase;
   const upcomingIndex=SCHEDULE.times.findIndex(item=>item.key===phase.next.key);
   const remainingText=minutesToNextEvent(phase.secondsRemaining);
   const nafileOnly=phase.current.key==='imsak' && !restriction;
@@ -189,11 +192,11 @@ export default function HomeScreen(){
     <ScrollView showsVerticalScrollIndicator={false} overScrollMode="never"
       contentContainerStyle={[styles.content,{paddingTop:compact?7:11}]}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="İstanbul demo konumu"
-          onPress={()=>Alert.alert('Örnek konum','İstanbul yalnızca tasarım demosu için gösteriliyor. Konum seçimi ve resmî veri bağlantısı henüz yapılmadı.')}
+        <Pressable accessibilityRole="button" accessibilityLabel="Diyanet ilçe konumunu değiştir"
+          onPress={()=>setPickerOpen(true)}
           style={[styles.location,{borderColor:dark?'#42665D':'#D4CCBB',backgroundColor:dark?'rgba(10,43,41,.86)':'rgba(255,255,255,.7)'}]}>
           <Feather name="map-pin" size={14} color={colors.emerald}/>
-          <Text style={[styles.locationName,{color:colors.text}]}>İstanbul</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.locationName,{color:colors.text}]}>{official.place?.name??SCHEDULE.locationName}</Text>
           <Feather name="info" size={11} color={colors.muted}/>
         </Pressable>
         <View style={styles.centralBrand}>
@@ -219,11 +222,11 @@ export default function HomeScreen(){
           </Pressable>
         </View>
       </View>
-      <DateDivider now={now} dark={dark}/>
+      <DateDivider now={now} dark={dark} timezone={SCHEDULE.timezone} hijriDate={official.days?.today.hijriDate??null}/>
       <Pressable accessibilityRole="button"
-        accessibilityLabel="Örnek vakitlerin kaynağı hakkında bilgi"
-        onPress={()=>Alert.alert('Vakit kaynağı',
-          'Ekrandaki saatler örnektir; gerçek namaz vakitleri değildir. Diyanet servisinden doğrulanmış veri henüz bağlı değil. Gerçek ibadet için bu saatleri kullanmayın.')}
+        accessibilityLabel="Diyanet namaz vakitlerinin kaynağını görüntüle"
+        onPress={()=>Alert.alert('Resmî vakit kaynağı',
+          'Kaynak: Diyanet Awqat Salah. İlçe: '+(official.place?.name??'')+'\\nSon veri alım tarihi: '+official.days!.today.fetchedAt+'\\nDurum: '+(official.status==='offline'?'Önbellek':'Sunucudan alındı'))}
         onLongPress={__DEV__?showPreviewOptions:undefined}
         style={[styles.demo,{
           backgroundColor:'transparent',
@@ -231,7 +234,7 @@ export default function HomeScreen(){
         }]}>
         <Feather name="info" size={12} color={colors.gold}/>
         <Text style={[styles.demoText,{color:colors.muted}]}>
-          {timePreview?'Hızlandırılmış zaman önizlemesi etkin':'Örnek vakitler · Resmî kaynak henüz bağlı değil'}
+          {timePreview?'Geliştirici zaman önizlemesi':official.status==='offline'?'Diyanet · Çevrimdışı kayıtlı takvim':'Diyanet · Resmî namaz vakitleri'}
         </Text>
 
       </Pressable>
@@ -329,7 +332,7 @@ export default function HomeScreen(){
         <View style={{flex:1,gap:3}}>
           <Text style={{fontSize:10,letterSpacing:.85,fontWeight:'800',color:accented}}>{stateTitle}</Text>
           <Text style={{fontSize:11,color:colors.text,lineHeight:16}}>{stateDescription}</Text>
-          <Text style={{fontSize:9.5,color:colors.muted}}>Yaklaşık bilgi · Resmî vakit takvimi değil</Text>
+          <Text style={{fontSize:9.5,color:colors.muted}}>Namaz saatleri · Diyanet Awqat Salah</Text>
         </View>
         <Feather name="chevron-right" size={14} color={colors.muted}/>
       </Pressable>
@@ -339,10 +342,23 @@ export default function HomeScreen(){
         </Text>
         :null}
       <Text style={{textAlign:'center',color:colors.muted,fontSize:10,marginBottom:11}}>
-        Camideyiz Biz · Kaynaklı ayet ve hadis seçkisi
+        Namaz vakitleri · Diyanet Awqat Salah
       </Text>
     </ScrollView>
+    <LocationPicker visible={pickerOpen} onClose={()=>setPickerOpen(false)}
+      onSelect={p=>{official.selectPlace(p).catch(()=>undefined);setPickerOpen(false);}}/>
   </SafeAreaView>;
+}
+export default function HomeScreen(){
+  const [now,setNow]=useState(()=>new Date());
+  useEffect(()=>{
+    const timer=setInterval(()=>setNow(new Date()),1000);
+    return ()=>clearInterval(timer);
+  },[]);
+  const official=usePrayerSource(now);
+  return official.days
+    ?<ConfiguredHome key={official.place?.id??0} official={official} now={now}/>
+    :<UnavailablePrayerScreen official={official}/>;
 }
 const styles=StyleSheet.create({
   content:{paddingHorizontal:11,paddingBottom:14,gap:8},
