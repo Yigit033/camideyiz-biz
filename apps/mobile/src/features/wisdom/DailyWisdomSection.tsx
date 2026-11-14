@@ -1,5 +1,5 @@
 import {useMemo,useState} from 'react';
-import {Alert,Linking,Modal,Pressable,ScrollView,Share,StyleSheet,Text,View} from 'react-native';
+import {Alert,Linking,Modal,Pressable,ScrollView,Share,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import Svg,{Circle,Defs,LinearGradient,Path,Stop} from 'react-native-svg';
 import {ArabesqueCorner,GoldenLantern} from '@/components/LuxuryArtwork';
@@ -40,7 +40,7 @@ function WisdomCard({item,isDark,onOpen,isFavorite,onToggle}:{
           color:verse?'#F3D69D':foreground,flex:1}}>
           {verse?'Günün Ayeti':'Günün Hadisi'}
         </Text>
-        <Feather name="arrow-up-right" size={15} color={verse?'#F3D69D':colors.gold}/>
+
       </View>
       <Text numberOfLines={4} style={{fontFamily:'serif',fontSize:15.5,fontStyle:'italic',
         fontWeight:'500',lineHeight:22,color:foreground,flexShrink:1}}>
@@ -62,6 +62,8 @@ function WisdomCard({item,isDark,onOpen,isFavorite,onToggle}:{
 }
 export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}){
   const {colors}=useAppTheme();
+  const {width}=useWindowDimensions();
+  const compact=width<360;
   const selections=useMemo(()=>dailyWisdom(dateISO),[dateISO]);
   const {saved,ready,toggle}=useWisdomFavorites();
   const [detail,setDetail]=useState<WisdomItem|null>(null);
@@ -82,10 +84,14 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
   };
   return <View style={{gap:10,width:'100%'}}>
     <View style={styles.heading}>
-      <View style={{flex:1,flexDirection:'row',alignItems:'center',gap:7}}>
-        <MaterialCommunityIcons name="star-four-points-outline" size={15} color={colors.gold}/>
-        <Text style={{fontFamily:'serif',fontWeight:'700',fontSize:17,color:colors.text}}>Günün Seçkisi</Text>
-        <Text style={{fontSize:10,color:colors.muted}}>· her gün yenilenir</Text>
+      <View style={{flex:1,gap:2}}>
+        <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
+          <MaterialCommunityIcons name="star-four-points-outline" size={15} color={colors.gold}/>
+          <Text style={{fontFamily:'serif',fontWeight:'700',fontSize:17,color:colors.text}}>
+            Günün Seçkisi
+          </Text>
+        </View>
+        <Text style={{fontSize:10,color:colors.muted,paddingLeft:22}}>Her gün yenilenir</Text>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Kaydedilen ayet ve hadisleri göster"
         onPress={()=>{setDetail(null);setSavedOpen(true);}}
@@ -96,7 +102,7 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
         </Text>
       </Pressable>
     </View>
-    <View style={styles.row}>
+    <View style={[styles.row,{flexDirection:compact?'column':'row'}]}>
       <WisdomCard item={selections.verse} isDark={dark}
         onOpen={()=>setDetail(selections.verse)}
         isFavorite={saved.includes(selections.verse.id)}
@@ -210,7 +216,7 @@ const styles=StyleSheet.create({
   row:{flexDirection:'row',gap:9,alignItems:'stretch',width:'100%'},
   card:{flex:1,minWidth:0,minHeight:204,borderWidth:1,borderRadius:19,padding:13,overflow:'hidden',
     shadowColor:'#06261F',shadowOpacity:.09,shadowRadius:7,elevation:2},
-  cardTop:{flexDirection:'row',gap:6,alignItems:'center',paddingRight:11},
+  cardTop:{flexDirection:'row',gap:6,alignItems:'center',paddingRight:28},
   bookmark:{position:'absolute',right:8,top:8,width:30,height:30,borderRadius:11,
     justifyContent:'center',alignItems:'center'},
   savedDot:{width:4,height:4,borderRadius:2,backgroundColor:'#EDC77B',position:'absolute',bottom:4},
