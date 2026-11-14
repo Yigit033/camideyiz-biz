@@ -4,6 +4,7 @@ import {
   useWindowDimensions, View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {router} from 'expo-router';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Svg,{Path} from 'react-native-svg';
@@ -15,6 +16,7 @@ import {useKerahatSettings} from '@/features/prayer/useKerahatSettings';
 import {KerahatPanel} from '@/features/prayer/KerahatPanel';
 import {DailyWisdomSection} from '@/features/wisdom/DailyWisdomSection';
 import {usePrayerSource} from '@/features/prayer/usePrayerSource';
+import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {LocationPicker} from '@/features/prayer/LocationPicker';
 
 const ICONS={
@@ -176,8 +178,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
             style={[styles.smallRound,{backgroundColor:dark?'#0C3833':'rgba(255,255,255,.82)',borderColor:colors.border}]}>
             <Feather name={dark?'sun':'moon'} size={17} color={colors.gold}/>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Bildirimler henüz hazır değil"
-            onPress={()=>Alert.alert('Bildirimler','Bildirim ayarları resmî namaz vakitleri entegrasyonu tamamlandıktan sonra açılacak.')}
+          <Pressable accessibilityRole="button" accessibilityLabel="Widget ve bildirim ayarları"
+            onPress={()=>router.push('/companion')}
             style={[styles.smallRound,{backgroundColor:dark?'#0C3833':'rgba(255,255,255,.82)',borderColor:colors.border}]}>
             <Feather name="bell" size={17} color={colors.text}/>
 
@@ -369,8 +371,8 @@ function CalendarLoadingHome({official,now}:{
             style={[styles.smallRound,{backgroundColor:colors.surface,borderColor:colors.border}]}>
             <Feather name={dark?'sun':'moon'} size={17} color={colors.gold}/>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Bildirimler henüz hazır değil"
-            onPress={()=>Alert.alert('Bildirimler','Bildirimler namaz vakti kaynağıyla eşlenince açılacak.')}
+          <Pressable accessibilityRole="button" accessibilityLabel="Widget ve bildirim ayarları"
+            onPress={()=>router.push('/companion')}
             style={[styles.smallRound,{backgroundColor:colors.surface,borderColor:colors.border}]}>
             <Feather name="bell" size={17} color={colors.text}/>
           </Pressable>
@@ -447,7 +449,7 @@ export default function HomeScreen(){
     const timer=setInterval(()=>setNow(new Date()),1000);
     return ()=>clearInterval(timer);
   },[]);
-  const official=usePrayerSource(now);
+  const official=useSharedPrayerSource();
   const usable=official.days&&(
     official.days.source!==MIRROR_SOURCE||
     now.getTime()-Date.parse(official.days.today.fetchedAt)<=MIRROR_CACHE_MS

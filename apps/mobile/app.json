@@ -19,12 +19,63 @@
       "edgeToEdgeEnabled": true,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
       ]
     },
     "plugins": [
       "expo-router",
-      "expo-location"
+      "expo-location",
+      "expo-notifications",
+      [
+        "expo-widgets",
+        {
+          "enableAndroid": true,
+          "groupIdentifier": "group.biz.camideyiz.app",
+          "widgets": [
+            {
+              "name": "NextPrayerWidget",
+              "displayName": "Sıradaki Vakit",
+              "description": "Konum, namaz vakti ve kalan süre",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ],
+                "contentMarginsDisabled": true,
+                "initialLayout": "src/features/widgets/NextPrayerWidget.ios.tsx"
+              },
+              "android": {
+                "targetCellWidth": 2,
+                "targetCellHeight": 2,
+                "minWidth": 180,
+                "minHeight": 120,
+                "initialLayout": "src/features/widgets/NextPrayerWidget.android.tsx"
+              }
+            },
+            {
+              "name": "PrayerDayWidget",
+              "displayName": "Günlük Namaz Vakitleri",
+              "description": "Bugünün altı namaz vakti",
+              "ios": {
+                "supportedFamilies": [
+                  "systemMedium",
+                  "systemLarge"
+                ],
+                "contentMarginsDisabled": true,
+                "initialLayout": "src/features/widgets/PrayerDayWidget.ios.tsx"
+              },
+              "android": {
+                "targetCellWidth": 4,
+                "targetCellHeight": 2,
+                "minWidth": 300,
+                "minHeight": 130,
+                "initialLayout": "src/features/widgets/PrayerDayWidget.android.tsx"
+              }
+            }
+          ]
+        }
+      ]
     ]
   }
 }

@@ -107,3 +107,27 @@ test('reject responses without tomorrow, wrong source, or corrupt cache fields',
     {...t.today.times[2],time:'23:59'},...t.today.times.slice(3)]}};
   assert.throws(()=>validateCachedMirrorTriplet(fake,9541,date,Date.parse(fetchTime)+1000));
 });
+
+
+test('forward published calendar is kept for up to 16 consecutive days',()=>{
+  const fixture={
+    ok:true,data:{ilce:9541,kaynak:'Diyanet İşleri Başkanlığı',
+      gunler:Array.from({length:15},(_,index)=>{
+        const date=new Date(Date.UTC(2026,10,14+index)).toISOString().slice(0,10);
+        return {...realProviderToday,tarih:date};
+      }),
+    },
+  };
+  const selection=parseMirrorTriplet(fixture,9541,'2026-11-14','İstanbul',fetchTime);
+  assert.equal(selection.upcoming.length,15);
+  assert.equal(selection.upcoming[14].dateISO,'2026-11-28');
+  assert.equal(validateCachedMirrorTriplet(selection,9541,'2026-11-14',
+    Date.parse(fetchTime)+5000).upcoming.length,15);
+});
+test('future cached prayer entries must be chronological and correctly attributed',()=>{
+  const triplet=parseMirrorTriplet(liveShape,9541,'2026-11-14','İstanbul',fetchTime);
+  const tampered={...triplet,upcoming:[triplet.upcoming[0],
+    {...triplet.upcoming[1],cityId:1111}]};
+  assert.throws(()=>validateCachedMirrorTriplet(tampered,9541,'2026-11-14',
+    Date.parse(fetchTime)+1000));
+});
