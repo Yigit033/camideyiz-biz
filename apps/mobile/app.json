@@ -42,7 +42,8 @@
                   "systemSmall",
                   "systemMedium"
                 ],
-                "contentMarginsDisabled": true
+                "contentMarginsDisabled": true,
+                "initialLayout": "src/features/widgets/NextPrayerWidget.ios.tsx"
               },
               "android": {
                 "targetCellWidth": 2,
@@ -61,7 +62,8 @@
                   "systemMedium",
                   "systemLarge"
                 ],
-                "contentMarginsDisabled": true
+                "contentMarginsDisabled": true,
+                "initialLayout": "src/features/widgets/PrayerDayWidget.ios.tsx"
               },
               "android": {
                 "targetCellWidth": 4,
