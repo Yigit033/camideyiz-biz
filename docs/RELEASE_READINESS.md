@@ -34,3 +34,14 @@
 Kaynaklar:
 - Google Maps URLs: https://developers.google.com/maps/documentation/urls/get-started
 - Diyanet Awqat Salah: https://awqatsalah.diyanet.gov.tr/
+
+## 14 Kasım 2026 — Kıble 2.0 referans tasarımı
+
+- Kıble ekranı baştan tasarlandı: işlemeli altın SVG pusula, katmanlı zümrüt arka plan, mimari kemer, cami silüeti, Kâbe işaretçisi, animasyonlu ibre, altın kart ve butonlar, açık/koyu tema, responsive kaydırma.
+- Referanstaki `117°`, `İstanbul` ve `±2°` gibi örnek bilgiler **sabitlenmedi**; gerçek kullanıcı konumu, gerçek kuzey ve Expo sensör doğruluk kategorileri kullanılıyor.
+- Konum izni yok, pusula verisi hatalı veya trueHeading=-1 ise yön geçerliymiş gibi gösterilmiyor.
+- "Yeniden Kalibre Et" yazılımın donanım kalibrasyonu yapması değil, manuel 8 hareketi rehberi ve sensör aboneliğini yenilemedir.
+- Alt sekmeler referansa yakın beş ikon / isimle güncellendi.
+- Diyanet ve Camiler'in ücretsiz Google Maps URLs akışı değiştirilmedi.
+- Fiziksel iOS/Android pusula doğruluğu, animasyon davranışı ve piksel yerleşimi **henüz cihazda doğrulanmadı**. Yayın öncesi zorunlu.
+- Daha fazla ayrıntı: [Qibla 2.0 implementation](QIBLA_2_REFERENCE.md).
