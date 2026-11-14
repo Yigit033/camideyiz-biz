@@ -7,7 +7,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Svg,{Circle,Defs,LinearGradient,Path,Stop} from 'react-native-svg';
-import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,type PrayerTime} from '@camideyiz/core';
+import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,calculateMirrorPhase,type PrayerTime} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere,ArabesqueCorner,GoldenLantern} from '@/components/LuxuryArtwork';
@@ -159,7 +159,9 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
   );
   const {restriction,indicativeWindows}=awareness;
   const phase=official.days && !timePreview
-    ? calculateVerifiedPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
+    ? official.days.source===MIRROR_SOURCE
+      ? calculateMirrorPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
+      : calculateVerifiedPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
     : awareness.phase;
   const upcomingIndex=SCHEDULE.times.findIndex(item=>item.key===phase.next.key);
   const remainingText=minutesToNextEvent(phase.secondsRemaining);

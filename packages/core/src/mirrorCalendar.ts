@@ -1,5 +1,7 @@
 import {PRAYER_KEYS,timeToMinutes,type PrayerSchedule,type PrayerTime} from './prayer.ts';
 import {assertISODate} from './diyanet.ts';
+import {type PrayerPhase,calculatePrayerPhase,type Urgency} from './timeline.ts';
+import {calculateVerifiedPhase} from './verifiedSchedule.ts';
 
 export const MIRROR_SOURCE='idamedya-diyanet-republished' as const;
 export const MIRROR_CACHE_MS=55*60*1000;
@@ -65,7 +67,7 @@ export type MirrorTriplet={
   source:typeof MIRROR_SOURCE;
   dateISO:string;
   city:{id:number;name:string;state_id:number};
-  previous:MirrorPrayerDay;
+  previous:MirrorPrayerDay|null;
   today:MirrorPrayerDay;
   next:MirrorPrayerDay;
 };
@@ -98,7 +100,7 @@ export function parseMirrorTriplet(raw:unknown,cityId:number,dateISO:string,loca
   if(data.ilce!==cityId||data.kaynak!=='Diyanet İşleri Başkanlığı')
     throw new Error('Mirror provider identity mismatch');
   const rows=data.gunler;
-  if(!Array.isArray(rows)||rows.length>45||rows.length<3)
+  if(!Array.isArray(rows)||rows.length>45||rows.length<2)
     throw new Error('Missing mirror dates');
   const byDate=new Map<string,MirrorPrayerDay>();
   const label=name(locationName);
@@ -107,13 +109,14 @@ export function parseMirrorTriplet(raw:unknown,cityId:number,dateISO:string,loca
     if(byDate.has(day.dateISO))throw new Error('Duplicate date');
     byDate.set(day.dateISO,day);
   }
-  const pick=(offset:number)=>{
-    const day=byDate.get(shiftedDate(dateISO,offset));
-    if(!day)throw new Error('Missing adjacent date from mirror provider');
-    return day;
-  };
+  const today=byDate.get(dateISO);
+  const next=byDate.get(shiftedDate(dateISO,1));
+  if(!today||!next)throw new Error('Missing today or next day from mirror provider');
+  // The documented public API starts at *today*. Yesterday's record will
+  // normally be absent, which must not invalidate every legitimate prayer time.
+  const previous=byDate.get(shiftedDate(dateISO,-1))??null;
   return {source:MIRROR_SOURCE,dateISO,city:{id:cityId,name:label,state_id:0},
-    previous:pick(-1),today:pick(0),next:pick(1)};
+    previous,today,next};
 }
 export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:string,now=Date.now()):MirrorTriplet{
   const t=object(value);
@@ -121,7 +124,9 @@ export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:
   const city=object(t.city);
   if(city.id!==cityId||typeof city.name!=='string')throw new Error('Cached district mismatch');
   for(const [key,offset] of ([['previous',-1],['today',0],['next',1]] as const)){
-    const d=object(t[key]);
+    const day=t[key];
+    if(key==='previous' && day===null)continue;
+    const d=object(day);
     if(d.source!==MIRROR_SOURCE||d.cityId!==cityId||d.isDemo!==false||
        d.dateISO!==shiftedDate(dateISO,offset)||d.timezone!=='Europe/Istanbul'||
        typeof d.fetchedAt!=='string')throw new Error('Cached day mismatch');
@@ -139,4 +144,45 @@ export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:
     });
   }
   return t as MirrorTriplet;
+}
+
+
+/**
+ * Accurate countdowns from the public provider's *published* clock values.
+ * This API usually supplies today+tomorrow, NOT yesterday.
+ * Never synthesize yesterday's Isha or copy today's Isha into yesterday.
+ */
+export function calculateMirrorPhase(
+  yesterday:MirrorPrayerDay|null,today:MirrorPrayerDay,tomorrow:MirrorPrayerDay,
+  secondsOfDay:number,
+):PrayerPhase{
+  if(today.source!==MIRROR_SOURCE||tomorrow.source!==MIRROR_SOURCE||
+    today.isDemo||tomorrow.isDemo||today.timezone!=='Europe/Istanbul'||
+    tomorrow.timezone!==today.timezone||
+    tomorrow.dateISO!==shiftedDate(today.dateISO,1)) {
+    throw new Error('Invalid consecutive mirror days');
+  }
+  if(!Number.isFinite(secondsOfDay)||secondsOfDay<0||secondsOfDay>=86400)
+    throw new RangeError('Invalid local time');
+  if(yesterday)return calculateVerifiedPhase(yesterday,today,tomorrow,secondsOfDay);
+
+  const fajr=timeToMinutes(today.times[0].time)*60;
+  const isha=timeToMinutes(today.times[5].time)*60;
+  if(secondsOfDay>=fajr&&secondsOfDay<isha)
+    return calculatePrayerPhase(today,secondsOfDay);
+
+  const beforeFajr=secondsOfDay<fajr;
+  const next=beforeFajr?today.times[0]:tomorrow.times[0];
+  const current=beforeFajr?today.times[5]:today.times[5];
+  const nextBoundary=beforeFajr
+    ?fajr:86400+timeToMinutes(tomorrow.times[0].time)*60;
+  const previousBoundary=beforeFajr?0:isha;
+  const secondsRemaining=nextBoundary-secondsOfDay;
+  // Before Fajr the real last Isha is unavailable. A midnight-to-Fajr
+  // progress bar would claim to be a complete prayer interval, so suppress it.
+  const progress=beforeFajr?0:Math.max(0,Math.min(1,
+    (secondsOfDay-isha)/(nextBoundary-isha)));
+  const urgency:Urgency=secondsRemaining<=900?'imminent':
+    secondsRemaining<=2700?'approaching':'normal';
+  return {current,next,previousBoundary,nextBoundary,secondsRemaining,progress,urgency};
 }
