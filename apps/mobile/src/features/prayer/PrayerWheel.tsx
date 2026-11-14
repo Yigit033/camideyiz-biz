@@ -416,7 +416,7 @@ export function PrayerWheel({
         <View style={{flexDirection:'row',alignItems:'center',gap:4,marginTop:2}}>
           <MaterialCommunityIcons name="map-marker-outline" size={12} color={colors.muted}/>
           <Text style={[styles.caption,{color:colors.muted}]}>
-            {preview?'Resmî takvim bekleniyor':isManualSelection?'Seçilen vakit':locationName??'Konum'}
+            {preview?'Takvim kaynağı kontrol ediliyor':isManualSelection?'Seçilen vakit':locationName??'Konum'}
           </Text>
         </View>
       </View>
