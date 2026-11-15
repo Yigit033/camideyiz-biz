@@ -14,13 +14,13 @@ import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {getPrayerPermission,requestPrayerPermission,reconcilePrayerNotifications,
   toInboxEvent,prunePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
   type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
-import {syncPrayerWidgets} from '@/features/widgets/widgetSync';
 import {useAnnouncementSubscription,type AnnouncementState}
   from './useAnnouncementSubscription';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
-import {ensureWidgetBackgroundRefresh,setWidgetActivePlace,
-  saveForegroundWidgetCalendar,readWidgetBackgroundReport,
-  type WidgetBackgroundReport} from '@/features/widgets/widgetBackground';
+import {ensureWidgetBackgroundRefresh,syncForegroundWidgetCalendar,
+  readLastWidgetTransfer,readWidgetBackgroundReport,
+  type LastWidgetTransfer,type WidgetBackgroundReport}
+  from '@/features/widgets/widgetBackground';
 
 const PREFS=PRAYER_ALERT_PREFERENCES_KEY;
 const INBOX='@camideyiz/observed-reminders/v2';
@@ -42,6 +42,7 @@ type CompanionContextValue={
   permission:'granted'|'denied'|'unknown';sync:NotificationSyncReport;
   widget:WidgetSyncResult;syncing:boolean;inbox:readonly NativePrayerEvent[];
   backgroundRegistered:boolean;backgroundReport:WidgetBackgroundReport|null;
+  lastWidgetTransfer:LastWidgetTransfer|null;
   announcement:AnnouncementState;
   setEnabled:(next:boolean)=>Promise<boolean>;
   setSound:(next:'default'|'silent')=>void;
@@ -73,12 +74,14 @@ export function CompanionProvider({children}:PropsWithChildren){
   const [widget,setWidget]=useState<WidgetSyncResult>(EMPTY_WIDGET);
   const [backgroundRegistered,setBackgroundRegistered]=useState(false);
   const [backgroundReport,setBackgroundReport]=useState<WidgetBackgroundReport|null>(null);
+  const [lastWidgetTransfer,setLastWidgetTransfer]=useState<LastWidgetTransfer|null>(null);
   const [syncing,setSyncing]=useState(false);
   const [sequence,setSequence]=useState(0);
   const [permission,setPermission]=useState<'granted'|'denied'|'unknown'>('unknown');
   const lastForegroundSync=useRef(0);
   const syncVersion=useRef(0);
   const widgetVersion=useRef(0);
+  const widgetQueue=useRef<Promise<void>>(Promise.resolve());
   const syncQueue=useRef<Promise<void>>(Promise.resolve());
   const deletedIds=useRef<Set<string>>(new Set());
 
@@ -162,57 +165,58 @@ export function CompanionProvider({children}:PropsWithChildren){
   },[source.days,source.place?.id]);
   const cityId=source.place?.id??0;
 
-  // Registration is independent from notification permission and is done once
-  // for native Android. Keep the selected district synced to persistent storage
-  // so the headless worker never reads a stale district or guessed GPS location.
+  // Native widget registration remains independent from local prayer
+  // notification permissions. Do not retry background registration each time
+  // the published calendar refreshes.
   useEffect(()=>{
     if(!ready)return;
+    let live=true;
+    (async()=>{
+      try{
+        const registered=await ensureWidgetBackgroundRefresh();
+        if(live)setBackgroundRegistered(registered);
+      }catch{if(live)setBackgroundRegistered(false);}
+      const report=await readWidgetBackgroundReport();
+      if(live)setBackgroundReport(report);
+    })().catch(()=>undefined);
+    return ()=>{live=false;};
+  },[ready]);
+
+  // Exactly one foreground writer. Persist the selected district first;
+  // while the provider reloads we reuse ONLY a validated cache belonging to
+  // that same district, rather than overwriting the widget with no-data.
+  // Pending old-district writes are serialized and cancelled before execution.
+  useEffect(()=>{
+    if(!ready||(cityId===0&&source.status==='loading'))return;
+    const version=++widgetVersion.current;
     let active=true;
+    const place=source.place;
     const sourceKind=source.officialConfigured
       ?'diyanet-awqat-salah' as const
       :'idamedya-diyanet-republished' as const;
-    (async()=>{
-      await setWidgetActivePlace(source.place,sourceKind);
-      if(active&&source.place&&source.days&&days.length){
-        const publishedAt=Date.parse(source.days.today.fetchedAt);
-        await saveForegroundWidgetCalendar(source.place,sourceKind,days,publishedAt);
-      }
-      try{
-        const registered=await ensureWidgetBackgroundRefresh();
-        if(active)setBackgroundRegistered(registered);
-      }catch{
-        if(active)setBackgroundRegistered(false);
-      }
-      const latest=await readWidgetBackgroundReport();
-      if(active)setBackgroundReport(latest);
-    })().catch(()=>undefined);
-    return ()=>{active=false;};
-  },[ready,cityId,source.days,days,source.officialConfigured]);
-
-  // Widget snapshots are NOT notifications. They must update on verified
-  // calendar changes regardless of Android notification permission, channel
-  // state, or whether the user's reminders are enabled.
-  useEffect(()=>{
-    if(!ready)return;
-    const version=++widgetVersion.current;
-    let active=true;
+    const publishedAt=source.days?Date.parse(source.days.today.fetchedAt):null;
     const update=async()=>{
       try{
-        // Fail closed: never keep showing old-district hours when the current
-        // calendar has not been verified. The widget renders an honest empty
-        // state until the published schedule arrives.
-        const result=await syncPrayerWidgets(days,Date.now());
-        if(active&&version===widgetVersion.current)setWidget(result);
+        const result=await syncForegroundWidgetCalendar(
+          place,sourceKind,days,publishedAt,Date.now());
+        if(active&&version===widgetVersion.current){
+          setWidget(result);
+          const record=await readLastWidgetTransfer();
+          if(active&&version===widgetVersion.current)
+            setLastWidgetTransfer(record?.cityId===place?.id?record:null);
+        }
       }catch(error){
         if(active&&version===widgetVersion.current)setWidget({
           available:false,updated:false,
-          detail:'Widget eşitleme hatası: '+(error instanceof Error?error.message:'Bilinmeyen hata'),
+          detail:'Widget eşitleme hatası: '+
+            (error instanceof Error?error.message:'Bilinmeyen hata'),
         });
       }
     };
-    void update();
+    widgetQueue.current=widgetQueue.current.catch(()=>undefined)
+      .then(()=>active?update():Promise.resolve());
     return ()=>{active=false;};
-  },[ready,days,cityId,sequence]);
+  },[ready,days,cityId,sequence,source.status,source.officialConfigured]);
 
   useEffect(()=>{
     if(!ready)return;
@@ -305,10 +309,10 @@ export function CompanionProvider({children}:PropsWithChildren){
   },[rememberDeletion]);
   const value=useMemo(()=>({
     settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
-    announcement,
+    lastWidgetTransfer,announcement,
     setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,clearInbox,deleteInbox,
   }),[settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
-       announcement,
+       lastWidgetTransfer,announcement,
       setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,clearInbox,deleteInbox]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
