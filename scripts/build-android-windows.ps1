@@ -131,7 +131,7 @@ try {
   if ($Configuration -eq 'Release') {
     $posters = @(
       @{ File = 'apps/mobile/assets/kerahat/agir-kerahat.png'; Sha256 = 'DD7A26F775110BC3A911BE35C78EC9C90E3D3E0A2E0A470343CFAEDB410BABF7' },
-      @{ File = 'apps/mobile/assets/kerahat/hafif-kerahat.png'; Sha256 = 'F403909395EA5E9F676680F9C6DF53E7A1B0CD9F9730328B8BA3A3B1A3CCE5' }
+      @{ File = 'apps/mobile/assets/kerahat/hafif-kerahat.png'; Sha256 = 'F403909395EA5E9F676680F9C6DF53E7A1B0CD9F9730328B8BAFA3A3B1A3CCE5' }
     )
     foreach ($poster in $posters) {
       $file = Join-Path (Get-Location).Path $poster.File
