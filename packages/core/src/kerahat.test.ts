@@ -68,3 +68,13 @@ test('active warning starts and ends at exact configured clock boundaries',()=>{
  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(12,43)).active?.kind,'zenith');
  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(17,54)).active,null);
 });
+
+test('new profiles offer one adjustable visual profile, not a standard preset',()=>{
+  assert.equal(DEFAULT_KERAHAT_SETTINGS.mode,'custom');
+  const prefs=validateKerahatSettings(DEFAULT_KERAHAT_SETTINGS);
+  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(8,0),prefs).windows.length,3);
+  // Older saved preferences remain accepted; users are not forced to reset them.
+  assert.equal(validateKerahatSettings({...prefs,mode:'standard'}).mode,'standard');
+  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(8,0),
+    {...prefs,mode:'hidden'}).windows.length,0);
+});
