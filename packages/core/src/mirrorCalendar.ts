@@ -5,6 +5,9 @@ import {calculateVerifiedPhase} from './verifiedSchedule.ts';
 
 export const MIRROR_SOURCE='idamedya-diyanet-republished' as const;
 export const MIRROR_CACHE_MS=55*60*1000;
+/** Last confirmed local calendar may be shown during a temporary outage for the same date. */
+export const MIRROR_OFFLINE_CACHE_MS=24*60*60*1000;
+export type PublishedCalendarProvider='idamedya'|'emushaf';
 export const DEFAULT_MIRROR_PLACE={
   id:9541,name:'İstanbul',stateId:539,stateName:'İstanbul',
 } as const; // Open public list (idamedya.org/api/v1/namaz/iller); NOT GPS-derived.
@@ -81,12 +84,14 @@ function shiftedDate(date:string,delta:number):string{
 }
 export type MirrorPrayerDay=PrayerSchedule&{
   source:typeof MIRROR_SOURCE;
+  provider:PublishedCalendarProvider;
   cityId:number;
   hijriDate:string|null;
   fetchedAt:string;
 };
 export type MirrorTriplet={
   source:typeof MIRROR_SOURCE;
+  provider:PublishedCalendarProvider;
   dateISO:string;
   city:{id:number;name:string;state_id:number};
   previous:MirrorPrayerDay|null;
@@ -95,7 +100,8 @@ export type MirrorTriplet={
   today:MirrorPrayerDay;
   next:MirrorPrayerDay;
 };
-function parseDay(raw:unknown,cityId:number,locationName:string,fetchTime:string):MirrorPrayerDay{
+function parseDay(raw:unknown,cityId:number,locationName:string,fetchTime:string,
+  provider:PublishedCalendarProvider):MirrorPrayerDay{
   const row=object(raw);
   const dateISO=assertISODate(row.tarih as string);
   const keys=['imsak','gunes','ogle','ikindi','aksam','yatsi'];
@@ -113,7 +119,7 @@ function parseDay(raw:unknown,cityId:number,locationName:string,fetchTime:string
   if(h!==null&&h!==undefined&&(typeof h!=='string'||h.length>90))
     throw new Error('Invalid Hijri text');
   return {dateISO,timezone:'Europe/Istanbul',locationName,isDemo:false,
-    source:MIRROR_SOURCE,cityId,hijriDate:typeof h==='string'?h:null,
+    source:MIRROR_SOURCE,provider,cityId,hijriDate:typeof h==='string'?h:null,
     fetchedAt:fetchTime,times};
 }
 export function parseMirrorTriplet(raw:unknown,cityId:number,dateISO:string,locationName:string,
@@ -129,7 +135,7 @@ export function parseMirrorTriplet(raw:unknown,cityId:number,dateISO:string,loca
   const byDate=new Map<string,MirrorPrayerDay>();
   const label=name(locationName);
   for(const row of rows){
-    const day=parseDay(row,cityId,label,fetchTime);
+    const day=parseDay(row,cityId,label,fetchTime,'idamedya');
     if(byDate.has(day.dateISO))throw new Error('Duplicate date');
     byDate.set(day.dateISO,day);
   }
@@ -146,23 +152,59 @@ export function parseMirrorTriplet(raw:unknown,cityId:number,dateISO:string,loca
     if(!published)break;
     upcoming.push(published);
   }
-  return {source:MIRROR_SOURCE,dateISO,city:{id:cityId,name:label,state_id:0},
+  return {source:MIRROR_SOURCE,provider:'idamedya',dateISO,city:{id:cityId,name:label,state_id:0},
     previous,today,next,upcoming};
 }
-export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:string,now=Date.now()):MirrorTriplet{
+/** Independently published Diyanet-coded backup calendar; no estimated times.
+ * emushaf.net/vakitler/{district-id} responds with Diyanet field names.
+ * Date is parsed directly from Turkish DD.MM.YYYY without timezone shifting. */
+export function parseEmushafTriplet(raw:unknown,cityId:number,dateISO:string,
+  locationName:string,fetchTime:string):MirrorTriplet{
+  if(!validId(cityId))throw new Error('Invalid published district ID');
+  assertISODate(dateISO);
+  if(!Array.isArray(raw)||raw.length<2||raw.length>45)
+    throw new Error('Backup calendar missing');
+  const converted=raw.map(item=>{
+    const r=object(item);
+    const date=r.MiladiTarihKisa;
+    if(typeof date!=='string'||!/^\d{2}\.\d{2}\.\d{4}$/.test(date))
+      throw new Error('Invalid backup publication date');
+    const match=/^(\d{2})\.(\d{2})\.(\d{4})$/.exec(date)!;
+    const iso=match[3]+'-'+match[2]+'-'+match[1];
+    if(assertISODate(iso)!==iso||
+      new Date(iso+'T12:00:00Z').toISOString().slice(0,10)!==iso)
+      throw new Error('Impossible backup publication date');
+    return {tarih:iso,hicri:r.HicriTarihUzun??null,
+      imsak:r.Imsak,gunes:r.Gunes,ogle:r.Ogle,
+      ikindi:r.Ikindi,aksam:r.Aksam,yatsi:r.Yatsi};
+  });
+  const triplet=parseMirrorTriplet({
+    ok:true,data:{ilce:cityId,kaynak:'Diyanet İşleri Başkanlığı',gunler:converted},
+  },cityId,dateISO,locationName,fetchTime);
+  const fromBackup=(day:MirrorPrayerDay|null):MirrorPrayerDay|null=>
+    day?{...day,provider:'emushaf'}:null;
+  return {...triplet,provider:'emushaf',previous:fromBackup(triplet.previous),
+    today:fromBackup(triplet.today)!,
+    next:fromBackup(triplet.next)!,
+    upcoming:triplet.upcoming.map(day=>fromBackup(day)!)};
+}
+
+export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:string,
+  now=Date.now(),maxAgeMs=MIRROR_CACHE_MS):MirrorTriplet{
   const t=object(value);
   if(t.source!==MIRROR_SOURCE||t.dateISO!==assertISODate(dateISO))throw new Error('Cached source mismatch');
+  if(t.provider!=='idamedya'&&t.provider!=='emushaf')throw new Error('Unknown cached provider');
   const city=object(t.city);
   if(city.id!==cityId||typeof city.name!=='string')throw new Error('Cached district mismatch');
   for(const [key,offset] of ([['previous',-1],['today',0],['next',1]] as const)){
     const day=t[key];
     if(key==='previous' && day===null)continue;
     const d=object(day);
-    if(d.source!==MIRROR_SOURCE||d.cityId!==cityId||d.isDemo!==false||
+    if(d.source!==MIRROR_SOURCE||d.provider!==t.provider||d.cityId!==cityId||d.isDemo!==false||
        d.dateISO!==shiftedDate(dateISO,offset)||d.timezone!=='Europe/Istanbul'||
        typeof d.fetchedAt!=='string')throw new Error('Cached day mismatch');
     const age=now-Date.parse(d.fetchedAt);
-    if(!Number.isFinite(age)||age<0||age>MIRROR_CACHE_MS)
+    if(!Number.isFinite(age)||age<0||age>maxAgeMs)
       throw new Error('Mirror cache expired (55 minutes)');
     if(!Array.isArray(d.times)||d.times.length!==6)throw new Error('Invalid cached clock list');
     let last=-1;
@@ -180,12 +222,12 @@ export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:
   for(let i=0;i<future.length;i++){
     const entry=object(future[i]);
     if(entry.dateISO!==shiftedDate(dateISO,i)||entry.cityId!==cityId||
-       entry.source!==MIRROR_SOURCE||entry.isDemo!==false||
+       entry.source!==MIRROR_SOURCE||entry.provider!==t.provider||entry.isDemo!==false||
        entry.timezone!=='Europe/Istanbul'||!Array.isArray(entry.times)||
        entry.times.length!==6||typeof entry.fetchedAt!=='string')
       throw new Error('Cached future date invalid');
     const age=now-Date.parse(entry.fetchedAt);
-    if(!Number.isFinite(age)||age<0||age>MIRROR_CACHE_MS)
+    if(!Number.isFinite(age)||age<0||age>maxAgeMs)
       throw new Error('Cached future source expired');
     let last=-1;
     (entry.times as unknown[]).forEach((row,index)=>{
