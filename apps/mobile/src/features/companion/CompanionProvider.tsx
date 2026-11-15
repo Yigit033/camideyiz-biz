@@ -12,14 +12,15 @@ import {
 } from '@camideyiz/core';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {getPrayerPermission,requestPrayerPermission,reconcilePrayerNotifications,
-  toInboxEvent,prunePrayerNotifications,type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
+  toInboxEvent,prunePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
+  type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
 import {syncPrayerWidgets} from '@/features/widgets/widgetSync';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
 import {ensureWidgetBackgroundRefresh,setWidgetActivePlace,
   saveForegroundWidgetCalendar,readWidgetBackgroundReport,
   type WidgetBackgroundReport} from '@/features/widgets/widgetBackground';
 
-const PREFS='@camideyiz/prayer-alert-prefs/v2';
+const PREFS=PRAYER_ALERT_PREFERENCES_KEY;
 const INBOX='@camideyiz/observed-reminders/v2';
 const SUPPRESSED='@camideyiz/inbox-deleted/v2';
 const EMPTY_REPORT:NotificationSyncReport={
@@ -41,6 +42,7 @@ type CompanionContextValue={
   backgroundRegistered:boolean;backgroundReport:WidgetBackgroundReport|null;
   setEnabled:(next:boolean)=>Promise<boolean>;
   setSound:(next:'default'|'silent')=>void;
+  setEzanAtTimeForAll:(next:boolean)=>void;
   setRule:(key:PrayerKey,changes:Partial<PrayerAlertSettings['rules'][PrayerKey]>)=>void;
   refresh:()=>void;clearInbox:()=>void;deleteInbox:(id:string)=>void;
 };
@@ -260,6 +262,17 @@ export function CompanionProvider({children}:PropsWithChildren){
   },[]);
   const setSound=useCallback((next:'default'|'silent')=>
     setSettings(old=>({...old,sound:next})),[]);
+  const setEzanAtTimeForAll=useCallback((next:boolean)=>{
+    setSettings(old=>{
+      const rules={...old.rules};
+      for(const key of ['imsak','ogle','ikindi','aksam','yatsi'] as const){
+        rules[key]={...rules[key],enabled:next?true:rules[key].enabled,atTime:next};
+      }
+      // Güneş doğuşu bir ezan vakti değildir; bir "tümü" seçimiyle açılmaz.
+      rules.gunes={...rules.gunes,atTime:false};
+      return validateAlertSettings({...old,rules});
+    });
+  },[]);
   const setRule=useCallback((key:PrayerKey,
     changes:Partial<PrayerAlertSettings['rules'][PrayerKey]>)=>{
     setSettings(old=>validateAlertSettings({...old,rules:{
@@ -285,9 +298,9 @@ export function CompanionProvider({children}:PropsWithChildren){
   },[rememberDeletion]);
   const value=useMemo(()=>({
     settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
-    setEnabled,setSound,setRule,refresh,clearInbox,deleteInbox,
+    setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,clearInbox,deleteInbox,
   }),[settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
-      setEnabled,setSound,setRule,refresh,clearInbox,deleteInbox]);
+      setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,clearInbox,deleteInbox]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useCompanion():CompanionContextValue{
