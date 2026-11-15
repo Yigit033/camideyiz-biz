@@ -40,6 +40,7 @@ function DateDivider({now,timezone,hijriDate}: {now:Date;timezone:string;hijriDa
   const hijri=hijriDate??formatHijri(now);
   return <View style={styles.dateSection}>
     <Text accessibilityLabel={hijri?hijri+' | '+date:date}
+      numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.74}
       style={[styles.dateText,{color:colors.text,textAlign:'center'}]}>
       {hijri?<>{hijri}<Text style={{color:colors.gold}}>{'  |  '}</Text>{date}</>:date}
     </Text>
