@@ -95,13 +95,13 @@ export default function KerahatGuideScreen(){
     <ScrollView key={tab+'-'+(zoomed?'large':'normal')}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.page}>
-      <View style={[styles.imageFrame,{borderColor:colors.border}]}>
+      <View style={styles.imageFrame}>
         <ScrollView horizontal={zoomed}
           nestedScrollEnabled
           bounces={false}
           showsHorizontalScrollIndicator={zoomed}
           contentContainerStyle={{
-            width:zoomed?posterWidth:undefined,
+            width:posterWidth,
             justifyContent:'flex-start',
           }}>
           <Image
@@ -145,8 +145,8 @@ const styles=StyleSheet.create({
   tab:{flex:1,minHeight:45,borderRadius:12,alignItems:'center',
     justifyContent:'center',paddingHorizontal:5},
   tabText:{fontSize:12,fontWeight:'800',textAlign:'center'},
-  page:{alignItems:'center',paddingBottom:30},
-  imageFrame:{borderWidth:1,overflow:'hidden',alignSelf:'stretch',
+  page:{alignItems:'center',paddingHorizontal:14,paddingBottom:30},
+  imageFrame:{overflow:'hidden',width:'100%',
     backgroundColor:'#E8E8E8'},
   hint:{fontSize:11.5,lineHeight:18,textAlign:'center'},
   expand:{paddingVertical:13,alignSelf:'center',flexDirection:'row',
