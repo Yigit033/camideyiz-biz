@@ -15,6 +15,9 @@ import {getPrayerPermission,requestPrayerPermission,reconcilePrayerNotifications
   toInboxEvent,prunePrayerNotifications,type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
 import {syncPrayerWidgets} from '@/features/widgets/widgetSync';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
+import {ensureWidgetBackgroundRefresh,setWidgetActivePlace,
+  saveForegroundWidgetCalendar,readWidgetBackgroundReport,
+  type WidgetBackgroundReport} from '@/features/widgets/widgetBackground';
 
 const PREFS='@camideyiz/prayer-alert-prefs/v2';
 const INBOX='@camideyiz/observed-reminders/v2';
@@ -35,6 +38,7 @@ type CompanionContextValue={
   settings:PrayerAlertSettings;ready:boolean;
   permission:'granted'|'denied'|'unknown';sync:NotificationSyncReport;
   widget:WidgetSyncResult;syncing:boolean;inbox:readonly NativePrayerEvent[];
+  backgroundRegistered:boolean;backgroundReport:WidgetBackgroundReport|null;
   setEnabled:(next:boolean)=>Promise<boolean>;
   setSound:(next:'default'|'silent')=>void;
   setRule:(key:PrayerKey,changes:Partial<PrayerAlertSettings['rules'][PrayerKey]>)=>void;
@@ -61,6 +65,8 @@ export function CompanionProvider({children}:PropsWithChildren){
   const [ready,setReady]=useState(false);
   const [sync,setSync]=useState<NotificationSyncReport>(EMPTY_REPORT);
   const [widget,setWidget]=useState<WidgetSyncResult>(EMPTY_WIDGET);
+  const [backgroundRegistered,setBackgroundRegistered]=useState(false);
+  const [backgroundReport,setBackgroundReport]=useState<WidgetBackgroundReport|null>(null);
   const [syncing,setSyncing]=useState(false);
   const [sequence,setSequence]=useState(0);
   const [permission,setPermission]=useState<'granted'|'denied'|'unknown'>('unknown');
@@ -146,6 +152,33 @@ export function CompanionProvider({children}:PropsWithChildren){
       ?result.upcoming:[result.today,result.next];
   },[source.days,source.place?.id]);
   const cityId=source.place?.id??0;
+
+  // Registration is independent from notification permission and is done once
+  // for native Android. Keep the selected district synced to persistent storage
+  // so the headless worker never reads a stale district or guessed GPS location.
+  useEffect(()=>{
+    if(!ready)return;
+    let active=true;
+    const sourceKind=source.officialConfigured
+      ?'diyanet-awqat-salah' as const
+      :'idamedya-diyanet-republished' as const;
+    (async()=>{
+      await setWidgetActivePlace(source.place,sourceKind);
+      if(active&&source.place&&source.days&&days.length){
+        const publishedAt=Date.parse(source.days.today.fetchedAt);
+        await saveForegroundWidgetCalendar(source.place,sourceKind,days,publishedAt);
+      }
+      try{
+        const registered=await ensureWidgetBackgroundRefresh();
+        if(active)setBackgroundRegistered(registered);
+      }catch{
+        if(active)setBackgroundRegistered(false);
+      }
+      const latest=await readWidgetBackgroundReport();
+      if(active)setBackgroundReport(latest);
+    })().catch(()=>undefined);
+    return ()=>{active=false;};
+  },[ready,cityId,source.days,days,source.officialConfigured]);
 
   // Widget snapshots are NOT notifications. They must update on verified
   // calendar changes regardless of Android notification permission, channel
@@ -251,9 +284,9 @@ export function CompanionProvider({children}:PropsWithChildren){
     setInbox(old=>old.filter(item=>item.id!==id));
   },[rememberDeletion]);
   const value=useMemo(()=>({
-    settings,ready,permission,sync,widget,syncing,inbox,
+    settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
     setEnabled,setSound,setRule,refresh,clearInbox,deleteInbox,
-  }),[settings,ready,permission,sync,widget,syncing,inbox,
+  }),[settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
       setEnabled,setSound,setRule,refresh,clearInbox,deleteInbox]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
