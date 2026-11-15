@@ -1,5 +1,5 @@
 import {memo} from 'react';
-import {Pressable,Text,View} from 'react-native';
+import {Alert,Linking,Pressable,Text,View} from 'react-native';
 import {Feather} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import {CamideyizBrandLogo} from '@/components/CamideyizBrandLogo';
@@ -40,7 +40,21 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
         <Pressable accessibilityRole="button"
           accessibilityLabel={locationMode==='auto'
             ?'Otomatik konumu yeniden bul':'GPS ile konumumu otomatik bul'}
-          onPress={()=>{void onEnableAutoLocation();}}
+          onPress={()=>{
+            if(locationMode==='auto'&&autoLocationStatus==='permission-denied'){
+              Alert.alert('Konum izni gerekli',
+                'İlçeni otomatik bulabilmek için telefonun konum iznine ihtiyacımız var.',
+                [{text:'İlçeyi elle seç',onPress:onOpenLocation},
+                  {text:'Ayarları aç',onPress:()=>{
+                    void Linking.openSettings().catch(()=>undefined);
+                  }}]);
+              return;
+            }
+            void Promise.resolve(onEnableAutoLocation()).catch(()=>{
+              Alert.alert('Konum başlatılamadı',
+                'Tekrar deneyebilir veya il ve ilçeyi elle seçebilirsin.');
+            });
+          }}
           hitSlop={6}
           style={{width:33,height:35,borderRadius:11,
             alignItems:'center',justifyContent:'center',
