@@ -35,6 +35,14 @@ jobs:
             throw 'Windows builder must validate Android settings.gradle'
           }
           Write-Host 'Gradle Android project-root contract OK'
+          # Expo prebuild can modify package.json and tsconfig.json between
+          # incremental builds. The script may preserve exactly these files
+          # in stash; it must reject unexpected local edits.
+          if ($script -notmatch 'git -C \$CheckoutPath stash push' -or
+              $script -notmatch '\$otherChanges.Count -gt 0') {
+            throw 'Windows builder must preserve expected Expo changes and reject unexpected edits'
+          }
+          Write-Host 'Expo prebuild preservation contract OK'
       - name: Live free-calendar endpoint smoke test (non-blocking)
         # Provider outages are observable without breaking unrelated code checks.
         continue-on-error: true
