@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MIRROR_SOURCE,parseMirrorStates,parseMirrorCities,parseMirrorTriplet,
+  MIRROR_SOURCE,parseMirrorStates,parseMirrorCities,parseBackupDiyanetCities,parseMirrorTriplet,
   validateCachedMirrorTriplet,DEFAULT_MIRROR_PLACE,MIRROR_CACHE_MS,calculateMirrorPhase,
 } from './mirrorCalendar.ts';
 const date='2026-11-14',city=9541,fetchTime='2026-11-14T08:00:00.000Z';
@@ -130,4 +130,20 @@ test('future cached prayer entries must be chronological and correctly attribute
     {...triplet.upcoming[1],cityId:1111}]};
   assert.throws(()=>validateCachedMirrorTriplet(tampered,9541,'2026-11-14',
     Date.parse(fetchTime)+1000));
+});
+
+test('fallback district directory keeps authoritative district prayer codes',()=>{
+ const districts=parseBackupDiyanetCities([
+   {IlceAdi:'PENDİK',IlceID:'9545'},
+   {IlceAdi:'TUZLA',IlceID:'9551'},
+   {IlceAdi:'İSTANBUL',IlceID:'9541'},
+ ],539);
+ assert.equal(districts.find(d=>d.name==='PENDİK')?.id,9545);
+ assert.equal(districts.find(d=>d.name==='TUZLA')?.id,9551);
+ assert.ok(districts.every(d=>d.state_id===539));
+ assert.throws(()=>parseBackupDiyanetCities([
+   {IlceAdi:'PENDİK',IlceID:'9545'},
+   {IlceAdi:'PENDİK 2',IlceID:'9545'},
+ ],539));
+ assert.throws(()=>parseBackupDiyanetCities([{IlceAdi:'TEST',IlceID:'invalid'}],539));
 });
