@@ -1,56 +1,50 @@
-# Kerahat Rehberi — orijinal kaynaklardan kayıpsız WebP
+# Kerahat 2.0 — original source posters, lossless WebP
 
-## Durum
-- Kerahat rehberinde iki sekme vardır: **Ağır Kerahat** / **Hafif Kerahat**.
-- Her sekmede kullanıcı tarafından gönderilen ilgili 1126×2000 poster gösterilir.
-- Yakınlaştırma görselin yazı ve çizimlerini değiştirmez, `contain` ile kırpma yoktur.
-- Ana sayfanın kerahat aralığı hesapları bu rehber görselinden bağımsızdır.
+## Status
+- Screen has two tabs: **Ağır Kerahat** / **Hafif Kerahat**.
+- Tabs show the original 1126×2000 user-supplied artwork with no cropping
+  or overlays. Zoom/scroll preserves source content.
+- Release APK refuses temporary WebP placeholders; assets require a manifest.
 
-## Neden WebP ve neden doğrudan kopya değil?
-Orijinal kullanıcı PNG'lerine dokunulmaz. Uygulamada **kayıpsız WebP** kullanılır;
-`sharp` ile PNG ve WebP'nin decode edilmiş RGBA piksel buffer'ları birebir karşılaştırılır.
-Kaynak PNG SHA-256'ları ve dönüştürülmüş WebP'nin hash/piksel özetleri kaydedilir.
-Sadece uzantı değişikliği yapılmaz. Görsel içindeki yazılar yeniden oluşturulmaz.
-WebP'nin daha küçük olması muhtemeldir ancak garanti değildir; gerçek tasarruf
-dönüşüm komutunun çıktısıyla ölçülür.
+## ZIP input
+The install script accepts a ZIP containing **exactly one** file per title:
+`agir-kerahat.jpg/.jpeg/.png` and `hafif-kerahat.jpg/.jpeg/.png`.
+Nested ZIP folders are supported. This matches the user-shared screenshot
+showing two JPEG source files under a nested folder.
+The old contract erroneously required exact repository-relative PNG paths.
 
-Kaynak PNG SHA-256:
-- ağır: `dd7a26f775110bc3a911be35c78ec9c90e3d3e0a2e0a470343cfaedb410babf7`
-- hafif: `f403909395ea5e9f676680f9c6df53e7a1b0cd9f9730328b8bafa3a3b1a3cce5`
+PNG source authenticity is checked against previously recorded SHA-256:
+- heavy `dd7a26f775110bc3a911be35c78ec9c90e3d3e0a2e0a470343cfaedb410babf7`
+- light `f403909395ea5e9f676680f9c6df53e7a1b0cd9f9730328b8bafa3a3b1a3cce5`
 
-## Kritik: Şu anda kaynaktaki PNG dosyaları yer tutucudur
-GitHub'a eklenen **1×1 WebP dosyaları** yalnızca Expo statik asset çözümlemesini sağlar.
-Orijinal posterler yüklenmeden final APK üretilemez. `poster-integrity.json`
-orijinal ZIP'ten gerçek dönüşüm başarıyla tamamlanınca oluşturulur. Release
-betiği bu manifesti ve WebP'lerin piksel/byte hash'lerini doğrular; yoksa durur.
-Uygulama gerçek poster yoksa bunu görünür biçimde bildirir.
+**JPEG sources have no previously known reference SHA-256.** Their actual
+SHA-256, source type and size are recorded in the manifest, but this
+does *not* prove they are the same as previously supplied PNG artwork.
+JPEG is already lossy; converting JPEG to lossless WebP preserves
+the source's currently decoded pixels (verified byte-for-byte RGBA)
+but cannot restore detail lost during original JPEG compression.
+Lossless WebP might be *larger* than JPEG; console reports actual size.
 
-## Kaynak dosyaları kurma ve yayınlama (Windows)
-ZIP içindeki **orijinal ve değiştirilmemiş PNG'ler** gerekir.
-Bu ZIP önce bilgisayara ayrıca indirilmelidir; `git pull` onu indirmez.
-
+## Install (Windows)
 ```powershell
 cd C:\active_projects\camideyiz-biz
 git switch feat/widgets-and-prayer-alerts-2
 git pull --ff-only origin feat/widgets-and-prayer-alerts-2
 npm install
-powershell -ExecutionPolicy Bypass -File .\scripts\install-kerahat-posters.ps1 -ArchivePath "$env:USERPROFILE\Downloads\camideyiz-kerahat-orijinal-gorseller.zip" -Publish
+powershell -ExecutionPolicy Bypass -File .\scripts\install-kerahat-posters.ps1 `
+  -ArchivePath "C:\Users\Yiğit\Downloads\camideyiz-kerahat-orijinal-gorseller.zip" `
+  -Publish
 npm run verify:kerahat-posters
 ```
 
-`-Publish` yalnızca iki WebP dosyasını ve bütünlük manifestini feature branch'e
-commit/push eder; `main` merge/deploy yapılmaz.
+The installer converts to lossless WebP, verifies **both** source pixels,
+and publishes only the WebP assets + poster-integrity.json on the feature
+branch. It never merges to main or deploys.
 
-Android standalone Release APK:
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1 -CheckoutPath C:\cb -Configuration Release
-```
-
-## Kabul koşulları
-1. Sekmeler/ana sayfa yönlendirmeleri doğru, ekran altı/safe area korunuyor.
-2. İki poster de 1126×2000; görüntü kırpılmıyor ve yeniden renklendirilmiyor.
-3. Kayıpsız WebP decode edilmiş RGBA verisi, orijinal PNG ile byte-byte eşit.
-4. Dar cihazda zoom ve yatay/dikey kaydırma çalışıyor.
-5. Release derlemesi sahte 1×1 posterlerle başarısız oluyor.
-6. Fiziksel cihaz (Android/iOS) görsel kontrolleri ve dinî içerik editör onayı
-   yalnızca otomatik testlerle tamamlanmış sayılamaz.
+## Release quality gates
+- `poster-integrity.json` must list both real WebPs, valid type, 1126×2000,
+  source metadata, file SHA-256 and decoded RGBA pixel SHA-256.
+- Release script runs `npm run verify:kerahat-posters` after dependency install.
+- Mobile device QA still required for tab switching, zooming, safe areas,
+  accessibility and readability.
+- Religious-content editorial verification is separate from pixel integrity.

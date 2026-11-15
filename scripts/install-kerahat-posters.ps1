@@ -1,6 +1,7 @@
-# Validate the user's exact original PNGs from ZIP, convert losslessly
-# to WebP, verify decoded pixels and optionally push ONLY the two WebP assets
-# and their integrity manifest to the current feature branch.
+# Install the two user-supplied JPEG/PNG kerahat images from a ZIP.
+# Accept a nested folder structure and JPEG .jpg/.jpeg or exact original PNG.
+# Converts to pixel-identical lossless WebP; optionally publishes only images
+# and their manifest to the current feature branch. No main merge or deploy.
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$true)][string]$ArchivePath,
@@ -10,77 +11,105 @@ $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 $branch='feat/widgets-and-prayer-alerts-2'
 if (-not (Test-Path -LiteralPath $ArchivePath -PathType Leaf)) {
-  throw "Poster ZIP not found: $ArchivePath. Download the previously supplied ZIP first."
+  throw "Poster ZIP not found: $ArchivePath"
 }
 if (-not (Test-Path -LiteralPath (Join-Path $root '.git'))) {
-  throw "Not a Git project: $root"
+  throw "Not a Git repository: $root"
 }
 $current=(& git -C $root branch --show-current).Trim()
-if ($LASTEXITCODE -ne 0 -or $current -ne $branch) {
-  throw "Expected branch $branch, current: $current"
+if($LASTEXITCODE -ne 0 -or $current -ne $branch) {
+  throw "Expected branch $branch; found $current"
 }
-if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
-  throw 'Node.js is required.'
+if(-not (Get-Command node -ErrorAction SilentlyContinue)){
+  throw 'Node.js required'
 }
-& node -e "require.resolve('sharp')" 2>$null
-if ($LASTEXITCODE -ne 0) {
-  throw "sharp is required. Run 'npm install' from the repository root first."
-}
+Push-Location $root
+try {
+  & node -e "require.resolve('sharp')" 2>$null
+  if($LASTEXITCODE -ne 0) {throw "sharp missing; run 'npm install' in repository root"}
+} finally {Pop-Location}
+
 $specs=@(
-  @{Path='apps/mobile/assets/kerahat/agir-kerahat.png'; Name='agir-kerahat.png'; Hash='DD7A26F775110BC3A911BE35C78EC9C90E3D3E0A2E0A470343CFAEDB410BABF7'},
-  @{Path='apps/mobile/assets/kerahat/hafif-kerahat.png'; Name='hafif-kerahat.png'; Hash='F403909395EA5E9F676680F9C6DF53E7A1B0CD9F9730328B8BAFA3A3B1A3CCE5'}
+  @{Base='agir-kerahat';PngHash='DD7A26F775110BC3A911BE35C78EC9C90E3D3E0A2E0A470343CFAEDB410BABF7'},
+  @{Base='hafif-kerahat';PngHash='F403909395EA5E9F676680F9C6DF53E7A1B0CD9F9730328B8BAFA3A3B1A3CCE5'}
 )
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip=[System.IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $ArchivePath).Path)
-$temp=Join-Path ([System.IO.Path]::GetTempPath()) ('camideyiz-kerahat-' + [Guid]::NewGuid().ToString('N'))
+$temp=Join-Path ([IO.Path]::GetTempPath()) ('camideyiz-posters-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $temp | Out-Null
-try {
-  # Validate all source entries before touching app assets.
+try{
   $payload=@()
-  foreach($spec in $specs) {
-    $entries=@($zip.Entries | Where-Object { $_.FullName -eq $spec.Path })
-    if($entries.Count -ne 1) {throw "Expected exactly one ZIP entry: $($spec.Path)"}
-    $stream=$entries[0].Open()
-    try {
-      $mem=New-Object System.IO.MemoryStream
-      try { $stream.CopyTo($mem); $bytes=$mem.ToArray() }
-      finally { $mem.Dispose() }
-    } finally { $stream.Dispose() }
-    $sha=[System.Security.Cryptography.SHA256]::Create()
-    try { $hash=([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-','') }
-    finally { $sha.Dispose() }
-    if($hash -ne $spec.Hash) {throw "Original PNG changed: $($spec.Name)"}
-    $payload+=@{Name=$spec.Name;Bytes=$bytes}
+  foreach($spec in $specs){
+    # Normalize ZIP paths and match by leaf filename; the user archive
+    # contains nested directory levels rather than repository-relative paths.
+    $entries=@($zip.Entries | Where-Object {
+      $leaf=($_.FullName -replace '\\','/').Split('/')[-1]
+      $leaf -match ('^'+[regex]::Escape($spec.Base)+'\\.(png|jpe?g)$')
+    })
+    if($entries.Count -ne 1){
+      throw "Expected exactly one JPEG/PNG named $($spec.Base) anywhere in ZIP; found $($entries.Count)."
+    }
+    $entry=$entries[0]
+    if($entry.Length -lt 100 -or $entry.Length -gt 15000000){
+      throw "Unexpected file size for $($entry.FullName)"
+    }
+    $leaf=($entry.FullName -replace '\\','/').Split('/')[-1]
+    $ext=[IO.Path]::GetExtension($leaf).ToLowerInvariant()
+    $stream=$entry.Open()
+    try{
+      $mem=New-Object IO.MemoryStream
+      try{$stream.CopyTo($mem);$bytes=$mem.ToArray()}
+      finally{$mem.Dispose()}
+    } finally{$stream.Dispose()}
+    if($ext -eq '.png'){
+      $validSig=$bytes.Length -ge 8 -and
+        $bytes[0] -eq 137 -and $bytes[1] -eq 80 -and
+        $bytes[2] -eq 78 -and $bytes[3] -eq 71
+    }else{
+      $validSig=$bytes.Length -ge 3 -and
+        $bytes[0] -eq 255 -and $bytes[1] -eq 216 -and $bytes[2] -eq 255
+    }
+    if(-not $validSig){throw "Invalid image signature: $leaf"}
+    $sha=[Security.Cryptography.SHA256]::Create()
+    try{$hash=([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-','')}
+    finally{$sha.Dispose()}
+    if($ext -eq '.png' -and $hash -ne $spec.PngHash){
+      throw "PNG is not the previously verified original: $leaf"
+    }
+    $payload+=@{Name=$leaf;Bytes=$bytes;Hash=$hash}
   }
-  foreach($item in $payload) {
-    [IO.File]::WriteAllBytes((Join-Path $temp $item.Name),$item.Bytes)
+  foreach($p in $payload){
+    [IO.File]::WriteAllBytes((Join-Path $temp $p.Name),$p.Bytes)
+    Write-Host "Source detected: $($p.Name) (SHA256 $($p.Hash))"
   }
   Push-Location $root
-  try {
+  try{
     & node .\scripts\convert-kerahat-posters.mjs $temp
-    if($LASTEXITCODE -ne 0) {throw 'Lossless WebP conversion / pixel comparison failed'}
+    if($LASTEXITCODE -ne 0){throw 'Poster conversion or pixel comparison failed'}
     & node .\scripts\verify-kerahat-posters.mjs
-    if($LASTEXITCODE -ne 0) {throw 'WebP asset integrity verification failed'}
-  } finally { Pop-Location }
+    if($LASTEXITCODE -ne 0){throw 'WebP integrity validation failed'}
+  } finally {Pop-Location}
 } finally {
   $zip.Dispose()
   Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
 }
-$files=@('apps/mobile/assets/kerahat/agir-kerahat.webp',
-         'apps/mobile/assets/kerahat/hafif-kerahat.webp',
-         'apps/mobile/assets/kerahat/poster-integrity.json')
-if($Publish) {
+$files=@(
+  'apps/mobile/assets/kerahat/agir-kerahat.webp',
+  'apps/mobile/assets/kerahat/hafif-kerahat.webp',
+  'apps/mobile/assets/kerahat/poster-integrity.json'
+)
+if($Publish){
   & git -C $root add -- $files
-  if($LASTEXITCODE -ne 0) {throw 'Could not stage the two WebP files and manifest'}
+  if($LASTEXITCODE -ne 0){throw 'Git add failed'}
   $changes=@(& git -C $root diff --cached --name-only -- $files)
-  if($LASTEXITCODE -ne 0) {throw 'Could not inspect staged poster changes'}
-  if($changes.Count -gt 0) {
-    & git -C $root commit --only -m "assets(kerahat): add verified lossless WebP posters" -- $files
-    if($LASTEXITCODE -ne 0) {throw 'Poster-only commit failed'}
+  if($LASTEXITCODE -ne 0){throw 'Cannot inspect staged poster files'}
+  if($changes.Count -gt 0){
+    & git -C $root commit --only -m "assets(kerahat): add pixel-matched lossless WebP posters" -- $files
+    if($LASTEXITCODE -ne 0){throw 'Poster-only Git commit failed'}
   }
   & git -C $root push origin $branch
-  if($LASTEXITCODE -ne 0) {throw 'Git push failed; the verified images remain local'}
-  Write-Host 'Verified lossless WebP posters published to the feature branch.' -ForegroundColor Green
-} else {
-  Write-Host 'WebP files prepared locally. Re-run with -Publish to push only the posters and integrity manifest.' -ForegroundColor Yellow
+  if($LASTEXITCODE -ne 0){throw 'Git push failed, assets remain locally installed'}
+  Write-Host 'SUCCESS: WebP posters pushed to feature branch only.' -ForegroundColor Green
+}else{
+  Write-Host 'Converted and verified locally; use -Publish to send the 3 verified files to GitHub.' -ForegroundColor Yellow
 }
