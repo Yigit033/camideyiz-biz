@@ -122,38 +122,42 @@ function parseDay(raw:unknown,cityId:number,locationName:string,fetchTime:string
     source:MIRROR_SOURCE,provider,cityId,hijriDate:typeof h==='string'?h:null,
     fetchedAt:fetchTime,times};
 }
-export function parseMirrorTriplet(raw:unknown,cityId:number,dateISO:string,locationName:string,
-  fetchTime:string):MirrorTriplet{
+function buildPublishedTriplet(rows:unknown,cityId:number,dateISO:string,
+  locationName:string,fetchTime:string,provider:PublishedCalendarProvider):MirrorTriplet{
   if(!validId(cityId))throw new Error('Invalid district ID');
   assertISODate(dateISO);
-  const data=object(envelope(raw));
-  if(data.ilce!==cityId||data.kaynak!=='Diyanet İşleri Başkanlığı')
-    throw new Error('Mirror provider identity mismatch');
-  const rows=data.gunler;
   if(!Array.isArray(rows)||rows.length>45||rows.length<2)
-    throw new Error('Missing mirror dates');
+    throw new Error('Missing published dates');
   const byDate=new Map<string,MirrorPrayerDay>();
   const label=name(locationName);
   for(const row of rows){
-    const day=parseDay(row,cityId,label,fetchTime,'idamedya');
+    const day=parseDay(row,cityId,label,fetchTime,provider);
     if(byDate.has(day.dateISO))throw new Error('Duplicate date');
     byDate.set(day.dateISO,day);
   }
   const today=byDate.get(dateISO);
   const next=byDate.get(shiftedDate(dateISO,1));
-  if(!today||!next)throw new Error('Missing today or next day from mirror provider');
-  // The documented public API starts at *today*. Yesterday's record will
-  // normally be absent, which must not invalidate every legitimate prayer time.
+  if(!today||!next)throw new Error('Missing today or next published day');
   const previous=byDate.get(shiftedDate(dateISO,-1))??null;
   const upcoming:MirrorPrayerDay[]=[];
-  // Provider can return 15 days or more; only store consecutive published days.
   for(let i=0;i<16;i++){
-    const published=byDate.get(shiftedDate(dateISO,i));
-    if(!published)break;
-    upcoming.push(published);
+    const day=byDate.get(shiftedDate(dateISO,i));
+    if(!day)break;
+    upcoming.push(day);
   }
-  return {source:MIRROR_SOURCE,provider:'idamedya',dateISO,city:{id:cityId,name:label,state_id:0},
+  return {source:MIRROR_SOURCE,provider,dateISO,
+    city:{id:cityId,name:label,state_id:0},
     previous,today,next,upcoming};
+}
+/** Primary source: reject a payload that does not explicitly acknowledge
+ * the selected Diyanet-coded district and reported published source. */
+export function parseMirrorTriplet(raw:unknown,cityId:number,dateISO:string,
+  locationName:string,fetchTime:string):MirrorTriplet{
+  const data=object(envelope(raw));
+  if(data.ilce!==cityId||data.kaynak!=='Diyanet İşleri Başkanlığı')
+    throw new Error('Primary provider district identity mismatch');
+  return buildPublishedTriplet(
+    data.gunler,cityId,dateISO,locationName,fetchTime,'idamedya');
 }
 /** Independently published Diyanet-coded backup calendar; no estimated times.
  * emushaf.net/vakitler/{district-id} responds with Diyanet field names.
@@ -178,15 +182,11 @@ export function parseEmushafTriplet(raw:unknown,cityId:number,dateISO:string,
       imsak:r.Imsak,gunes:r.Gunes,ogle:r.Ogle,
       ikindi:r.Ikindi,aksam:r.Aksam,yatsi:r.Yatsi};
   });
-  const triplet=parseMirrorTriplet({
-    ok:true,data:{ilce:cityId,kaynak:'Diyanet İşleri Başkanlığı',gunler:converted},
-  },cityId,dateISO,locationName,fetchTime);
-  const fromBackup=(day:MirrorPrayerDay|null):MirrorPrayerDay|null=>
-    day?{...day,provider:'emushaf'}:null;
-  return {...triplet,provider:'emushaf',previous:fromBackup(triplet.previous),
-    today:fromBackup(triplet.today)!,
-    next:fromBackup(triplet.next)!,
-    upcoming:triplet.upcoming.map(day=>fromBackup(day)!)};
+  // The backup format does NOT contain a per-row source ID. Do not forge
+  // one to pass primary-provider validation. The selection is constrained by
+  // /vakitler/{selectedDistrictId}; only time/date/order are verified here.
+  return buildPublishedTriplet(
+    converted,cityId,dateISO,locationName,fetchTime,'emushaf');;
 }
 
 export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:string,
@@ -205,7 +205,7 @@ export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:
        typeof d.fetchedAt!=='string')throw new Error('Cached day mismatch');
     const age=now-Date.parse(d.fetchedAt);
     if(!Number.isFinite(age)||age<0||age>maxAgeMs)
-      throw new Error('Mirror cache expired (55 minutes)');
+      throw new Error('Published cache exceeds allowed maximum age');
     if(!Array.isArray(d.times)||d.times.length!==6)throw new Error('Invalid cached clock list');
     let last=-1;
     d.times.forEach((time,i)=>{
