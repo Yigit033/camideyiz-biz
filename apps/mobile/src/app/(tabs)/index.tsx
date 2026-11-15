@@ -6,7 +6,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,MIRROR_OFFLINE_CACHE_MS,calculateMirrorPhase,getKerahatView,type PrayerTime} from '@camideyiz/core';
+import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,MIRROR_OFFLINE_CACHE_MS,calculateMirrorPhase,getKerahatView,type PrayerTime} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere} from '@/components/LuxuryArtwork';
@@ -34,7 +34,7 @@ function formatHijri(now:Date){
     }).format(now);
   } catch {return null;}
 }
-function DateDivider({now,dark,timezone,hijriDate,officialSource=false}: {now:Date;dark:boolean;timezone:string;hijriDate:string|null;officialSource?:boolean}) {
+function DateDivider({now,timezone,hijriDate}: {now:Date;timezone:string;hijriDate:string|null}) {
   const {colors}=useAppTheme();
   const date=new Intl.DateTimeFormat('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone}).format(now);
   const hijri=hijriDate??formatHijri(now);
@@ -45,10 +45,6 @@ function DateDivider({now,dark,timezone,hijriDate,officialSource=false}: {now:Da
         {hijri?hijri+'  —  '+date:date}
       </Text>
     </View>
-    {hijri?<Text style={[styles.hijri,{color:dark?'#A6D8C3':'#4B806D'}]}>
-      {hijriDate?(officialSource?'Hicrî tarih · Diyanet API':'Hicrî tarih · kaynak takvim')
-        :'Hicrî tarih yaklaşık hesaplanmıştır'}
-    </Text>:null}
   </View>;
 }
 function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
@@ -73,7 +69,6 @@ function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
 }
 function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSource>;now:Date}){
   const SCHEDULE=official.days!.today;
-  const isOfficial=official.days!.source==='diyanet-awqat-salah';
   const {settings:kerahatSettings}=useKerahatSettings();
   const {colors}=useAppTheme();
   const {width,height}=useWindowDimensions();
@@ -81,7 +76,6 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
   const wheelSize=Math.min(width-10,366);
   const chipWidth=Math.max(49,(width-26-10)/6);
   const [pickerOpen,setPickerOpen]=useState(false);
-  const [timePreview,setTimePreview]=useState<{startSeconds:number;beganAt:number}|null>(null);
   const [manualIndex,setManualIndex]=useState<number|null>(null);
   const [focusRequest,setFocusRequest]=useState(0);
   const handleWheelSelection=useCallback((index:number)=>{
@@ -92,26 +86,9 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     setManualIndex(index);
     setFocusRequest(value=>value+1);
   };
-  useEffect(()=>{setManualIndex(null);setTimePreview(null);},[official.place?.id]);
+  useEffect(()=>{setManualIndex(null);},[official.place?.id]);
   const zoned=useMemo(()=>zonedClock(now,SCHEDULE.timezone),[now,SCHEDULE.timezone]);
-  // QA only. In demo preview the clock is accelerated; never exposed as an official time.
-  const previewSeconds=timePreview
-    ? (timePreview.startSeconds+Math.floor((now.getTime()-timePreview.beganAt)/1000)*20)%86400
-    : zoned.secondsOfDay;
-  const startPreview=(seconds:number)=>{
-    setManualIndex(null);
-    setFocusRequest(n=>n+1);
-    setTimePreview({startSeconds:seconds,beganAt:Date.now()});
-  };
-  const showPreviewOptions=()=>{
-    const maghrib=timeToMinutes(SCHEDULE.times.find(x=>x.key==='aksam')!.time)*60;
-    Alert.alert('Geliştirici zaman önizlemesi',
-      'Zaman ×20 hızda ilerler. Gerçek ibadet saatleri yerine geçmez.',[
-      {text:'Normal saat',onPress:()=>setTimePreview(null)},
-      {text:'Akşama yaklaşım',onPress:()=>startPreview(maghrib-65*60)},
-      {text:'Kerahet örneği',onPress:()=>startPreview(maghrib-44*60)},
-    ]);
-  };
+  const previewSeconds=zoned.secondsOfDay;
   const awareness=useMemo(
     ()=>calculateTimeAwareness(SCHEDULE,previewSeconds,zoned.dateISO,true),
     [previewSeconds,zoned.dateISO],
@@ -122,7 +99,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     [SCHEDULE,zoned.dateISO,previewSeconds,kerahatSettings]);
   const restriction=kerahat.active;
   const indicativeWindows=kerahat.windows;
-  const phase=official.days && !timePreview
+  const phase=official.days
     ? official.days.source===MIRROR_SOURCE
       ? calculateMirrorPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
       : calculateVerifiedPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
@@ -161,22 +138,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
       contentContainerStyle={[styles.content,{paddingTop:compact?7:11}]}>
       <HomeBrandHeader place={official.place}
         compact={compact} onOpenLocation={()=>setPickerOpen(true)}/>
-      <DateDivider now={now} dark={dark} timezone={SCHEDULE.timezone} hijriDate={official.days?.today.hijriDate??null} officialSource={isOfficial}/>
-      <Pressable accessibilityRole="button"
-        accessibilityLabel="Namaz takviminin kaynağı ve güncellenme bilgisi"
-        onPress={()=>Alert.alert('Namaz vakitleri hakkında',
-          official.sourceLabel+
-          '\nİlçe: '+(official.place?.name??SCHEDULE.locationName)+
-          '\nVeri alım zamanı: '+SCHEDULE.fetchedAt+
-          '\nDurum: '+(official.status==='offline'||official.status==='mirror-cached'
-            ?'Kaydedilmiş yayımlanmış takvim':'Çevrimiçi kaynak')+
-          (isOfficial?'':'\nBağımsız yayıncı üzerinden aktarılmış takvimdir; resmî Diyanet API bağlantısı değildir.'))}
-        onLongPress={__DEV__?showPreviewOptions:undefined}
-        style={{alignSelf:'flex-end',minHeight:28,flexDirection:'row',
-          gap:5,alignItems:'center',paddingHorizontal:8,marginTop:-2}}>
-        <Feather name="info" size={13} color={colors.gold}/>
-        <Text style={{fontSize:10,color:colors.muted}}>Takvim bilgisi</Text>
-      </Pressable>
+      <DateDivider now={now} timezone={SCHEDULE.timezone} hijriDate={official.days?.today.hijriDate??null}/>
       <View style={styles.wheelStage}>
         <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
         <PrayerWheel
@@ -222,7 +184,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
             <Feather name="rotate-ccw" size={12} color={colors.emerald}/>
             <Text style={{fontSize:11,color:colors.emerald,fontWeight:'700'}}>Canlıya dön</Text>
           </Pressable>
-          :<Text style={{fontSize:10,color:colors.muted}}>Çevre halkası: %{Math.round(phase.progress*100)}</Text>}
+          :<Text style={{fontSize:10,color:colors.muted}}>Vakit ilerlemesi %{Math.round(phase.progress*100)}</Text>}
       </View>
 
       <View style={[styles.chipsContainer,{
@@ -277,10 +239,6 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         <View style={{flex:1,gap:3}}>
           <Text style={{fontSize:10,letterSpacing:.85,fontWeight:'800',color:accented}}>{stateTitle}</Text>
           <Text style={{fontSize:11,color:colors.text,lineHeight:16}}>{stateDescription}</Text>
-          <Text style={{fontSize:9.5,color:colors.muted}}>
-            {official.status==='mirror-cached'||official.status==='offline'
-              ?'Kaydedilmiş yayımlanmış vakitler':'Yayımlanmış ilçe takvimi'}
-          </Text>
         </View>
         <Feather name="chevron-right" size={14} color={colors.muted}/>
       </Pressable>
@@ -327,7 +285,7 @@ function CalendarLoadingHome({official,now}:{
       contentContainerStyle={[styles.content,{paddingTop:12,paddingBottom:30}]}>
       <HomeBrandHeader place={official.place}
         onOpenLocation={()=>setPickerOpen(true)}/>
-      <DateDivider now={now} dark={dark} timezone="Europe/Istanbul" hijriDate={null}/>
+      <DateDivider now={now} timezone="Europe/Istanbul" hijriDate={null}/>
       <View style={{flexDirection:'row',alignItems:'center',
         alignSelf:'center',gap:8,minHeight:35,
         paddingHorizontal:10,paddingVertical:6,borderRadius:13,
@@ -389,9 +347,6 @@ function CalendarLoadingHome({official,now}:{
         <View style={{flex:1,gap:4}}>
           <Text style={{fontSize:13,fontWeight:'800',color:colors.text}}>{label}</Text>
           <Text style={{fontSize:11,lineHeight:17,color:colors.muted}}>{info}</Text>
-          <Text style={{fontSize:10,color:colors.muted}}>
-            Gerçek veri alınmadan ibadet saati veya geri sayım gösterilmez.
-          </Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Takvimi yeniden kontrol et"
           onPress={official.retry} hitSlop={12}>
@@ -433,10 +388,6 @@ const styles=StyleSheet.create({
   dateSection:{alignItems:'center',gap:3,marginTop:-4},
   dateLine:{width:27,height:1,opacity:.65},
   dateText:{fontFamily:'serif',fontSize:13.1,fontWeight:'600'},
-  hijri:{fontFamily:'serif',fontSize:11},
-  demo:{paddingHorizontal:6,paddingVertical:2,borderRadius:10,borderWidth:0,
-    flexDirection:'row',justifyContent:'center',alignItems:'center',gap:6,alignSelf:'center',marginTop:3},
-  demoText:{fontSize:10,fontWeight:'500',textAlign:'center'},
   wheelStage:{alignItems:'center',justifyContent:'center',position:'relative',marginTop:-2,marginBottom:-12},
   halo:{position:'absolute',height:235,width:235,borderRadius:118},
   tinyActions:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:7,minHeight:26},
