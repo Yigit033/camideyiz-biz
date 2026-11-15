@@ -45,8 +45,10 @@ iOS:
 
 Android:
 - Native Jetpack Compose widget \`expo-widgets\` ile üretilir.
-- \`updateSnapshot\` yalnızca uygulama çalışırken veya yeniden açıldığında
-  yenilenir. Android sistem, uygulama kapalıyken API'yi yeniden çağırmaz.
+- \`updateSnapshot\` hem uygulama açılırken hem de 15 dakikalık minimum
+  aralıklı Android WorkManager görevi OS tarafından çalıştırıldığında
+  çağrılır. Görev çalışması/saati, Doze ve üretici kısıtları nedeniyle
+  garanti edilemez.
 - Bu nedenle Android'de eski sayacı "anlık kalan" diye göstermeyiz;
   **sıradaki namazın HH:MM saati** birincildir ve snapshot kalan
   süre açıkça "son yenilemede" olarak etiketlenir.
@@ -255,7 +257,8 @@ Yeni mimari:
   ilçeye aitse atılır. Ağ sorguları en fazla yaklaşık **2 saatte
   bir**, veriler eksik/gün dışıysa daha erken yapılabilir. İnternet
   yokken daha önce doğrulanmış ve hâlâ geçerli günlerin bilgisi
-  kullanılabilir; kaynaksız takvim **üretilmez**.
+  kullanılabilir **ancak ağ yokken WorkManager görevinin hiç
+  çalıştırılmaması da mümkündür**; kaynaksız takvim **üretilmez**.
 - Yanlış şehir, bozuk sıralama, eksik takvim günü, demo saatleri,
   negatif/ilerideki kaynak tarihi ve zamanı geçmiş önbellek
   fail-closed reddedilir.
