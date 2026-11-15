@@ -27,8 +27,8 @@ create table if not exists public.cb_announcements (
   title text not null check(length(title) between 3 and 80),
   body text not null check(length(body) between 3 and 280),
   scheduled_at timestamptz not null,
-  status text not null default 'scheduled' check(
-    status in ('scheduled','dispatching','completed','cancelled')),
+  status text not null default 'draft' check(
+    status in ('draft','scheduled','dispatching','completed','cancelled')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   completed_at timestamptz,
