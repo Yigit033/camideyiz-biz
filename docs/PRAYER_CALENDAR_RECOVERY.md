@@ -32,9 +32,12 @@ etmeye ve kaynak kesintilerinde çalışmaya yönelik.
 
 ## Yapılan düzeltmeler
 
-- Birincil: Idamedya yayımlanmış Diyanet kodlu takvim.
-- İkincil: eMushaf `https://ezanvakti.emushaf.net/vakitler/{ilceId}`.
-  1. kaynak başarısız olunca otomatik olarak deneniyor.
+- Birincil: İdamedya yayımlanmış Diyanet kodlu takvim.
+- İkincil: `https://namazvakti.mtopal.dev/vakitler/{ilceId}`
+  (yıl sonuna kadar yayımlanmış Diyanet kodlu JSON takvimi).
+- Üçüncül: `https://ezanvakti.emushaf.net/vakitler/{ilceId}`.
+  Bir önceki kaynak erişim/doğrulamada başarısız olunca denenir.
+  İlçe rehberi de aynı bağımsız kaynak sırasını izler.
 - Yedek sonuç, Türkiye yerel tarihinin **DD.MM.YYYY**
   metninden okunuyor; global ISO saat dilimi dönüşümüyle
   bir gün öteye kaydırılmıyor.
@@ -44,7 +47,7 @@ etmeye ve kaynak kesintilerinde çalışmaya yönelik.
   zorunlu. Başka ilçenin veya demo saatleri kullanılmaz.
 - Tüm gün/ertesi günler beraber geliyor;
   Widget/Ezan Bildirimleri aynı takvim modelini kullanıyor.
-- Kaynak `provider` bilgisi `idamedya|emushaf` olarak
+- Kaynak `provider` bilgisi `idamedya|mtopal|emushaf` olarak
   saklanıyor; kullanıcıya veri hangi yayından geldiyse
   bilgi ayrıntısında doğru atıf yapılıyor.
 - Daha önce alınmış **aynı gün ve ilçenin**
@@ -60,6 +63,18 @@ etmeye ve kaynak kesintilerinde çalışmaya yönelik.
 - CI canlı entegrasyon denemesi İstanbul, Tuzla, Pendik ve
   Tarsus'u paralel kontrol ediyor; upstream kesintisi
   tek başına kod kalitesi denetimlerini bloke etmiyor.
+- **15.11.2026 GitHub canlı testi:** İstanbul merkez İdamedya'dan
+  başarılı; Tuzla HTTP 503, Pendik HTTP 503, Tarsus HTTP 404.
+  eMushaf bu ilçelerde HTTP 403 verdi.
+  Üçüncü kaynağımız mtopal JSON 200 ve doğrulanmış saatleri döndürdü:
+  İstanbul merkez imsak 06:16, Tuzla 06:15, Pendik 06:15,
+  Tarsus 05:49; ertesi gün 16.11.2026 takvimi de doğrulandı.
+  Kaynak, ay sonuyla sınırlı olmayan ve bazı aylarda 45 günden
+  uzun takvim döndürüyor. Eski parser 45 günlük sınırıyla bu
+  **geçerli yanıtı yanlış reddediyordu**; yeni parser bir
+  takvim yılına kadar sınırı koruyarak kabul ediyor.
+  Kanıt: https://github.com/Yigit033/camideyiz-biz/actions/runs/43717968507
+  (non-blocking live source adımı başarılı, ayrıntılar job logunda).
 
 ## Cihazda zorunlu kabul testleri
 
