@@ -6,7 +6,9 @@ import {
   type PrayerAlertEvent,type PrayerAlertSettings,type PrayerSchedule,
 } from '@camideyiz/core';
 
-const KIND='camideyiz-prayer-v2';
+const KIND='camideyiz-prayer-v2'; // Keep v2 to reconcile old installed APK requests.
+export const PRAYER_ALERT_PREFERENCES_KEY='@camideyiz/prayer-alert-prefs/v2';
+export const ANNOUNCEMENT_KIND='camideyiz-announcement-v1';
 export const CHANNEL_AUDIBLE='namaz-hatirlatma-v2';
 export const CHANNEL_SILENT='sessiz-namaz-hatirlatma-v2';
 export type NotificationSyncReport={
@@ -59,10 +61,13 @@ export async function requestPrayerPermission():Promise<boolean>{
 }
 export function alertContent(event:PrayerAlertEvent,cityId:number,sound:'default'|'silent'){
   const early=event.kind==='before';
-  const title=early?event.label+' vaktine '+event.leadMinutes+' dakika':' '+event.label+' vakti';
+  const title=early
+    ?event.label+' vaktine '+event.leadMinutes+' dakika'
+    :event.prayer==='gunes'?'Güneş doğdu':event.label+' vakti girdi';
   const body=early
     ?event.locationName+' · '+event.localTime+' için hatırlatma'
-    :event.locationName+' · '+event.localTime+' namaz vakti';
+    :event.locationName+' · '+event.localTime+
+      (event.prayer==='gunes'?' · Güneş doğuşu':' · Ezan vakti hatırlatması');
   return {
     title:title.trim(),body,
     sound:sound==='silent'?false:'default' as const,
@@ -161,6 +166,18 @@ export async function prunePrayerNotifications(
 
 export function toInboxEvent(n:Notifications.Notification):NativePrayerEvent|null{
   const data=n.request.content.data;
+  if(data?.kind===ANNOUNCEMENT_KIND){
+    // Only announced messages that actually reach the native OS are kept
+    // in the observed inbox. App restarts do not synthesize delivery.
+    const key=typeof data.announcementId==='string'&&
+      /^[0-9a-f-]{36}$/i.test(data.announcementId)
+      ?'announcement:'+data.announcementId:null;
+    if(!key)return null;
+    return {
+      id:key,eventKey:key,title:n.request.content.title??'Camideyiz Biz duyurusu',
+      body:n.request.content.body??'',receivedAt:Date.now(),cityId:null,
+    };
+  }
   if(data?.kind!==KIND||typeof data.eventKey!=='string')return null;
   const city=Number(data.cityId);
   return {
