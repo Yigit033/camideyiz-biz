@@ -7,9 +7,9 @@ import {Feather} from '@expo/vector-icons';
 import {router,useLocalSearchParams} from 'expo-router';
 import {useAppTheme} from '@/theme/ThemeProvider';
 
-/** UNALTERED user-provided 1126×2000 teaching posters.
- * Do not crop, recolour, redraw, place overlays on, or reflow their text.
- * The two image files are required native bundle assets.
+/**
+ * Original user-supplied 1126 × 2000 PNG teaching posters.
+ * Never edit, recolour, crop, cover or redraw the poster pixels/text.
  */
 const POSTERS={
   heavy:require('../../assets/kerahat/agir-kerahat.png'),
@@ -25,8 +25,7 @@ const TABS:readonly {key:Tab;label:string}[]=[
 
 export default function KerahatGuideScreen(){
   const params=useLocalSearchParams<{tab?:string}>();
-  const [tab,setTab]=useState<Tab>(
-    params.tab==='light'?'light':'heavy');
+  const [tab,setTab]=useState<Tab>(params.tab==='light'?'light':'heavy');
   const [zoomed,setZoomed]=useState(false);
   const {width}=useWindowDimensions();
   const {colors}=useAppTheme();
@@ -36,16 +35,30 @@ export default function KerahatGuideScreen(){
     setZoomed(false);
   },[params.tab]);
 
-  // Posters retain the exact original aspect ratio. On narrow phones the
-  // zoom mode gives a 2x horizontally scrollable reading surface; it never
-  // crops the edges or shrinks the original text to a different layout.
-  const viewportWidth=Math.max(240,width-28);
+  // Full poster fit at 1×; 2× uses horizontal pan and the parent vertical
+  // scroll. No nested same-direction ScrollView in the non-zoomed state.
+  // Limit tablet width to a readable poster column without altering pixels.
+  const viewportWidth=Math.max(1,Math.min(560,width-28));
   const posterWidth=zoomed?viewportWidth*2:viewportWidth;
   const posterHeight=posterWidth*ORIGINAL_HEIGHT/ORIGINAL_WIDTH;
   const selected=tab==='heavy'
     ?'Ağır Kerahat Vakitleri':'Hafif Kerahat Vakitleri';
 
-  return <SafeAreaView edges={['top']}
+  // Expo resolves dimensions for bundled static PNGs. The temporary 1×1
+  // placeholders must never masquerade as the original teaching posters.
+  // Release builds additionally enforce the exact original SHA-256 hashes.
+  const metadata=Image.resolveAssetSource(POSTERS[tab]);
+  const posterReady=metadata?.width===ORIGINAL_WIDTH &&
+    metadata?.height===ORIGINAL_HEIGHT;
+  const poster=posterReady?<Image
+    source={POSTERS[tab]}
+    resizeMode="contain"
+    accessible
+    accessibilityLabel={selected+'; orijinal bilgilendirme görseli'}
+    style={{width:posterWidth,height:posterHeight,backgroundColor:'#E8E8E8'}}
+  />:null;
+
+  return <SafeAreaView edges={['top','bottom']}
     style={[styles.screen,{backgroundColor:colors.canvas}]}>
     <View style={[styles.top,{borderBottomColor:colors.border}]}>
       <Pressable onPress={()=>router.back()}
@@ -64,9 +77,11 @@ export default function KerahatGuideScreen(){
         accessibilityRole="button"
         accessibilityLabel={zoomed?'Görseli normal boyuta küçült':'Görseli okumak için büyüt'}
         accessibilityState={{expanded:zoomed}}
+        disabled={!posterReady}
         onPress={()=>setZoomed(value=>!value)}
         style={[styles.zoom,{borderColor:colors.border,
-          backgroundColor:zoomed?colors.soft:colors.surface}]}>
+          backgroundColor:zoomed?colors.soft:colors.surface,
+          opacity:posterReady?1:.45}]}>
         <Feather name={zoomed?'minimize-2':'maximize-2'}
           color={colors.gold} size={19}/>
       </Pressable>
@@ -94,35 +109,49 @@ export default function KerahatGuideScreen(){
 
     <ScrollView key={tab+'-'+(zoomed?'large':'normal')}
       showsVerticalScrollIndicator={false}
+      bounces={false}
       contentContainerStyle={styles.page}>
-      <View style={styles.imageFrame}>
-        <ScrollView horizontal={zoomed}
-          nestedScrollEnabled
-          bounces={false}
-          showsHorizontalScrollIndicator={zoomed}
-          contentContainerStyle={{
-            width:posterWidth,
-            justifyContent:'flex-start',
-          }}>
-          <Image
-            source={POSTERS[tab]}
-            resizeMode="contain"
-            accessibilityLabel={selected+'; kullanıcının gönderdiği orijinal bilgilendirme görseli'}
-            style={{width:posterWidth,height:posterHeight,
-              backgroundColor:'#E8E8E8'}}
-          />
-        </ScrollView>
+      <View style={[styles.imageFrame,{width:viewportWidth}]}>
+        {!posterReady?
+          <View style={[styles.unavailable,{borderColor:colors.border}]}>
+            <Feather name="alert-triangle" size={26} color={colors.gold}/>
+            <Text style={[styles.unavailableTitle,{color:colors.text}]}>
+              Orijinal görsel henüz eklenmedi
+            </Text>
+            <Text style={[styles.unavailableDetail,{color:colors.muted}]}>
+              Görselin geçici bir kopyası yerine orijinal dosyası gereklidir.
+            </Text>
+          </View>
+        :zoomed?
+          <ScrollView horizontal nestedScrollEnabled bounces={false}
+            showsHorizontalScrollIndicator
+            style={{width:viewportWidth}}
+            contentContainerStyle={{width:posterWidth}}>
+            {poster}
+          </ScrollView>
+        :
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={selected+' görselini büyüt'}
+            onPress={()=>setZoomed(true)}>
+            {poster}
+          </Pressable>
+        }
       </View>
-      {zoomed?<Text style={[styles.hint,{color:colors.muted}]}>
-        Büyütülmüş görseli sağa ve sola kaydırarak okuyabilirsin.
-      </Text>:<Pressable accessibilityRole="button"
-        onPress={()=>setZoomed(true)}
-        style={styles.expand}>
-        <Feather name="zoom-in" size={15} color={colors.gold}/>
+      {posterReady?(zoomed?
         <Text style={[styles.hint,{color:colors.muted}]}>
-          Daha büyük okumak için görsele yakınlaştır
+          Büyütülmüş görseli sağa ve sola kaydırarak okuyabilirsin.
         </Text>
-      </Pressable>}
+      :
+        <Pressable accessibilityRole="button"
+          accessibilityLabel="Görseli iki kat büyüt"
+          onPress={()=>setZoomed(true)}
+          style={styles.expand}>
+          <Feather name="zoom-in" size={16} color={colors.gold}/>
+          <Text style={[styles.hint,{color:colors.muted}]}>
+            Yakından okumak için görsele dokun
+          </Text>
+        </Pressable>):null}
     </ScrollView>
   </SafeAreaView>;
 }
@@ -132,12 +161,12 @@ const styles=StyleSheet.create({
   top:{flexDirection:'row',alignItems:'center',gap:10,
     paddingHorizontal:14,paddingTop:11,paddingBottom:12,
     borderBottomWidth:1},
-  back:{height:42,width:42,borderRadius:14,borderWidth:1,
+  back:{height:44,width:44,borderRadius:14,borderWidth:1,
     alignItems:'center',justifyContent:'center'},
   heading:{flex:1,gap:4},
   title:{fontFamily:'serif',fontSize:19,fontWeight:'800'},
   subtitle:{fontSize:10.5},
-  zoom:{height:42,width:42,borderRadius:14,borderWidth:1,
+  zoom:{height:44,width:44,borderRadius:14,borderWidth:1,
     alignItems:'center',justifyContent:'center'},
   tabs:{marginHorizontal:14,marginTop:12,marginBottom:9,
     borderRadius:16,borderWidth:1,padding:5,
@@ -146,9 +175,13 @@ const styles=StyleSheet.create({
     justifyContent:'center',paddingHorizontal:5},
   tabText:{fontSize:12,fontWeight:'800',textAlign:'center'},
   page:{alignItems:'center',paddingHorizontal:14,paddingBottom:30},
-  imageFrame:{overflow:'hidden',width:'100%',
-    backgroundColor:'#E8E8E8'},
+  imageFrame:{overflow:'hidden',backgroundColor:'#E8E8E8',
+    alignItems:'center'},
   hint:{fontSize:11.5,lineHeight:18,textAlign:'center'},
   expand:{paddingVertical:13,alignSelf:'center',flexDirection:'row',
     alignItems:'center',gap:7},
+  unavailable:{width:'100%',minHeight:270,borderWidth:1,
+    justifyContent:'center',alignItems:'center',gap:10,padding:25},
+  unavailableTitle:{fontSize:14,fontWeight:'700',textAlign:'center'},
+  unavailableDetail:{fontSize:12,lineHeight:19,textAlign:'center'},
 });
