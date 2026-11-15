@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MIRROR_SOURCE,parseMirrorStates,parseMirrorCities,parseBackupDiyanetCities,parseMirrorTriplet,parseEmushafTriplet,MIRROR_OFFLINE_CACHE_MS,
+  MIRROR_SOURCE,parseMirrorStates,parseMirrorCities,parseBackupDiyanetStates,parseBackupDiyanetCities,parseMirrorTriplet,parseEmushafTriplet,MIRROR_OFFLINE_CACHE_MS,
   validateCachedMirrorTriplet,DEFAULT_MIRROR_PLACE,MIRROR_CACHE_MS,calculateMirrorPhase,
 } from './mirrorCalendar.ts';
 const date='2026-11-14',city=9541,fetchTime='2026-11-14T08:00:00.000Z';
@@ -240,4 +240,21 @@ test('REGRESSION: verified backup through-year feed (>45 days) remains valid',()
   // An independent monthly provider still has its original strict limit.
   assert.throws(()=>parseEmushafTriplet(longList,9551,'2026-11-15',
     'Tuzla',fetchTime,'emushaf'));
+});
+
+test('primary province listing outage can fall back to exact Turkish Diyanet city codes',()=>{
+  const states=parseBackupDiyanetStates([
+    {SehirID:'539',SehirAdi:'İSTANBUL'},
+    {SehirID:'557',SehirAdi:'MERSİN'},
+  ]);
+  assert.equal(states.length,2);
+  assert.equal(states.find(x=>x.id===539)?.name,'İSTANBUL');
+  assert.equal(states.find(x=>x.id===557)?.country_id,2);
+  assert.throws(()=>parseBackupDiyanetStates([
+    {SehirID:'539',SehirAdi:'İSTANBUL'},
+    {SehirID:'539',SehirAdi:'FAKE'},
+  ]));
+  assert.throws(()=>parseBackupDiyanetStates([
+    {SehirID:'-1',SehirAdi:'FAKE'},
+  ]));
 });
