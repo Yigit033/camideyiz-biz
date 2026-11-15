@@ -54,7 +54,7 @@ export function parseBackupDiyanetStates(raw:unknown):MirrorState[]{
   return raw.map(item=>{
     const record=object(item);
     const value=record.SehirID;
-    if(typeof value!=='string'||!/^[1-9]\\d{0,5}$/.test(value))
+    if(typeof value!=='string'||!/^[1-9]\d{0,5}$/.test(value))
       throw new Error('Invalid backup province code');
     const id=Number(value);
     if(!validId(id)||seen.has(id))throw new Error('Duplicate backup province code');
