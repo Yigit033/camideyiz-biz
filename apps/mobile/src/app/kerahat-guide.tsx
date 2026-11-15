@@ -131,7 +131,7 @@ function DailyRing({bands,selected,kind,nowSeconds,hasCalendar,size}:{
   </View>;
 }
 
-const DIyanetILMIHAL_URL=
+const DIYANET_ILMIHAL_URL=
   'https://namaz.diyanet.gov.tr/namaz/html/kutuphane/HTML/NamazIlmihali/assets/common/downloads/publication.pdf';
 const pad=(n:number)=>String(n).padStart(2,'0');
 function clock(seconds:number):string{
@@ -153,7 +153,7 @@ export default function KerahatGuideScreen(){
   // No example, demo, previous district or mismatched-date prayer times.
   const day:PrayerSchedule|null=scheduled&&!scheduled.isDemo&&
     scheduled.dateISO===local.dateISO&&
-    (!prayer.place||scheduled.locationName===prayer.place.name)
+    (!prayer.place||scheduled.cityId===prayer.place.id)
     ?scheduled:null;
   const view=useMemo(()=>day?getKerahatView(
     day,local.dateISO,local.secondsOfDay,{...settings,mode:'custom'}
@@ -349,7 +349,7 @@ export default function KerahatGuideScreen(){
             </Text>
           </Pressable>
           {tab==='light'?<Pressable accessibilityRole="link"
-            onPress={()=>openSource(DIyanetILMIHAL_URL)}
+            onPress={()=>openSource(DIYANET_ILMIHAL_URL)}
             style={[styles.source,{borderColor:colors.border}]}>
             <Feather name="book-open" size={15} color={colors.emerald}/>
             <Text style={{fontSize:11.5,color:colors.emerald,fontWeight:'800'}}>
