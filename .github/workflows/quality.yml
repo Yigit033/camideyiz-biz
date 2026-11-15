@@ -43,6 +43,27 @@ jobs:
             throw 'Windows builder must preserve expected Expo changes and reject unexpected edits'
           }
           Write-Host 'Expo prebuild preservation contract OK'
+      - name: Validate poster installer syntax and binary release gate
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('scripts/install-kerahat-posters.ps1', [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          $script = Get-Content 'scripts/build-android-windows.ps1' -Raw
+          if ($script -notmatch 'Original kerahat poster' -or
+              $script -notmatch 'Get-FileHash -Algorithm SHA256') {
+            throw 'Release builder must reject unverified original poster assets'
+          }
+          $installer = Get-Content 'scripts/install-kerahat-posters.ps1' -Raw
+          if ($installer -notmatch 'git -C \$root commit --only' -or
+              $installer -notmatch 'ComputeHash') {
+            throw 'Poster installer must hash-validate and commit ONLY the two assets'
+          }
+          Write-Host 'Exact user-poster installation and release guard syntax OK'
       - name: Verify owner announcement script cannot leak admin key in mobile bundle
         shell: pwsh
         run: |
