@@ -75,7 +75,17 @@
           ]
         }
       ],
-      "./plugins/withWorkManagerR8"
+      "./plugins/withWorkManagerR8",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Yalnızca hazırladığınız görselleri kaydetmek için fotoğraf erişimi.",
+          "savePhotosPermission": "Hazırladığınız görselleri telefon galerinize kaydetmek için izin.",
+          "granularPermissions": [
+            "photo"
+          ]
+        }
+      ]
     ]
   }
 }
