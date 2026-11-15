@@ -223,3 +223,21 @@ test('mtopal data uses the same published Diyanet schema but retains source attr
   assert.equal(validateCachedMirrorTriplet(t,9740,'2026-11-15',
     Date.parse(fetchTime)+6000).provider,'mtopal');
 });
+
+test('REGRESSION: verified backup through-year feed (>45 days) remains valid',()=>{
+  const longList=Array.from({length:50},(_,i)=>{
+    const d=new Date(Date.UTC(2026,10,13+i));
+    const date=String(d.getUTCDate()).padStart(2,'0')+'.'+
+      String(d.getUTCMonth()+1).padStart(2,'0')+'.'+d.getUTCFullYear();
+    return emushafDay(date);
+  });
+  const result=parseEmushafTriplet(longList,9551,'2026-11-15',
+    'Tuzla',fetchTime,'mtopal');
+  assert.equal(result.today.dateISO,'2026-11-15');
+  assert.equal(result.next.dateISO,'2026-11-16');
+  assert.equal(result.upcoming.length,16);
+  assert.equal(result.provider,'mtopal');
+  // An independent monthly provider still has its original strict limit.
+  assert.throws(()=>parseEmushafTriplet(longList,9551,'2026-11-15',
+    'Tuzla',fetchTime,'emushaf'));
+});
