@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MIRROR_SOURCE,parseMirrorStates,parseMirrorCities,parseBackupDiyanetCities,parseMirrorTriplet,
+  MIRROR_SOURCE,parseMirrorStates,parseMirrorCities,parseBackupDiyanetCities,parseMirrorTriplet,parseEmushafTriplet,MIRROR_OFFLINE_CACHE_MS,
   validateCachedMirrorTriplet,DEFAULT_MIRROR_PLACE,MIRROR_CACHE_MS,calculateMirrorPhase,
 } from './mirrorCalendar.ts';
 const date='2026-11-14',city=9541,fetchTime='2026-11-14T08:00:00.000Z';
@@ -146,4 +146,65 @@ test('fallback district directory keeps authoritative district prayer codes',()=
    {IlceAdi:'PENDİK 2',IlceID:'9545'},
  ],539));
  assert.throws(()=>parseBackupDiyanetCities([{IlceAdi:'TEST',IlceID:'invalid'}],539));
+});
+
+/** Shape from https://ezanvakti.emushaf.net/vakitler/{districtId}.
+ * The clock values here are a parser fixture, not a published Tuzla forecast. */
+const emushafDay=(date:string)=>({
+  MiladiTarihKisa:date,HicriTarihUzun:'6 Cemaziyelahir 1448',
+  Imsak:'06:16',Gunes:'07:44',Ogle:'12:54',
+  Ikindi:'15:29',Aksam:'17:53',Yatsi:'19:16',
+});
+test('backup published Diyanet-coded feed yields a live schedule for SELECTED district',()=>{
+  const result=parseEmushafTriplet([
+    emushafDay('14.11.2026'),
+    emushafDay('15.11.2026'),
+    emushafDay('16.11.2026'),
+  ],9551,'2026-11-15','Tuzla',fetchTime);
+  assert.equal(result.city.id,9551);
+  assert.equal(result.provider,'emushaf');
+  assert.equal(result.today.cityId,9551);
+  assert.equal(result.today.dateISO,'2026-11-15');
+  assert.equal(result.today.locationName,'Tuzla');
+  assert.equal(result.today.isDemo,false);
+  assert.equal(result.next.dateISO,'2026-11-16');
+  assert.equal(result.upcoming.length,2);
+  assert.equal(result.today.times[0].time,'06:16');
+  assert.equal(validateCachedMirrorTriplet(result,9551,'2026-11-15',
+    Date.parse(fetchTime)+5000).today.provider,'emushaf');
+});
+test('backup feed NEVER relabels unknown or incomplete hours as selected day',()=>{
+  assert.throws(()=>parseEmushafTriplet([
+    emushafDay('14.11.2026'),emushafDay('16.11.2026'),
+  ],9551,'2026-11-15','Tuzla',fetchTime));
+  assert.throws(()=>parseEmushafTriplet([
+    emushafDay('15.11.2026'),{...emushafDay('16.11.2026'),Aksam:'10:00'},
+  ],9551,'2026-11-15','Tuzla',fetchTime));
+  assert.throws(()=>parseEmushafTriplet([
+    emushafDay('31.02.2026'),emushafDay('16.11.2026'),
+  ],9551,'2026-11-15','Tuzla',fetchTime));
+  assert.throws(()=>parseEmushafTriplet([
+    emushafDay('15.11.2026'),emushafDay('16.11.2026'),
+  ],9541,'2026-11-15','Tuzla',fetchTime)
+    &&validateCachedMirrorTriplet(
+      parseEmushafTriplet([emushafDay('15.11.2026'),emushafDay('16.11.2026')],
+        9541,'2026-11-15','Tuzla',fetchTime),
+      9551,'2026-11-15',Date.parse(fetchTime)+1));
+});
+test('published same-day offline cache lasts at most 24h, not across district/date',()=>{
+  const triplet=parseEmushafTriplet([
+    emushafDay('14.11.2026'),emushafDay('15.11.2026'),
+    emushafDay('16.11.2026'),
+  ],9551,'2026-11-15','Tuzla',fetchTime);
+  const now=Date.parse(fetchTime);
+  assert.throws(()=>validateCachedMirrorTriplet(triplet,9551,'2026-11-15',
+    now+MIRROR_CACHE_MS+5000));
+  assert.ok(validateCachedMirrorTriplet(triplet,9551,'2026-11-15',
+    now+MIRROR_CACHE_MS+5000,MIRROR_OFFLINE_CACHE_MS));
+  assert.throws(()=>validateCachedMirrorTriplet(triplet,9551,'2026-11-15',
+    now+MIRROR_OFFLINE_CACHE_MS+1,MIRROR_OFFLINE_CACHE_MS));
+  assert.throws(()=>validateCachedMirrorTriplet(triplet,9541,'2026-11-15',
+    now+1000,MIRROR_OFFLINE_CACHE_MS));
+  assert.throws(()=>validateCachedMirrorTriplet(triplet,9551,'2026-11-16',
+    now+1000,MIRROR_OFFLINE_CACHE_MS));
 });
