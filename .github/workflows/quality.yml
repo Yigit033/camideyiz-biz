@@ -44,6 +44,11 @@ jobs:
       - run: cd apps/mobile && npx expo install --check
       - name: Native widget Android CNG prebuild smoke test
         run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo prebuild --platform android --no-install --clean
+      - name: Verify release WorkManager R8 keep rules
+        run: |
+          grep -F 'androidx.room.RoomDatabase { <init>(); }' apps/mobile/android/app/proguard-rules.pro
+          grep -F 'androidx.work.InputMerger { <init>(); }' apps/mobile/android/app/proguard-rules.pro
+          echo 'WorkManager release constructor keep rules present'
       - name: Expo Android bundle smoke test
         run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo export --platform android --output-dir ../../.expo-export-check
       - name: Metro startup smoke test
