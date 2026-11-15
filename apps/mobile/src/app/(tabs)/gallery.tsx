@@ -63,7 +63,12 @@ export default function Gallery(){
   const [query,setQuery]=useState('');
   const tiles=useMemo(()=>{
     const text=query.trim().toLocaleLowerCase('tr-TR');
+    // During initial development all 24 slots remain inspectable; as soon as
+    // owner photography starts arriving, show ONLY approved photos. Avoid
+    // shipping empty/placeholder cards next to real content.
+    const showPlanningSlots=READY_GALLERY_COUNT===0;
     return GALLERY_SLOTS.filter(slot=>
+      (showPlanningSlots||Boolean(galleryPhoto(slot.id)))&&
       (category==='all'||slot.category===category)&&
       (!text||[slot.title,slot.recommendedText,CATEGORY_NAME[slot.category]]
         .some(value=>value.toLocaleLowerCase('tr-TR').includes(text)))
