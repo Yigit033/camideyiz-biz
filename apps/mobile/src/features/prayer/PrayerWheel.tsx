@@ -14,6 +14,7 @@ import {
   timeToMinutes, angleOfTouch, normalizeDegrees,
   nearestCenterRotation, sectorAtNeedle, shortestAngularDelta,
   tangentialVelocity, makeVisualDialSectors, clockSecondsToVisualAngle,
+  kerahatRingWindows,prayerSectorLabelAngle,
 } from '@camideyiz/core';
 import {type ColorTokens} from '@/theme/tokens';
 import {DialLighting} from './DialLighting';
@@ -65,9 +66,12 @@ function SectorLabel({
 }: {
   sector: PrayerArc; size: number; rotation: SharedValue<number>; selected: boolean; dark: boolean;preview?:boolean;
 }) {
-  const point = polar((sector.from + sector.to) / 2, RADIUS);
-  const iconSize = 14 * size / DIAMETER;
-  const labelWidth = 72 * size / DIAMETER;
+  // The time pill marks the BEGINNING of this coloured wedge. Keep the
+  // icon/name close to that pill instead of floating in the wedge midpoint.
+  const angle=prayerSectorLabelAngle(sector.from,sector.to);
+  const point = polar(angle, 138);
+  const iconSize = 15 * size / DIAMETER;
+  const labelWidth = 66 * size / DIAMETER;
   const centerX = point.x * size / DIAMETER;
   const centerY = point.y * size / DIAMETER;
   const style = useAnimatedStyle(() => ({
@@ -78,14 +82,14 @@ function SectorLabel({
     pointerEvents="none"
     style={[
       styles.sectorLabel,
-      {left: centerX - labelWidth / 2, top: centerY - 24 * size / DIAMETER, width: labelWidth,
-        height: 48 * size / DIAMETER},
+      {left: centerX - labelWidth / 2, top: centerY - 21 * size / DIAMETER, width: labelWidth,
+        height: 42 * size / DIAMETER},
       style,
     ]}>
     <MaterialCommunityIcons name={PRAYER_ICONS[sector.key]} size={iconSize}
       color={selected || sector.key === 'yatsi' ? '#FFF4DA' : '#164038'}/>
     <Text numberOfLines={1} adjustsFontSizeToFit style={{
-      fontSize: (narrow ? 10.1 : 12) * size / DIAMETER,
+      fontSize: (narrow ? 10.7 : 12.4) * size / DIAMETER,
       fontFamily:'serif',fontWeight:'700',letterSpacing:-.15,
       color: selected || sector.key === 'yatsi' ? '#FFFCF3' : '#18372F', textAlign:'center',
     }}>{sector.label}</Text>
@@ -262,10 +266,13 @@ export function PrayerWheel({
   // One-second sampling changes the progress while the physical dial remains UI-thread driven.
   const progress=Math.max(0,Math.min(1,phaseProgress));
   const boost=urgency==='normal'?0.12:urgency==='approaching'?0.45:0.8;
-  const warningTint=restriction ? '#EF6F72' : null;
+  const ringWindows=preview?[]:kerahatRingWindows(indicativeWindows,nowSeconds);
+  const kerahatActive=ringWindows.some(window=>window.state==='active');
+  const kerahatApproaching=ringWindows.some(window=>window.state==='approaching');
+  const warningTint=kerahatActive?'#9B3546':kerahatApproaching?'#CA863E':null;
   const progressTint=warningTint??(urgency==='normal'?PRAYER_COLORS[nextKey]:
     nextKey==='aksam'?'#F6B46F':colors.isDark?'#F4D58B':'#B9823D');
-  const kerahatArcs=(preview?[]:indicativeWindows).map(window=>{
+  const kerahatArcs=ringWindows.map(window=>{
     const from=clockSecondsToVisualAngle(window.startSeconds,times,sectors);
     const to=clockSecondsToVisualAngle(window.endSeconds,times,sectors);
     return {...window,from,to};
@@ -339,26 +346,56 @@ export function PrayerWheel({
               return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
                 stroke={colors.isDark?'#062724':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
             })}
-            {/* Kerahat has its OWN thin inner circular track, distinct from the
-                outer prayer arcs. Only published, approximate display windows
-                are drawn; no fabricated prayer times or legal rulings. */}
+            {/* Approximate kerahat arcs share the SAME angular coordinates
+                on two concentric tracks. Outer = warning, inner = interval.
+                Both rotate WITH the physical dial, never with elapsed progress.
+                Active: deep burgundy; next 20min: warm amber; otherwise muted. */}
             {kerahatArcs.length>0
-              ?<Circle cx="180" cy="180" r="109" fill="none"
-                stroke={rim} strokeOpacity=".48" strokeWidth="2.3"/>:null}
+              ?<Circle cx="180" cy="180" r="112" fill="none"
+                stroke={rim} strokeOpacity=".48" strokeWidth="3"/>:null}
             {kerahatArcs.map(window=><G key={'kerahat-'+window.kind}>
-              <Path d={arc(window.from,window.to,109)}
-                stroke={restriction?.kind===window.kind?'#F98A80':'#C66968'}
-                strokeOpacity={restriction?.kind===window.kind?1:.95}
-                strokeWidth={restriction?.kind===window.kind?7.5:5.3} fill="none"
-                strokeLinecap="round"/>
-              <Path d={arc(window.from,window.to,109)}
-                stroke="#FFE0AE" strokeOpacity={restriction?.kind===window.kind?.87:.44}
-                strokeWidth="1.2" fill="none"/>
+              {window.state!=='inactive'?<Path
+                d={arc(window.from,window.to,112)}
+                stroke={window.state==='active'?'#AE4054':'#D49A55'}
+                strokeOpacity=".34" strokeWidth="17" fill="none"
+                strokeLinecap="round"/>:null}
+              <Path d={arc(window.from,window.to,112)}
+                stroke={window.state==='active'?'#962F44'
+                  :window.state==='approaching'?'#C7823C':'#C5716F'}
+                strokeOpacity={window.state==='inactive'?.73:1}
+                strokeWidth={window.state==='active'?10.6
+                  :window.state==='approaching'?9.1:7.1}
+                fill="none" strokeLinecap="round"/>
+              <Path d={arc(window.from,window.to,112)}
+                stroke="#FFE1AC"
+                strokeOpacity={window.state==='inactive'?.37:.8}
+                strokeWidth={window.state==='active'?1.7:1.3}
+                fill="none"/>
+              {window.state!=='inactive'?<Path
+                d={arc(window.from,window.to,173)}
+                stroke={window.state==='active'?'#8E2639':'#B97032'}
+                strokeOpacity=".26" strokeWidth="16"
+                fill="none" strokeLinecap="round"/>:null}
+              <Path d={arc(window.from,window.to,173)}
+                stroke={window.state==='active'?'#952F43'
+                  :window.state==='approaching'?'#C7853D':'#A76D66'}
+                strokeOpacity={window.state==='inactive'?.51:1}
+                strokeWidth={window.state==='active'?9.5
+                  :window.state==='approaching'?7.5:4}
+                fill="none" strokeLinecap="round"/>
+              {window.state==='active'?<Path
+                d={arc(window.from,window.to,170.5)}
+                stroke="#EDB4A1" strokeOpacity=".82"
+                strokeWidth="1.3" fill="none"/>:null}
             </G>)}
             {/* Small current-time marker rotates WITH the wheel: not the selection needle. */}
             {!preview?<G>
-              <Circle cx={nowPoint.x} cy={nowPoint.y} r="8" fill={restriction?'#E96870':rim} fillOpacity=".21"/>
-              <Circle cx={nowPoint.x} cy={nowPoint.y} r="4.1" fill={rim} stroke={centerFill} strokeWidth="1"/>
+              <Circle cx={nowPoint.x} cy={nowPoint.y} r="8"
+                fill={kerahatActive?'#9B3546':kerahatApproaching?'#C7853D':rim}
+                fillOpacity=".26"/>
+              <Circle cx={nowPoint.x} cy={nowPoint.y} r="4.1"
+                fill={kerahatActive?'#9B3546':kerahatApproaching?'#C7853D':rim}
+                stroke={centerFill} strokeWidth="1"/>
               <Path d={arc(0,Math.max(.01,currentAngle),167)} stroke={rim}
                 strokeOpacity=".58" strokeWidth="1.8" fill="none"/>
             </G>:null}
