@@ -1,4 +1,4 @@
-import {validateTriplet,type OfficialTriplet,parseMirrorStates,parseMirrorCities,parseBackupDiyanetCities,parseMirrorTriplet,type MirrorTriplet} from '@camideyiz/core';
+import {validateTriplet,type OfficialTriplet,parseMirrorStates,parseMirrorCities,parseBackupDiyanetCities,parseMirrorTriplet,parseEmushafTriplet,type MirrorTriplet} from '@camideyiz/core';
 
 export type PrayerPlaceSelection={id:number;name:string;stateId:number;stateName:string};
 export type StateOption={id:number;name:string;country_id:number};
@@ -87,10 +87,40 @@ export async function getMirrorCities(stateId:number):Promise<CityOption[]>{
   }catch{/* The directory alone may be unavailable; try verified ID-format backup. */}
   return backupDirectory(stateId);
 }
+/** Published Diyanet district code, never city centre substitution. Two
+ * independent sources: Idamedya first, emushaf if the request or the strict
+ * parsing/identity/date checks fail. Never calculate or invent prayer hours. */
 export async function getMirrorPrayerTriplet(
   place:PrayerPlaceSelection,dateISO:string,
 ):Promise<MirrorTriplet>{
-  if(!Number.isSafeInteger(place.id)||place.id<=0)throw new Error('Invalid district');
-  const raw=await mirrorGet('/'+place.id);
-  return parseMirrorTriplet(raw,place.id,dateISO,place.name,new Date().toISOString());
+  if(!Number.isSafeInteger(place.id)||place.id<=0||place.id>1_000_000)
+    throw new Error('invalid_district');
+  let firstError:unknown=null;
+  try{
+    const raw=await mirrorGet('/'+place.id,6500);
+    return parseMirrorTriplet(raw,place.id,dateISO,place.name,new Date().toISOString());
+  }catch(e){firstError=e;}
+  // The fallback directory and its prayer endpoint share the same Diyanet
+  // district IDs. Published clock values are validated as carefully as primary.
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),8500);
+  try{
+    const response=await fetch(BACKUP_DIRECTORY+'/vakitler/'+place.id,{
+      method:'GET',headers:{Accept:'application/json'},
+      signal:controller.signal,
+    });
+    if(!response.ok)throw new Error('backup_http_'+response.status);
+    return parseEmushafTriplet(await response.json(),
+      place.id,dateISO,place.name,new Date().toISOString());
+  }catch(backupError){
+    // Known categories only: never surface arbitrary server contents to UI.
+    const name=(error:unknown)=>error instanceof Error?error.message:'unknown';
+    const a=name(firstError).toLowerCase(),b=name(backupError).toLowerCase();
+    if(/missing today|missing mirror dates|backup calendar missing|missing today or next/.test(a+' '+b))
+      throw new Error('calendar_missing_dates');
+    if(/invalid|mismatch|non-increasing|duplicate|impossible/.test(a+' '+b))
+      throw new Error('calendar_invalid_response');
+    if(/429|too many/.test(a+' '+b))throw new Error('calendar_rate_limited');
+    throw new Error('calendar_network_unavailable');
+  }finally{clearTimeout(timeout);}
 }
