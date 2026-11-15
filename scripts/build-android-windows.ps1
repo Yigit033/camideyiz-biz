@@ -97,9 +97,28 @@ if (-not (Test-Path -LiteralPath $CheckoutPath)) {
   if ($activeBranch -ne $Branch) {
     throw "$CheckoutPath is on branch '$activeBranch', expected '$Branch'. No branch switching performed."
   }
-  $dirty = & git -C $CheckoutPath status --porcelain
-  if ($LASTEXITCODE -ne 0 -or $dirty) {
-    throw "$CheckoutPath has uncommitted changes. Preserve/review them before building; use a different short CheckoutPath for a clean build."
+  $dirty = @(& git -C $CheckoutPath status --porcelain)
+  if ($LASTEXITCODE -ne 0) { throw "Could not inspect Git status in $CheckoutPath." }
+  if ($dirty.Count -gt 0) {
+    # Expo prebuild may write to these two tracked files. Preserve such edits
+    # in a named LOCAL stash before pulling. Never throw away modifications.
+    # Refuse to auto-stash anything else: it could be real user work.
+    $expoGeneratedPaths = @('apps/mobile/package.json','apps/mobile/tsconfig.json')
+    $otherChanges = @($dirty | Where-Object {
+      $_.Length -lt 4 -or $_.Substring(3).Trim('"') -notin $expoGeneratedPaths
+    })
+    if ($otherChanges.Count -gt 0) {
+      Write-Warning "Other local files in isolated checkout: $($otherChanges -join '; ')"
+      throw "$CheckoutPath has changes outside Expo generated package/tsconfig. Review and stash them manually; no files were modified."
+    }
+    Invoke-Checked 'Preserve Expo-generated changes in local Git stash' {
+      & git -C $CheckoutPath stash push -m 'camideyiz-build: Expo prebuild files saved automatically' -- 'apps/mobile/package.json' 'apps/mobile/tsconfig.json'
+    }
+    $remaining = @(& git -C $CheckoutPath status --porcelain)
+    if ($LASTEXITCODE -ne 0 -or $remaining.Count -gt 0) {
+      throw "$CheckoutPath is still dirty after the automatic preservation step. Stop and review git status."
+    }
+    Write-Host 'Generated file edits are preserved in local git stash; Android CMake caches were not touched.' -ForegroundColor Green
   }
   Invoke-Checked 'Fast-forward isolated checkout' { & git -C $CheckoutPath pull --ff-only origin $Branch }
 }
