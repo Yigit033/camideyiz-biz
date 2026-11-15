@@ -48,7 +48,7 @@ const DRAFT_PREFIX='@camideyiz/gallery-draft/v2/';
 
 export default function GalleryEditor(){
   const {colors}=useAppTheme();
-  const {width,height}=useWindowDimensions();
+  const {width}=useWindowDimensions();
   const {slot:id}=useLocalSearchParams<{slot?:string}>();
   const asset=gallerySlot(typeof id==='string'?id:'');
   const photo=asset?galleryPhoto(asset.id):null;
@@ -95,9 +95,10 @@ export default function GalleryEditor(){
     ?[...GALLERY_PRESETS.filter(p=>p.category===asset.category),
       ...GALLERY_PRESETS.filter(p=>p.category!==asset.category)]
     :GALLERY_PRESETS,[asset?.category]);
-  const screenRatio=draft.format==='story'?16/9:5/4;
-  const canvasWidth=Math.max(155,Math.min(width-42,340,
-    Math.floor(height*.48/screenRatio)));
+  // Render near the device's full logical width: ViewShot captures at native
+  // screen density before final 1080px PNG resize. Artificially shrinking the
+  // preview to half the screen height would needlessly pixelate export text.
+  const canvasWidth=Math.min(Math.max(200,width-42),360);
   const canExport=canExportGalleryDesign(Boolean(photo)&&imageLoaded,draft.text)
     &&draftReady&&!busy;
   const update=<K extends keyof GalleryDraft>(key:K,value:GalleryDraft[K])=>
