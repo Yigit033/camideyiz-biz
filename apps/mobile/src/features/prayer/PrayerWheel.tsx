@@ -17,7 +17,7 @@ import {
 } from '@camideyiz/core';
 import {type ColorTokens} from '@/theme/tokens';
 import {DialLighting} from './DialLighting';
-import {MosqueCrest} from '@/components/LuxuryArtwork';
+
 
 export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
   imsak:'#3593B5',
@@ -427,23 +427,33 @@ export function PrayerWheel({
             fill={colors.gold} opacity={colors.isDark?.44:.42}/>;
         })}
       </Svg>
-      <View style={[styles.center,{width:size*.56}]}>
-        <MosqueCrest width={size*.42} dark={colors.isDark}/>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.prayerName,{color:colors.text}]}>
-          {preview?'Namaz Vakitleri':isManualSelection?(selected?.label??'Vakit'):PRAYER_COUNTDOWN_LABELS[nextKey]}
-        </Text>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countdown,{color:colors.emerald}]}>
-          {preview?'Takvim bekleniyor':isManualSelection?selected?.time??'--:--':countdown}
-        </Text>
-        <View style={{flexDirection:'row',alignItems:'center',gap:5,marginTop:2}}>
-          <View style={{width:24,height:1,backgroundColor:colors.gold,opacity:.78}}/>
-          <MaterialCommunityIcons name="star-four-points-outline" size={13} color={colors.gold}/>
-          <View style={{width:24,height:1,backgroundColor:colors.gold,opacity:.78}}/>
+      <View style={[styles.center,{width:size*.57,gap:5}]}>
+        <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
+          <View style={{width:20,height:1,backgroundColor:colors.gold,opacity:.75}}/>
+          <MaterialCommunityIcons name="star-four-points-outline" size={12} color={colors.gold}/>
+          <View style={{width:20,height:1,backgroundColor:colors.gold,opacity:.75}}/>
         </View>
-        <View style={{flexDirection:'row',alignItems:'center',gap:4,marginTop:2}}>
-          <MaterialCommunityIcons name="map-marker-outline" size={12} color={colors.muted}/>
-          <Text style={[styles.caption,{color:colors.muted}]}>
-            {preview?'Takvim kaynağı kontrol ediliyor':isManualSelection?'Seçilen vakit':locationName??'Konum'}
+        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.kicker,{color:colors.muted}]}>
+          {preview?'NAMAZ VAKİTLERİ':isManualSelection?'SEÇİLEN VAKİT':'SIRADAKİ VAKİT'}
+        </Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit
+          style={[styles.prayerName,{color:colors.text}]}>
+          {preview?'Takvim Bekleniyor'
+            :isManualSelection?(selected?.label??'Vakit')
+              :PRAYER_COUNTDOWN_LABELS[nextKey]}
+        </Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit
+          style={[styles.countdown,{color:colors.emerald}]}>
+          {preview?'--:--':isManualSelection?selected?.time??'--:--':countdown}
+        </Text>
+        <View style={{height:1,width:'62%',backgroundColor:colors.gold,
+          opacity:.55,marginVertical:2}}/>
+        <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',
+          gap:4,maxWidth:'100%'}}>
+          <MaterialCommunityIcons name="map-marker-outline" size={13} color={colors.gold}/>
+          <Text numberOfLines={1} adjustsFontSizeToFit
+            style={[styles.caption,{color:colors.muted,flexShrink:1}]}>
+            {preview?'Konum takvimi bekleniyor':locationName??'İlçe seçilmedi'}
           </Text>
         </View>
       </View>
@@ -457,8 +467,8 @@ const styles=StyleSheet.create({
     backgroundColor:'rgba(4,35,32,.86)',borderWidth:.7,borderColor:'rgba(255,236,193,.65)'},
   needle:{position:'absolute',alignItems:'center',justifyContent:'center'},
   center:{alignItems:'center',justifyContent:'center',gap:3},
-  kicker:{fontSize:9,fontWeight:'800',letterSpacing:1.3},
-  prayerName:{fontFamily:'serif',fontSize:19,fontWeight:'700',marginTop:-2,textAlign:'center'},
-  countdown:{fontSize:29,fontWeight:'700',fontFamily:'serif',fontVariant:['tabular-nums'],letterSpacing:-.8,marginTop:-1},
+  kicker:{fontSize:9,fontWeight:'800',letterSpacing:1.15,textAlign:'center'},
+  prayerName:{fontFamily:'serif',fontSize:17,fontWeight:'800',textAlign:'center'},
+  countdown:{fontSize:31,fontWeight:'800',fontFamily:'serif',fontVariant:['tabular-nums'],letterSpacing:-.8},
   caption:{fontSize:10.5,fontFamily:'serif',textAlign:'center'},
 });
