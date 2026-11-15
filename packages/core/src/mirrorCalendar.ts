@@ -54,6 +54,28 @@ export function parseMirrorCities(raw:unknown,stateId:number):MirrorCity[]{
     return {id:o.ilce,name:name(o.ad),state_id:stateId};
   }).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
 }
+/**
+ * Optional backup DISTRICT DIRECTORY: Diyanet-coded district identifiers
+ * from emushaf's publicly documented ilceler/{sehirId} directory.
+ * No prayer time is sourced or calculated here. A response is rejected
+ * entirely if its shape/IDs are invalid or duplicates are present.
+ */
+export function parseBackupDiyanetCities(raw:unknown,stateId:number):MirrorCity[]{
+  if(!validId(stateId)||!Array.isArray(raw)||
+    raw.length<1||raw.length>300)throw new Error('Invalid backup district list');
+  const seen=new Set<number>();
+  return raw.map(row=>{
+    const entry=object(row);
+    const value=entry.IlceID;
+    if(typeof value!=='string'||!/^[1-9]\\d{0,5}$/.test(value))
+      throw new Error('Invalid backup district ID');
+    const id=Number(value);
+    if(!validId(id)||seen.has(id))throw new Error('Duplicate backup district ID');
+    seen.add(id);
+    return {id,name:name(entry.IlceAdi),state_id:stateId};
+  }).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+}
+
 function shiftedDate(date:string,delta:number):string{
   return new Date(Date.parse(assertISODate(date)+'T12:00:00Z')+delta*86400000).toISOString().slice(0,10);
 }
