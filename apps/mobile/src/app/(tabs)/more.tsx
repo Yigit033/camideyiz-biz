@@ -14,6 +14,7 @@ const SOURCES={
   prayer:'https://awqatsalah.diyanet.gov.tr/',
   independentA:'https://idamedya.org/api/',
   independentB:'https://ezanvakti.emushaf.net/',
+  independentC:'https://namazvakti.mtopal.dev/',
   rules:'https://kurul.diyanet.gov.tr/tr/fetva/mekruh-vakitler-hangileridir-hangi-vakitlerde-kaza-ve-hangi-vakitlerde-nafile-namaz-kilinmaz/0193c42d-52b7-7186-d5b4-f1d3c950ad73',
   quran:'https://kuran.diyanet.gov.tr/',
   hadis:'https://hadislerleislam.diyanet.gov.tr/',
@@ -107,7 +108,7 @@ export default function MoreScreen(){
         <Text style={{fontSize:12,lineHeight:19,color:colors.muted}}>
           Namaz vakitleri, seçilen ilçe koduyla yayımlanmış takvimlerden
           doğrulanarak alınır. Gerekirse alternatif bağımsız yayıncı denenir.
-          İdamedya ve eMushaf resmî Diyanet API'si değildir.
+          İdamedya, Namaz Vakti API ve eMushaf resmî Diyanet API'si değildir.
           Saatler uygulama tarafından tahmin edilmez veya hesaplanmaz.
         </Text>
       </View>
@@ -115,6 +116,8 @@ export default function MoreScreen(){
         icon="clock" onPress={()=>open(SOURCES.prayer)}/>
       <Resource title="Yayımlanmış takvim kaynakları" subtitle="İdamedya API bilgi ve kullanım koşulları"
         icon="info" onPress={()=>open(SOURCES.independentA)}/>
+      <Resource title="Namaz Vakti API" subtitle="mtopal.dev · bağımsız yayımlanmış ilçe vakitleri"
+        icon="clock" onPress={()=>open(SOURCES.independentC)}/>
       <Resource title="Alternatif takvim servisi" subtitle="eMushaf / EzanVakti kaynak açıklaması"
         icon="clock" onPress={()=>open(SOURCES.independentB)}/>
       <Resource title="Kerahat vakitleri" subtitle="Din İşleri Yüksek Kurulunun açıklamaları"
