@@ -57,5 +57,25 @@ const probe=async(region)=>{
 const results=await Promise.all(regions.map(probe));
 for(const result of results)console.log(JSON.stringify(result));
 const failed=results.filter(r=>!r.success);
+if(failed.length){
+  // Diagnostics only; do not ship or claim a provider until its real
+  // response shape, legality, district identity and update cycle are verified.
+  const candidateURLs=[
+    'https://namazvakti.mtopal.dev/vakitler/9551',
+    'https://apiservisim.vercel.app/api/namaz?ulke=TR&sehir=istanbul&ilce=tuzla&yil=2026&gun=3',
+    'https://namazvakitleri.diyanet.gov.tr/tr-TR/9551/tuzla-icin-namaz-vakti',
+    'https://namazvakitleri.diyanet.gov.tr/tr-TR/9740/tarsus-icin-namaz-vakti',
+  ];
+  const checks=await Promise.all(candidateURLs.map(async url=>{
+    try{
+      const result=await fetch(url,{signal:AbortSignal.timeout(9000),
+        method:'GET',headers:{Accept:'application/json, text/html'}});
+      const body=await result.text();
+      return {url,status:result.status,contentType:result.headers.get('content-type'),
+        length:body.length,preview:body.slice(0,100).replace(/\\s+/g,' ')};
+    }catch(err){return {url,error:err instanceof Error?err.message:'unknown'};}
+  }));
+  for(const item of checks)console.log('ALTERNATIVE_PROBE '+JSON.stringify(item));
+}
 if(failed.length)throw Error('No verified calendar from either provider for: '+
   failed.map(x=>x.region).join(', '));
