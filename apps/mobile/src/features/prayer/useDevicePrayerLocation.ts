@@ -111,13 +111,15 @@ export function useDevicePrayerLocation({
           accuracy:Location.Accuracy.Balanced,
           timeInterval:60_000,distanceInterval:MIN_MOVEMENT_METERS,
         },position=>{void resolve(position);},
-        ()=>{if(alive)setStatus('unavailable');});
+        ()=>{if(alive&&!lastGeocode)setStatus('unavailable');});
         if(!alive){subscription.remove();return;}
         watching=subscription;
         // Also request an immediate fix when the screen is first opened.
         void Location.getCurrentPositionAsync({
           accuracy:Location.Accuracy.Balanced,
-        }).then(resolve).catch(()=>{if(alive)setStatus('unavailable');});
+        }).then(resolve).catch(()=>{
+          if(alive&&!lastGeocode)setStatus('unavailable');
+        });
       }catch{if(alive)setStatus('unavailable');}
     };
     void start();
@@ -129,7 +131,7 @@ export function useDevicePrayerLocation({
         return Location.getCurrentPositionAsync({
           accuracy:Location.Accuracy.Balanced,
         }).then(resolve);
-      }).catch(()=>{if(alive)setStatus('unavailable');});
+      }).catch(()=>{if(alive&&!lastGeocode)setStatus('unavailable');});
     });
     return ()=>{alive=false;watching?.remove();foreground.remove();};
   },[enabled,retry]);
