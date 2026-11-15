@@ -1,4 +1,4 @@
-import {validateTriplet,type OfficialTriplet,parseMirrorStates,parseMirrorCities,parseBackupDiyanetCities,parseMirrorTriplet,parseEmushafTriplet,type MirrorTriplet} from '@camideyiz/core';
+import {validateTriplet,type OfficialTriplet,parseMirrorStates,parseMirrorCities,parseBackupDiyanetStates,parseBackupDiyanetCities,parseMirrorTriplet,parseEmushafTriplet,type MirrorTriplet} from '@camideyiz/core';
 
 export type PrayerPlaceSelection={id:number;name:string;stateId:number;stateName:string};
 export type StateOption={id:number;name:string;country_id:number};
@@ -62,7 +62,15 @@ async function mirrorGet(path:string,timeoutMs=10000):Promise<unknown>{
   }finally{clearTimeout(timeout);}
 }
 export async function getMirrorStates():Promise<StateOption[]>{
-  return parseMirrorStates(await mirrorGet('/iller'));
+  try{return parseMirrorStates(await mirrorGet('/iller',5500));}
+  catch{/* The province directory also needs a reliable fallback for GPS. */}
+  for(const base of ['https://namazvakti.mtopal.dev','https://ezanvakti.emushaf.net']){
+    try{
+      return parseBackupDiyanetStates(
+        await publishedGet(base,'/sehirler/2',7000));
+    }catch{/* Try next independently hosted directory. */}
+  }
+  throw new Error('province_directory_unavailable');
 }
 // All three open directory publishers use the same Diyanet numeric region
 // IDs. Directory-only fallback must not change the user's selected province.
