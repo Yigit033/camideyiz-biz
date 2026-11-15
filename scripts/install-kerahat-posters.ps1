@@ -44,7 +44,7 @@ try{
     # contains nested directory levels rather than repository-relative paths.
     $entries=@($zip.Entries | Where-Object {
       $leaf=($_.FullName -replace '\\','/').Split('/')[-1]
-      $leaf -match ('^'+[regex]::Escape($spec.Base)+'\.(png|jpe?g)
+      $leaf -match ('^'+[regex]::Escape($spec.Base)+'\.(png|jpe?g)$')
     })
     if($entries.Count -ne 1){
       throw "Expected exactly one JPEG/PNG named $($spec.Base) anywhere in ZIP; found $($entries.Count)."
