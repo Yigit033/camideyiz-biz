@@ -1,7 +1,7 @@
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  zonedClock,validateTriplet,validateCachedMirrorTriplet,DEFAULT_MIRROR_PLACE,
+  zonedClock,validateTriplet,validateCachedMirrorTriplet,
   MIRROR_OFFLINE_CACHE_MS,
   type OfficialTriplet,type MirrorTriplet,
 } from '@camideyiz/core';
@@ -9,11 +9,14 @@ import {
   configuredPrayerApi,getPrayerTriplet,getMirrorPrayerTriplet,
   type PrayerPlaceSelection,
 } from './prayerApi';
+import {useDevicePrayerLocation} from './useDevicePrayerLocation';
 
 const OFFICIAL_PLACE_KEY='@camideyiz/official-place/v1';
 const MIRROR_PLACE_KEY='@camideyiz/mirror-place/v1';
 const OFFICIAL_CACHE_PREFIX='@camideyiz/diyanet-days/v1/';
 const MIRROR_CACHE_PREFIX='@camideyiz/idamedya-days/v1/';
+const PLACE_MODE_KEY='@camideyiz/location-selection-mode/v1';
+export type PrayerPlaceMode='auto'|'manual';
 type DataStatus=
   'loading'|'choose-location'|'verified'|'offline'|'mirror'|'mirror-cached'|'unavailable';
 export type PrayerSourceTriplet=OfficialTriplet|MirrorTriplet;
@@ -30,33 +33,47 @@ function validPlace(value:unknown):value is PrayerPlaceSelection{
 export function usePrayerSource(now:Date){
   const officialConfigured=configuredPrayerApi();
   const [place,setPlace]=useState<PrayerPlaceSelection|null>(null);
+  const [locationMode,setLocationMode]=useState<PrayerPlaceMode|'booting'>('booting');
+  const modeRef=useRef<PrayerPlaceMode|'booting'>('booting');
+  const currentPlaceRef=useRef<PrayerPlaceSelection|null>(null);
+  const [locationRetry,setLocationRetry]=useState(0);
   const [booted,setBooted]=useState(false);
   const [data,setData]=useState<PrayerSourceTriplet|null>(null);
   const [status,setStatus]=useState<DataStatus>('loading');
   const [failureReason,setFailureReason]=useState<string|null>(null);
   const [refresh,setRefresh]=useState(0);
   const dateISO=zonedClock(now,'Europe/Istanbul').dateISO;
+  currentPlaceRef.current=place;
 
   useEffect(()=>{
     let live=true;
     setBooted(false);
     const placeKey=officialConfigured?OFFICIAL_PLACE_KEY:MIRROR_PLACE_KEY;
-    AsyncStorage.getItem(placeKey).then(raw=>{
+    AsyncStorage.multiGet([placeKey,PLACE_MODE_KEY]).then(records=>{
       if(!live)return;
       let stored:PrayerPlaceSelection|null=null;
       try{
+        const raw=records[0]?.[1];
         if(raw){
           const saved:unknown=JSON.parse(raw);
           if(validPlace(saved))stored=saved;
         }
-      }catch{/* malformed preference does not prevent app boot */}
-      // The starter location is *not* inferred from GPS. It is labelled by name.
-      setPlace(stored??(officialConfigured?null:{...DEFAULT_MIRROR_PLACE}));
+      }catch{/* Corrupted preferences are not a GPS result. */}
+      // Preserve existing explicit selections on upgrade; fresh installs
+      // start with GPS, not a pretend default Istanbul location.
+      const selected:PrayerPlaceMode=records[1]?.[1]==='auto'
+        ?'auto'
+        :records[1]?.[1]==='manual'||stored
+          ?'manual':'auto';
+      modeRef.current=selected;
+      setLocationMode(selected);
+      currentPlaceRef.current=stored;
+      setPlace(stored);
       setBooted(true);
     }).catch(()=>{
       if(live){
-        setPlace(officialConfigured?null:{...DEFAULT_MIRROR_PLACE});
-        setBooted(true);
+        modeRef.current='auto';setLocationMode('auto');
+        setPlace(null);setBooted(true);
       }
     });
     return ()=>{live=false;};
@@ -64,17 +81,43 @@ export function usePrayerSource(now:Date){
 
   const selectPlace=useCallback(async(next:PrayerPlaceSelection)=>{
     if(!validPlace(next))throw new Error('Invalid place selection');
-    // Persist FIRST. If storage fails the picker remains open with an error;
-    // it must not look selected and then silently revert on app restart.
-    await AsyncStorage.setItem(
-      officialConfigured?OFFICIAL_PLACE_KEY:MIRROR_PLACE_KEY,
-      JSON.stringify(next),
-    );
-    setData(null);
-    setStatus('loading');
-    setFailureReason(null);
+    // Manual selection is an explicit persistent override. Position watches
+    // are unmounted when mode changes and may never silently override it.
+    await AsyncStorage.multiSet([
+      [officialConfigured?OFFICIAL_PLACE_KEY:MIRROR_PLACE_KEY,
+        JSON.stringify(next)],
+      [PLACE_MODE_KEY,'manual'],
+    ]);
+    modeRef.current='manual';
+    setLocationMode('manual');
+    currentPlaceRef.current=next;
+    setData(null);setStatus('loading');setFailureReason(null);
     setPlace(next);
   },[officialConfigured]);
+
+  const selectGpsPlace=useCallback(async(next:PrayerPlaceSelection)=>{
+    if(!validPlace(next)||modeRef.current!=='auto')return;
+    if(currentPlaceRef.current?.id===next.id&&
+      currentPlaceRef.current?.stateId===next.stateId)return;
+    const key=officialConfigured?OFFICIAL_PLACE_KEY:MIRROR_PLACE_KEY;
+    await AsyncStorage.setItem(key,JSON.stringify(next));
+    if(modeRef.current!=='auto')return;
+    currentPlaceRef.current=next;
+    setData(null);setStatus('loading');setFailureReason(null);
+    setPlace(next);
+  },[officialConfigured]);
+
+  const enableAutoLocation=useCallback(async()=>{
+    // Called by the explicit crosshair on the home location header.
+    await AsyncStorage.setItem(PLACE_MODE_KEY,'auto');
+    modeRef.current='auto';
+    setLocationMode('auto');
+    setLocationRetry(value=>value+1);
+  },[]);
+  const autoLocationStatus=useDevicePrayerLocation({
+    enabled:booted&&locationMode==='auto',
+    retry:locationRetry,onResolved:selectGpsPlace,
+  });
   const retry=useCallback(()=>setRefresh(n=>n+1),[]);
   // Re-check the time-limited third-party cache while the app remains foregrounded.
   useEffect(()=>{
@@ -160,6 +203,8 @@ export function usePrayerSource(now:Date){
       :'Üçüncü taraf yayımlanmış namaz takvimi';
   return useMemo(()=>({
     place,status,days:data,selectPlace,retry,failureReason,
+    locationMode,autoLocationStatus,enableAutoLocation,
     configured:true,officialConfigured,sourceLabel,
-  }),[place,status,data,selectPlace,retry,failureReason,officialConfigured,sourceLabel]);
+  }),[place,status,data,selectPlace,retry,failureReason,locationMode,
+    autoLocationStatus,enableAutoLocation,officialConfigured,sourceLabel]);
 }
