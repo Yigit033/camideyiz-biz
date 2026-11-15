@@ -16,7 +16,7 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
   onOpenLocation:()=>void;
   compact?:boolean;
 }){
-  const {colors,mode,setMode}=useAppTheme();
+  const {colors,setMode}=useAppTheme();
   const dark=colors.isDark;
   const district=place
     ?place.name.toLocaleLowerCase('tr-TR')===place.stateName.toLocaleLowerCase('tr-TR')
