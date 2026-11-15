@@ -4,6 +4,7 @@ import {indicativeKerahatWindows,type RestrictionWindow} from './timeline.ts';
 export const KERAHAT_SOURCE_URL =
   'https://kurul.diyanet.gov.tr/tr/fetva/mekruh-vakitler-hangileridir-hangi-vakitlerde-kaza-ve-hangi-vakitlerde-nafile-namaz-kilinmaz/0193c42d-52b7-7186-d5b4-f1d3c950ad73';
 
+/** 'standard' is accepted for persisted legacy preferences only. */
 export type KerahatMode = 'standard' | 'custom' | 'hidden';
 export type KerahatSettings = {
   mode:KerahatMode;
@@ -12,7 +13,9 @@ export type KerahatSettings = {
   preSunsetMinutes:number;
 };
 export const DEFAULT_KERAHAT_SETTINGS:Readonly<KerahatSettings> = {
-  mode:'standard',sunriseMinutes:45,preNoonMinutes:10,preSunsetMinutes:45,
+  // Expose one user-adjustable visual profile; no separate "default"
+  // preset in the UI. The offsets remain APPROXIMATE, not religious rulings.
+  mode:'custom',sunriseMinutes:45,preNoonMinutes:10,preSunsetMinutes:45,
 };
 export const KERAHAT_RANGES = {
   sunriseMinutes:{min:40,max:50},
