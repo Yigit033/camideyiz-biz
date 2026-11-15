@@ -47,7 +47,15 @@ export function galleryFormatDimensions(format:GalleryFormat):{width:number;heig
   return format==='story'?{width:1080,height:1920}:{width:1080,height:1350};
 }
 export function galleryTextRelativeTop(position:GalleryTextPosition):number{
-  return position==='top'?0.18:position==='center'?0.5:0.77;
+  // Keep captions inside the safe visual band of WhatsApp Story chrome.
+  return position==='top'?0.27:position==='center'?0.5:0.73;
+}
+/** Large text is premium for greetings; longer personal messages must fit
+ * without silently dropping their final lines from the output image.
+ */
+export function galleryTextFitScale(text:string):number{
+  const len=Array.from(text).length;
+  return len>130?.48:len>95?.62:len>60?.8:1;
 }
 export type GalleryTextSize='small'|'normal'|'large';
 export type GalleryShade='light'|'medium'|'deep';
