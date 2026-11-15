@@ -49,12 +49,15 @@ export function galleryFormatDimensions(format:GalleryFormat):{width:number;heig
 export function galleryTextRelativeTop(position:GalleryTextPosition):number{
   return position==='top'?0.18:position==='center'?0.5:0.77;
 }
+export type GalleryTextSize='small'|'normal'|'large';
+export type GalleryShade='light'|'medium'|'deep';
 export type GalleryDraft={
   text:string;font:GalleryFont;position:GalleryTextPosition;tone:GalleryTextTone;
-  format:GalleryFormat;
+  format:GalleryFormat;textSize:GalleryTextSize;shade:GalleryShade;
 };
 export const DEFAULT_GALLERY_DRAFT:GalleryDraft={
   text:'Hayırlı Cumalar',font:'serif',position:'center',tone:'ivory',format:'story',
+  textSize:'normal',shade:'medium',
 };
 export function parseGalleryDraft(value:unknown):GalleryDraft|null{
   if(!value||typeof value!=='object'||Array.isArray(value))return null;
@@ -63,7 +66,9 @@ export function parseGalleryDraft(value:unknown):GalleryDraft|null{
     !(['serif','modern','handwriting','condensed'] as unknown[]).includes(d.font)||
     !(['top','center','bottom'] as unknown[]).includes(d.position)||
     !(['ivory','white','gold','dark'] as unknown[]).includes(d.tone)||
-    !(['story','post'] as unknown[]).includes(d.format))return null;
+    !(['story','post'] as unknown[]).includes(d.format)||
+    !(['small','normal','large'] as unknown[]).includes(d.textSize)||
+    !(['light','medium','deep'] as unknown[]).includes(d.shade))return null;
   return {text:cleanGalleryText(d.text),font:d.font!,position:d.position!,
-    tone:d.tone!,format:d.format!};
+    tone:d.tone!,format:d.format!,textSize:d.textSize!,shade:d.shade!};
 }
