@@ -208,3 +208,18 @@ test('published same-day offline cache lasts at most 24h, not across district/da
   assert.throws(()=>validateCachedMirrorTriplet(triplet,9551,'2026-11-16',
     now+1000,MIRROR_OFFLINE_CACHE_MS));
 });
+
+test('mtopal data uses the same published Diyanet schema but retains source attribution',()=>{
+  const t=parseEmushafTriplet([
+    emushafDay('14.11.2026'),
+    emushafDay('15.11.2026'),
+    emushafDay('16.11.2026'),
+  ],9740,'2026-11-15','Tarsus',fetchTime,'mtopal');
+  assert.equal(t.provider,'mtopal');
+  assert.equal(t.today.provider,'mtopal');
+  assert.equal(t.today.cityId,9740);
+  assert.equal(t.today.dateISO,'2026-11-15');
+  assert.equal(t.next.dateISO,'2026-11-16');
+  assert.equal(validateCachedMirrorTriplet(t,9740,'2026-11-15',
+    Date.parse(fetchTime)+6000).provider,'mtopal');
+});
