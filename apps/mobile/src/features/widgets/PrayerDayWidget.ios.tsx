@@ -5,7 +5,7 @@ import {createWidget,type WidgetEnvironment} from 'expo-widgets';
 
 type Props={
   ready:boolean;city:string;dateISO:string;nextName:string;nextTime:string;
-  nextAt:number;updatedAt:number;remainingMinutes:number;
+  nextAt:number;updatedAt:number;remainingMinutes:number;updatedClock:string;
   times:{key:string;label:string;time:string}[];
 };
 
@@ -66,5 +66,5 @@ const PrayerDayWidget=(props:Props,env:WidgetEnvironment)=>{
 };
 export default createWidget<Props>('PrayerDayWidget',PrayerDayWidget,{
   ready:false,city:'Konum seç',dateISO:'',nextName:'',nextTime:'',
-  nextAt:0,updatedAt:0,remainingMinutes:0,times:[],
+  nextAt:0,updatedAt:0,remainingMinutes:0,updatedClock:'',times:[],
 });
