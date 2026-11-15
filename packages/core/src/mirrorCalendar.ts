@@ -7,7 +7,7 @@ export const MIRROR_SOURCE='idamedya-diyanet-republished' as const;
 export const MIRROR_CACHE_MS=55*60*1000;
 /** Last confirmed local calendar may be shown during a temporary outage for the same date. */
 export const MIRROR_OFFLINE_CACHE_MS=24*60*60*1000;
-export type PublishedCalendarProvider='idamedya'|'emushaf';
+export type PublishedCalendarProvider='idamedya'|'mtopal'|'emushaf';
 export const DEFAULT_MIRROR_PLACE={
   id:9541,name:'İstanbul',stateId:539,stateName:'İstanbul',
 } as const; // Open public list (idamedya.org/api/v1/namaz/iller); NOT GPS-derived.
@@ -163,7 +163,8 @@ export function parseMirrorTriplet(raw:unknown,cityId:number,dateISO:string,
  * emushaf.net/vakitler/{district-id} responds with Diyanet field names.
  * Date is parsed directly from Turkish DD.MM.YYYY without timezone shifting. */
 export function parseEmushafTriplet(raw:unknown,cityId:number,dateISO:string,
-  locationName:string,fetchTime:string):MirrorTriplet{
+  locationName:string,fetchTime:string,
+  provider:'mtopal'|'emushaf'='emushaf'):MirrorTriplet{
   if(!validId(cityId))throw new Error('Invalid published district ID');
   assertISODate(dateISO);
   if(!Array.isArray(raw)||raw.length<2||raw.length>45)
@@ -186,14 +187,15 @@ export function parseEmushafTriplet(raw:unknown,cityId:number,dateISO:string,
   // one to pass primary-provider validation. The selection is constrained by
   // /vakitler/{selectedDistrictId}; only time/date/order are verified here.
   return buildPublishedTriplet(
-    converted,cityId,dateISO,locationName,fetchTime,'emushaf');;
+    converted,cityId,dateISO,locationName,fetchTime,provider);;
 }
 
 export function validateCachedMirrorTriplet(value:unknown,cityId:number,dateISO:string,
   now=Date.now(),maxAgeMs=MIRROR_CACHE_MS):MirrorTriplet{
   const t=object(value);
   if(t.source!==MIRROR_SOURCE||t.dateISO!==assertISODate(dateISO))throw new Error('Cached source mismatch');
-  if(t.provider!=='idamedya'&&t.provider!=='emushaf')throw new Error('Unknown cached provider');
+  if(t.provider!=='idamedya'&&t.provider!=='mtopal'&&t.provider!=='emushaf')
+    throw new Error('Unknown cached provider');
   const city=object(t.city);
   if(city.id!==cityId||typeof city.name!=='string')throw new Error('Cached district mismatch');
   for(const [key,offset] of ([['previous',-1],['today',0],['next',1]] as const)){
