@@ -214,7 +214,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
       </View>
 
       <KerahatPanel view={kerahat} settings={kerahatSettings}
-        locationName={SCHEDULE.locationName}/>
+        locationName={SCHEDULE.locationName} secondsOfDay={previewSeconds}/>
       <DailyWisdomSection dateISO={zoned.dateISO} dark={dark}/>
       <Pressable accessibilityRole="button"
         accessibilityLabel="Güncel zaman durumu ve kerahet açıklamasını oku"
