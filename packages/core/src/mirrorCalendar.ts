@@ -45,6 +45,23 @@ export function parseMirrorStates(raw:unknown):MirrorState[]{
   }
   return out.sort((a,b)=>a.name.localeCompare(b.name,'tr'));
 }
+/** Read the independent /sehirler/2 directory only when the primary
+ * province endpoint is unavailable. ID is always the Diyanet city code. */
+export function parseBackupDiyanetStates(raw:unknown):MirrorState[]{
+  if(!Array.isArray(raw)||raw.length<1||raw.length>100)
+    throw new Error('Invalid backup state directory');
+  const seen=new Set<number>();
+  return raw.map(item=>{
+    const record=object(item);
+    const value=record.SehirID;
+    if(typeof value!=='string'||!/^[1-9]\\d{0,5}$/.test(value))
+      throw new Error('Invalid backup province code');
+    const id=Number(value);
+    if(!validId(id)||seen.has(id))throw new Error('Duplicate backup province code');
+    seen.add(id);
+    return {id,name:name(record.SehirAdi),country_id:2 as const,centerDistrictId:0};
+  }).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+}
 export function parseMirrorCities(raw:unknown,stateId:number):MirrorCity[]{
   if(!validId(stateId))throw new Error('Invalid state');
   const items=envelope(raw);
