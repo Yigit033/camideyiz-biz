@@ -22,13 +22,13 @@ const NextPrayerWidget=(props:Props)=>{
       ☪  Camideyiz Biz
     </Text>
     <Text color="#A6D6C1" maxLines={1}
-      style={{fontSize:12,fontWeight:'medium'}}>
+      style={{fontSize:12,fontWeight:'normal'}}>
       {props.ready?props.city:'Takvim yüklenmedi'}
     </Text>
     {props.ready
       ?<Column verticalArrangement={{spacedBy:3}}>
         <Text color="#F7F4E7" maxLines={1}
-          style={{fontSize:12,fontWeight:'medium'}}>
+          style={{fontSize:12,fontWeight:'normal'}}>
           Sıradaki vakit · {props.nextName}
         </Text>
         <Text color="#F1D091" maxLines={1}
