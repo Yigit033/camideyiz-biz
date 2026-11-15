@@ -103,40 +103,33 @@ function WidgetShowcase({now}: {now:number}){
       Camideyiz Biz’i bul ve boyut seç. Widget’a dokununca ana sayfa açılır.
     </Text>
     <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
-      <Feather name="info" size={15} color={colors.gold}/>
-      <Text style={{flex:1,color:colors.muted,fontSize:11,lineHeight:18}}>
-        {Platform.OS==='ios'
-          ?'iOS widget’ında sistem tarafından güncellenen canlı geri sayım kullanılır. Yenileme zamanlarını iOS yönetir.'
-          :'Android widget’ı sonraki vaktin saatini gösterir. Güncelleme uygulama açıldığında yapılır; arka planda sürekli sayaç garantisi yoktur.'}
-        {isExpoGoRuntime()
-          ?'\nExpo Go: Bu kartlar tasarım önizlemesidir. Ana ekrana widget eklemek için native uygulama derlemesi gerekir.'
-          :'\nAna ekran widget’ları yüklü native uygulama üzerinden yönetilir.'}
-      </Text>
+      <Feather name="refresh-cw" size={15} color={colors.gold}/>
+      <View style={{flex:1,gap:4}}>
+        <Text style={{fontSize:11,fontWeight:'800',color:colors.text}}>
+          {Platform.OS==='ios'?'Otomatik vakit yenileme'
+            :companion.backgroundRegistered
+              ?'Otomatik yenileme planlandı'
+              :'Yenileme durumu kontrol ediliyor'}
+        </Text>
+        <Text style={{fontSize:10.5,lineHeight:17,color:colors.muted}}>
+          {Platform.OS==='ios'
+            ?'Vakitler telefonun izin verdiği aralıklarda yenilenir.'
+            :'Namaz vakitleri uygun olduğunda arka planda yenilenir. Pil tasarrufu geciktirebilir.'}
+        </Text>
+        {companion.backgroundReport?.status==='updated'
+          ?<Text style={{fontSize:10,color:colors.muted}}>
+            {'Son güncelleme: '+new Date(companion.backgroundReport.lastAttempt)
+              .toLocaleString('tr-TR')}
+          </Text>:null}
+      </View>
     </View>
-    {Platform.OS==='android'&&!isExpoGoRuntime()
-      ?<View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
-        <Feather name="refresh-ccw" size={15} color={colors.gold}/>
-        <View style={{flex:1,gap:4}}>
-          <Text style={{fontSize:11,fontWeight:'800',color:colors.text}}>
-            Arka plan güncellemesi · {companion.backgroundRegistered?'Sisteme kaydedildi':'Kayıt bekleniyor'}
-          </Text>
-          <Text style={{fontSize:10.5,lineHeight:17,color:colors.muted}}>
-            En erken 15 dakikalık aralıklarla, Android uygun gördüğünde yenilenir.
-            Pil tasarrufu, üretici kısıtlamaları veya uygulamanın zorla durdurulması
-            gecikmeye neden olabilir. Dakikasında güncelleme garantisi verilmez.
-          </Text>
-          <Text style={{fontSize:10,color:colors.muted}}>
-            {companion.backgroundReport
-              ?'Son arka plan denemesi: '+
-                new Date(companion.backgroundReport.lastAttempt).toLocaleString('tr-TR')+
-                ' · '+companion.backgroundReport.detail
-              :'Henüz bir arka plan çalıştırması gözlemlenmedi.'}
-          </Text>
-        </View>
-      </View>:null}
     <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10}}>
       <Text style={{flex:1,fontSize:10.5,color:colors.muted}} numberOfLines={2}>
-        {companion.widget.detail}
+        {companion.widget.updated
+          ?'Widget vakitleri güncellendi'
+          :preview.status==='ready'
+            ?'Widget yenilemesi bekleniyor'
+            :'Vakitler yüklendiğinde widget güncellenecek'}
       </Text>
       <Pressable accessibilityRole="button" onPress={companion.refresh}
         style={[styles.miniButton,{backgroundColor:colors.emerald}]}>
@@ -473,11 +466,6 @@ export default function CompanionScreen(){
             </Text>
           </View>}
       </View>
-      <Text style={{textAlign:'center',fontSize:10,color:colors.muted,lineHeight:17}}>
-        Namaz hatırlatmaları ve widget'lar cihazda çalışır. Özel duyurular
-        isteğe bağlı sunucu push altyapısı gerektirir. Native özellikler için
-        yeni APK gereklidir.
-      </Text>
     </ScrollView>
   </SafeAreaView>;
 }
