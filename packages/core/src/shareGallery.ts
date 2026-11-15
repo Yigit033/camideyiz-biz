@@ -1,0 +1,69 @@
+/** Share Gallery 2.0 has no user accounts, social feed or server uploads.
+ * Only owner-approved, bundled photographs can be published to the catalogue.
+ */
+export const GALLERY_TEXT_MAX_LENGTH=160;
+export type GalleryCategory='cuma'|'dua'|'kandil'|'ramazan'|'bayram'|'gunaydin'|'genel';
+export type GalleryFormat='story'|'post';
+export type GalleryFont='serif'|'modern'|'handwriting'|'condensed';
+export type GalleryTextPosition='top'|'center'|'bottom';
+export type GalleryTextTone='ivory'|'white'|'gold'|'dark';
+
+export const GALLERY_CATEGORIES=[
+  {id:'all',label:'Tümü'},
+  {id:'cuma',label:'Cuma'},
+  {id:'dua',label:'Dua'},
+  {id:'kandil',label:'Kandil'},
+  {id:'ramazan',label:'Ramazan'},
+  {id:'bayram',label:'Bayram'},
+  {id:'gunaydin',label:'Günlük'},
+  {id:'genel',label:'Diğer'},
+] as const;
+
+export const GALLERY_PRESETS=[
+  {id:'cuma-1',category:'cuma',text:'Hayırlı Cumalar'},
+  {id:'cuma-2',category:'cuma',text:'Cumanız mübarek olsun. Dualarınız kabul olsun.'},
+  {id:'cuma-3',category:'cuma',text:'Huzur, sağlık ve bereket dolu bir cuma diliyorum.'},
+  {id:'dua-1',category:'dua',text:'Rabbim gönlünüzden geçen hayırlı duaları kabul etsin.'},
+  {id:'dua-2',category:'dua',text:'Huzur ve bereket gönlünüzden eksik olmasın.'},
+  {id:'kandil-1',category:'kandil',text:'Kandiliniz mübarek olsun.'},
+  {id:'kandil-2',category:'kandil',text:'Bu mübarek gecenin hayırlara vesile olmasını dilerim.'},
+  {id:'ramazan-1',category:'ramazan',text:'Hayırlı Ramazanlar'},
+  {id:'ramazan-2',category:'ramazan',text:'Ramazan ayınız bereketli olsun.'},
+  {id:'bayram-1',category:'bayram',text:'Bayramınız mübarek olsun.'},
+  {id:'bayram-2',category:'bayram',text:'Sevdiklerinizle huzurlu ve güzel bir bayram dilerim.'},
+  {id:'gunaydin-1',category:'gunaydin',text:'Hayırlı Sabahlar'},
+  {id:'gunaydin-2',category:'gunaydin',text:'Hayırlı Akşamlar'},
+  {id:'genel-1',category:'genel',text:'Güzellikler ve hayırlar sizinle olsun.'},
+] as const;
+
+export function cleanGalleryText(input:string):string{
+  return input.replace(/\r\n?/g,'\n').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,'')
+    .slice(0,GALLERY_TEXT_MAX_LENGTH);
+}
+export function canExportGalleryDesign(hasOwnerPhoto:boolean,text:string):boolean{
+  return hasOwnerPhoto&&cleanGalleryText(text).trim().length>0;
+}
+export function galleryFormatDimensions(format:GalleryFormat):{width:number;height:number}{
+  return format==='story'?{width:1080,height:1920}:{width:1080,height:1350};
+}
+export function galleryTextRelativeTop(position:GalleryTextPosition):number{
+  return position==='top'?0.18:position==='center'?0.5:0.77;
+}
+export type GalleryDraft={
+  text:string;font:GalleryFont;position:GalleryTextPosition;tone:GalleryTextTone;
+  format:GalleryFormat;
+};
+export const DEFAULT_GALLERY_DRAFT:GalleryDraft={
+  text:'Hayırlı Cumalar',font:'serif',position:'center',tone:'ivory',format:'story',
+};
+export function parseGalleryDraft(value:unknown):GalleryDraft|null{
+  if(!value||typeof value!=='object'||Array.isArray(value))return null;
+  const d=value as Partial<GalleryDraft>;
+  if(typeof d.text!=='string'||d.text.length>GALLERY_TEXT_MAX_LENGTH*3||
+    !(['serif','modern','handwriting','condensed'] as unknown[]).includes(d.font)||
+    !(['top','center','bottom'] as unknown[]).includes(d.position)||
+    !(['ivory','white','gold','dark'] as unknown[]).includes(d.tone)||
+    !(['story','post'] as unknown[]).includes(d.format))return null;
+  return {text:cleanGalleryText(d.text),font:d.font!,position:d.position!,
+    tone:d.tone!,format:d.format!};
+}
