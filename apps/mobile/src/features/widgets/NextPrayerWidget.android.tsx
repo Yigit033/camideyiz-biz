@@ -5,7 +5,7 @@ import {createWidget} from 'expo-widgets';
 
 type Props={
   ready:boolean;city:string;dateISO:string;nextName:string;nextTime:string;
-  nextAt:number;updatedAt:number;remainingMinutes:number;
+  nextAt:number;updatedAt:number;remainingMinutes:number;updatedClock:string;
   times:{key:string;label:string;time:string}[];
 };
 
@@ -46,11 +46,11 @@ const NextPrayerWidget=(props:Props)=>{
         </Text>
       </Column>}
     {props.ready?<Text color="#9FC6B6" maxLines={1} style={{fontSize:10}}>
-      Saat bilgisi · uygulamayı açarak yenile
+      Son yenileme · {props.updatedClock}
     </Text>:null}
   </Column>;
 };
 export default createWidget<Props>('NextPrayerWidget',NextPrayerWidget,{
   ready:false,city:'',dateISO:'',nextName:'',nextTime:'',
-  nextAt:0,updatedAt:0,remainingMinutes:0,times:[],
+  nextAt:0,updatedAt:0,remainingMinutes:0,updatedClock:'',times:[],
 });
