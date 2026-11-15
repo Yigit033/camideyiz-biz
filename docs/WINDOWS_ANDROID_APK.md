@@ -125,3 +125,39 @@ Test-Path .\\settings.gradle
 ```
 
 Do not run `gradlew init`: the Android project already exists; it was only invoked from the wrong directory. If `Test-Path` returns `False`, rerun the updated script to regenerate the Android directory.
+
+
+## 15 November 2026 — incremental native rebuild and matching APK signature
+
+Use the **same short checkout** that produced your previously installed
+`app-release.apk`, normally `C:\cb`. A fresh `C:\cc` clone for every
+update loses the Gradle/CMake/Ninja object caches and may produce a different
+signing identity. Do not recreate the directory unless it is genuinely broken.
+
+```powershell
+cd C:\active_projects\camideyiz-biz
+git switch feat/widgets-and-prayer-alerts-2
+git pull --ff-only origin feat/widgets-and-prayer-alerts-2
+powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1 -CheckoutPath C:\cb
+```
+
+The script fast-forwards the clean `C:\cb` branch, installs dependencies,
+runs **non-clean** Expo prebuild when Android is already present, and keeps
+Gradle/CMake intermediate outputs between native builds. It also allows Gradle
+to reuse its daemon. To deliberately regenerate the native folder only after
+a hard-to-recover native configuration error:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1 -CheckoutPath C:\cb -CleanNative
+```
+
+`-CleanNative` may discard signing and intermediate state stored in native
+directories. Check the installed APK's signer first, and do not reset
+app data merely to install a new debug-signed release.
+
+`-Configuration Debug` is for native debugging. A standard debug APK
+expects Metro and is **not** a standalone phone-testing replacement for
+`-Configuration Release`. First builds after introducing a new native SDK
+module can still be long; later builds only benefit from caches that remain
+intact. Release APKs may be signed with a debug keystore, which must never
+be treated as an official Play Store production signing configuration.
