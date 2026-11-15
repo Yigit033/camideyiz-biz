@@ -179,7 +179,7 @@ function WidgetShowcase({now}: {now:number}){
       ?<Pressable accessibilityRole="button"
         onPress={()=>Alert.alert('Widget güncelleme ayrıntısı',
           companion.widget.detail+
-          '\\n\\nAna sayfada saatler görünüyorsa Widget Yenile butonuna bas. Sorun sürerse bu açıklamayı paylaş.')}
+          '\n\nAna sayfada saatler görünüyorsa Widget Yenile butonuna bas. Sorun sürerse bu açıklamayı paylaş.')}
         style={{alignSelf:'flex-start',paddingVertical:5}}>
         <Text style={{fontSize:11,fontWeight:'700',color:colors.gold}}>
           Neden güncellenmedi?
