@@ -31,14 +31,14 @@ function WisdomCard({item,isDark,onOpen,isFavorite,onToggle}:{
       <Circle cx="16" cy="140" r="83" fill="none" stroke="#DBC189" strokeWidth=".6" strokeOpacity=".18"/>
       </Svg>:null}
     <ArabesqueCorner dark width={78}/>
-    <Pressable accessibilityRole="button" accessibilityLabel={(verse?'Günün ayeti: ':'Günün hadisi: ')+item.reference+'. Detayları aç'}
+    <Pressable accessibilityRole="button" accessibilityLabel={(verse?'Ayet-i Celile: ':'Hadis-i Şerif: ')+item.reference+'. Detayları aç'}
       onPress={onOpen} style={{flex:1,gap:9,justifyContent:'space-between'}}>
       <View style={styles.cardTop}>
         {verse?<MaterialCommunityIcons name="book-open-page-variant-outline" size={21} color="#F1D292"/>
           :<GoldenLantern size={22}/>}
         <Text style={{fontSize:13.5,fontFamily:'serif',fontWeight:'700',
           color:verse?'#F3D69D':foreground,flex:1}}>
-          {verse?'Günün Ayeti':'Günün Hadisi'}
+          {verse?'Ayet-i Celile':'Hadis-i Şerif'}
         </Text>
 
       </View>
@@ -77,7 +77,7 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
   };
   const shareItem=async(item:WisdomItem)=>{
     try{await Share.share({message:
-      (item.kind==='verse'?'Günün Ayeti':'Günün Hadisi')+'\n\n“'+item.excerpt+
+      (item.kind==='verse'?'Ayet-i Celile':'Hadis-i Şerif')+'\n\n“'+item.excerpt+
       '”\n\n'+item.reference+'\nKısa alıntı · Tam metin: '+item.sourceUrl+
       '\n\nCamideyiz Biz'});}
     catch{/* dismissed or OS share failure */}
@@ -123,7 +123,7 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
           <View style={styles.sheetHead}>
             <View style={{flex:1,gap:4}}>
               <Text style={{fontFamily:'serif',fontSize:24,fontWeight:'700',color:colors.text}}>
-                {savedOpen?'Kaydedilen Seçkiler':detail?.kind==='verse'?'Günün Ayeti':'Günün Hadisi'}
+                {savedOpen?'Kaydedilen Seçkiler':detail?.kind==='verse'?'Ayet-i Celile':'Hadis-i Şerif'}
               </Text>
               <Text style={{fontSize:12,color:colors.muted}}>
                 {savedOpen?'İnternet olmadan kaydedilen kısa alıntıları okuyabilirsiniz.':
