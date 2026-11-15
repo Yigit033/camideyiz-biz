@@ -11,10 +11,10 @@ import Animated, {
 import {scheduleOnRN} from 'react-native-worklets';
 import type {PrayerTime,PrayerKey,RestrictionWindow,Urgency} from '@camideyiz/core';
 import {
-  timeToMinutes, angleOfTouch, normalizeDegrees,
+  angleOfTouch, normalizeDegrees,
   nearestCenterRotation, sectorAtNeedle, shortestAngularDelta,
   tangentialVelocity, makeVisualDialSectors, clockSecondsToVisualAngle,
-  kerahatRingWindows,prayerSectorLabelAngle,
+  kerahatRingWindows,prayerSectorVisualLayout,currentPrayerArc,
 } from '@camideyiz/core';
 import {type ColorTokens} from '@/theme/tokens';
 import {DialLighting} from './DialLighting';
@@ -68,28 +68,28 @@ function SectorLabel({
 }) {
   // The time pill marks the BEGINNING of this coloured wedge. Keep the
   // icon/name close to that pill instead of floating in the wedge midpoint.
-  const angle=prayerSectorLabelAngle(sector.from,sector.to);
-  const point = polar(angle,sector.to-sector.from<30?125:133);
-  const iconSize = 15 * size / DIAMETER;
-  const labelWidth = 66 * size / DIAMETER;
+  const layout=prayerSectorVisualLayout(sector.from,sector.to);
+  const point=polar(layout.labelAngle,layout.labelRadius);
+  const iconSize=layout.iconSize*size/DIAMETER;
+  const labelWidth=layout.labelWidth*size/DIAMETER;
+  const labelHeight=layout.labelHeight*size/DIAMETER;
   const centerX = point.x * size / DIAMETER;
   const centerY = point.y * size / DIAMETER;
   const style = useAnimatedStyle(() => ({
     transform: [{rotateZ: (-rotation.value) + 'deg'}],
   }));
-  const narrow = sector.to - sector.from < 28;
   return <Animated.View
     pointerEvents="none"
     style={[
       styles.sectorLabel,
-      {left: centerX - labelWidth / 2, top: centerY - 21 * size / DIAMETER, width: labelWidth,
-        height: 42 * size / DIAMETER},
+      {left:centerX-labelWidth/2,top:centerY-labelHeight/2,
+        width:labelWidth,height:labelHeight},
       style,
     ]}>
     <MaterialCommunityIcons name={PRAYER_ICONS[sector.key]} size={iconSize}
       color={selected || sector.key === 'yatsi' ? '#FFF4DA' : '#164038'}/>
     <Text numberOfLines={1} adjustsFontSizeToFit style={{
-      fontSize: (narrow ? 10.7 : 12.4) * size / DIAMETER,
+      fontSize:layout.fontSize*size/DIAMETER,
       fontFamily:'serif',fontWeight:'700',letterSpacing:-.15,
       color: selected || sector.key === 'yatsi' ? '#FFFCF3' : '#18372F', textAlign:'center',
     }}>{sector.label}</Text>
@@ -102,9 +102,11 @@ function SectorLabel({
 function SectorStartClock({sector,size,rotation,preview=false}:{
   sector:PrayerArc;size:number;rotation:SharedValue<number>;preview?:boolean;
 }){
-  const point=polar(sector.from+Math.min(4,(sector.to-sector.from)*.18),165);
+  const layout=prayerSectorVisualLayout(sector.from,sector.to);
+  // Exact separator angle; the clock badge stays inside the colour band.
+  const point=polar(layout.clockAngle,layout.clockRadius);
   const scale=size/DIAMETER;
-  const width=47*scale,height=19*scale;
+  const width=layout.clockWidth*scale,height=layout.clockHeight*scale;
   const unrotate=useAnimatedStyle(()=>({
     transform:[{rotateZ:-rotation.value+'deg'}],
   }));
@@ -131,7 +133,6 @@ type Props = {
   countdown: string;
   isManualSelection: boolean;
   nowSeconds: number;
-  phaseProgress: number;
   urgency: Urgency;
   nextKey: PrayerKey;
   restriction: RestrictionWindow | null;
@@ -139,12 +140,14 @@ type Props = {
   /** Explicit no-schedule state: a visual, manually rotatable wheel with no computed times. */
   preview?: boolean;
   locationName?: string;
+  previousYatsiTime?:string|null;
+  nextImsakTime?:string|null;
 };
 export function PrayerWheel({
   times, selectedIndex, onSelect, focusRequest, size,
   colors, countdown, isManualSelection, nowSeconds,
-  phaseProgress, urgency, nextKey, restriction, indicativeWindows,
-  preview=false, locationName,
+  urgency, nextKey, restriction, indicativeWindows,
+  preview=false, locationName, previousYatsiTime, nextImsakTime,
 }: Props) {
   // Placeholders must NEVER be parsed as real clock times or used to calculate phases.
   const sectors = useMemo(() => preview
@@ -257,10 +260,11 @@ export function PrayerWheel({
     },
   );
 
-  const currentAngle = preview?0:clockSecondsToVisualAngle(nowSeconds,times,sectors);
-  const nowPoint = polar(currentAngle, 163);
-  const currentSector=sectors.find(sector=>
-    currentAngle>=sector.from&&currentAngle<sector.to)??sectors[sectors.length-1];
+  const liveArc=preview?null:currentPrayerArc(
+    nowSeconds,times,sectors,previousYatsiTime,nextImsakTime);
+  const currentAngle=liveArc?.progressAngle??0;
+  const nowPoint=polar(currentAngle,163);
+  const currentSector=liveArc?sectors[liveArc.sectorIndex]:null;
   // Clock marks are painted only INSIDE the time band they belong to.
   // No generic 72-tick decorative ring or whole-circle progress arc.
   const clockTicks=preview?[]:Array.from({length:24},(_,hour)=>{
@@ -274,24 +278,24 @@ export function PrayerWheel({
   const centerFill = colors.isDark ? '#081E21' : '#FFF9EF';
   const rim = colors.isDark ? '#ECD19B' : '#C39B55';
   const baseStroke = colors.isDark ? '#07332F' : '#E9E3D2';
-  // One-second sampling changes the progress while the physical dial remains UI-thread driven.
-  const progress=Math.max(0,Math.min(1,phaseProgress));
+  // Recompute progress from the actual civil-time prayer boundaries,
+  // independent from any manually selected dial wedge.
   const boost=urgency==='normal'?0.12:urgency==='approaching'?0.45:0.8;
   const ringWindows=preview?[]:kerahatRingWindows(indicativeWindows,nowSeconds);
   const kerahatActive=ringWindows.some(window=>window.state==='active');
   const kerahatApproaching=ringWindows.some(window=>window.state==='approaching');
   const warningTint=kerahatActive?'#9B3546':kerahatApproaching?'#CA863E':null;
-  const progressTint=warningTint??(urgency==='normal'?PRAYER_COLORS[nextKey]:
-    nextKey==='aksam'?'#F6B46F':colors.isDark?'#F4D58B':'#B9823D');
+  const progressTint=warningTint??PRAYER_COLORS[currentSector?.key??'imsak'];
   const kerahatArcs=ringWindows.flatMap(window=>{
     const from=clockSecondsToVisualAngle(window.startSeconds,times,sectors);
     const to=clockSecondsToVisualAngle(window.endSeconds,times,sectors);
     // Explicitly clip to each matching prayer period, never paint a warning
     // across the dividers into a different coloured prayer band.
     return sectors.flatMap(sector=>{
-      const start=Math.max(from,sector.from+.65);
-      const end=Math.min(to,sector.to-.65);
-      return end>start+0.1?[{...window,from:start,to:end,
+      const start=Math.max(from,sector.from);
+      const end=Math.min(to,sector.to);
+      // Never trim minute-based kerahat durations by a decorative margin.
+      return end>start+.02?[{...window,from:start,to:end,
         sectorKey:sector.key}]:[];
     });
   });
@@ -387,8 +391,8 @@ export function PrayerWheel({
                 stroke={window.state==='active'?'#962F44'
                   :window.state==='approaching'?'#C7823C':'#C5716F'}
                 strokeOpacity={window.state==='inactive'?.73:1}
-                strokeWidth={window.state==='active'?10.6
-                  :window.state==='approaching'?9.1:7.1}
+                strokeWidth={window.state==='active'?12.6
+                  :window.state==='approaching'?11:8}
                 fill="none" strokeLinecap="round"/>
               <Path d={arc(window.from,window.to,112)}
                 stroke="#FFE1AC"
@@ -404,14 +408,35 @@ export function PrayerWheel({
                 stroke={window.state==='active'?'#952F43'
                   :window.state==='approaching'?'#C7853D':'#A76D66'}
                 strokeOpacity={window.state==='inactive'?.51:1}
-                strokeWidth={window.state==='active'?9.5
-                  :window.state==='approaching'?7.5:4}
+                strokeWidth={window.state==='active'?11.2
+                  :window.state==='approaching'?9.6:6}
                 fill="none" strokeLinecap="butt"/>
               {window.state==='active'?<Path
                 d={arc(window.from,window.to,158.5)}
                 stroke="#EDB4A1" strokeOpacity=".82"
                 strokeWidth="1.3" fill="none"/>:null}
             </G>)}
+            {/* Current period progress shares the SAME rotation and actual
+                boundary angles as the coloured sector and kerahat bands. */}
+            {liveArc&&currentSector?<G>
+              <Path d={arc(liveArc.from+.5,liveArc.to-.5,174)}
+                stroke={colors.isDark?'#E2D0AA':'#735C39'}
+                strokeOpacity={colors.isDark?.48:.35}
+                strokeWidth="5.2" strokeLinecap="butt" fill="none"/>
+              {liveArc.progress>.001?<Path
+                d={arc(liveArc.from+.1,Math.max(liveArc.from+.25,
+                  Math.min(liveArc.to-.05,liveArc.progressAngle)),174)}
+                stroke={progressTint} strokeOpacity=".29"
+                strokeWidth="10.2" strokeLinecap="round" fill="none"/>:null}
+              {liveArc.progress>.001?<Path
+                d={arc(liveArc.from+.1,Math.max(liveArc.from+.25,
+                  Math.min(liveArc.to-.05,liveArc.progressAngle)),174)}
+                stroke={progressTint} strokeWidth="5.4"
+                strokeLinecap="round" fill="none"/>:null}
+              <Circle cx={polar(currentAngle,174).x} cy={polar(currentAngle,174).y}
+                r="4.7" fill={progressTint}
+                stroke={colors.isDark?'#092D29':'#FFF8EA'} strokeWidth="1.6"/>
+            </G>:null}
             {/* Small current-time marker rotates WITH the wheel: not the selection needle. */}
             {!preview?<G>
               <Circle cx={nowPoint.x} cy={nowPoint.y} r="8"
@@ -438,30 +463,6 @@ export function PrayerWheel({
         </Animated.View>
       </View>
     </GestureDetector>
-
-    {/* Real-time progress remains fixed, independent from the physical rotating dial. */}
-    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width={size} height={size} viewBox="0 0 360 360">
-      <Defs>
-        <LinearGradient id="liveBar" x1="0%" y1="0%" x2="100%" y2="100%">
-          <Stop offset="0%" stopColor={progressTint} stopOpacity=".72"/>
-          <Stop offset="100%" stopColor={progressTint} stopOpacity="1"/>
-        </LinearGradient>
-      </Defs>
-      <Circle cx="180" cy="180" r="175" fill="none"
-        stroke={colors.isDark?'#D1BB8D':'#CBB589'} strokeOpacity=".25" strokeWidth="4"/>
-      {!preview && progress>.001?<Path
-        d={arc(0,Math.max(.2,Math.min(359.8,progress*359.8)),175)}
-        fill="none" stroke={progressTint} strokeOpacity={urgency==='normal'?.30:.38}
-        strokeWidth={urgency==='imminent'?12:8} strokeLinecap="round"/>:null}
-      {progress>.001?<Path
-        d={arc(0,Math.max(.2,Math.min(359.8,progress*359.8)),175)}
-        fill="none" stroke="url(#liveBar)" strokeWidth={urgency==='imminent'?5.5:4}
-        strokeLinecap="round"/>:null}
-      {!preview && progress>.001 && <Circle cx={polar(progress*359.8,175).x}
-        cy={polar(progress*359.8,175).y}
-        r={urgency==='imminent'?6.4:4.7} fill={progressTint}
-        stroke={colors.isDark?'#082A27':'#FFF8EB'} strokeWidth="1.8"/>}
-    </Svg>
 
     {/* Static top needle: all prayer segments rotate UNDER this indicator. */}
     <View pointerEvents="none" style={[styles.needle, {
