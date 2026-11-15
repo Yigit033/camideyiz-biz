@@ -49,9 +49,9 @@ export async function getPrayerTriplet(cityId:number,dateISO:string):Promise<Off
 // claimed by its own payload to originate from Diyanet. It is NOT Diyanet's
 // authorized Awqat Salah API. No secret is required, no local calculations.
 const MIRROR_ROOT='https://idamedya.org/api/v1/namaz';
-async function mirrorGet(path:string):Promise<unknown>{
+async function mirrorGet(path:string,timeoutMs=10000):Promise<unknown>{
   const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),10000);
+  const timeout=setTimeout(()=>controller.abort(),timeoutMs);
   try{
     const response=await fetch(MIRROR_ROOT+path,{
       method:'GET',headers:{Accept:'application/json'},
@@ -82,7 +82,7 @@ async function backupDirectory(stateId:number):Promise<CityOption[]>{
 export async function getMirrorCities(stateId:number):Promise<CityOption[]>{
   if(!Number.isSafeInteger(stateId)||stateId<=0)throw new Error('Invalid province');
   try{
-    const result=parseMirrorCities(await mirrorGet('/ilceler/'+stateId),stateId);
+    const result=parseMirrorCities(await mirrorGet('/ilceler/'+stateId,4500),stateId);
     if(result.length)return result;
   }catch{/* The directory alone may be unavailable; try verified ID-format backup. */}
   return backupDirectory(stateId);
