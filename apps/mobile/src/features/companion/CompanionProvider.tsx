@@ -15,6 +15,8 @@ import {getPrayerPermission,requestPrayerPermission,reconcilePrayerNotifications
   toInboxEvent,prunePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
   type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
 import {syncPrayerWidgets} from '@/features/widgets/widgetSync';
+import {useAnnouncementSubscription,type AnnouncementState}
+  from './useAnnouncementSubscription';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
 import {ensureWidgetBackgroundRefresh,setWidgetActivePlace,
   saveForegroundWidgetCalendar,readWidgetBackgroundReport,
@@ -40,6 +42,7 @@ type CompanionContextValue={
   permission:'granted'|'denied'|'unknown';sync:NotificationSyncReport;
   widget:WidgetSyncResult;syncing:boolean;inbox:readonly NativePrayerEvent[];
   backgroundRegistered:boolean;backgroundReport:WidgetBackgroundReport|null;
+  announcement:AnnouncementState;
   setEnabled:(next:boolean)=>Promise<boolean>;
   setSound:(next:'default'|'silent')=>void;
   setEzanAtTimeForAll:(next:boolean)=>void;
@@ -62,6 +65,7 @@ function validInbox(value:unknown):NativePrayerEvent[]{
 }
 export function CompanionProvider({children}:PropsWithChildren){
   const source=useSharedPrayerSource();
+  const announcement=useAnnouncementSubscription();
   const [settings,setSettings]=useState<PrayerAlertSettings>(DEFAULT_ALERT_SETTINGS);
   const [inbox,setInbox]=useState<NativePrayerEvent[]>([]);
   const [ready,setReady]=useState(false);
@@ -298,8 +302,10 @@ export function CompanionProvider({children}:PropsWithChildren){
   },[rememberDeletion]);
   const value=useMemo(()=>({
     settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
+    announcement,
     setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,clearInbox,deleteInbox,
   }),[settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
+       announcement,
       setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,clearInbox,deleteInbox]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
