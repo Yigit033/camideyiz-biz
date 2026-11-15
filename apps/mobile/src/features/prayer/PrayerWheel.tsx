@@ -299,7 +299,7 @@ export function PrayerWheel({
         sectorKey:sector.key}]:[];
     });
   });
-  const nextGlowStrength=0.12+0.5*boost*Math.pow(progress,1.35);
+  const nextGlowStrength=0.12+0.5*boost*Math.pow(liveArc?.progress??0,1.35);
 
   return <View style={{width: size, height: size, alignSelf: 'center', justifyContent: 'center'}}>
     <DialLighting size={size} dark={colors.isDark}/>
