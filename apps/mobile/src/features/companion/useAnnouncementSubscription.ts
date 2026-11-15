@@ -34,7 +34,8 @@ function serverUrl():string|null{
 }
 function expoProjectId():string|null{
   const value=Constants.easConfig?.projectId ??
-    (Constants.expoConfig?.extra?.eas as {projectId?:string}|undefined)?.projectId;
+    (Constants.expoConfig?.extra?.eas as {projectId?:string}|undefined)?.projectId ??
+    process.env.EXPO_PUBLIC_CB_EAS_PROJECT_ID;
   return typeof value==='string'&&/^[a-f\d-]{36}$/i.test(value)?value:null;
 }
 function available():boolean{
