@@ -10,8 +10,8 @@ export function prayerSectorLabelAngle(from:number,to:number):number{
   const span=to-from;
   // Move from the sector midpoint toward its starting clock without
   // compressing labels into the previous boundary on narrow sectors.
-  const inset=Math.max(14,Math.min(31,span*.43));
-  return Math.min(to-8,from+inset);
+  const inset=span<30?span*.43:Math.max(14,Math.min(31,span*.43));
+  return from+Math.min(span*.49,inset);
 }
 
 export type KerahatRingState='inactive'|'approaching'|'active';
