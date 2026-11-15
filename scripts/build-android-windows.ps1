@@ -125,6 +125,26 @@ if (-not (Test-Path -LiteralPath $CheckoutPath)) {
 
 Push-Location $CheckoutPath
 try {
+  # Two user-supplied posters MUST be the original, unaltered 1126x2000 PNGs.
+  # The 1x1 placeholders in Git keep CI/native module resolution working until
+  # the originals are installed. Never ship an APK containing placeholders.
+  if ($Configuration -eq 'Release') {
+    $posters = @(
+      @{ File = 'apps/mobile/assets/kerahat/agir-kerahat.png'; Sha256 = 'DD7A26F775110BC3A911BE35C78EC9C90E3D3E0A2E0A470343CFAEDB410BABF7' },
+      @{ File = 'apps/mobile/assets/kerahat/hafif-kerahat.png'; Sha256 = 'F403909395EA5E9F676680F9C6DF53E7A1B0CD9F9730328B8BA3A3B1A3CCE5' }
+    )
+    foreach ($poster in $posters) {
+      $file = Join-Path (Get-Location).Path $poster.File
+      if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+        throw "Original kerahat poster missing: $($poster.File). Install the supplied poster ZIP first."
+      }
+      $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash
+      if ($actualHash -ne $poster.Sha256) {
+        throw "Original kerahat poster has not been installed or has changed: $($poster.File). Extract the two unmodified PNG files from the supplied ZIP, commit and push them on the feature branch, then rebuild."
+      }
+    }
+    Write-Host 'Original heavy/light kerahat PNG hashes verified (unchanged).' -ForegroundColor Green
+  }
   Invoke-Checked 'Install workspace dependencies' { & npm.cmd install --package-lock=false --no-audit --no-fund }
   Push-Location 'apps\mobile'
   try {
