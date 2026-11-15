@@ -92,9 +92,14 @@ export const APPROVED_GALLERY_IMAGES:Record<string,ImageSourcePropType>={
 - `expo-sharing` ~58.0.23: Android/iOS sistem paylaşım menüsü.
 - `expo-media-library` ~58.0.14: kullanıcı izin verdiğinde
   isteğe bağlı galeriye kaydetme (WhatsApp Durumu için yedek yol).
-  Gereksiz fotoğraf okuma izni istenmeyecek; yalnızca yazma
-  gerektiren durumda izin verilir. Android manifesti ve Google Play
-  fotoğraf erişimi politikası **release öncesinde denetlenmelidir**.
+  Android konfigürasyonunda `READ_MEDIA_IMAGES`,
+  `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO` ve `READ_EXTERNAL_STORAGE`
+  izinleri, kullanıcının galerisi **okunmadığı için** açıkça bloke
+  edildi. Yalnızca kaydetme (write-only) akışı istenir. Eski Android
+  sürümleri için `WRITE_EXTERNAL_STORAGE` gibi geriye uyumlu
+  izinler native tarafta gerekebilir. Android 11/12/13/15 cihazlarda
+  kayıt akışı ve Google Play fotoğraf erişimi politikası
+  **release öncesinde denetlenmelidir**.
 
 ## Fotoğraflar gelmeden çalışanlar / çalışmayanlar
 
