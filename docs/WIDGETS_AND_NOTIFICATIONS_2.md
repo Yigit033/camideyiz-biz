@@ -184,3 +184,50 @@ geçmez; üretime alma kapıları değişmemiştir.
 ## Windows native APK build (Reanimated/Ninja)
 
 Windows üzerinde `react-native-reanimated:buildCMakeRelWithDebInfo` ve `ninja: error: mkdir(...): No such file or directory` başarısızlığı için ayrı kısa checkout, Windows uzun yol desteği ve CMake 3.31.6/Ninja 1.12.1 kullanan test betiği eklendi. Bu işlem gerçek cihaz testlerinin geçtiği anlamına gelmez. Kurulum: [WINDOWS_ANDROID_APK.md](WINDOWS_ANDROID_APK.md).
+
+## 15 Kasım 2026 — Gerçek Android telefonu ile ilk widget QA
+
+Kullanıcı Windows'ta imzalı `app-release.apk` (52.703.863 bayt) üretti;
+Android `apksigner verify` **v2 verified: true**. Fiziksel telefonda
+Launcher'ın iki native widget'ı da gösterdiği doğrulandı.
+
+Görülen sonuç: İlk kurulumda her iki widget da yalnızca
+`createWidget(..., initialProps)` içindeki boş durumu görüntüledi:
+`Konum seç` / `Takvim verisi bekleniyor`. Wide widget başlığında
+konumla marka bitişik ve kalan alanda çok fazla boşluk vardı.
+**Bu gözlem tek başına güncelleme servisinin arızalı olduğunu kanıtlamaz.**
+Widget'lar, uygulama açılıp gerçek takvim okunmadan önce başlangıç
+özelliklerini göstermelidir. Telefon uygulaması içinde veri okunması
+ve `Yenile` eyleminden sonraki davranış kullanıcı cihazında ayrıca
+doğrulanmalıdır.
+
+Düzeltmeler:
+- Native widget eşitleme `CompanionProvider` içindeki bildirim
+  zamanlama kuyruğundan ayrıldı. Takvim değiştiğinde ve kullanıcı
+  `Yenile` dediğinde, bildirim izni kapalı olsa bile bağımsız çalışır.
+- Eşitlenecek takvim verisi yoksa gerçeğe aykırı vakit gönderilmez;
+  ilk kurulum veya kaynak sorunu ayrı bilgilendirme metni verir.
+- Android 2×2 widget: okunur markalama, konum ve büyük vakit saati.
+- Android 4×2 widget: markalama/konum üst üste gelmez; altı vakit
+  iki kolonda, küçük Android launcher boyutlarına uygun düzenlenir.
+- Sürekli canlı geri sayım iddiası yok: Android'de görüntülenen
+  HH:MM ve takvim ancak native uygulama eşitlediğinde güncellenir.
+
+### Mevcut APK için manuel ayırıcı test
+
+1. Expo Go değil, yüklü `Camideyiz Biz` APK uygulamasını aç.
+2. Ana ekranda canlı kaynaklı güncel namaz saatlerini ve ilçe adını gör.
+3. `Widget ve Bildirimler` ekranında `Yenile` düğmesine bas.
+4. Yanındaki durum metnini kaydet:
+   - `... widget vakitleri güncellendi` => Android updateSnapshot çağrısı çalıştı
+   - `Native widget güncellenemedi: ...` => gerçek native hata metni
+   - `Takvim verisi henüz doğrulanmadı` => veri kaynağı/konum katmanı
+5. Ana ekrana dön ve **iki** widget'ın görüntüsünü kontrol et.
+
+İlk mevcut APK'da bir kez widget görünmesi, Android'in sistemden
+düzenli arka plan yenilemesini sağladığımız anlamına gelmez. Test
+sonuçlarına göre OS arka plan senkronizasyonu ayrıca ele alınmalı.
+
+**Yukarıdaki yeni kodların görülmesi için APK'nın yeniden derlenmesi
+zorunlu.** Expo Go veya yalnızca `git pull` telefonun native
+`expo-widgets` paketini değiştirmez.
