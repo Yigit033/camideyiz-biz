@@ -201,7 +201,7 @@ const styles=StyleSheet.create({
     alignItems:'center',justifyContent:'center',paddingHorizontal:3,
     paddingTop:9,paddingBottom:8,gap:7},
   iconHalo:{height:31,width:31,borderRadius:11,alignItems:'center',justifyContent:'center'},
-  caption:{fontSize:11,fontWeight:'750',textAlign:'center'},
+  caption:{fontSize:11,fontWeight:'700',textAlign:'center'},
   hours:{fontSize:10.8,fontWeight:'800',fontVariant:['tabular-nums'],textAlign:'center'},
   bandFoot:{height:3,width:'67%',borderRadius:6,marginTop:1},
   empty:{flexDirection:'row',alignItems:'center',gap:9,padding:12,borderRadius:13},
