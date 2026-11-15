@@ -161,3 +161,52 @@ expects Metro and is **not** a standalone phone-testing replacement for
 module can still be long; later builds only benefit from caches that remain
 intact. Release APKs may be signed with a debug keystore, which must never
 be treated as an official Play Store production signing configuration.
+
+
+## 15 Kasım 2026 — Local Expo prebuild files blocking pull
+
+Error:
+```text
+Your local changes to apps/mobile/package.json would be overwritten by merge
+C:\cb has uncommitted changes
+```
+
+Expo native prebuild may edit the tracked `apps/mobile/package.json` and
+`apps/mobile/tsconfig.json` files. `git pull --ff-only` rightfully
+refuses to overwrite these files. This is **not** a Gradle/APK failure.
+
+Preserve tracked edits in the original development checkout by reviewing the
+diff and saving the two files to a local Git stash:
+
+```powershell
+cd C:\active_projects\camideyiz-biz
+git diff -- apps/mobile/package.json apps/mobile/tsconfig.json
+git stash push -m "before-widget-2-build" -- apps/mobile/package.json apps/mobile/tsconfig.json
+git pull --ff-only origin feat/widgets-and-prayer-alerts-2
+```
+
+Avoid `git reset --hard`, `git clean -fdX`, and `git stash pop` after
+pulling: the older Expo-generated dependency changes should not override the
+newer feature-branch package definitions. The stash is retained for later
+review via `git stash list`.
+
+The Windows APK script now automatically stores modifications to **only**
+those two known Expo-generated tracked files in the **separate** short
+checkout (`C:\cb`) using a clearly named *local stash*, then fast-forwards.
+If **any other** file is changed or untracked, it refuses to alter anything
+and prints which files require review. This preserves the APK build cache
+and local Android debug signing key; do not use a fresh clone just to fix
+this Git state. Running this script does not change the original development
+checkout.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1 -CheckoutPath C:\cb
+```
+
+If the short checkout is rejected, inspect rather than deleting it:
+
+```powershell
+git -C C:\cb status --short
+git -C C:\cb diff --stat
+git -C C:\cb stash list
+```
