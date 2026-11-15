@@ -12,6 +12,8 @@ const modes:{value:ThemeMode;title:string;icon:'sun'|'moon'|'smartphone'}[]=[
 ];
 const SOURCES={
   prayer:'https://awqatsalah.diyanet.gov.tr/',
+  independentA:'https://idamedya.org/api/',
+  independentB:'https://ezanvakti.emushaf.net/',
   rules:'https://kurul.diyanet.gov.tr/tr/fetva/mekruh-vakitler-hangileridir-hangi-vakitlerde-kaza-ve-hangi-vakitlerde-nafile-namaz-kilinmaz/0193c42d-52b7-7186-d5b4-f1d3c950ad73',
   quran:'https://kuran.diyanet.gov.tr/',
   hadis:'https://hadislerleislam.diyanet.gov.tr/',
@@ -101,13 +103,20 @@ export default function MoreScreen(){
         <Text style={[styles.headingText,{color:colors.text}]}>Kaynaklar ve doğruluk</Text>
       </View>
       <View style={{borderRadius:14,backgroundColor:colors.soft,padding:14,gap:7}}>
-        <Text style={{fontSize:13,color:colors.text,fontWeight:'700'}}>Ücretsiz namaz vakitleri kaynağı</Text>
+        <Text style={{fontSize:13,color:colors.text,fontWeight:'700'}}>Namaz takvimi hakkında</Text>
         <Text style={{fontSize:12,lineHeight:19,color:colors.muted}}>
-          İdamedya, Diyanet tarafından yayımlandığını belirttiği namaz vakitlerini ücretsiz aktarıyor. Bu bağımsız servis, Diyanet'in resmî API'si değildir. Güncel veri doğrulanırsa ekranda gösterilir; resmî Diyanet API entegrasyonumuz ayrı olarak hazır tutuluyor.
+          Namaz vakitleri, seçilen ilçe koduyla yayımlanmış takvimlerden
+          doğrulanarak alınır. Gerekirse alternatif bağımsız yayıncı denenir.
+          İdamedya ve eMushaf resmî Diyanet API'si değildir.
+          Saatler uygulama tarafından tahmin edilmez veya hesaplanmaz.
         </Text>
       </View>
       <Resource title="Diyanet Namaz Vakti Servisi" subtitle="Resmî API ve başvuru bilgileri"
         icon="clock" onPress={()=>open(SOURCES.prayer)}/>
+      <Resource title="Yayımlanmış takvim kaynakları" subtitle="İdamedya API bilgi ve kullanım koşulları"
+        icon="info" onPress={()=>open(SOURCES.independentA)}/>
+      <Resource title="Alternatif takvim servisi" subtitle="eMushaf / EzanVakti kaynak açıklaması"
+        icon="clock" onPress={()=>open(SOURCES.independentB)}/>
       <Resource title="Kerahat vakitleri" subtitle="Din İşleri Yüksek Kurulunun açıklamaları"
         icon="info" onPress={()=>open(SOURCES.rules)}/>
       <Resource title="Kur’an ve hadis kaynakları" subtitle="Diyanet'in içerik ve kaynak sayfaları"
