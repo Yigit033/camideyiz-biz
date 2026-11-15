@@ -144,7 +144,10 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     <ScrollView showsVerticalScrollIndicator={false} overScrollMode="never"
       contentContainerStyle={[styles.content,{paddingTop:compact?7:11}]}>
       <HomeBrandHeader place={official.place}
-        compact={compact} onOpenLocation={()=>setPickerOpen(true)}/>
+        compact={compact} onOpenLocation={()=>setPickerOpen(true)}
+        locationMode={official.locationMode}
+        autoLocationStatus={official.autoLocationStatus}
+        onEnableAutoLocation={official.enableAutoLocation}/>
       <DateDivider now={now} timezone={SCHEDULE.timezone} hijriDate={official.days?.today.hijriDate??null}/>
       <View style={styles.wheelStage}>
         <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
@@ -293,7 +296,10 @@ function CalendarLoadingHome({official,now}:{
     <ScrollView showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.content,{paddingTop:12,paddingBottom:30}]}>
       <HomeBrandHeader place={official.place}
-        onOpenLocation={()=>setPickerOpen(true)}/>
+        onOpenLocation={()=>setPickerOpen(true)}
+        locationMode={official.locationMode}
+        autoLocationStatus={official.autoLocationStatus}
+        onEnableAutoLocation={official.enableAutoLocation}/>
       <DateDivider now={now} timezone="Europe/Istanbul" hijriDate={null}/>
       <View style={{flexDirection:'row',alignItems:'center',
         alignSelf:'center',gap:8,minHeight:35,
