@@ -36,7 +36,8 @@ export const GalleryCanvas=forwardRef<View,Props>(function GalleryCanvas({
   const scale=width/360;
   const y=galleryTextRelativeTop(draft.position);
   const textStyle=useMemo(()=>{
-    const fontSize= (draft.font==='condensed'?36:34)*scale;
+    const fontSize=(draft.font==='condensed'?36:34)*scale*
+      (draft.textSize==='small'?.8:draft.textSize==='large'?1.2:1);
     return {
       fontFamily:FONTS[draft.font],fontSize,
       lineHeight:fontSize*(draft.font==='handwriting'?1.36:1.2),
@@ -48,7 +49,7 @@ export const GalleryCanvas=forwardRef<View,Props>(function GalleryCanvas({
       textAlign:'center' as const,
       includeFontPadding:false,
     };
-  },[draft.font,draft.tone,scale]);
+  },[draft.font,draft.tone,draft.textSize,scale]);
 
   return <View ref={ref} collapsable={false} accessible
     accessibilityLabel={source
@@ -77,7 +78,8 @@ export const GalleryCanvas=forwardRef<View,Props>(function GalleryCanvas({
     </Svg>}
     {/* Preserve room for WhatsApp's own Story top/bottom chrome. */}
     <View pointerEvents="none" style={[StyleSheet.absoluteFill,{
-      backgroundColor:'rgba(0,0,0,.21)',
+      backgroundColor:draft.shade==='light'?'rgba(0,0,0,.12)':
+        draft.shade==='deep'?'rgba(0,0,0,.40)':'rgba(0,0,0,.25)',
     }]}/>
     <View pointerEvents="none" style={{
       position:'absolute',left:0,right:0,top:height*y,
