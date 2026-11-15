@@ -211,8 +211,8 @@ export default function GalleryEditor(){
           {!photo?<View style={[styles.note,{backgroundColor:colors.soft}]}>
             <Feather name="info" size={15} color={colors.gold}/>
             <Text style={{flex:1,fontSize:10.5,color:colors.muted,lineHeight:17}}>
-              Bu alan fotoğraf bekliyor. Yazı ve düzenleme seçenekleri çalışır;
-              onaylı görsel gelmeden paylaşım ve indirme açılmaz.
+              Bu görsel yakında eklenecek. Görsel hazır olduğunda
+              paylaşabilir veya telefonuna kaydedebilirsin.
             </Text>
           </View>:null}
           <Text style={{fontSize:10,color:colors.muted,textAlign:'center'}}>
