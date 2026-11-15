@@ -78,8 +78,8 @@ function SectorLabel({
     pointerEvents="none"
     style={[
       styles.sectorLabel,
-      {left: centerX - labelWidth / 2, top: centerY - 28 * size / DIAMETER, width: labelWidth,
-        height: 56 * size / DIAMETER},
+      {left: centerX - labelWidth / 2, top: centerY - 24 * size / DIAMETER, width: labelWidth,
+        height: 48 * size / DIAMETER},
       style,
     ]}>
     <MaterialCommunityIcons name={PRAYER_ICONS[sector.key]} size={iconSize}
@@ -89,11 +89,31 @@ function SectorLabel({
       fontFamily:'serif',fontWeight:'700',letterSpacing:-.15,
       color: selected || sector.key === 'yatsi' ? '#FFFCF3' : '#18372F', textAlign:'center',
     }}>{sector.label}</Text>
+  </Animated.View>;
+}
+
+/** Clock labels belong at the BEGINNING of the coloured period, not
+ * underneath its name. Position is relative to the segment boundary;
+ * counter-rotation keeps HH:MM legible while the dial is dragged. */
+function SectorStartClock({sector,size,rotation,preview=false}:{
+  sector:PrayerArc;size:number;rotation:SharedValue<number>;preview?:boolean;
+}){
+  const point=polar(sector.from+5,155);
+  const scale=size/DIAMETER;
+  const width=47*scale,height=19*scale;
+  const unrotate=useAnimatedStyle(()=>({
+    transform:[{rotateZ:-rotation.value+'deg'}],
+  }));
+  if(preview)return null;
+  return <Animated.View pointerEvents="none"
+    style={[styles.sectorStartClock,{
+      left:point.x*scale-width/2,top:point.y*scale-height/2,
+      width,height,borderRadius:8*scale,
+    },unrotate]}>
     <Text numberOfLines={1} adjustsFontSizeToFit style={{
-      fontSize: (narrow ? 9.7 : 11.3) * size / DIAMETER,
-      fontWeight: '700', color: selected || sector.key === 'yatsi' ? '#FFF7E9' : '#23473E',
-      textAlign: 'center', marginTop: 2 * size / DIAMETER,
-    }}>{preview?'':sector.time}</Text>
+      fontVariant:['tabular-nums'],fontSize:11.3*scale,
+      color:'#FFF6E7',fontWeight:'800',textAlign:'center',
+    }}>{sector.time}</Text>
   </Animated.View>;
 }
 
@@ -319,16 +339,21 @@ export function PrayerWheel({
               return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
                 stroke={colors.isDark?'#062724':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
             })}
-            {/* Approximate kerahat estimates for the selected published calendar; NOT a religious ruling. */}
+            {/* Kerahat has its OWN thin inner circular track, distinct from the
+                outer prayer arcs. Only published, approximate display windows
+                are drawn; no fabricated prayer times or legal rulings. */}
+            {kerahatArcs.length>0
+              ?<Circle cx="180" cy="180" r="109" fill="none"
+                stroke={rim} strokeOpacity=".48" strokeWidth="2.3"/>:null}
             {kerahatArcs.map(window=><G key={'kerahat-'+window.kind}>
-              <Path d={arc(window.from,window.to,166)}
-                stroke={restriction?.kind===window.kind?'#FA7E7E':'#C86569'}
-                strokeOpacity={restriction?.kind===window.kind?.99:.91}
-                strokeWidth={restriction?.kind===window.kind?8:5.8} fill="none"
-                strokeDasharray={restriction?.kind===window.kind?'0':'3,2'}/>
-              <Path d={arc(window.from,window.to,166)}
-                stroke="#FFDBB4" strokeOpacity={restriction?.kind===window.kind?.7:.32}
-                strokeWidth=".8" fill="none"/>
+              <Path d={arc(window.from,window.to,109)}
+                stroke={restriction?.kind===window.kind?'#F98A80':'#C66968'}
+                strokeOpacity={restriction?.kind===window.kind?1:.95}
+                strokeWidth={restriction?.kind===window.kind?7.5:5.3} fill="none"
+                strokeLinecap="round"/>
+              <Path d={arc(window.from,window.to,109)}
+                stroke="#FFE0AE" strokeOpacity={restriction?.kind===window.kind?.87:.44}
+                strokeWidth="1.2" fill="none"/>
             </G>)}
             {/* Small current-time marker rotates WITH the wheel: not the selection needle. */}
             {!preview?<G>
@@ -341,6 +366,8 @@ export function PrayerWheel({
           {sectors.map((item,index) => <SectorLabel
             key={item.key} sector={item} size={size}
             rotation={rotation} selected={index===selectedIndex} dark={colors.isDark} preview={preview}/>)}
+          {sectors.map(item=><SectorStartClock key={'clock-'+item.key}
+            sector={item} size={size} rotation={rotation} preview={preview}/>)}
         </Animated.View>
       </View>
     </GestureDetector>
@@ -403,7 +430,7 @@ export function PrayerWheel({
       <View style={[styles.center,{width:size*.56}]}>
         <MosqueCrest width={size*.42} dark={colors.isDark}/>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.prayerName,{color:colors.text}]}>
-          {preview?'Namaz Vakitleri':isManualSelection?(selected?.label??'Vakit'):(selected?PRAYER_COUNTDOWN_LABELS[selected.key]:'Vakte Kalan')}
+          {preview?'Namaz Vakitleri':isManualSelection?(selected?.label??'Vakit'):PRAYER_COUNTDOWN_LABELS[nextKey]}
         </Text>
         <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.countdown,{color:colors.emerald}]}>
           {preview?'Takvim bekleniyor':isManualSelection?selected?.time??'--:--':countdown}
@@ -426,6 +453,8 @@ export function PrayerWheel({
 
 const styles=StyleSheet.create({
   sectorLabel:{position:'absolute',alignItems:'center',justifyContent:'center',gap:1},
+  sectorStartClock:{position:'absolute',alignItems:'center',justifyContent:'center',
+    backgroundColor:'rgba(4,35,32,.86)',borderWidth:.7,borderColor:'rgba(255,236,193,.65)'},
   needle:{position:'absolute',alignItems:'center',justifyContent:'center'},
   center:{alignItems:'center',justifyContent:'center',gap:3},
   kicker:{fontSize:9,fontWeight:'800',letterSpacing:1.3},
