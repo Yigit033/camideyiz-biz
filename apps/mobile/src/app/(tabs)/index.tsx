@@ -12,6 +12,7 @@ import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere} from '@/components/LuxuryArtwork';
+import {HomeBrandHeader} from '@/features/prayer/HomeBrandHeader';
 import {useKerahatSettings} from '@/features/prayer/KerahatSettingsProvider';
 import {KerahatPanel} from '@/features/prayer/KerahatPanel';
 import {DailyWisdomSection} from '@/features/wisdom/DailyWisdomSection';
@@ -76,7 +77,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
   const SCHEDULE=official.days!.today;
   const isOfficial=official.days!.source==='diyanet-awqat-salah';
   const {settings:kerahatSettings}=useKerahatSettings();
-  const {colors,mode,setMode}=useAppTheme();
+  const {colors}=useAppTheme();
   const {width,height}=useWindowDimensions();
   const dark=colors.isDark;
   const wheelSize=Math.min(width-10,366);
@@ -160,37 +161,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     <Atmosphere dark={dark}/>
     <ScrollView showsVerticalScrollIndicator={false} overScrollMode="never"
       contentContainerStyle={[styles.content,{paddingTop:compact?7:11}]}>
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Namaz takvimi için ilçe konumunu değiştir"
-          onPress={()=>setPickerOpen(true)}
-          style={[styles.location,{borderColor:dark?'#42665D':'#D4CCBB',backgroundColor:dark?'rgba(10,43,41,.86)':'rgba(255,255,255,.7)'}]}>
-          <Feather name="map-pin" size={14} color={colors.emerald}/>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.locationName,{color:colors.text}]}>{official.place?.name??SCHEDULE.locationName}</Text>
-          <Feather name="info" size={11} color={colors.muted}/>
-        </Pressable>
-        <View style={styles.centralBrand}>
-          <Svg width={59} height={23} viewBox="0 0 59 23">
-            <Path d="M2 22Q13 8 29 8Q46 8 57 22M28 8V2M28 2Q30 6 35 2"
-              fill="none" stroke={colors.gold} strokeWidth="1.5" strokeLinecap="round"/>
-            <Path d="M10 22H49" stroke={colors.gold} strokeWidth=".7" opacity=".58"/>
-          </Svg>
-          <Text numberOfLines={1} adjustsFontSizeToFit
-            style={[styles.logoText,{color:colors.text}]}>Camideyiz Biz</Text>
-        </View>
-        <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
-          <Pressable accessibilityRole="button" accessibilityLabel={dark?'Açık temayı göster':'Koyu temayı göster'}
-            onPress={()=>setMode(dark?'light':'dark')}
-            style={[styles.smallRound,{backgroundColor:dark?'#0C3833':'rgba(255,255,255,.82)',borderColor:colors.border}]}>
-            <Feather name={dark?'sun':'moon'} size={17} color={colors.gold}/>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Widget ve bildirim ayarları"
-            onPress={()=>router.push('/companion')}
-            style={[styles.smallRound,{backgroundColor:dark?'#0C3833':'rgba(255,255,255,.82)',borderColor:colors.border}]}>
-            <Feather name="bell" size={17} color={colors.text}/>
-
-          </Pressable>
-        </View>
-      </View>
+      <HomeBrandHeader place={official.place}
+        compact={compact} onOpenLocation={()=>setPickerOpen(true)}/>
       <DateDivider now={now} dark={dark} timezone={SCHEDULE.timezone} hijriDate={official.days?.today.hijriDate??null} officialSource={isOfficial}/>
       <Pressable accessibilityRole="button"
         accessibilityLabel="Namaz vakitleri veri kaynağını görüntüle"
@@ -224,7 +196,11 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           nextKey={phase.next.key}
           restriction={restriction}
           indicativeWindows={indicativeWindows}
-          locationName={SCHEDULE.locationName}
+          locationName={official.place?.name
+            ?(official.place.name===official.place.stateName
+              ?official.place.name
+              :official.place.name+' · '+official.place.stateName)
+            :SCHEDULE.locationName}
         />
         <View style={{position:'absolute',right:8,top:22,alignItems:'flex-end',gap:3}}
           pointerEvents="none">
@@ -321,7 +297,10 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
       </Text>
     </ScrollView>
     <LocationPicker visible={pickerOpen} onClose={()=>setPickerOpen(false)}
-      onSelect={p=>{official.selectPlace(p).catch(()=>undefined);setPickerOpen(false);}}/>
+      onSelect={async p=>{
+        await official.selectPlace(p);
+        setPickerOpen(false);
+      }}/>
   </SafeAreaView>;
 }
 
@@ -333,7 +312,7 @@ const NO_DATA_TIMES:readonly PrayerTime[]=PRAYER_KEYS.map((key,i)=>({
 function CalendarLoadingHome({official,now}:{
   official:ReturnType<typeof usePrayerSource>;now:Date;
 }){
-  const {colors,mode,setMode}=useAppTheme();
+  const {colors}=useAppTheme();
   const {width}=useWindowDimensions();
   const dark=colors.isDark;
   const [pickerOpen,setPickerOpen]=useState(false);
@@ -351,38 +330,8 @@ function CalendarLoadingHome({official,now}:{
     <Atmosphere dark={dark}/>
     <ScrollView showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.content,{paddingTop:12,paddingBottom:30}]}>
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="İl ve ilçeyi seç"
-          onPress={()=>setPickerOpen(true)}
-          style={[styles.location,{borderColor:colors.border,backgroundColor:colors.surface}]}>
-          <Feather name="map-pin" size={14} color={colors.emerald}/>
-          <Text numberOfLines={1} style={[styles.locationName,{color:colors.text}]}>
-            {official.place?.name??'Konum Seç'}
-          </Text>
-          <Feather name="chevron-down" size={12} color={colors.muted}/>
-        </Pressable>
-        <View style={styles.centralBrand}>
-          <Svg width={59} height={23} viewBox="0 0 59 23">
-            <Path d="M2 22Q13 8 29 8Q46 8 57 22M28 8V2M28 2Q30 6 35 2"
-              fill="none" stroke={colors.gold} strokeWidth="1.5" strokeLinecap="round"/>
-            <Path d="M10 22H49" stroke={colors.gold} strokeWidth=".7" opacity=".58"/>
-          </Svg>
-          <Text numberOfLines={1} adjustsFontSizeToFit
-            style={[styles.logoText,{color:colors.text}]}>Camideyiz Biz</Text>
-        </View>
-        <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
-          <Pressable accessibilityRole="button" accessibilityLabel={dark?'Açık tema':'Koyu tema'}
-            onPress={()=>setMode(dark?'light':'dark')}
-            style={[styles.smallRound,{backgroundColor:colors.surface,borderColor:colors.border}]}>
-            <Feather name={dark?'sun':'moon'} size={17} color={colors.gold}/>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Widget ve bildirim ayarları"
-            onPress={()=>router.push('/companion')}
-            style={[styles.smallRound,{backgroundColor:colors.surface,borderColor:colors.border}]}>
-            <Feather name="bell" size={17} color={colors.text}/>
-          </Pressable>
-        </View>
-      </View>
+      <HomeBrandHeader place={official.place}
+        onOpenLocation={()=>setPickerOpen(true)}/>
       <DateDivider now={now} dark={dark} timezone="Europe/Istanbul" hijriDate={null}/>
       <View style={[styles.demo,{alignSelf:'center'}]}>
         <Feather name="info" size={12} color={colors.gold}/>
@@ -400,7 +349,7 @@ function CalendarLoadingHome({official,now}:{
           isManualSelection={false}
           phaseProgress={0} urgency="normal" nextKey="imsak"
           restriction={null} indicativeWindows={[]}
-          locationName={official.place?.name??'Konum'}/>
+          locationName={official.place?.name??'Konum seçilmedi'}/>
       </View>
       <View style={[styles.chipsContainer,{
         borderColor:colors.border,backgroundColor:colors.surface,
@@ -442,8 +391,8 @@ function CalendarLoadingHome({official,now}:{
       </Pressable>
     </ScrollView>
     <LocationPicker visible={pickerOpen} onClose={()=>setPickerOpen(false)}
-      onSelect={place=>{
-        official.selectPlace(place).catch(()=>undefined);
+      onSelect={async place=>{
+        await official.selectPlace(place);
         setPickerOpen(false);
       }}/>
   </SafeAreaView>;
