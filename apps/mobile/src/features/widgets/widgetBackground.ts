@@ -183,6 +183,8 @@ export async function syncForegroundWidgetCalendar(
   const result=await syncPrayerWidgets(selected,now);
   if(result.updated&&selected.length){
     await noteNativeTransfer(active,selected,now).catch(()=>undefined);
+  }else if(result.updated&&!selected.length){
+    await AsyncStorage.removeItem(LAST_TRANSFER_KEY).catch(()=>undefined);
   }
   return result;
 }
