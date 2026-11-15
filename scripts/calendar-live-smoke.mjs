@@ -33,49 +33,32 @@ try {
 }
 const probe=async(region)=>{
   const started=new Date().toISOString();
-  let source='idamedya',firstError='';
+  const attempts=[];
   try{
-    const response=await getJson(primary+'/'+region.id);
-    const t=parseMirrorTriplet(response,region.id,dateISO,region.name,started);
-    return {region:region.name,source,success:true,
+    const t=parseMirrorTriplet(
+      await getJson(primary+'/'+region.id),region.id,dateISO,region.name,started);
+    return {region:region.name,source:'idamedya',success:true,
       today:t.today.dateISO,imsak:t.today.times[0].time,
-      tomorrow:t.next.dateISO};
-  }catch(error){firstError=error instanceof Error?error.message:'unknown';}
-  try{
-    source='emushaf';
-    const response=await getJson(backup+'/'+region.id);
-    const t=parseEmushafTriplet(response,region.id,dateISO,region.name,started);
-    return {region:region.name,source,success:true,
-      today:t.today.dateISO,imsak:t.today.times[0].time,
-      tomorrow:t.next.dateISO,primaryError:firstError};
-  }catch(error){
-    return {region:region.name,success:false,
-      primaryError:firstError,
-      backupError:error instanceof Error?error.message:'unknown'};
+      tomorrow:t.next.dateISO,attempts};
+  }catch(error){attempts.push('idamedya:'+
+    (error instanceof Error?error.message:'unknown'));}
+  for(const source of [
+    {name:'mtopal',root:'https://namazvakti.mtopal.dev/vakitler'},
+    {name:'emushaf',root:backup},
+  ]){
+    try{
+      const t=parseEmushafTriplet(await getJson(source.root+'/'+region.id),
+        region.id,dateISO,region.name,started,source.name);
+      return {region:region.name,source:source.name,success:true,
+        today:t.today.dateISO,imsak:t.today.times[0].time,
+        tomorrow:t.next.dateISO,attempts};
+    }catch(error){attempts.push(source.name+':'+
+      (error instanceof Error?error.message:'unknown'));}
   }
+  return {region:region.name,success:false,attempts};
 };
 const results=await Promise.all(regions.map(probe));
 for(const result of results)console.log(JSON.stringify(result));
 const failed=results.filter(r=>!r.success);
-if(failed.length){
-  // Diagnostics only; do not ship or claim a provider until its real
-  // response shape, legality, district identity and update cycle are verified.
-  const candidateURLs=[
-    'https://namazvakti.mtopal.dev/vakitler/9551',
-    'https://apiservisim.vercel.app/api/namaz?ulke=TR&sehir=istanbul&ilce=tuzla&yil=2026&gun=3',
-    'https://namazvakitleri.diyanet.gov.tr/tr-TR/9551/tuzla-icin-namaz-vakti',
-    'https://namazvakitleri.diyanet.gov.tr/tr-TR/9740/tarsus-icin-namaz-vakti',
-  ];
-  const checks=await Promise.all(candidateURLs.map(async url=>{
-    try{
-      const result=await fetch(url,{signal:AbortSignal.timeout(9000),
-        method:'GET',headers:{Accept:'application/json, text/html'}});
-      const body=await result.text();
-      return {url,status:result.status,contentType:result.headers.get('content-type'),
-        length:body.length,preview:body.slice(0,100).replace(/\\s+/g,' ')};
-    }catch(err){return {url,error:err instanceof Error?err.message:'unknown'};}
-  }));
-  for(const item of checks)console.log('ALTERNATIVE_PROBE '+JSON.stringify(item));
-}
-if(failed.length)throw Error('No verified calendar from either provider for: '+
+if(failed.length)throw Error('No verified calendar from any provider for: '+
   failed.map(x=>x.region).join(', '));
