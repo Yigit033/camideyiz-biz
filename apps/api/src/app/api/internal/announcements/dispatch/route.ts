@@ -1,4 +1,5 @@
 import {db} from '@/lib/supabase';
+import {pollPushReceipts} from '@/lib/announcementReceipts';
 import {
   announcementsEnabled,authorizedWith,ANNOUNCEMENT_KIND,
   ANNOUNCEMENT_CHANNEL,jsonError,jsonNoStore,
@@ -38,7 +39,9 @@ export async function GET(request:Request){
       await db<number>('rpc/cb_push_finish_deliveries',{
         method:'POST',body:{p_results:[]},
       });
-      return jsonNoStore({status:'idle',materialized,claimed:0});
+      const receipts=await pollPushReceipts().catch(()=>null);
+      return jsonNoStore({status:'idle',materialized,claimed:0,
+        receipts:receipts??{status:'retry_next_tick'}});
     }
     const payload=jobs.map(x=>({
       to:x.expo_token,
@@ -90,9 +93,11 @@ export async function GET(request:Request){
     await db<number>('rpc/cb_push_finish_deliveries',{
       method:'POST',body:{p_results:finished},
     });
+    const receipts=await pollPushReceipts().catch(()=>null);
     return jsonNoStore({
       status:accepted?'accepted_by_provider':rejected?'partly_rejected':'retry_scheduled',
       materialized,claimed,accepted,rejected,
+      receipts:receipts??{status:'retry_next_tick'},
       // No tokens, no message body, no subscriber identifiers in cron result.
     });
   }catch{
