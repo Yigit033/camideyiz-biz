@@ -4,10 +4,8 @@ import {
   useWindowDimensions, View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {router} from 'expo-router';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Svg,{Path} from 'react-native-svg';
 import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,calculateMirrorPhase,getKerahatView,type PrayerTime} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
@@ -414,14 +412,6 @@ export default function HomeScreen(){
 }
 const styles=StyleSheet.create({
   content:{paddingHorizontal:11,paddingBottom:14,gap:8},
-  header:{height:62,flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:5},
-  location:{height:33,minWidth:93,borderRadius:20,borderWidth:1,
-    paddingHorizontal:9,flexDirection:'row',alignItems:'center',gap:5},
-  locationName:{fontFamily:'serif',fontSize:13,fontWeight:'700'},
-  centralBrand:{alignItems:'center',justifyContent:'center',flex:1,gap:0,marginHorizontal:-9},
-  logoText:{fontFamily:'serif',fontSize:23,fontWeight:'700',letterSpacing:-.7,marginTop:-2},
-  smallRound:{height:32,width:32,borderRadius:17,borderWidth:1,alignItems:'center',justifyContent:'center'},
-  notificationDot:{position:'absolute',height:6,width:6,borderRadius:3,backgroundColor:'#18BA91',top:3,right:4},
   dateSection:{alignItems:'center',gap:3,marginTop:-4},
   dateLine:{width:27,height:1,opacity:.65},
   dateText:{fontFamily:'serif',fontSize:13.1,fontWeight:'600'},
