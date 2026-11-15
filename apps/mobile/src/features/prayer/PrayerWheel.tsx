@@ -399,14 +399,14 @@ export function PrayerWheel({
                 d={arc(window.from,window.to,161)}
                 stroke={window.state==='active'?'#8E2639':'#B97032'}
                 strokeOpacity=".26" strokeWidth="16"
-                fill="none" strokeLinecap="round"/>:null}
+                fill="none" strokeLinecap="butt"/>:null}
               <Path d={arc(window.from,window.to,161)}
                 stroke={window.state==='active'?'#952F43'
                   :window.state==='approaching'?'#C7853D':'#A76D66'}
                 strokeOpacity={window.state==='inactive'?.51:1}
                 strokeWidth={window.state==='active'?9.5
                   :window.state==='approaching'?7.5:4}
-                fill="none" strokeLinecap="round"/>
+                fill="none" strokeLinecap="butt"/>
               {window.state==='active'?<Path
                 d={arc(window.from,window.to,158.5)}
                 stroke="#EDB4A1" strokeOpacity=".82"
