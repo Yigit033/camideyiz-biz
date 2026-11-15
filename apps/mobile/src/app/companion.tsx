@@ -98,6 +98,38 @@ function WidgetShowcase({now}: {now:number}){
         </Text>
       </View>
     </ScrollView>
+    {companion.lastWidgetTransfer&&
+      companion.lastWidgetTransfer.cityId===source.place?.id&&
+      companion.lastWidgetTransfer.dateISO===
+        new Intl.DateTimeFormat('en-CA',{
+          timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit',
+        }).format(new Date(now))
+      ?<View style={[styles.note,{backgroundColor:colors.soft,
+        borderColor:colors.border}]}>
+        <Feather name="check-circle" size={17} color={colors.emerald}/>
+        <View style={{flex:1,gap:5}}>
+          <Text style={{fontSize:12,fontWeight:'800',color:colors.text}}>
+            Widget'a son aktarılan vakitler
+          </Text>
+          <Text style={{fontSize:11,color:colors.text,fontWeight:'700'}}>
+            {companion.lastWidgetTransfer.city} ·
+            {' '+companion.lastWidgetTransfer.nextName+' '+
+              companion.lastWidgetTransfer.nextTime}
+          </Text>
+          <Text style={{fontSize:10.5,color:colors.muted,lineHeight:17}}>
+            {companion.lastWidgetTransfer.times
+              .map(item=>item.label+' '+item.time).join(' · ')}
+          </Text>
+          <Text style={{fontSize:10,color:colors.muted}}>
+            {'Son aktarım: '+new Date(companion.lastWidgetTransfer.sentAt)
+              .toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}
+          </Text>
+          <Text style={{fontSize:10,color:colors.muted,lineHeight:16}}>
+            Telefonun ana ekranındaki widget saatlerini bunlarla karşılaştır.
+            Aktarım kaydı, telefonun görüntülediğini tek başına doğrulamaz.
+          </Text>
+        </View>
+      </View>:null}
     <Text style={{fontSize:11,lineHeight:18,color:colors.muted}}>
       Telefonun ana ekranında boş bir alana uzun bas, Widget’lar bölümünden
       Camideyiz Biz’i bul ve boyut seç. Widget’a dokununca ana sayfa açılır.
