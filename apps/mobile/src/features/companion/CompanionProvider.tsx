@@ -48,7 +48,8 @@ type CompanionContextValue={
   setSound:(next:'default'|'silent')=>void;
   setEzanAtTimeForAll:(next:boolean)=>void;
   setRule:(key:PrayerKey,changes:Partial<PrayerAlertSettings['rules'][PrayerKey]>)=>void;
-  refresh:()=>void;clearInbox:()=>void;deleteInbox:(id:string)=>void;
+  refresh:()=>void;refreshWidgets:()=>Promise<void>;
+  clearInbox:()=>void;deleteInbox:(id:string)=>void;
 };
 const Context=createContext<CompanionContextValue|null>(null);
 function appendUnique(history:readonly NativePrayerEvent[],
@@ -294,6 +295,32 @@ export function CompanionProvider({children}:PropsWithChildren){
     source.retry();
     setSequence(i=>i+1);
   },[source.retry]);
+  // Manual widget refresh uses already validated district hours immediately.
+  // A network reload before writing could temporarily clear the launcher.
+  const refreshWidgets=useCallback(async()=>{
+    if(!ready)return;
+    const place=source.place;
+    const selectedSource=source.officialConfigured
+      ?'diyanet-awqat-salah' as const
+      :'idamedya-diyanet-republished' as const;
+    const publishedAt=source.days?Date.parse(source.days.today.fetchedAt):null;
+    const run=async()=>{
+      try{
+        const result=await syncForegroundWidgetCalendar(
+          place,selectedSource,days,publishedAt,Date.now());
+        setWidget(result);
+        const latest=await readLastWidgetTransfer();
+        setLastWidgetTransfer(latest?.cityId===place?.id?latest:null);
+      }catch(error){
+        setWidget({available:false,updated:false,
+          detail:'Widget aktarılamadı: '+
+            (error instanceof Error?error.message:'Beklenmeyen hata')});
+      }
+    };
+    widgetQueue.current=widgetQueue.current.catch(()=>undefined).then(run);
+    await widgetQueue.current;
+  },[ready,source.place,source.days,source.officialConfigured,days]);
+
   const rememberDeletion=useCallback((ids:readonly string[])=>{
     const next=[...new Set([...deletedIds.current,...ids])].slice(-512);
     deletedIds.current=new Set(next);
@@ -310,10 +337,10 @@ export function CompanionProvider({children}:PropsWithChildren){
   const value=useMemo(()=>({
     settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
     lastWidgetTransfer,announcement,
-    setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,clearInbox,deleteInbox,
+    setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox,
   }),[settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
        lastWidgetTransfer,announcement,
-      setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,clearInbox,deleteInbox]);
+      setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useCompanion():CompanionContextValue{
