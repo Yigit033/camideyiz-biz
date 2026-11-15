@@ -54,16 +54,16 @@ jobs:
             exit 1
           }
           $script = Get-Content 'scripts/build-android-windows.ps1' -Raw
-          if ($script -notmatch 'Original kerahat poster' -or
-              $script -notmatch 'Get-FileHash -Algorithm SHA256') {
-            throw 'Release builder must reject unverified original poster assets'
+          if ($script -notmatch 'Verify original-source lossless WebP posters' -or
+              $script -notmatch 'verify-kerahat-posters.mjs') {
+            throw 'Release builder must verify decoded lossless WebP posters'
           }
           $installer = Get-Content 'scripts/install-kerahat-posters.ps1' -Raw
           if ($installer -notmatch 'git -C \$root commit --only' -or
               $installer -notmatch 'ComputeHash') {
-            throw 'Poster installer must hash-validate and commit ONLY the two assets'
+            throw 'Poster installer must hash-validate and commit ONLY the verified assets'
           }
-          Write-Host 'Exact user-poster installation and release guard syntax OK'
+          Write-Host 'Original-source lossless WebP poster validation contract OK'
       - name: Verify owner announcement script cannot leak admin key in mobile bundle
         shell: pwsh
         run: |

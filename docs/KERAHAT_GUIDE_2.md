@@ -1,92 +1,56 @@
-# Kerahat Vakitleri — Ağır / Hafif Orijinal Poster Rehberi
+# Kerahat Rehberi — orijinal kaynaklardan kayıpsız WebP
 
-## Kullanıcı kararı — 15 Kasım 2026
+## Durum
+- Kerahat rehberinde iki sekme vardır: **Ağır Kerahat** / **Hafif Kerahat**.
+- Her sekmede kullanıcı tarafından gönderilen ilgili 1126×2000 poster gösterilir.
+- Yakınlaştırma görselin yazı ve çizimlerini değiştirmez, `contain` ile kırpma yoktur.
+- Ana sayfanın kerahat aralığı hesapları bu rehber görselinden bağımsızdır.
 
-Önceki dinamik `DailyRing` (özel çizilen halka), ayrıntı akordeonları
-ve kaynak açıklaması kartları **/kerahat-guide** ekranından kaldırıldı.
-Kullanıcı tarafından gönderilen iki 1126×2000 PNG görselin **piksel
-içeriğine dokunulmadan** gösterilmesi istendi. Görsel üzerindeki çizim,
-renkler, tipografi, metin ve kaynak notları değiştirilmedi.
+## Neden WebP ve neden doğrudan kopya değil?
+Orijinal kullanıcı PNG'lerine dokunulmaz. Uygulamada **kayıpsız WebP** kullanılır;
+`sharp` ile PNG ve WebP'nin decode edilmiş RGBA piksel buffer'ları birebir karşılaştırılır.
+Kaynak PNG SHA-256'ları ve dönüştürülmüş WebP'nin hash/piksel özetleri kaydedilir.
+Sadece uzantı değişikliği yapılmaz. Görsel içindeki yazılar yeniden oluşturulmaz.
+WebP'nin daha küçük olması muhtemeldir ancak garanti değildir; gerçek tasarruf
+dönüşüm komutunun çıktısıyla ölçülür.
 
-Yeni ekranda:
-- Üstte kalıcı iki sekme: **Ağır Kerahat** ve **Hafif Kerahat**.
-- Her sekmede birebir kendi poster dosyası, orijinal 1126:2000
-  oranıyla, **contain** biçiminde: kesinlikle `cover` veya crop yok.
-- Telefon ekranında küçük okunabilecek yazılar için 2× büyütme,
-  yatay ve dikey kaydırarak okuma. Büyütme görseli yeniden üretmez.
-- Light/dark temalarda posteri asla yeniden renklendirmeyen nötr
-  zemin. Android geri ve iki ayrı ana sayfa rehber bağlantısı korunur.
-- Önceki dinamik namaz / kerahat hesapları ana sayfa çemberinde
-  **aynen kalır**; yalnızca ayrı bilgi rehberi değişir.
+Kaynak PNG SHA-256:
+- ağır: `dd7a26f775110bc3a911be35c78ec9c90e3d3e0a2e0a470343cfaedb410babf7`
+- hafif: `f403909395ea5e9f676680f9c6df53e7a1b0cd9f9730328b8bafa3a3b1a3cce5`
 
-## Dosya adları (orijinal ve değiştirilmemiş)
+## Kritik: Şu anda kaynaktaki PNG dosyaları yer tutucudur
+GitHub'a eklenen **1×1 WebP dosyaları** yalnızca Expo statik asset çözümlemesini sağlar.
+Orijinal posterler yüklenmeden final APK üretilemez. `poster-integrity.json`
+orijinal ZIP'ten gerçek dönüşüm başarıyla tamamlanınca oluşturulur. Release
+betiği bu manifesti ve WebP'lerin piksel/byte hash'lerini doğrular; yoksa durur.
+Uygulama gerçek poster yoksa bunu görünür biçimde bildirir.
 
-- `apps/mobile/assets/kerahat/agir-kerahat.png`
-  SHA-256:
-  `dd7a26f775110bc3a911be35c78ec9c90e3d3e0a2e0a470343cfaedb410babf7`
-- `apps/mobile/assets/kerahat/hafif-kerahat.png`
-  SHA-256:
-  `f403909395ea5e9f676680f9c6df53e7a1b0cd9f9730328b8bafa3a3b1a3cce5`
+## Kaynak dosyaları kurma ve yayınlama (Windows)
+ZIP içindeki **orijinal ve değiştirilmemiş PNG'ler** gerekir.
+Bu ZIP önce bilgisayara ayrıca indirilmelidir; `git pull` onu indirmez.
 
-### Önemli entegrasyon sınırı
-
-Bağlı GitHub metin dosyası API'si, bu sohbetin yüklediği
-binary PNG'leri doğrudan repoya yükleyemedi. Expo'nun statik
-`require` çözümlemesi / TypeScript CI bozulmaması için iki yola
-geçici 1×1 PNG **placeholder** kondu.
-
-**Bunlar gerçek görseller değildir.** Gerçek dosyalar eklenmeden
-Release APK kabul edilmez: `scripts/build-android-windows.ps1`
-orijinal SHA-256 kontrolüyle derlemeyi durdurur. Bu
-bitirilmemiş bir entegrasyon adımıdır; son kullanıcıya demo
-resim göndermek hedeflenmemektedir.
-
-Orijinal iki görselin kayıpsız ZIP'i bu sohbetten
-`camideyiz-kerahat-orijinal-gorseller.zip` olarak alınır.
-
-Windows'ta bir defaya mahsus:
 ```powershell
 cd C:\active_projects\camideyiz-biz
 git switch feat/widgets-and-prayer-alerts-2
 git pull --ff-only origin feat/widgets-and-prayer-alerts-2
-powershell -ExecutionPolicy Bypass -File .\scripts\install-kerahat-posters.ps1 -ArchivePath "C:\Users\<kullanici>\Downloads\camideyiz-kerahat-orijinal-gorseller.zip" -Publish
+npm install
+powershell -ExecutionPolicy Bypass -File .\scripts\install-kerahat-posters.ps1 -ArchivePath "$env:USERPROFILE\Downloads\camideyiz-kerahat-orijinal-gorseller.zip" -Publish
+npm run verify:kerahat-posters
 ```
 
-`-Publish` yalnızca iki PNG dosyasını var olan feature
-branch'ine commit/push eder; `main` merge veya deploy yapmaz.
-Ardından Windows kısa-yol APK betiği tekrar çalıştırılabilir:
+`-Publish` yalnızca iki WebP dosyasını ve bütünlük manifestini feature branch'e
+commit/push eder; `main` merge/deploy yapılmaz.
+
+Android standalone Release APK:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1 -CheckoutPath C:\cb -Configuration Release
 ```
 
-## Fiziksel cihaz kabul kriterleri
-
-1. Ana sayfa **Ağır Kerahat** bağlantısı doğru sekmeyi, **Hafif
-   Kerahat** bağlantısı diğer sekmeyi açmalı; sekmeler değişirken
-   her seferinde ilgili poster görünmeli.
-2. İki PNG görselde kaynak metinleri ve şekiller
-   **birebir aynı**; yanlış kırpma, kapatma veya renk filtresi yok.
-3. 360px altında dar ekranlarda dahi görsel tam sığmalı;
-   büyütme açıkken yatay kaydırmayla tüm orijinal metin
-   okunabilmeli, dikey kaydırma normal işlemeli.
-4. Dark/light tema yalnızca uygulama çerçevesini değiştiriyor;
-   görsellerin gri zemin/baskı renkleri değişmiyor.
-5. Ana sayfadaki canlı kerahat halkası ile bildirim/ayar
-   işlevleri rehber görseli değişikliğiyle bozulmamalı.
-6. Orijinal SHA-256 olmayan posterle APK üretimi başarısız
-   olmalı; kullanıcı fark etmeden boş poster yayınlanmamalı.
-
-## Dinî içerik kontrol notu
-
-Posterler kullanıcı talebine uygun olarak **bilinçli biçimde
-değiştirilmeden** gösterilir. Önceki dinamik bilgi ekranı
-posterlerdeki bazı yaklaşık zaman ifadeleri ile Diyanet'in
-kamu açıklamaları arasında farklılık olabileceğini not ediyordu.
-Baskı/posterlerin içeriksel fetva doğruluğunu kod testi
-kanıtlamaz; kamuya açık mağaza sürümünden önce uzman
-editör incelemesi önerilir.
-
-## Git politikası
-
-Sadece `feat/widgets-and-prayer-alerts-2`.
-`main` merge, production deployment veya yeni branch yok.
+## Kabul koşulları
+1. Sekmeler/ana sayfa yönlendirmeleri doğru, ekran altı/safe area korunuyor.
+2. İki poster de 1126×2000; görüntü kırpılmıyor ve yeniden renklendirilmiyor.
+3. Kayıpsız WebP decode edilmiş RGBA verisi, orijinal PNG ile byte-byte eşit.
+4. Dar cihazda zoom ve yatay/dikey kaydırma çalışıyor.
+5. Release derlemesi sahte 1×1 posterlerle başarısız oluyor.
+6. Fiziksel cihaz (Android/iOS) görsel kontrolleri ve dinî içerik editör onayı
+   yalnızca otomatik testlerle tamamlanmış sayılamaz.

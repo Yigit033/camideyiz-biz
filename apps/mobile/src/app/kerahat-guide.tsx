@@ -8,12 +8,12 @@ import {router,useLocalSearchParams} from 'expo-router';
 import {useAppTheme} from '@/theme/ThemeProvider';
 
 /**
- * Original user-supplied 1126 × 2000 PNG teaching posters.
+ * Lossless WebP copies of user-supplied 1126 × 2000 PNG teaching posters.
  * Never edit, recolour, crop, cover or redraw the poster pixels/text.
  */
 const POSTERS={
-  heavy:require('../../assets/kerahat/agir-kerahat.png'),
-  light:require('../../assets/kerahat/hafif-kerahat.png'),
+  heavy:require('../../assets/kerahat/agir-kerahat.webp'),
+  light:require('../../assets/kerahat/hafif-kerahat.webp'),
 } as const;
 const ORIGINAL_WIDTH=1126;
 const ORIGINAL_HEIGHT=2000;
