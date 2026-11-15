@@ -167,20 +167,35 @@ export async function syncForegroundWidgetCalendar(
   if(!enabled())return syncPrayerWidgets(days,now);
   await setWidgetActivePlace(place,source);
   if(!place)return syncPrayerWidgets([],now);
-  if(days.length>=2&&publishedAt!==null&&Number.isFinite(publishedAt)){
-    await saveForegroundWidgetCalendar(place,source,days,publishedAt);
-  }
+  // Validate the current foreground result directly. Native widget updates
+  // must not depend on an AsyncStorage read/write round-trip succeeding.
+  // Storage is still used for offline/headless WorkManager refreshes.
+  const fresh=days.length>=2&&publishedAt!==null&&Number.isFinite(publishedAt)
+    ?parseWidgetCalendarCache(
+      makeWidgetCalendarCache(place.id,place.name,source,days,publishedAt),
+      now,place.id)
+    :null;
+  if(fresh)await saveForegroundWidgetCalendar(
+    place,source,days,publishedAt!);
   const active=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
   if(!active||active.id!==place.id||active.source!==source){
     return {available:true,updated:false,detail:'İlçe değişimi sırasında eşitleme yenilendi'};
   }
   const cache=await readCache(now,place.id);
-  const verified=cache?.days??[];
+  const verified=(cache&&(!fresh||cache.fetchedAt>fresh.fetchedAt)
+    ?cache:fresh??cache)?.days??[];
   const snapshot=buildPrayerWidgetSnapshot(verified,now);
   // Always clear a previous-district snapshot if the current district has no
   // valid published data; otherwise, preserve the same-district cache.
   const selected=snapshot.status==='ready'?verified:[];
   const result=await syncPrayerWidgets(selected,now);
+  // Diagnostic distinction: an app preview may have valid hours while the
+  // defensive native cache cannot accept the payload. Never mislabel that
+  // as an Android launcher or notification-permission problem.
+  if(!selected.length&&days.length>=2&&snapshot.status!=='ready'&&result.updated){
+    result.detail='Seçilen ilçe için widget takvimi doğrulanamadı. '+
+      'Bugün ve ertesi günün altı namaz vakti kontrol edilmeli.';
+  }
   if(result.updated&&selected.length){
     await noteNativeTransfer(active,selected,now).catch(()=>undefined);
   }else if(result.updated&&!selected.length){
