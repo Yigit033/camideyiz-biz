@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {DEMO_SCHEDULE} from './prayer.ts';
 import {indicativeKerahatWindows} from './timeline.ts';
 import {
-  prayerSectorLabelAngle,kerahatRingWindows,KERAHAT_APPROACH_SECONDS,
+  prayerSectorLabelAngle,prayerSectorVisualLayout,currentPrayerArc,
+  kerahatRingWindows,KERAHAT_APPROACH_SECONDS,
 } from './prayerWheelPresentation.ts';
 import {makeVisualDialSectors} from './visualDial.ts';
 
@@ -59,4 +60,53 @@ test('sunrise, zenith and sunset warnings are independent, approximate and date-
   assert.throws(()=>kerahatRingWindows(windows,-1));
   assert.throws(()=>kerahatRingWindows(windows,86400));
   assert.throws(()=>kerahatRingWindows(windows,sec(12,0),-1));
+});
+
+test('boundary clock labels are centered exactly on separators and entirely inside the wheel',()=>{
+  const sectors=makeVisualDialSectors(schedule.times);
+  for(const s of sectors){
+    const layout=prayerSectorVisualLayout(s.from,s.to);
+    assert.equal(layout.clockAngle,s.from);
+    assert.ok(layout.clockRadius+layout.clockHeight/2<169,
+      'clock badges must remain inside outer coloured rim');
+    assert.ok(layout.clockRadius-layout.clockHeight/2>108,
+      'clock badges must not cross into center medallion');
+    assert.ok(layout.labelAngle>s.from&&layout.labelAngle<s.to,
+      'icons/names stay within their own angular sector');
+  }
+  assert.ok(prayerSectorVisualLayout(175,196).fontSize<
+    prayerSectorVisualLayout(196,360).fontSize);
+});
+
+test('outer progress tracks active wedge only, including actual next-day İmsak',()=>{
+  const sectors=makeVisualDialSectors(schedule.times);
+  const p=currentPrayerArc(sec(21,11),schedule.times,sectors,'19:14','06:16')!;
+  assert.equal(p.sectorIndex,5);
+  assert.equal(p.from,sectors[5].from);
+  assert.equal(p.to,360);
+  assert.ok(Math.abs(p.progress-116/661)<1e-12);
+  assert.ok(p.progressAngle>p.from&&p.progressAngle<p.to);
+
+  const beforeImsak=currentPrayerArc(sec(5,45),schedule.times,sectors,'19:14','06:16')!;
+  assert.equal(beforeImsak.sectorIndex,5);
+  assert.ok(Math.abs(beforeImsak.progress-631/661)<1e-12);
+  assert.ok(beforeImsak.progressAngle<360);
+
+  const atImsak=currentPrayerArc(sec(6,15),schedule.times,sectors,'19:14','06:16')!;
+  assert.equal(atImsak.sectorIndex,0);
+  assert.equal(atImsak.progress,0);
+  const atSunrise=currentPrayerArc(sec(7,42),schedule.times,sectors)!;
+  assert.equal(atSunrise.sectorIndex,1);
+  assert.equal(atSunrise.progress,0);
+  assert.equal(currentPrayerArc(0,[],[]),null);
+});
+
+test('kerahat windows retain exact 24-hour proportional dial angles',()=>{
+  const sectors=makeVisualDialSectors(schedule.times);
+  const {clockSecondsToVisualAngle}=await import('./visualDial.ts');
+  for(const w of windows){
+    const from=clockSecondsToVisualAngle(w.startSeconds,schedule.times,sectors);
+    const to=clockSecondsToVisualAngle(w.endSeconds,schedule.times,sectors);
+    assert.ok(Math.abs((to-from)-(w.endSeconds-w.startSeconds)/86400*360)<1e-8);
+  }
 });
