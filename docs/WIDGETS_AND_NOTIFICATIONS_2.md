@@ -332,3 +332,46 @@ Referanslar:
 - https://docs.expo.dev/versions/v58.0.0/sdk/background-task/
 - https://docs.expo.dev/versions/v58.0.0/sdk/widgets/
 - https://github.com/expo/expo/issues/52173
+
+
+## 15 Kasım 2026 — Ana sayfa çemberi ve kerahat geri bildirimi
+
+Kullanıcı geri bildirimleri doğrultusunda Home (Expo Router) üzerinde:
+- **Üst gösterge artık içinde bulunulan vakti** seçer
+  (`phase.current.key`), önceki "sıradaki vakit" seçimi
+  (`phase.next.key`) değildir. İsteyen kullanıcı mevcut sürükleme,
+  haptik, seçili vakit ve `Canlıya dön` etkileşimleriyle elle gezinir.
+  Saat sınırı geçildiğinde otomatik seçili dilim güncellenir; merkezde
+  sıradaki vakte kalan süre doğru isme bağlı olarak kalır.
+- Çemberdeki **vakit adı ve simgesi renkli alanın ortasında** kalır.
+  Saatler alt satırdan çıkarılıp her renkli sektörün **başlangıç
+  açısında HH:MM etiketleri** olarak gösterilir. Animasyon sırasında
+  metinler ters dönmez (counter-rotation).
+- Mevcut namaz çemberi/animasyon boyutlarını koruyarak kerahat
+  işaretleri **iç çemberde ince ayrı bir halka** haline getirilir;
+  dış çemberdeki eski uyarı çizgileri artık kullanılmaz.
+- Kerahat ana sayfada **Kerahat Vakitleri** başlığı altında
+  güneş doğuşu, zeval ve gün batımı için üç görselleştirilmiş kartta
+  gösterilir. Kerahat tercihleri ana sayfadan kaldırıldı;
+  `Diğer > Namaz Takvimi Ayarları > Kerahat Vakitleri` ekranında
+  görünürlük ve 3 görsel aralık süresi düzenlenir.
+- Yeni tercihlerde ayrı bir `standart/varsayılan` mod sunulmaz:
+  tek ayarlanabilir görsel profil + gizleme seçeneği vardır.
+  Eski kayıtların `standard` değeri geriye uyumluluk için
+  okunabilir. Görsel süreler dinî hüküm veya güneş yüksekliği
+  hesaplaması olarak sunulmaz.
+- Takvim başlığında **Hicrî tarih — Miladî tarih** sıralaması
+  uygulanır. İlgili gün için kaynaktan Hicrî tarih alınamamışsa
+  yaklaşık Intl Hicrî hesaplaması olduğunun açıklaması korunur.
+- Günlük içerik kartlarının görünür ve paylaşım başlıkları
+  `Ayet-i Celile` ve `Hadis-i Şerif` olarak değiştirildi.
+
+**Kabul koşulu:** TypeScript + Metro + unit testleri sonrası
+gerçek Android telefonda farklı ekran genişliği, kerahet aralıkları,
+sınır dakikaları, dönme/geri dönme ve Türkçe yazı taşmaları
+kontrol edilmelidir. Yazılımsal testler görsel kaliteyi tek başına
+kanıtlamaz.
+
+**Branch:** `feat/widgets-and-prayer-alerts-2` (yeni branch açılmadı,
+`main` ile merge edilmedi). Diğer kullanıcı geri bildirimleri
+aynı akışta değerlendirilecek.
