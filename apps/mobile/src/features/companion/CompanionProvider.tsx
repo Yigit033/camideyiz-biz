@@ -275,8 +275,8 @@ export function CompanionProvider({children}:PropsWithChildren){
       for(const key of ['imsak','ogle','ikindi','aksam','yatsi'] as const){
         rules[key]={...rules[key],enabled:next?true:rules[key].enabled,atTime:next};
       }
-      // Güneş doğuşu bir ezan vakti değildir; bir "tümü" seçimiyle açılmaz.
-      rules.gunes={...rules.gunes,atTime:false};
+      // Güneş doğuşu bir ezan vakti değildir. Bu kısayol ne açarken ne
+      // kapatırken kullanıcının bağımsız güneş doğuşu kuralına dokunmaz.
       return validateAlertSettings({...old,rules});
     });
   },[]);
