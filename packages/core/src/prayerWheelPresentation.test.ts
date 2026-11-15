@@ -110,3 +110,31 @@ test('kerahat windows retain exact 24-hour proportional dial angles',()=>{
     assert.ok(Math.abs((to-from)-(w.endSeconds-w.startSeconds)/86400*360)<1e-8);
   }
 });
+
+test('clock and name boxes are separated on actual crowded six-prayer day',()=>{
+  const sectors=makeVisualDialSectors(schedule.times);
+  const polar=(deg:number,r:number)=>({
+    x:180+r*Math.sin(deg*Math.PI/180),
+    y:180-r*Math.cos(deg*Math.PI/180),
+  });
+  const boxes=sectors.flatMap((sector,i)=>{
+    const v=prayerSectorVisualLayout(sector.from,sector.to);
+    return [
+      {type:'clock',i,point:polar(v.clockAngle,v.clockRadius),
+        w:v.clockWidth,h:v.clockHeight},
+      {type:'label',i,point:polar(v.labelAngle,v.labelRadius),
+        w:v.labelWidth,h:v.labelHeight},
+    ];
+  });
+  for(const label of boxes.filter(b=>b.type==='label')){
+    for(const other of boxes){
+      if(other===label||other.type==='label'&&other.i===label.i)continue;
+      const dx=Math.abs(label.point.x-other.point.x);
+      const dy=Math.abs(label.point.y-other.point.y);
+      const overlapping=dx<(label.w+other.w)/2 &&
+        dy<(label.h+other.h)/2;
+      assert.equal(overlapping,false,
+        'name/icon overlaps a clock or another name near '+schedule.times[label.i].label);
+    }
+  }
+});
