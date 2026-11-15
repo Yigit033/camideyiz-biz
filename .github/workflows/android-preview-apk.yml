@@ -1,0 +1,89 @@
+name: Android standalone QA APK
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/widgets-and-prayer-alerts-2
+    paths:
+      # Automatically run once when this workflow is first introduced.
+      # Later native builds can be started manually without rebuilding on every commit.
+      - .github/workflows/android-preview-apk.yml
+
+permissions:
+  contents: read
+
+jobs:
+  android-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+
+      - name: Install workspace packages
+        run: npm install --no-audit --no-fund
+      - name: Run unit and TypeScript tests
+        run: |
+          npm test
+          npm run typecheck
+      - name: Verify the two actual kerahat WebP posters
+        run: npm run verify:kerahat-posters
+
+      - name: Generate native Android project
+        working-directory: apps/mobile
+        env:
+          CI: '1'
+          EXPO_NO_TELEMETRY: '1'
+        run: npx expo prebuild --platform android --no-install --clean
+
+      - name: Assemble standalone Release APK (arm64)
+        working-directory: apps/mobile/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace
+
+      - name: Verify installability and prepare QA APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="apps/mobile/android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$src"
+          signer="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$signer"
+          mkdir -p artifacts
+          dest="artifacts/camideyiz-biz-qa-arm64-release.apk"
+          if "$signer" verify "$src"; then
+            cp "$src" "$dest"
+            echo "Release APK already signed"
+          else
+            echo "Unsigned Release APK: applying a QA-only signing certificate"
+            key="apps/mobile/android/app/debug.keystore"
+            if [ ! -s "$key" ]; then
+              key="$RUNNER_TEMP/qa-debug.keystore"
+              keytool -genkeypair -v -storetype JKS -keystore "$key" \
+                -storepass android -keypass android -alias androiddebugkey \
+                -keyalg RSA -keysize 2048 -validity 10000 \
+                -dname "CN=Android QA, OU=Testing, O=CamideyizBiz, C=TR"
+            fi
+            "$signer" sign --ks "$key" --ks-key-alias androiddebugkey \
+              --ks-pass pass:android --key-pass pass:android \
+              --out "$dest" "$src"
+          fi
+          "$signer" verify --verbose "$dest"
+          sha256sum "$dest"
+          du -h "$dest"
+
+      - name: Upload installable arm64 preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: camideyiz-biz-qa-arm64-release
+          path: artifacts/camideyiz-biz-qa-arm64-release.apk
+          if-no-files-found: error
+          retention-days: 7
