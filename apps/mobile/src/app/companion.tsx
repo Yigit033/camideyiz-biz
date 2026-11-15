@@ -365,12 +365,13 @@ export default function CompanionScreen(){
         <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
           <Feather name="shield" size={16} color={colors.gold}/>
           <Text style={{fontSize:11,lineHeight:18,color:colors.muted,flex:1}}>
-            Uyarılar cihazında, doğrulanmış takvim saatlerinden en fazla 7 gün ve
-            60 planlanmış bildirim sınırıyla oluşturulur. Uygulamayı zaman zaman
-            açarak ilçe ve takvimi yeniden eşitlemelisin; arka planda sınırsız yenileme garanti edilmez.
+            Bildirimler seçtiğin ilçenin namaz vakitlerine göre telefonunda planlanır.
+            Vakitlerin güncel kalması için uygulamayı ara sıra açabilirsin.
           </Text>
         </View>
       </View>
+      {(announcement.available||announcement.enabled||
+        announcement.status==='pending-disable')?
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <View style={styles.sectionHeader}>
           <View style={{flex:1,flexDirection:'row',gap:8,alignItems:'center'}}>
@@ -422,12 +423,7 @@ export default function CompanionScreen(){
               Duyuru kaydını eşitle
             </Text>
           </Pressable>:null}
-        <Text style={{fontSize:10,lineHeight:17,color:colors.muted}}>
-          Duyurular yalnızca yönetici onayıyla, belirlenen tarihte sunucudan
-          push olarak gönderilebilir. Cihazın teslim zamanı ağ ve sistem
-          koşullarına bağlıdır; gönderilme garantisi yoktur.
-        </Text>
-      </View>
+      </View>:null}
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <View style={styles.sectionHeader}>
           <View style={{flexDirection:'row',alignItems:'center',gap:8}}>
@@ -439,9 +435,8 @@ export default function CompanionScreen(){
           </Pressable>:null}
         </View>
         <Text style={{fontSize:11,lineHeight:18,color:colors.muted}}>
-          Uygulamanın aldığı veya telefonun hâlâ bildirim merkezinde tuttuğu hatırlatmalar
-          burada saklanır. Sistem bildirim merkezinden daha önce kaldırılmış kayıtlar
-          her koşulda geri alınamaz.
+          Son hatırlatmaların burada görünür. Telefonun bildirim merkezinden
+          silinen bazı bildirimler listede yer almayabilir.
         </Text>
         {companion.inbox.length?
           companion.inbox.slice(0,40).map(item=><View key={item.id} style={[styles.inboxRow,{
