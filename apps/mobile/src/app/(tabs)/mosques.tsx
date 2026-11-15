@@ -104,7 +104,7 @@ export default function MosquesScreen(){
         <View style={styles.heroFoot}>
           <Feather name="external-link" size={13} color={colors.muted}/>
           <Text style={{fontSize:11,color:colors.muted}}>
-            Google Haritalar'da açılır · Uygulama içi API ücreti yok
+            Google Haritalar'da açılır
           </Text>
         </View>
       </View>
