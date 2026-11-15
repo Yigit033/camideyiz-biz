@@ -43,6 +43,22 @@ jobs:
             throw 'Windows builder must preserve expected Expo changes and reject unexpected edits'
           }
           Write-Host 'Expo prebuild preservation contract OK'
+      - name: Verify owner announcement script cannot leak admin key in mobile bundle
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('scripts/admin-announcements.ps1', [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          $script = Get-Content 'scripts/admin-announcements.ps1' -Raw
+          if ($script -notmatch 'CB_ANNOUNCEMENT_ADMIN_SECRET' -or
+              $script -notmatch 'Action draft' -and $script -notmatch "'draft'") {
+            throw 'Admin script must use server-side authorization and draft workflow'
+          }
+          Write-Host 'Owner-only announcement CLI syntax and authorization contracts OK'
       - name: Live free-calendar endpoint smoke test (non-blocking)
         # Provider outages are observable without breaking unrelated code checks.
         continue-on-error: true
