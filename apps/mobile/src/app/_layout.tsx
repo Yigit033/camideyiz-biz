@@ -16,6 +16,7 @@ function Navigation() {
       <Stack.Screen name="(tabs)"/>
       <Stack.Screen name="companion" options={{presentation:'card'}}/>
       <Stack.Screen name="kerahat-settings" options={{presentation:'card'}}/>
+      <Stack.Screen name="kerahat-guide" options={{presentation:'card'}}/>
     </Stack>
   </>;
 }
