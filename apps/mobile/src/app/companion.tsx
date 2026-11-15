@@ -139,12 +139,14 @@ function WidgetShowcase({now}: {now:number}){
           {Platform.OS==='ios'?'Otomatik vakit yenileme'
             :companion.backgroundRegistered
               ?'Otomatik yenileme planlandı'
-              :'Yenileme durumu kontrol ediliyor'}
+              :'Otomatik yenileme şu anda etkin değil'}
         </Text>
         <Text style={{fontSize:10.5,lineHeight:17,color:colors.muted}}>
           {Platform.OS==='ios'
             ?'Vakitler telefonun izin verdiği aralıklarda yenilenir.'
-            :'Namaz vakitleri uygun olduğunda arka planda yenilenir. Pil tasarrufu geciktirebilir.'}
+            :companion.backgroundRegistered
+              ?'Telefonun izin verdiği zamanlarda yenilenir. Pil tasarrufu geciktirebilir.'
+              :'Saatler widget’a elle aktarılabilir. Arka plan güncellemesi telefon tarafından kısıtlanmış olabilir.'}
         </Text>
         {companion.backgroundReport?.status==='updated'
           ?<Text style={{fontSize:10,color:colors.muted}}>
@@ -160,15 +162,29 @@ function WidgetShowcase({now}: {now:number}){
           zonedClock(new Date(now),'Europe/Istanbul').dateISO
           ?'Namaz saatleri widget’a aktarıldı'
           :preview.status==='ready'
-            ?'Widget yenilemesi bekleniyor'
+            ?companion.widget.updated
+              ?'Widget’a aktarım yapıldı; ana ekranı kontrol et'
+              :'Widget’a aktarım başarısız. Ayrıntıları incele'
             :'Vakitler yüklendiğinde widget güncellenecek'}
       </Text>
-      <Pressable accessibilityRole="button" onPress={companion.refresh}
+      <Pressable accessibilityRole="button"
+        accessibilityLabel="Ana ekran widget'larını şimdi yenile"
+        onPress={()=>void companion.refreshWidgets()}
         style={[styles.miniButton,{backgroundColor:colors.emerald}]}>
         <Feather name="refresh-cw" size={14} color="#FFF9ED"/>
         <Text style={{color:'#FFF9ED',fontSize:11,fontWeight:'800'}}>Yenile</Text>
       </Pressable>
     </View>
+    {preview.status==='ready'&&!companion.widget.updated
+      ?<Pressable accessibilityRole="button"
+        onPress={()=>Alert.alert('Widget güncelleme ayrıntısı',
+          companion.widget.detail+
+          '\\n\\nAna sayfada saatler görünüyorsa Widget Yenile butonuna bas. Sorun sürerse bu açıklamayı paylaş.')}
+        style={{alignSelf:'flex-start',paddingVertical:5}}>
+        <Text style={{fontSize:11,fontWeight:'700',color:colors.gold}}>
+          Neden güncellenmedi?
+        </Text>
+      </Pressable>:null}
   </View>;
 }
 
