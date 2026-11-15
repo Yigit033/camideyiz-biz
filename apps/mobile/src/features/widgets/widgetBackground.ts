@@ -79,11 +79,12 @@ export async function setWidgetActivePlace(
 ):Promise<void>{
   const former=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
   if(!place){
-    await AsyncStorage.multiRemove([ACTIVE_PLACE_KEY,CACHE_KEY]);
+    await AsyncStorage.multiRemove([ACTIVE_PLACE_KEY,CACHE_KEY,STATUS_KEY]);
     return;
   }
   if(former?.id!==place.id||former.source!==source){
-    await AsyncStorage.removeItem(CACHE_KEY);
+    // Avoid displaying the previous district's successful background report.
+    await AsyncStorage.multiRemove([CACHE_KEY,STATUS_KEY]);
   }
   await AsyncStorage.setItem(ACTIVE_PLACE_KEY,JSON.stringify({...place,source}));
 }
