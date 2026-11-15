@@ -58,6 +58,18 @@ async function identity(create:boolean):Promise<Identity|null>{
 async function register(enabled:boolean,askPermission:boolean):Promise<void>{
   const base=serverUrl(),projectId=expoProjectId();
   if(!base||!projectId||isExpoGoRuntime())throw Error('Duyuru sunucusu veya push projesi henüz ayarlanmadı.');
+  if(enabled&&askPermission){
+    // Do not ask the user for OS permission when the server or migration
+    // hasn't actually been configured by the owner.
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),9000);
+    try{
+      const status=await fetch(base+'/api/v1/announcements/health',{
+        method:'GET',signal:controller.signal,
+      });
+      if(!status.ok)throw Error('Duyuru sunucusu henüz etkin değil.');
+    }finally{clearTimeout(timeout);}
+  }
   const cred=await identity(enabled);
   if(!cred){
     if(enabled)throw Error('Cihaz kaydı oluşturulamadı.');
