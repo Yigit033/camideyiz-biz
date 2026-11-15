@@ -28,7 +28,9 @@ export async function syncPrayerWidgets(
     next.default.updateSnapshot(snapshot);
     day.default.updateSnapshot(snapshot);
     return {available:true,updated:true,
-      detail:'Android widget yenilendi. Uygulama kapalıyken saat ilerleyişi garanti edilmez.'};
+      detail:snapshot.ready
+        ?snapshot.city+' · Android widget vakitleri güncellendi. Uygulama kapalıyken otomatik yenilenme garantisi yok.'
+        :'Takvim verisi henüz doğrulanmadı. Konum ve bağlantıyı kontrol edip Yenile’ye bas.'};
   }catch(e){
     return {available:false,updated:false,
       detail:'Native widget güncellenemedi: '+
