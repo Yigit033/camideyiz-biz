@@ -1,5 +1,5 @@
 import {Alert,Linking,Pressable,Share,StyleSheet,Text,View} from 'react-native';
-import {Feather} from '@expo/vector-icons';
+import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
 import {Page,Panel} from '@/components/Page';
 import {useAppTheme} from '@/theme/ThemeProvider';
@@ -58,6 +58,27 @@ export default function MoreScreen(){
     </Panel>
     <Panel>
       <View style={styles.heading}>
+        <Feather name="clock" size={19} color={colors.gold}/>
+        <Text style={[styles.headingText,{color:colors.text}]}>Namaz Takvimi Ayarları</Text>
+      </View>
+      <Pressable accessibilityRole="button"
+        accessibilityLabel="Kerahat vakitleri ve iç çember ayarlarını aç"
+        onPress={()=>router.push('/kerahat-settings')}
+        style={[styles.share,{backgroundColor:colors.soft}]}>
+        <MaterialCommunityIcons name="weather-sunset" size={20} color={colors.gold}/>
+        <View style={{flex:1,gap:4}}>
+          <Text style={{color:colors.text,fontSize:14,fontWeight:'800'}}>
+            Kerahat Vakitleri
+          </Text>
+          <Text style={{color:colors.muted,fontSize:11,lineHeight:17}}>
+            İç halka görünümü, yaklaşık aralık süreleri ve Diyanet açıklaması
+          </Text>
+        </View>
+        <Feather name="chevron-right" size={19} color={colors.gold}/>
+      </Pressable>
+    </Panel>
+    <Panel>
+      <View style={styles.heading}>
         <Feather name="bell" size={19} color={colors.gold}/>
         <Text style={[styles.headingText,{color:colors.text}]}>Widget ve Bildirimler</Text>
       </View>
@@ -87,7 +108,7 @@ export default function MoreScreen(){
       </View>
       <Resource title="Diyanet Namaz Vakti Servisi" subtitle="Resmî API ve başvuru bilgileri"
         icon="clock" onPress={()=>open(SOURCES.prayer)}/>
-      <Resource title="Kerahet vakitleri" subtitle="Din İşleri Yüksek Kurulunun açıklamaları"
+      <Resource title="Kerahat vakitleri" subtitle="Din İşleri Yüksek Kurulunun açıklamaları"
         icon="info" onPress={()=>open(SOURCES.rules)}/>
       <Resource title="Kur’an ve hadis kaynakları" subtitle="Diyanet'in içerik ve kaynak sayfaları"
         icon="book-open" onPress={()=>open(SOURCES.quran)}/>
