@@ -25,7 +25,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      - name: Use preinstalled runner Android SDK
+        run: |
+          test -d "$ANDROID_HOME"
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" || \
+            test -x "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          echo "Android SDK: $ANDROID_HOME"
 
       - name: Install workspace packages
         run: npm install --no-audit --no-fund
