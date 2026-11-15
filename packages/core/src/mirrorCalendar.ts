@@ -67,7 +67,7 @@ export function parseBackupDiyanetCities(raw:unknown,stateId:number):MirrorCity[
   return raw.map(row=>{
     const entry=object(row);
     const value=entry.IlceID;
-    if(typeof value!=='string'||!/^[1-9]\\d{0,5}$/.test(value))
+    if(typeof value!=='string'||!/^[1-9]\d{0,5}$/.test(value))
       throw new Error('Invalid backup district ID');
     const id=Number(value);
     if(!validId(id)||seen.has(id))throw new Error('Duplicate backup district ID');
