@@ -217,6 +217,13 @@ begin
           where d.id=(elem->>'id')::bigint);
     end if;
   end loop;
+  -- An opt-out must prevent all unsent jobs, including jobs that were
+  -- materialized before the user revoked consent.
+  update public.cb_announcement_deliveries d
+     set status='failed',lease_until=null,error_code='subscription_disabled'
+    from public.cb_push_devices p
+   where p.id=d.device_id and p.enabled=false
+     and d.status in ('queued','sending');
   -- Give stale lease/attempt exhausted claims an explicit final state.
   update public.cb_announcement_deliveries set status='failed',lease_until=null,
     error_code='retry_exhausted'
