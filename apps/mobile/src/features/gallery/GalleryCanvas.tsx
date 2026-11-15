@@ -1,4 +1,4 @@
-import {forwardRef,useMemo} from 'react';
+import {forwardRef,useMemo,type ComponentRef} from 'react';
 import {
   Image,Platform,StyleSheet,Text,View,type ImageSourcePropType,
 } from 'react-native';
@@ -29,7 +29,7 @@ type Props={
  * The image is owner-provided, local-bundled and pixel-cropped to the selected
  * WhatsApp Story (9:16) / post (4:5) format.
  */
-export const GalleryCanvas=forwardRef<View,Props>(function GalleryCanvas({
+export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function GalleryCanvas({
   width,slot,source,draft,onImageLoaded,
 },ref){
   const height=Math.round(width*(draft.format==='story'?16/9:5/4));
