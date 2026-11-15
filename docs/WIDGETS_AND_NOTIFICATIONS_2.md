@@ -231,3 +231,101 @@ sonuçlarına göre OS arka plan senkronizasyonu ayrıca ele alınmalı.
 **Yukarıdaki yeni kodların görülmesi için APK'nın yeniden derlenmesi
 zorunlu.** Expo Go veya yalnızca `git pull` telefonun native
 `expo-widgets` paketini değiştirmez.
+
+
+## 15 Kasım 2026 — Widget 2.0 Android WorkManager iyileştirmesi
+
+Expo SDK 58 Android native widget'ları `updateTimeline` **desteklemez**;
+bu API yalnızca iOS içindir. Önceki Android sürümünde
+`updateSnapshot` sadece uygulama açıldığında çalışıyordu.
+
+Yeni mimari:
+- `expo-background-task` (~58.0.13) + `expo-task-manager`
+  (~58.0.14) ile Android WorkManager üzerine **15 dk minimum
+  aralıklı**, Android tarafından zamanlanan bir görev eklendi.
+- Görev Expo Router'ın kök modülünde global olarak tanımlanır.
+  `expo-background-task` Android'de TaskManager headless JS ile
+  uygulama arka plandayken çalışmayı dener; Expo Go'da native widget
+  görevi kaydedilmez.
+- Kullanıcının uygulamada seçtiği **ilçe** ve doğrulanmış yayımlanmış
+  takvim, AsyncStorage içinde ayrıca saklanır. GPS ile farklı ilçe
+  tahmin edilmez.
+- Arka planda sonraki namazı önce doğrulanmış kayıtlar üzerinden
+  yeniden hesaplar. Takvim kaydı **72 saati** aşarsa veya yanlış
+  ilçeye aitse atılır. Ağ sorguları en fazla yaklaşık **2 saatte
+  bir**, veriler eksik/gün dışıysa daha erken yapılabilir. İnternet
+  yokken daha önce doğrulanmış ve hâlâ geçerli günlerin bilgisi
+  kullanılabilir; kaynaksız takvim **üretilmez**.
+- Yanlış şehir, bozuk sıralama, eksik takvim günü, demo saatleri,
+  negatif/ilerideki kaynak tarihi ve zamanı geçmiş önbellek
+  fail-closed reddedilir.
+- Android native `updateSnapshot` hem foreground hem de headless
+  görevde kullanılmak üzere çağrılır. Doğrudan bildirim iznine bağlı
+  değildir.
+- Widget & Bildirimler sayfası görevin sisteme kayıtlı olup
+  olmadığını ve **son gözlemlenen arka plan çalışmasını** gösterir.
+  Bu gözlem sahte/varsayılan bir zamanla doldurulmaz.
+- SDK58 + R8 release'de WorkManager/Room constructor stripping
+  sorunu için CNG'de idempotent proguard plugin eklendi;
+  Android native prebuild CI proguard dosyasını doğrular.
+
+**Sınırlamalar (yayın blokajı):**
+- WorkManager **en erken 15 dk** aralıkla ve tamamen OS takdirine
+  göre çalışır; pil/Doze ve cihaz üreticisi daha fazla geciktirebilir.
+  Kapatılan/force-stop yapılan uygulamanın otomatik çalışması
+  garantilenemez. Gerçek widget'ta saniyelik/dakikalık canlı sayacı
+  göstermiyoruz.
+- `TaskManager` headless Android worker'ın gerçekten
+  `expo-widgets.updateSnapshot` çağrısını tetiklediği fiziksel cihaz
+  üzerinde doğrulanmalı. TypeScript, JS bundle ve prebuild testleri
+  bunu kanıtlamaz.
+- iOS hâlâ mevcut WidgetKit zaman çizelgesi üzerinden çalışıyor;
+  iOS fiziksel cihaz/signing testleri ayrı.
+
+### Fiziksel Android kabul testi
+
+1. Aynı imzayı koruyan mevcut kısa checkout `C:\cb` içinden
+   **release** APK'yı artımlı üretip eski APK'nın üstüne kur.
+2. Camideyiz Biz'i aç, doğrulanmış İstanbul/ilçe takvimini yükle.
+3. Widget ve Bildirimler sayfasında `Arka plan güncellemesi ·
+   Sisteme kaydedildi` ve mevcut widget durumunu gözle.
+4. Uygulamadan **normal şekilde** çık (Android Ayarlar içindeki
+   `Zorla durdur` değil), telefon ana ekranına iki widget'ı ekle.
+5. Ağ açıkken ve pil tasarrufu kapalıyken bir vakit sınırını izle;
+   daha sonra ağ kapalıyken aynı güne ait son kaydı incele.
+6. Widget ve Bildirimler sayfasında son görev zamanını ve hata
+   metnini kontrol et. Gerçek çalışma yoksa başarı iddia etme.
+7. Başka ilçe seç; widget'ta eski ilçenin namaz saatlerinin
+   gösterilmediğini doğrula.
+8. `adb shell dumpsys jobscheduler` çıktısında
+   `biz.camideyiz.app` WorkManager görevini kontrol et. Android
+   `cmd jobscheduler run -f PACKAGE JOB_ID` komutu QA için
+   kullanılabilir; QA'dan sonra normal OS zamanlamasını test et.
+9. Kilitli ekran, farklı launcher/boyut, yeniden başlatma, açık/koyu
+   tema ve üretici pil yönetimini test et.
+
+### Release APK derleme optimizasyonu
+
+`scripts/build-android-windows.ps1` artık mevcut `C:\cb` kısa
+checkout'unu ve native `android/.cxx` Gradle/CMake ara çıktısını
+korur; her build'de `expo prebuild --clean` yapmaz. İlk kurulumda
+otomatik temiz prebuild yapar, gerektiğinde `-CleanNative` ile
+istenebilir. Gradle daemon kapatılmadığından artımlı derlemeler
+genellikle daha hızlıdır; ilk yeni native bağımlılık derlemesi
+yine uzun sürebilir.
+
+**Geliştirme / bağımsız test farkı:** Debug APK varsayılan olarak
+Metro geliştirici sunucusuna ihtiyaç duyar; release APK kendi JS
+bundle'ını içerir. Telefonu kablodan ayırıp normal kullanım testi
+için release gerekir. Debug APK kendi başına Play Store paketi değildir.
+
+**APK yükseltmesi:** İlk test APK'sı `C:\cb` checkout'unda
+imzalandıysa tekrar aynı checkout'u kullan. Ayrı yeni checkout
+debug signing key değiştirirse Android mevcut paketin üstüne
+kurulumu reddedebilir. Key değişirse uygulamayı/verilerini
+silmeden önce imza bilgisi doğrulanmalı.
+
+Referanslar:
+- https://docs.expo.dev/versions/v58.0.0/sdk/background-task/
+- https://docs.expo.dev/versions/v58.0.0/sdk/widgets/
+- https://github.com/expo/expo/issues/52173
