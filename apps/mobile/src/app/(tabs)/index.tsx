@@ -39,12 +39,10 @@ function DateDivider({now,timezone,hijriDate}: {now:Date;timezone:string;hijriDa
   const date=new Intl.DateTimeFormat('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone}).format(now);
   const hijri=hijriDate??formatHijri(now);
   return <View style={styles.dateSection}>
-    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7}}>
-      <Feather name="calendar" size={13} color={colors.gold}/>
-      <Text style={[styles.dateText,{color:colors.text,textAlign:'center',flexShrink:1}]}>
-        {hijri?hijri+'  —  '+date:date}
-      </Text>
-    </View>
+    <Text accessibilityLabel={hijri?hijri+' | '+date:date}
+      style={[styles.dateText,{color:colors.text,textAlign:'center'}]}>
+      {hijri?<>{hijri}<Text style={{color:colors.gold}}>{'  |  '}</Text>{date}</>:date}
+    </Text>
   </View>;
 }
 function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
@@ -396,9 +394,9 @@ export default function HomeScreen(){
 }
 const styles=StyleSheet.create({
   content:{paddingHorizontal:11,paddingBottom:14,gap:8},
-  dateSection:{alignItems:'center',gap:3,marginTop:-4},
+  dateSection:{alignItems:'center',justifyContent:'center',alignSelf:'stretch',paddingHorizontal:8,marginTop:1},
   dateLine:{width:27,height:1,opacity:.65},
-  dateText:{fontFamily:'serif',fontSize:13.1,fontWeight:'600'},
+  dateText:{fontFamily:'serif',fontSize:13.1,fontWeight:'600',width:'100%',lineHeight:21},
   wheelStage:{alignItems:'center',justifyContent:'center',position:'relative',marginTop:-2,marginBottom:-12},
   halo:{position:'absolute',height:235,width:235,borderRadius:118},
   tinyActions:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:7,minHeight:26},
