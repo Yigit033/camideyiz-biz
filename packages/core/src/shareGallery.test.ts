@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   GALLERY_CATEGORIES,GALLERY_PRESETS,GALLERY_TEXT_MAX_LENGTH,
   DEFAULT_GALLERY_DRAFT,canExportGalleryDesign,cleanGalleryText,
-  galleryFormatDimensions,galleryTextRelativeTop,parseGalleryDraft,
+  galleryFormatDimensions,galleryTextRelativeTop,galleryTextFitScale,parseGalleryDraft,
 } from './shareGallery.ts';
 
 test('Turkish ready greetings are unique, plain text and do not claim verses',()=>{
@@ -30,4 +30,11 @@ test('invalid locally saved draft cannot override validated editor preferences',
   assert.deepEqual(parseGalleryDraft(DEFAULT_GALLERY_DRAFT),DEFAULT_GALLERY_DRAFT);
   assert.equal(parseGalleryDraft({ ...DEFAULT_GALLERY_DRAFT,font:'unknown'}),null);
   assert.equal(parseGalleryDraft({...DEFAULT_GALLERY_DRAFT,text:'x'.repeat(500)}),null);
+});
+
+test('long greetings shrink before they can be truncated by the exported canvas',()=>{
+  assert.equal(galleryTextFitScale('Hayırlı Cumalar'),1);
+  assert.ok(galleryTextFitScale('A'.repeat(160))<.5);
+  assert.ok(galleryTextRelativeTop('top')>=.25);
+  assert.ok(galleryTextRelativeTop('bottom')<=.75);
 });
