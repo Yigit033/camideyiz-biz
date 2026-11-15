@@ -66,6 +66,7 @@ export function CompanionProvider({children}:PropsWithChildren){
   const [permission,setPermission]=useState<'granted'|'denied'|'unknown'>('unknown');
   const lastForegroundSync=useRef(0);
   const syncVersion=useRef(0);
+  const widgetVersion=useRef(0);
   const syncQueue=useRef<Promise<void>>(Promise.resolve());
   const deletedIds=useRef<Set<string>>(new Set());
 
@@ -146,6 +147,31 @@ export function CompanionProvider({children}:PropsWithChildren){
   },[source.days,source.place?.id]);
   const cityId=source.place?.id??0;
 
+  // Widget snapshots are NOT notifications. They must update on verified
+  // calendar changes regardless of Android notification permission, channel
+  // state, or whether the user's reminders are enabled.
+  useEffect(()=>{
+    if(!ready)return;
+    const version=++widgetVersion.current;
+    let active=true;
+    const update=async()=>{
+      try{
+        // Fail closed: never keep showing old-district hours when the current
+        // calendar has not been verified. The widget renders an honest empty
+        // state until the published schedule arrives.
+        const result=await syncPrayerWidgets(days,Date.now());
+        if(active&&version===widgetVersion.current)setWidget(result);
+      }catch(error){
+        if(active&&version===widgetVersion.current)setWidget({
+          available:false,updated:false,
+          detail:'Widget eşitleme hatası: '+(error instanceof Error?error.message:'Bilinmeyen hata'),
+        });
+      }
+    };
+    void update();
+    return ()=>{active=false;};
+  },[ready,days,cityId,sequence]);
+
   useEffect(()=>{
     if(!ready)return;
     const id=++syncVersion.current;
@@ -161,20 +187,12 @@ export function CompanionProvider({children}:PropsWithChildren){
           if(cityId>0){
             try{await prunePrayerNotifications(cityId,settings);}
             catch{/* retry on next source update */}
-            // Clear old-city native widget contents; no fabricated time.
-            const placeholder=await syncPrayerWidgets([],Date.now());
-            if(active&&id===syncVersion.current)setWidget(placeholder);
           }
           return;
         }
         const report=await reconcilePrayerNotifications(days,cityId,settings);
         if(active&&id===syncVersion.current){
           setSync(report);setPermission(report.permission);
-        }
-        // Widgets are independent from notification permission.
-        if(days.length){
-          const result=await syncPrayerWidgets(days,Date.now());
-          if(active&&id===syncVersion.current)setWidget(result);
         }
       }finally{
         if(active&&id===syncVersion.current)setSyncing(false);
