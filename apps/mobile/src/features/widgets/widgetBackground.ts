@@ -20,6 +20,7 @@ export const WIDGET_BACKGROUND_TASK='camideyiz-widget-refresh-v3';
 const ACTIVE_PLACE_KEY='@camideyiz/widget-active-place/v3';
 const CACHE_KEY='@camideyiz/widget-published-calendar/v3';
 const STATUS_KEY='@camideyiz/widget-background-status/v3';
+const LAST_TRANSFER_KEY='@camideyiz/widget-native-transfer/v1';
 export const WIDGET_BACKGROUND_INTERVAL_MINUTES=15;
 
 type ActivePlace=PrayerPlaceSelection&{
@@ -30,6 +31,41 @@ export type WidgetBackgroundReport={
   status:'updated'|'waiting-data'|'error';
   detail:string;
 };
+export type LastWidgetTransfer={
+  cityId:number;city:string;dateISO:string;sentAt:number;
+  nextName:string;nextTime:string;
+  times:{key:string;label:string;time:string}[];
+};
+export async function readLastWidgetTransfer():Promise<LastWidgetTransfer|null>{
+  try{
+    const raw=await AsyncStorage.getItem(LAST_TRANSFER_KEY);
+    if(!raw)return null;
+    const record:unknown=JSON.parse(raw);
+    if(!record||typeof record!=='object'||Array.isArray(record))return null;
+    const v=record as LastWidgetTransfer;
+    if(!Number.isSafeInteger(v.cityId)||v.cityId<1||
+      typeof v.city!=='string'||!v.city.trim()||
+      typeof v.dateISO!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(v.dateISO)||
+      !Number.isFinite(v.sentAt)||v.sentAt>Date.now()+60_000||
+      Date.now()-v.sentAt>72*60*60_000||
+      typeof v.nextName!=='string'||typeof v.nextTime!=='string'||
+      !Array.isArray(v.times)||v.times.length!==6)return null;
+    return v;
+  }catch{return null;}
+}
+async function noteNativeTransfer(
+  place:ActivePlace,days:readonly PrayerSchedule[],now:number,
+):Promise<void>{
+  const snapshot=buildPrayerWidgetSnapshot(days,now);
+  if(snapshot.status!=='ready')return;
+  const current=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
+  if(!current||current.id!==place.id||current.source!==place.source)return;
+  await AsyncStorage.setItem(LAST_TRANSFER_KEY,JSON.stringify({
+    cityId:place.id,city:snapshot.city,dateISO:snapshot.dateISO,sentAt:now,
+    nextName:snapshot.nextName,nextTime:snapshot.nextTime,
+    times:snapshot.times,
+  } satisfies LastWidgetTransfer));
+}
 const enabled=()=>Platform.OS==='android'&&!isExpoGoRuntime();
 const sourceKind=():WidgetCalendarCache['source']=>configuredPrayerApi()
   ?'diyanet-awqat-salah':'idamedya-diyanet-republished';
@@ -82,12 +118,12 @@ export async function setWidgetActivePlace(
 ):Promise<void>{
   const former=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
   if(!place){
-    await AsyncStorage.multiRemove([ACTIVE_PLACE_KEY,CACHE_KEY,STATUS_KEY]);
+    await AsyncStorage.multiRemove([ACTIVE_PLACE_KEY,CACHE_KEY,STATUS_KEY,LAST_TRANSFER_KEY]);
     return;
   }
   if(former?.id!==place.id||former.source!==source){
     // Avoid displaying the previous district's successful background report.
-    await AsyncStorage.multiRemove([CACHE_KEY,STATUS_KEY]);
+    await AsyncStorage.multiRemove([CACHE_KEY,STATUS_KEY,LAST_TRANSFER_KEY]);
   }
   await AsyncStorage.setItem(ACTIVE_PLACE_KEY,JSON.stringify({...place,source}));
 }
@@ -109,6 +145,46 @@ export async function saveForegroundWidgetCalendar(
   const prior=await readCache(Date.now(),place.id);
   if(prior&&prior.fetchedAt>cache.fetchedAt)return;
   await AsyncStorage.setItem(CACHE_KEY,JSON.stringify(cache));
+}
+
+/**
+ * Single foreground entrypoint: persist the selected district FIRST, then
+ * validate and reuse its last published schedule. A transient source loading
+ * state must not replace a valid already-rendered widget with placeholder.
+ * A district switch clears both cache and native widget until new published
+ * times for that exact selected district pass validation.
+ *
+ * UI observes only native updateSnapshot call success; OS launcher rendering
+ * still requires the physical-device comparison in the release QA checklist.
+ */
+export async function syncForegroundWidgetCalendar(
+  place:PrayerPlaceSelection|null,
+  source:WidgetCalendarCache['source'],
+  days:readonly PrayerSchedule[],
+  publishedAt:number|null,
+  now=Date.now(),
+):Promise<import('./widgetSyncShared').WidgetSyncResult>{
+  if(!enabled())return syncPrayerWidgets(days,now);
+  await setWidgetActivePlace(place,source);
+  if(!place)return syncPrayerWidgets([],now);
+  if(days.length>=2&&publishedAt!==null&&Number.isFinite(publishedAt)){
+    await saveForegroundWidgetCalendar(place,source,days,publishedAt);
+  }
+  const active=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
+  if(!active||active.id!==place.id||active.source!==source){
+    return {available:true,updated:false,detail:'İlçe değişimi sırasında eşitleme yenilendi'};
+  }
+  const cache=await readCache(now,place.id);
+  const verified=cache?.days??[];
+  const snapshot=buildPrayerWidgetSnapshot(verified,now);
+  // Always clear a previous-district snapshot if the current district has no
+  // valid published data; otherwise, preserve the same-district cache.
+  const selected=snapshot.status==='ready'?verified:[];
+  const result=await syncPrayerWidgets(selected,now);
+  if(result.updated&&selected.length){
+    await noteNativeTransfer(active,selected,now).catch(()=>undefined);
+  }
+  return result;
 }
 
 /** Runs without React components. Inexact WorkManager task, not a clock alarm.
@@ -156,6 +232,9 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
     return false;
   }
   const hasData=snapshot?.status==='ready';
+  if(hasData&&usable){
+    await noteNativeTransfer(latest,usable.days,Date.now()).catch(()=>undefined);
+  }
   let reminderDetail='';
   if(hasData&&usable){
     try{
