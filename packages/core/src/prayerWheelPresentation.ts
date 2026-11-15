@@ -10,7 +10,10 @@ export function prayerSectorLabelAngle(from:number,to:number):number{
   const span=to-from;
   // Move from the sector midpoint toward its starting clock without
   // compressing labels into the previous boundary on narrow sectors.
-  const inset=span<30?span*.43:Math.max(14,Math.min(31,span*.43));
+  // Actual 24-hour sectors can span 20° (Akşam) or over 160° (Yatsı).
+  // Cap the name's offset on LONG sectors too, so the word stays alongside
+  // its start-time badge instead of drifting into the enormous night wedge.
+  const inset=span<30?span*.43:Math.max(13,Math.min(20,span*.33));
   return from+Math.min(span*.49,inset);
 }
 
