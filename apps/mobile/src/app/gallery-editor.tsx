@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useEffect,useMemo,useRef,useState,type ComponentRef} from 'react';
 import {
   ActivityIndicator,Alert,KeyboardAvoidingView,Platform,Pressable,
   ScrollView,StyleSheet,Text,TextInput,View,useWindowDimensions,
@@ -52,8 +52,8 @@ export default function GalleryEditor(){
   const {slot:id}=useLocalSearchParams<{slot?:string}>();
   const asset=gallerySlot(typeof id==='string'?id:'');
   const photo=asset?galleryPhoto(asset.id):null;
-  const canvasRef=useRef<View>(null);
-  const scrollRef=useRef<ScrollView>(null);
+  const canvasRef=useRef<ComponentRef<typeof View>>(null);
+  const scrollRef=useRef<ComponentRef<typeof ScrollView>>(null);
   const [draft,setDraft]=useState<GalleryDraft>({
     ...DEFAULT_GALLERY_DRAFT,text:asset?.recommendedText??DEFAULT_GALLERY_DRAFT.text,
   });
