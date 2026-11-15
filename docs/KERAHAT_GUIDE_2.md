@@ -26,7 +26,7 @@ Yeni ekranda:
   `dd7a26f775110bc3a911be35c78ec9c90e3d3e0a2e0a470343cfaedb410babf7`
 - `apps/mobile/assets/kerahat/hafif-kerahat.png`
   SHA-256:
-  `f403909395ea5e9f676680f9c6df53e7a1b0cd9f9730328b8ba3a3b1a3cce5`
+  `f403909395ea5e9f676680f9c6df53e7a1b0cd9f9730328b8bafa3a3b1a3cce5`
 
 ### Önemli entegrasyon sınırı
 
