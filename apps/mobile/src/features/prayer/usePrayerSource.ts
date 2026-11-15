@@ -62,8 +62,15 @@ export function usePrayerSource(now:Date){
 
   const selectPlace=useCallback(async(next:PrayerPlaceSelection)=>{
     if(!validPlace(next))throw new Error('Invalid place selection');
-    setData(null);setStatus('loading');setPlace(next);
-    await AsyncStorage.setItem(officialConfigured?OFFICIAL_PLACE_KEY:MIRROR_PLACE_KEY,JSON.stringify(next));
+    // Persist FIRST. If storage fails the picker remains open with an error;
+    // it must not look selected and then silently revert on app restart.
+    await AsyncStorage.setItem(
+      officialConfigured?OFFICIAL_PLACE_KEY:MIRROR_PLACE_KEY,
+      JSON.stringify(next),
+    );
+    setData(null);
+    setStatus('loading');
+    setPlace(next);
   },[officialConfigured]);
   const retry=useCallback(()=>setRefresh(n=>n+1),[]);
   // Re-check the time-limited third-party cache while the app remains foregrounded.
