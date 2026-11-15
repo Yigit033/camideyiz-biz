@@ -144,8 +144,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     <Atmosphere dark={dark}/>
     <ScrollView showsVerticalScrollIndicator={false} overScrollMode="never"
       contentContainerStyle={[styles.content,{paddingTop:compact?7:11}]}>
-      <HomeBrandHeader place={official.place}
-        compact={compact} onOpenLocation={()=>setPickerOpen(true)}
+      <HomeBrandHeader place={official.place} now={now}
+        timezone={SCHEDULE.timezone} compact={compact} onOpenLocation={()=>setPickerOpen(true)}
         locationMode={official.locationMode}
         autoLocationStatus={official.autoLocationStatus}
         onEnableAutoLocation={official.enableAutoLocation}/>
@@ -158,7 +158,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           nowSeconds={previewSeconds} colors={colors}
           size={wheelSize} countdown={formatCountdown(phase.secondsRemaining)}
           isManualSelection={manualIndex!==null}
-          phaseProgress={phase.progress}
+          previousYatsiTime={official.days?.previous?.times.find(item=>item.key==='yatsi')?.time}
+          nextImsakTime={official.days?.next?.times.find(item=>item.key==='imsak')?.time}
           urgency={phase.urgency}
           nextKey={phase.next.key}
           restriction={restriction}
@@ -296,7 +297,7 @@ function CalendarLoadingHome({official,now}:{
     <Atmosphere dark={dark}/>
     <ScrollView showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.content,{paddingTop:12,paddingBottom:30}]}>
-      <HomeBrandHeader place={official.place}
+      <HomeBrandHeader place={official.place} now={now}
         onOpenLocation={()=>setPickerOpen(true)}
         locationMode={official.locationMode}
         autoLocationStatus={official.autoLocationStatus}
@@ -335,7 +336,7 @@ function CalendarLoadingHome({official,now}:{
           nowSeconds={0} colors={colors}
           size={Math.min(width-10,366)} countdown=""
           isManualSelection={false}
-          phaseProgress={0} urgency="normal" nextKey="imsak"
+          urgency="normal" nextKey="imsak"
           restriction={null} indicativeWindows={[]}
           locationName={official.place?.name??'Konum seçilmedi'}/>
       </View>

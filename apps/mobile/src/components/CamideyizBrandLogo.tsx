@@ -24,8 +24,8 @@ export const CamideyizBrandLogo=memo(function CamideyizBrandLogo({compact=false}
 }){
   // Original user-supplied brand artwork: icon ABOVE the exact wordmark.
   // Preserve the vector contours, gradient and original typography.
-  const iconWidth=compact?91:108;
-  const wordWidth=compact?166:190;
+  const iconWidth=compact?72:83;
+  const wordWidth=compact?126:146;
   return <View accessible accessibilityLabel="camideyiz.biz"
     style={{flexDirection:'column',alignItems:'center',justifyContent:'center',
       gap:compact?0:1}}>

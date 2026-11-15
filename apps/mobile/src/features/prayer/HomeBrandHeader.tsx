@@ -1,4 +1,4 @@
-import {memo} from 'react';
+import {memo,useMemo} from 'react';
 import {Alert,Linking,Pressable,Text,View} from 'react-native';
 import {Feather} from '@expo/vector-icons';
 import {router} from 'expo-router';
@@ -13,7 +13,7 @@ import type {DevicePlaceStatus} from './useDevicePrayerLocation';
  */
 export const HomeBrandHeader=memo(function HomeBrandHeader({
   place,onOpenLocation,onEnableAutoLocation,locationMode,autoLocationStatus,
-  compact=false,
+  compact=false,now,timezone='Europe/Istanbul',
 }:{
   place:PrayerPlaceSelection|null;
   onOpenLocation:()=>void;
@@ -21,22 +21,31 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
   locationMode:PrayerPlaceMode|'booting';
   autoLocationStatus:DevicePlaceStatus;
   compact?:boolean;
+  now:Date;
+  timezone?:string;
 }){
   const {colors,setMode}=useAppTheme();
   const dark=colors.isDark;
+  const minute=Math.floor(now.getTime()/60000);
+  const localClock=useMemo(()=>{
+    try{return new Intl.DateTimeFormat('tr-TR',{hour:'2-digit',minute:'2-digit',
+      hour12:false,timeZone:timezone}).format(now);}
+    catch{return new Intl.DateTimeFormat('tr-TR',{hour:'2-digit',minute:'2-digit',
+      hour12:false,timeZone:'Europe/Istanbul'}).format(now);}
+  },[minute,timezone]);
   const district=place
     ?place.name.toLocaleLowerCase('tr-TR')===place.stateName.toLocaleLowerCase('tr-TR')
       ?'İl merkezi takvimi':place.name
     :'İl ve ilçe seç';
-  return <View style={{gap:compact?6:8,paddingTop:compact?1:4,marginBottom:3}}>
-    <View style={{alignItems:'center',justifyContent:'center',minHeight:compact?96:115}}>
+  return <View style={{gap:compact?6:7,paddingTop:compact?0:2,marginBottom:2}}>
+    <View style={{alignItems:'center',justifyContent:'center',minHeight:compact?74:90}}>
       <CamideyizBrandLogo compact={compact}/>
     </View>
     <View style={{flexDirection:'row',alignItems:'center',gap:8}}>
-      <View style={{flex:1,minWidth:0,height:49,borderRadius:16,borderWidth:1,
+      <View style={{flex:1,minWidth:0,minHeight:61,borderRadius:18,borderWidth:1,
         borderColor:colors.border,
         backgroundColor:dark?'rgba(7,48,43,.89)':'rgba(255,255,255,.85)',
-        paddingHorizontal:7,alignItems:'center',flexDirection:'row',gap:7}}>
+        paddingHorizontal:8,alignItems:'center',flexDirection:'row',gap:8}}>
         <Pressable accessibilityRole="button"
           accessibilityLabel={locationMode==='auto'
             ?'Otomatik konumu yeniden bul':'GPS ile konumumu otomatik bul'}
@@ -56,7 +65,7 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
             });
           }}
           hitSlop={6}
-          style={{width:33,height:35,borderRadius:11,
+          style={{width:39,height:42,borderRadius:13,
             alignItems:'center',justifyContent:'center',
             backgroundColor:locationMode==='auto'?
               (dark?'rgba(35,107,85,.7)':'#E1F4E9'):colors.soft}}>
@@ -66,13 +75,13 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
         <Pressable accessibilityRole="button"
           accessibilityLabel={place
             ?place.stateName+' ilinin '+place.name+
-              ' takvimi. İl ve ilçeyi elle değiştirmek için dokun.'
+              ' takvimi. Yerel saat '+localClock+'. İl ve ilçeyi elle değiştirmek için dokun.'
             :'Namaz vakitleri için il ve ilçeyi elle seç'}
           onPress={onOpenLocation}
           style={{flex:1,minWidth:0,flexDirection:'row',
             alignItems:'center',height:'100%',gap:5}}>
-          <View style={{flex:1,minWidth:0,gap:2}}>
-            <Text style={{fontSize:9.5,color:colors.muted,fontWeight:'700'}}
+          <View style={{flex:1,minWidth:0,gap:4}}>
+            <Text style={{fontSize:10,color:colors.muted,fontWeight:'700'}}
               numberOfLines={1}>
               {locationMode==='auto'
                 ?autoLocationStatus==='active'
@@ -84,24 +93,33 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
                       :'Otomatik konum alınamadı'
                 :place?.stateName??'Konum'}
             </Text>
-            <Text style={{fontSize:13,fontWeight:'800',color:colors.text}}
-              numberOfLines={1} adjustsFontSizeToFit>
-              {district}
-            </Text>
+            <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
+              <Text style={{fontSize:14,fontWeight:'800',color:colors.text,
+                flex:1,minWidth:0}} numberOfLines={1} adjustsFontSizeToFit>
+                {district}
+              </Text>
+              <Text accessibilityLabel={'Yerel saat '+localClock}
+                style={{fontVariant:['tabular-nums'],fontSize:12.5,
+                  fontWeight:'800',color:colors.gold,
+                  paddingHorizontal:7,paddingVertical:4,borderRadius:8,
+                  backgroundColor:colors.soft}}>
+                {localClock}
+              </Text>
+            </View>
           </View>
           <Feather name="chevron-down" size={15} color={colors.gold}/>
         </Pressable>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel={dark?'Açık temaya geç':'Koyu temaya geç'}
         onPress={()=>setMode(dark?'light':'dark')}
-        style={{width:43,height:43,borderRadius:15,borderWidth:1,
+        style={{width:46,height:46,borderRadius:15,borderWidth:1,
           backgroundColor:colors.surface,borderColor:colors.border,
           alignItems:'center',justifyContent:'center'}}>
         <Feather name={dark?'sun':'moon'} size={19} color={colors.gold}/>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Widget ve bildirim ayarları"
         onPress={()=>router.push('/companion')}
-        style={{width:43,height:43,borderRadius:15,borderWidth:1,
+        style={{width:46,height:46,borderRadius:15,borderWidth:1,
           backgroundColor:colors.surface,borderColor:colors.border,
           alignItems:'center',justifyContent:'center'}}>
         <Feather name="bell" size={19} color={colors.text}/>
