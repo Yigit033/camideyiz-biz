@@ -1,4 +1,4 @@
-import {validateTriplet,type OfficialTriplet,parseMirrorStates,parseMirrorCities,parseMirrorTriplet,type MirrorTriplet} from '@camideyiz/core';
+import {validateTriplet,type OfficialTriplet,parseMirrorStates,parseMirrorCities,parseBackupDiyanetCities,parseMirrorTriplet,type MirrorTriplet} from '@camideyiz/core';
 
 export type PrayerPlaceSelection={id:number;name:string;stateId:number;stateName:string};
 export type StateOption={id:number;name:string;country_id:number};
@@ -64,9 +64,28 @@ async function mirrorGet(path:string):Promise<unknown>{
 export async function getMirrorStates():Promise<StateOption[]>{
   return parseMirrorStates(await mirrorGet('/iller'));
 }
+// The public prayer provider sometimes fails on district directory requests.
+// A separate public Diyanet-coded DIRECTORY is fallback only; prayer hours
+// always come from the explicitly selected original times provider.
+const BACKUP_DIRECTORY='https://ezanvakti.emushaf.net';
+async function backupDirectory(stateId:number):Promise<CityOption[]>{
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),9500);
+  try{
+    const result=await fetch(BACKUP_DIRECTORY+'/ilceler/'+stateId,{
+      method:'GET',headers:{Accept:'application/json'},signal:controller.signal,
+    });
+    if(!result.ok)throw new Error('Backup directory HTTP '+result.status);
+    return parseBackupDiyanetCities(await result.json(),stateId);
+  }finally{clearTimeout(timeout);}
+}
 export async function getMirrorCities(stateId:number):Promise<CityOption[]>{
   if(!Number.isSafeInteger(stateId)||stateId<=0)throw new Error('Invalid province');
-  return parseMirrorCities(await mirrorGet('/ilceler/'+stateId),stateId);
+  try{
+    const result=parseMirrorCities(await mirrorGet('/ilceler/'+stateId),stateId);
+    if(result.length)return result;
+  }catch{/* The directory alone may be unavailable; try verified ID-format backup. */}
+  return backupDirectory(stateId);
 }
 export async function getMirrorPrayerTriplet(
   place:PrayerPlaceSelection,dateISO:string,
