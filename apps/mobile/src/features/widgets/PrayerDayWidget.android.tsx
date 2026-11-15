@@ -27,7 +27,7 @@ const PrayerDayWidget=(props:Props)=>{
     {props.ready
       ?<Row horizontalArrangement={{spacedBy:12}}>
         <Column verticalArrangement={{spacedBy:7}}
-          modifiers={[width(135)]}>
+          modifiers={[width(120)]}>
           <Text color="#F7F0DF" maxLines={1}
             style={{fontSize:12,fontWeight:'bold'}}>
             {props.times[0]?.label}  {props.times[0]?.time}
@@ -42,7 +42,7 @@ const PrayerDayWidget=(props:Props)=>{
           </Text>
         </Column>
         <Column verticalArrangement={{spacedBy:7}}
-          modifiers={[width(135)]}>
+          modifiers={[width(120)]}>
           <Text color="#F7F0DF" maxLines={1}
             style={{fontSize:12,fontWeight:'bold'}}>
             {props.times[3]?.label}  {props.times[3]?.time}
