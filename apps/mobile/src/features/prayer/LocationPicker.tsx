@@ -228,7 +228,7 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
           <Feather name={province?'check-circle':'chevron-right'} size={17}
             color={province?colors.emerald:colors.muted}/>
         </Pressable>}/>:null}
-      {!configuredPrayerApi()&&!loading&&!saving?<Text style={styles.source}>
+      {!configuredPrayerApi()&&!loading&&!saving?<Text style={[styles.source,{color:colors.muted}]}>
         İl/ilçe rehberi: İdamedya, gerektiğinde alternatif Diyanet kodlu açık liste.
         Saatler ayrıca doğrulanır; resmî Diyanet API'si kullanılmıyor.
       </Text>:null}
