@@ -155,8 +155,10 @@ function WidgetShowcase({now}: {now:number}){
     </View>
     <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10}}>
       <Text style={{flex:1,fontSize:10.5,color:colors.muted}} numberOfLines={2}>
-        {companion.widget.updated
-          ?'Widget vakitleri güncellendi'
+        {companion.lastWidgetTransfer?.cityId===source.place?.id&&
+        companion.lastWidgetTransfer.dateISO===
+          zonedClock(new Date(now),'Europe/Istanbul').dateISO
+          ?'Namaz saatleri widget’a aktarıldı'
           :preview.status==='ready'
             ?'Widget yenilemesi bekleniyor'
             :'Vakitler yüklendiğinde widget güncellenecek'}
