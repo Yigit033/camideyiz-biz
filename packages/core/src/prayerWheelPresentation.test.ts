@@ -6,7 +6,7 @@ import {
   prayerSectorLabelAngle,prayerSectorVisualLayout,currentPrayerArc,
   kerahatRingWindows,KERAHAT_APPROACH_SECONDS,
 } from './prayerWheelPresentation.ts';
-import {makeVisualDialSectors} from './visualDial.ts';
+import {makeVisualDialSectors,clockSecondsToVisualAngle} from './visualDial.ts';
 
 const schedule={...DEMO_SCHEDULE,isDemo:false,dateISO:'2026-11-15',
   times:[
@@ -103,7 +103,7 @@ test('outer progress tracks active wedge only, including actual next-day İmsak'
 
 test('kerahat windows retain exact 24-hour proportional dial angles',()=>{
   const sectors=makeVisualDialSectors(schedule.times);
-  const {clockSecondsToVisualAngle}=await import('./visualDial.ts');
+
   for(const w of windows){
     const from=clockSecondsToVisualAngle(w.startSeconds,schedule.times,sectors);
     const to=clockSecondsToVisualAngle(w.endSeconds,schedule.times,sectors);
