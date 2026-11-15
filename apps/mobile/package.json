@@ -33,7 +33,9 @@
     "@shopify/react-native-skia": "2.14.0",
     "expo-notifications": "~58.1.9",
     "expo-widgets": "~58.0.28",
-    "@expo/ui": "~58.0.28"
+    "@expo/ui": "~58.0.28",
+    "expo-background-task": "~58.0.13",
+    "expo-task-manager": "~58.0.14"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
