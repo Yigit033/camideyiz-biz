@@ -11,7 +11,7 @@ import {
   GALLERY_CATEGORIES,type GalleryCategory,
 } from '@camideyiz/core';
 import {
-  GALLERY_SLOTS,GALLERY_SLOT_COUNT,READY_GALLERY_COUNT,galleryPhoto,
+  GALLERY_SLOTS,READY_GALLERY_COUNT,galleryPhoto,
   type GallerySlot,
 } from '@/features/gallery/galleryCatalog';
 
@@ -94,18 +94,10 @@ export default function Gallery(){
           </Text>
         </View>
       </View>
-      <View style={{height:1,backgroundColor:colors.border,opacity:.65}}/>
-      <View style={{flexDirection:'row',alignItems:'center',gap:9}}>
-        <Feather name="image" size={16} color={colors.gold}/>
-        <Text style={{flex:1,fontSize:11,color:colors.text,fontWeight:'700'}}>
-          {READY_GALLERY_COUNT} / {GALLERY_SLOT_COUNT} onaylı fotoğraf eklendi
-        </Text>
-        <Text style={{fontSize:10,color:colors.muted}}>24 şablon alanı</Text>
-      </View>
-      {READY_GALLERY_COUNT===0?<Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
-        Fotoğraflar henüz teslim edilmedi. Tasarım editörünü inceleyebilirsiniz;
-        gerçek fotoğraf eklenene kadar dışa aktarma kapalıdır.
-      </Text>:null}
+      {READY_GALLERY_COUNT===0
+        ?<Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
+          Yeni görseller yakında. Hazır mesajları ve tasarımları keşfedebilirsin.
+        </Text>:null}
     </View>
 
     <View style={[styles.search,{backgroundColor:colors.surface,borderColor:colors.border}]}>
