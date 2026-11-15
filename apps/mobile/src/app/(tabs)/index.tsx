@@ -99,6 +99,11 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     [SCHEDULE,zoned.dateISO,previewSeconds,kerahatSettings]);
   const restriction=kerahat.active;
   const indicativeWindows=kerahat.windows;
+  const approachingKerahat=!restriction&&kerahat.next&&
+    kerahat.next.startSeconds-previewSeconds<=20*60
+      ?kerahat.next:null;
+  const kerahatMinutes=approachingKerahat
+    ?Math.ceil((approachingKerahat.startSeconds-previewSeconds)/60):0;
   const phase=official.days
     ? official.days.source===MIRROR_SOURCE
       ? calculateMirrorPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
@@ -111,18 +116,22 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
   const nafileOnly=phase.current.key==='imsak' && !restriction;
   const accented=restriction
     ? (dark?'#F49A94':'#B84448')
+    : approachingKerahat ? (dark?'#EBC487':'#A47539')
     : nafileOnly ? (dark?'#E9C484':'#A17B3C')
     : phase.urgency==='imminent'?'#F3AF58'
     : phase.urgency==='approaching'?'#EAC178'
     : colors.emerald;
   const stateTitle=restriction
-    ? 'KERAHET · TAHMİNÎ ARALIK'
+    ? 'KERAHAT · YAKLAŞIK ARALIK'
+    : approachingKerahat?'KERAHAT ARALIĞI YAKLAŞIYOR'
     : nafileOnly ? 'NAFİLE NAMAZ BİLGİSİ'
     : phase.urgency==='imminent' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ ÇOK YAKIN'
     : phase.urgency==='approaching' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ YAKLAŞIYOR'
     : 'VAKİT AKIŞI';
   const stateDescription=restriction
     ? restriction.description
+    : approachingKerahat
+      ? 'Yaklaşık '+kerahatMinutes+' dakika sonra bir kerahat zaman aralığı başlayacak. Ayrıntılar için Kerahat Vakitleri bölümüne bak.'
     : nafileOnly
     ? 'İmsak ile güneş arasında sabah namazının sünneti dışındaki nafile namazlarla ilgili kısıtlamalar vardır.'
     : phase.urgency!=='normal'
@@ -169,9 +178,11 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         <View style={{flexDirection:'row',alignItems:'center',gap:6,flex:1}}>
           <View style={{height:7,width:7,borderRadius:4,backgroundColor:accented}}/>
           <Text numberOfLines={1} adjustsFontSizeToFit
-            style={{fontSize:10.2,color:restriction?accented:colors.muted,fontWeight:restriction?'800':'600',flexShrink:1}}>
+            style={{fontSize:10.2,color:restriction||approachingKerahat?accented:colors.muted,
+              fontWeight:restriction||approachingKerahat?'800':'600',flexShrink:1}}>
             {restriction
               ? 'KERAHAT · '+restriction.title+' (yaklaşık)'
+              : approachingKerahat?'Kerahat aralığına yaklaşık '+kerahatMinutes+' dk'
               : nafileOnly ? 'İmsak sonrası · Nafile namaz bilgisi'
               : phase.urgency==='normal'
               ? 'Canlı vakit ilerlemesi'
