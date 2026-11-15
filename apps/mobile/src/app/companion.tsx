@@ -6,7 +6,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
-import {PRAYER_KEYS,buildPrayerWidgetSnapshot,type PrayerKey,type PrayerSchedule}
+import {PRAYER_KEYS,buildPrayerWidgetSnapshot,zonedClock,type PrayerKey,type PrayerSchedule}
   from '@camideyiz/core';
 import {Atmosphere} from '@/components/LuxuryArtwork';
 import {useAppTheme} from '@/theme/ThemeProvider';
@@ -101,9 +101,7 @@ function WidgetShowcase({now}: {now:number}){
     {companion.lastWidgetTransfer&&
       companion.lastWidgetTransfer.cityId===source.place?.id&&
       companion.lastWidgetTransfer.dateISO===
-        new Intl.DateTimeFormat('en-CA',{
-          timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit',
-        }).format(new Date(now))
+        zonedClock(new Date(now),'Europe/Istanbul').dateISO
       ?<View style={[styles.note,{backgroundColor:colors.soft,
         borderColor:colors.border}]}>
         <Feather name="check-circle" size={17} color={colors.emerald}/>
