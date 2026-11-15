@@ -32,9 +32,9 @@ export function prayerSectorVisualLayout(from:number,to:number){
   const middle=span<56;
   return {
     labelAngle:angle,
-    labelRadius:narrow?122:middle?127:130,
+    labelRadius:narrow?120:middle?127:130,
     labelWidth:narrow?54:middle?53:68,
-    labelHeight:narrow?33:middle?36:39,
+    labelHeight:narrow?23:middle?36:39,
     iconSize:narrow?13.5:middle?14.5:15.5,
     fontSize:narrow?10.4:middle?11.6:12.5,
     clockAngle:from,

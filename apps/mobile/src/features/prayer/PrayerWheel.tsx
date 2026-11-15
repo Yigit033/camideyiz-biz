@@ -73,6 +73,8 @@ function SectorLabel({
   const iconSize=layout.iconSize*size/DIAMETER;
   const labelWidth=layout.labelWidth*size/DIAMETER;
   const labelHeight=layout.labelHeight*size/DIAMETER;
+  const narrow=sector.to-sector.from<30;
+  const contrastInk=sector.key==='yatsi'||sector.key==='aksam'?'#FFF6E6':'#16372E';
   const centerX = point.x * size / DIAMETER;
   const centerY = point.y * size / DIAMETER;
   const style = useAnimatedStyle(() => ({
@@ -83,15 +85,18 @@ function SectorLabel({
     style={[
       styles.sectorLabel,
       {left:centerX-labelWidth/2,top:centerY-labelHeight/2,
-        width:labelWidth,height:labelHeight},
+        width:labelWidth,height:labelHeight,
+        flexDirection:narrow?'row':'column',gap:narrow?2:1},
       style,
     ]}>
     <MaterialCommunityIcons name={PRAYER_ICONS[sector.key]} size={iconSize}
-      color={selected || sector.key === 'yatsi' ? '#FFF4DA' : '#164038'}/>
+      color={contrastInk}/>
     <Text numberOfLines={1} adjustsFontSizeToFit style={{
       fontSize:layout.fontSize*size/DIAMETER,
       fontFamily:'serif',fontWeight:'700',letterSpacing:-.15,
-      color: selected || sector.key === 'yatsi' ? '#FFFCF3' : '#18372F', textAlign:'center',
+      color:contrastInk,textAlign:'center',fontWeight:'800',
+      textShadowColor:dark?'rgba(7,24,24,.24)':'rgba(255,246,229,.25)',
+      textShadowRadius:1,
     }}>{sector.label}</Text>
   </Animated.View>;
 }
