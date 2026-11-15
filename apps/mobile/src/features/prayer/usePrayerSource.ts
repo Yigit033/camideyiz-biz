@@ -152,9 +152,11 @@ export function usePrayerSource(now:Date){
   const sourceLabel=officialConfigured
     ?'Diyanet Awqat Salah · resmî API'
     :data?.source==='idamedya-diyanet-republished'
-      ?data.provider==='emushaf'
-        ?'EzanVakti eMushaf · Diyanet verilerinin bağımsız aktarımı'
-        :'İdamedya · Diyanet verilerinin bağımsız aktarımı'
+      ?data.provider==='mtopal'
+        ?'Namaz Vakti API (mtopal.dev) · Diyanet verilerinin bağımsız aktarımı'
+        :data.provider==='emushaf'
+          ?'EzanVakti eMushaf · Diyanet verilerinin bağımsız aktarımı'
+          :'İdamedya · Diyanet verilerinin bağımsız aktarımı'
       :'Üçüncü taraf yayımlanmış namaz takvimi';
   return useMemo(()=>({
     place,status,days:data,selectPlace,retry,failureReason,
