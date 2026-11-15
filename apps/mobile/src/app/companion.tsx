@@ -113,6 +113,27 @@ function WidgetShowcase({now}: {now:number}){
           :'\nAna ekran widget’ları yüklü native uygulama üzerinden yönetilir.'}
       </Text>
     </View>
+    {Platform.OS==='android'&&!isExpoGoRuntime()
+      ?<View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
+        <Feather name="refresh-ccw" size={15} color={colors.gold}/>
+        <View style={{flex:1,gap:4}}>
+          <Text style={{fontSize:11,fontWeight:'800',color:colors.text}}>
+            Arka plan güncellemesi · {companion.backgroundRegistered?'Sisteme kaydedildi':'Kayıt bekleniyor'}
+          </Text>
+          <Text style={{fontSize:10.5,lineHeight:17,color:colors.muted}}>
+            En erken 15 dakikalık aralıklarla, Android uygun gördüğünde yenilenir.
+            Pil tasarrufu, üretici kısıtlamaları veya uygulamanın zorla durdurulması
+            gecikmeye neden olabilir. Dakikasında güncelleme garantisi verilmez.
+          </Text>
+          <Text style={{fontSize:10,color:colors.muted}}>
+            {companion.backgroundReport
+              ?'Son arka plan denemesi: '+
+                new Date(companion.backgroundReport.lastAttempt).toLocaleString('tr-TR')+
+                ' · '+companion.backgroundReport.detail
+              :'Henüz bir arka plan çalıştırması gözlemlenmedi.'}
+          </Text>
+        </View>
+      </View>:null}
     <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10}}>
       <Text style={{flex:1,fontSize:10.5,color:colors.muted}} numberOfLines={2}>
         {companion.widget.detail}
