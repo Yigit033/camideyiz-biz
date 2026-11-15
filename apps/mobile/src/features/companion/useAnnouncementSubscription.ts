@@ -14,6 +14,7 @@ const PENDING_DISABLE='@camideyiz/announcement-pending-disable/v1';
 const ID_KEY='cb_announcement_device_id_v1';
 const SECRET_KEY='cb_announcement_device_secret_v1';
 const TOKEN_KEY='cb_announcement_expo_push_token_v1';
+const SERVER_STATE_KEY='cb_announcement_server_enabled_v1';
 const ID_PATTERN=/^[0-9a-f-]{36}$/i;
 const SECRET_PATTERN=/^[0-9a-f]{64}$/;
 const TOKEN_PATTERN=/^(?:ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]{10,220}\]$/;
@@ -125,13 +126,14 @@ export function useAnnouncementSubscription():AnnouncementState{
     const pending=await AsyncStorage.getItem(PENDING_DISABLE);
     const opted=await AsyncStorage.getItem(OPT_IN);
     const current=opted==='true';
-    if(!current&&!pending){setStatus('disabled');return;}
+    if(!current&&pending!=='true'){setStatus('disabled');return;}
     busy.current=true;
     const id=++runId.current;
     lastAttempt.current=Date.now();
     setStatus('syncing');
     try{
       await register(current,false);
+      await SecureStore.setItemAsync(SERVER_STATE_KEY,current?'true':'false');
       if(!current)await AsyncStorage.removeItem(PENDING_DISABLE);
       if(runId.current===id){
         setStatus(current?'registered':'disabled');
@@ -149,14 +151,21 @@ export function useAnnouncementSubscription():AnnouncementState{
     let active=true;
     (async()=>{
       const opt=await AsyncStorage.getItem(OPT_IN);
-      const pending=await AsyncStorage.getItem(PENDING_DISABLE);
+      let pending=await AsyncStorage.getItem(PENDING_DISABLE);
+      const remoteState=await SecureStore.getItemAsync(SERVER_STATE_KEY);
+      // On iOS, a Keychain token may survive app reinstall while ordinary
+      // preferences do not. Absence of opt-in then revokes that stale token.
+      if(opt!=='true'&&remoteState==='true'&&pending!=='true'){
+        await AsyncStorage.setItem(PENDING_DISABLE,'true');
+        pending='true';
+      }
       if(!active)return;
       setOpted(opt==='true');
       setReady(true);
       if(!configured){
         setStatus('not-configured');
         setDetail('Duyuru servisi ve Expo push kimlik bilgileri henüz etkinleştirilmedi.');
-      }else if(opt==='true'||pending){
+      }else if(opt==='true'||pending==='true'){
         void refresh();
       }
     })().catch(()=>{
@@ -200,7 +209,9 @@ export function useAnnouncementSubscription():AnnouncementState{
     setStatus('syncing');
     try{
       await register(true,true);
-      await AsyncStorage.multiSet([[OPT_IN,'true'],[PENDING_DISABLE,'false']]);
+      await AsyncStorage.setItem(OPT_IN,'true');
+      await AsyncStorage.removeItem(PENDING_DISABLE);
+      await SecureStore.setItemAsync(SERVER_STATE_KEY,'true');
       setOpted(true);
       if(runId.current===id){
         setStatus('registered');
