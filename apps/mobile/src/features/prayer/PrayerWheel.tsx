@@ -47,7 +47,7 @@ const PRAYER_ICONS: Record<PrayerTime['key'], ComponentProps<typeof MaterialComm
 };
 type PrayerArc = PrayerTime & {from: number; to: number};
 
-/** Nonlinear visual proportions. Real minutes remain in the separate progress bar. */
+/** Published prayer period length / 24-hour clock. No nonlinear decoration. */
 export function segmentAngles(times:readonly PrayerTime[]):PrayerArc[] {
   return makeVisualDialSectors(times);
 }
@@ -69,7 +69,7 @@ function SectorLabel({
   // The time pill marks the BEGINNING of this coloured wedge. Keep the
   // icon/name close to that pill instead of floating in the wedge midpoint.
   const angle=prayerSectorLabelAngle(sector.from,sector.to);
-  const point = polar(angle, 138);
+  const point = polar(angle,sector.to-sector.from<30?125:133);
   const iconSize = 15 * size / DIAMETER;
   const labelWidth = 66 * size / DIAMETER;
   const centerX = point.x * size / DIAMETER;
@@ -102,7 +102,7 @@ function SectorLabel({
 function SectorStartClock({sector,size,rotation,preview=false}:{
   sector:PrayerArc;size:number;rotation:SharedValue<number>;preview?:boolean;
 }){
-  const point=polar(sector.from+5,155);
+  const point=polar(sector.from+Math.min(4,(sector.to-sector.from)*.18),165);
   const scale=size/DIAMETER;
   const width=47*scale,height=19*scale;
   const unrotate=useAnimatedStyle(()=>({
@@ -258,7 +258,18 @@ export function PrayerWheel({
   );
 
   const currentAngle = preview?0:clockSecondsToVisualAngle(nowSeconds,times,sectors);
-  const nowPoint = polar(currentAngle, 170);
+  const nowPoint = polar(currentAngle, 163);
+  const currentSector=sectors.find(sector=>
+    currentAngle>=sector.from&&currentAngle<sector.to)??sectors[sectors.length-1];
+  // Clock marks are painted only INSIDE the time band they belong to.
+  // No generic 72-tick decorative ring or whole-circle progress arc.
+  const clockTicks=preview?[]:Array.from({length:24},(_,hour)=>{
+    const angle=clockSecondsToVisualAngle(hour*3600,times,sectors);
+    const sector=sectors.find(item=>
+      angle>item.from+.8&&angle<item.to-.8);
+    if(!sector)return null;
+    return {hour,angle,sector};
+  }).filter((entry):entry is {hour:number;angle:number;sector:PrayerArc}=>entry!==null);
   const selected = sectors[selectedIndex];
   const centerFill = colors.isDark ? '#081E21' : '#FFF9EF';
   const rim = colors.isDark ? '#ECD19B' : '#C39B55';
@@ -272,11 +283,18 @@ export function PrayerWheel({
   const warningTint=kerahatActive?'#9B3546':kerahatApproaching?'#CA863E':null;
   const progressTint=warningTint??(urgency==='normal'?PRAYER_COLORS[nextKey]:
     nextKey==='aksam'?'#F6B46F':colors.isDark?'#F4D58B':'#B9823D');
-  const kerahatArcs=ringWindows.map(window=>{
+  const kerahatArcs=ringWindows.flatMap(window=>{
     const from=clockSecondsToVisualAngle(window.startSeconds,times,sectors);
     const to=clockSecondsToVisualAngle(window.endSeconds,times,sectors);
-    return {...window,from,to};
-  }).filter(window=>window.to>window.from);
+    // Explicitly clip to each matching prayer period, never paint a warning
+    // across the dividers into a different coloured prayer band.
+    return sectors.flatMap(sector=>{
+      const start=Math.max(from,sector.from+.65);
+      const end=Math.min(to,sector.to-.65);
+      return end>start+0.1?[{...window,from:start,to:end,
+        sectorKey:sector.key}]:[];
+    });
+  });
   const nextGlowStrength=0.12+0.5*boost*Math.pow(progress,1.35);
 
   return <View style={{width: size, height: size, alignSelf: 'center', justifyContent: 'center'}}>
@@ -300,13 +318,6 @@ export function PrayerWheel({
             </Defs>
             <Circle cx="180" cy="180" r="176" stroke={rim} strokeWidth="0.8" strokeOpacity=".55" fill="none"/>
             <Circle cx="180" cy="180" r="169" stroke={rim} strokeWidth="1" strokeOpacity=".36" fill="none"/>
-            {Array.from({length: 72}, (_,i) => {
-              const a = i*5;
-              const start = polar(a, i%6===0 ? 172:174),end=polar(a,i%6===0?179:177);
-              return <Line key={'tick-'+i} x1={start.x} y1={start.y}
-                x2={end.x} y2={end.y} stroke={rim}
-                strokeWidth={i%6===0?1.7:.75} strokeOpacity={i%6===0?.9:.36}/>;
-            })}
             <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="65" fill="none"/>
             {sectors.map((item,index) => <G key={item.key}>
               {!preview && item.key===nextKey && <>
@@ -337,6 +348,19 @@ export function PrayerWheel({
                 strokeOpacity={index===selectedIndex?.15:.07}
                 strokeWidth="11" fill="none"/>
             </G>)}
+            {/* 24 civil-hour divisions, each coloured by its actual
+                prayer interval. Render above wedges, below kerahat warnings. */}
+            {clockTicks.map(item=>{
+              const major=item.hour%3===0;
+              const start=polar(item.angle,major?167:170);
+              const end=polar(item.angle,major?177:175);
+              return <Line key={'hour-'+item.hour}
+                x1={start.x} y1={start.y}
+                x2={end.x} y2={end.y}
+                stroke={blendHex(PRAYER_COLORS[item.sector.key],'#E9D09B',.54)}
+                strokeWidth={major?1.75:1.05}
+                strokeOpacity={major?.95:.73}/>;
+            })}
             <Circle cx="180" cy="180" r="106" stroke={rim} strokeWidth="2.2"
               strokeOpacity=".7" fill="url(#dialInner)"/>
             <Circle cx="180" cy="180" r="101" stroke={rim} strokeWidth=".8"
@@ -353,7 +377,7 @@ export function PrayerWheel({
             {kerahatArcs.length>0
               ?<Circle cx="180" cy="180" r="112" fill="none"
                 stroke={rim} strokeOpacity=".48" strokeWidth="3"/>:null}
-            {kerahatArcs.map(window=><G key={'kerahat-'+window.kind}>
+            {kerahatArcs.map(window=><G key={'kerahat-'+window.kind+'-'+window.sectorKey}>
               {window.state!=='inactive'?<Path
                 d={arc(window.from,window.to,112)}
                 stroke={window.state==='active'?'#AE4054':'#D49A55'}
@@ -372,11 +396,11 @@ export function PrayerWheel({
                 strokeWidth={window.state==='active'?1.7:1.3}
                 fill="none"/>
               {window.state!=='inactive'?<Path
-                d={arc(window.from,window.to,173)}
+                d={arc(window.from,window.to,161)}
                 stroke={window.state==='active'?'#8E2639':'#B97032'}
                 strokeOpacity=".26" strokeWidth="16"
                 fill="none" strokeLinecap="round"/>:null}
-              <Path d={arc(window.from,window.to,173)}
+              <Path d={arc(window.from,window.to,161)}
                 stroke={window.state==='active'?'#952F43'
                   :window.state==='approaching'?'#C7853D':'#A76D66'}
                 strokeOpacity={window.state==='inactive'?.51:1}
@@ -384,7 +408,7 @@ export function PrayerWheel({
                   :window.state==='approaching'?7.5:4}
                 fill="none" strokeLinecap="round"/>
               {window.state==='active'?<Path
-                d={arc(window.from,window.to,170.5)}
+                d={arc(window.from,window.to,158.5)}
                 stroke="#EDB4A1" strokeOpacity=".82"
                 strokeWidth="1.3" fill="none"/>:null}
             </G>)}
@@ -396,8 +420,14 @@ export function PrayerWheel({
               <Circle cx={nowPoint.x} cy={nowPoint.y} r="4.1"
                 fill={kerahatActive?'#9B3546':kerahatApproaching?'#C7853D':rim}
                 stroke={centerFill} strokeWidth="1"/>
-              <Path d={arc(0,Math.max(.01,currentAngle),167)} stroke={rim}
-                strokeOpacity=".58" strokeWidth="1.8" fill="none"/>
+              {currentSector&&currentAngle>currentSector.from+.15
+                ?<Path d={arc(currentSector.from+.1,currentAngle,165)}
+                  stroke={kerahatActive?'#A82F45'
+                    :kerahatApproaching?'#C7853D'
+                    :PRAYER_COLORS[currentSector.key]}
+                  strokeOpacity=".84" strokeWidth="3"
+                  strokeLinecap="round" fill="none"/>
+                :null}
             </G>:null}
           </Svg>
           {sectors.map((item,index) => <SectorLabel
