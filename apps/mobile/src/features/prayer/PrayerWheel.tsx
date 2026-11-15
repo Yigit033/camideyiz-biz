@@ -93,8 +93,8 @@ function SectorLabel({
       color={contrastInk}/>
     <Text numberOfLines={1} adjustsFontSizeToFit style={{
       fontSize:layout.fontSize*size/DIAMETER,
-      fontFamily:'serif',fontWeight:'700',letterSpacing:-.15,
-      color:contrastInk,textAlign:'center',fontWeight:'800',
+      fontFamily:'serif',fontWeight:'800',letterSpacing:-.15,
+      color:contrastInk,textAlign:'center',
       textShadowColor:dark?'rgba(7,24,24,.24)':'rgba(255,246,229,.25)',
       textShadowRadius:1,
     }}>{sector.label}</Text>
