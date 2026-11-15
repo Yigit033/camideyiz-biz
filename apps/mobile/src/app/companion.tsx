@@ -63,7 +63,7 @@ function WidgetShowcase({now}: {now:number}){
         </Text>
         <View style={{gap:2,flex:1,justifyContent:'center'}}>
           <Text style={{fontSize:11,color:'#DCE9DD'}}>
-            {preview.status==='ready'?'Sıradaki · '+preview.nextName:'Güncel veri bekleniyor'}
+            {preview.status==='ready'?'Sıradaki · '+preview.nextName:'Vakitler yükleniyor'}
           </Text>
           <Text style={{fontSize:33,fontWeight:'800',color:'#F1CF8D'}}>
             {preview.status==='ready'?preview.nextTime:'—'}
@@ -90,11 +90,11 @@ function WidgetShowcase({now}: {now:number}){
               <Text style={{fontSize:10.5,color:'#FBF1E1',fontWeight:'800'}}>{item.time}</Text>
             </View>)
             :<Text style={{fontSize:12,color:'#A5CDBE'}}>
-              Namaz vakitleri kaynağı bekleniyor.
+              Vakitler henüz yüklenmedi.
             </Text>}
         </View>
         <Text style={{fontSize:9,color:'#A0C8B9'}}>
-          {preview.status==='ready'?'Sıradaki: '+preview.nextName+' · '+preview.nextTime:'Uygulamayı açarak yenile'}
+          {preview.status==='ready'?'Sıradaki: '+preview.nextName+' · '+preview.nextTime:'Yenilemek için aç'}
         </Text>
       </View>
     </ScrollView>
