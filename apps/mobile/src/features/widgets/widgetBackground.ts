@@ -5,13 +5,16 @@ import * as TaskManager from 'expo-task-manager';
 import {
   buildPrayerWidgetSnapshot,makeWidgetCalendarCache,parseWidgetCalendarCache,
   WIDGET_NETWORK_REFRESH_MS,zonedClock,
-  type PrayerSchedule,type WidgetCalendarCache,
+  type PrayerSchedule,type WidgetCalendarCache,validateAlertSettings,
 } from '@camideyiz/core';
 import {getMirrorPrayerTriplet,getPrayerTriplet,
   type PrayerPlaceSelection} from '../prayer/prayerApi';
 import {configuredPrayerApi} from '../prayer/prayerApi';
 import {isExpoGoRuntime} from '../native/nativeRuntime';
 import {syncPrayerWidgets} from './widgetSync';
+import {
+  reconcilePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
+} from '../companion/notificationService';
 
 export const WIDGET_BACKGROUND_TASK='camideyiz-widget-refresh-v3';
 const ACTIVE_PLACE_KEY='@camideyiz/widget-active-place/v3';
@@ -153,10 +156,30 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
     return false;
   }
   const hasData=snapshot?.status==='ready';
+  let reminderDetail='';
+  if(hasData&&usable){
+    try{
+      const raw=await AsyncStorage.getItem(PRAYER_ALERT_PREFERENCES_KEY);
+      if(raw){
+        const settings=validateAlertSettings(JSON.parse(raw) as unknown);
+        if(settings.enabled){
+          // This reuses only real published times and never asks for
+          // notification permission while the app is backgrounded.
+          const next=await reconcilePrayerNotifications(
+            usable.days,place.id,settings,Date.now());
+          reminderDetail=next.error
+            ?' · Uyarı eşitlemesi başarısız'
+            :' · '+next.scheduled+' namaz bildirimi yeniden planlandı';
+        }
+      }
+    }catch{
+      reminderDetail=' · Bildirim takvimi yenileme hatası';
+    }
+  }
   await report(hasData?'updated':'waiting-data',
     hasData
       ?(fetchError?'Son doğrulanmış takvim kullanıldı; sağlayıcı: '+fetchError
-        :'Yayımlanmış namaz vakitleri tekrar eşitlendi')
+        :'Yayımlanmış namaz vakitleri tekrar eşitlendi')+reminderDetail
       :'Güncel ve doğrulanmış ilçe takvimi henüz alınamadı',
     networkAt,Boolean(hasData));
   return true;
