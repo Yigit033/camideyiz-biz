@@ -22,8 +22,8 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
     ?place.name.toLocaleLowerCase('tr-TR')===place.stateName.toLocaleLowerCase('tr-TR')
       ?'İl merkezi takvimi':place.name
     :'İl ve ilçe seç';
-  return <View style={{gap:9,paddingTop:compact?2:4,marginBottom:3}}>
-    <View style={{alignItems:'center',justifyContent:'center',minHeight:compact?45:51}}>
+  return <View style={{gap:compact?6:8,paddingTop:compact?1:4,marginBottom:3}}>
+    <View style={{alignItems:'center',justifyContent:'center',minHeight:compact?96:115}}>
       <CamideyizBrandLogo compact={compact}/>
     </View>
     <View style={{flexDirection:'row',alignItems:'center',gap:8}}>
