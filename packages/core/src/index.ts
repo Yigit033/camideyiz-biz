@@ -14,3 +14,4 @@ export * from './widgetCalendarCache';
 export * from './shareGallery';
 export * from './notificationCampaign';
 export * from './prayerWheelPresentation';
+export * from './locationResolution';
