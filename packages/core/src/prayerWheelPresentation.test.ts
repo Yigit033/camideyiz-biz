@@ -28,7 +28,9 @@ test('P1 sector labels move toward the relevant start clock without crossing a w
     assert.ok(angle>sector.from,'label must remain inside');
     assert.ok(angle<sector.to,'label must remain inside');
     assert.ok(angle<=middle+0.001,'label moves toward clock rather than wedge tail');
-    assert.ok(angle-sector.from>=12,'leave clock-to-label breathing room');
+    const span=sector.to-sector.from;
+    assert.ok(angle-sector.from>=Math.min(12,span*.38),
+      'keep label inside even a short proportional prayer wedge');
   }
   const tiny=prayerSectorLabelAngle(80,86);
   assert.ok(tiny>80&&tiny<83,
