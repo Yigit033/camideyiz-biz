@@ -1,5 +1,6 @@
 import 'server-only';
 import {createHmac,timingSafeEqual} from 'node:crypto';
+export {isValidBroadcast} from '@camideyiz/core';
 
 export const ANNOUNCEMENT_KIND='camideyiz-announcement-v1';
 export const ANNOUNCEMENT_CHANNEL='duyurular-v1';
@@ -43,17 +44,4 @@ export function jsonNoStore(body:unknown,status=200):Response{
 }
 export function jsonError(error:string,status:number):Response{
   return jsonNoStore({error},status);
-}
-export function isValidBroadcast(title:unknown,body:unknown,when:unknown,now=Date.now()):
-  {title:string;body:string;scheduledAt:string}|null{
-  if(typeof title!=='string'||typeof body!=='string'||
-    typeof when!=='string'||when.length>45)return null;
-  const a=title.trim(),b=body.trim();
-  if(a.length<3||a.length>80||b.length<3||b.length>280||
-    /[\x00-\x08\x0B-\x1F\x7F]/.test(a+b))return null;
-  // Explicit timezone required; never accept a server-local implicit date.
-  if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/.test(when))return null;
-  const ms=Date.parse(when);
-  if(!Number.isFinite(ms)||ms<now+5*60_000||ms>now+60*86400_000)return null;
-  return {title:a,body:b,scheduledAt:new Date(ms).toISOString()};
 }
