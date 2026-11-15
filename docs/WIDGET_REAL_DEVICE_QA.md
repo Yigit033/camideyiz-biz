@@ -58,8 +58,10 @@ eski uygulamayı hemen silmeyin.
 
 1. Uygulamayı açıp **İstanbul → Tuzla** seçin. Ana sayfada
    altı namaz saatinin görünmesini bekleyin.
-2. `Diğer → Widget ve Bildirimler` sayfasında `Yenile`
-   düğmesine dokunun. **Widget'a son aktarılan vakitler** kartında
+2. `Diğer → Widget ve Bildirimler` sayfasında `Widget'ı yenile`
+   düğmesine dokunun. Bu düğme takvim indirmeden önce zaten doğrulanmış
+   mevcut ilçe vakitlerini Android launcher'a doğrudan gönderir.
+   **Widget'a son aktarılan vakitler** kartında
    Tuzla adı, altı vakit ve aktarım saati görünmeli.
 3. Telefonun **ana ekranına iki native widget'ı** (Sıradaki
    Vakit 2×2 ve Günlük Namaz Vakitleri 4×2) ekleyin.
@@ -89,7 +91,7 @@ eski uygulamayı hemen silmeyin.
 - `Widget ve Bildirimler` bölümünde son aktarılan altı saatin
   ekran görüntüsü
 - Yan yana iki ana ekran widget'ının ekran görüntüsü
-- Varsa `Widget yenilemesi bekleniyor` metni
+- Yeni APK'da `Neden güncellenmedi?` öğesine basınca görülen hata metni
 - Wi-Fi / mobil veri, pil tasarrufu ve uygulamanın zorla
   durdurulup durdurulmadığı
 
@@ -103,3 +105,28 @@ halen ayrı kabul kapısıdır.
 
 Git politikası: `feat/widgets-and-prayer-alerts-2`; `main` merge,
 production deploy veya yeni branch oluşturulmamıştır.
+
+
+### 15 Kasım 2026 ikinci düzeltme
+
+- Ayarlar ekranındaki teknik yayıncı/API bağlantıları ve kaynak açıklaması
+  kartı kaldırıldı; iç dokümantasyondaki doğruluk bilgileri korundu.
+- `updateSnapshot` sonrasında Android widget'larına açıkça `reload()`
+  isteği gönderiliyor. Telefonun launcher'ı bunları yine geciktirebilir.
+- Manuel `Widget'ı yenile` doğrudan native aktarımdır;
+  eski `Yenile` gibi önce gereksiz kaynak yenilemesi başlatmaz.
+- Geçerli foreground takvimi AsyncStorage geçici kaydet/oku
+  hatalarına takılmadan doğrudan widget'a gönderilebilir; koruyucu
+  ilçe/tarih/gün/saat doğrulaması sürer.
+- Başarısız native aktarım önceden genel `bekleniyor` olarak
+  gizleniyordu; artık `Neden güncellenmedi?` üzerinden
+  çalışma zamanı hata metni görülebilir.
+- Uygulama içi görsel artık **Önizleme** olarak etiketlenir,
+  Android launcher'da gerçek güncellemeyle karıştırılmaz.
+- Yeni APK'da her iki widget hâlâ boşsa önce `Widget'ı yenile`
+  ve hata ayrıntısını inceleyin. Telefonun eski widget örnekleri
+  bozuk kalıyorsa yalnızca ana ekran widget'larını kaldırıp
+  tekrar ekleyin; uygulama verilerini silmeyin.
+
+**Android fiziksel telefon teslimatı son kez başarılı gösterilmeden
+tamamlandı denmez**. Otomatik CI Android launcher görüntüsünü ölçemez.
