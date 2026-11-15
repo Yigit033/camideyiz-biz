@@ -15,7 +15,7 @@ export function useKerahatSettings(){
       if(!active)return;
       if(raw){
         try{setState(validateKerahatSettings(JSON.parse(raw) as unknown));}
-        catch{/* invalid stored preferences revert safely to official-inspired default */}
+        catch{/* invalid stored preferences use approximate visual defaults; not a ruling */}
       }
     }).catch(()=>undefined).finally(()=>{if(active)setReady(true);});
     return ()=>{active=false;};
