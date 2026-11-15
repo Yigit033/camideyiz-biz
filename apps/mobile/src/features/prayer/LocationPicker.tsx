@@ -7,7 +7,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather} from '@expo/vector-icons';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {
-  getStates,getCities,configuredPrayerApi,
+  getStates,getCities,
   type CityOption,type StateOption,type PrayerPlaceSelection,
 } from './prayerApi';
 
@@ -228,10 +228,6 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
           <Feather name={province?'check-circle':'chevron-right'} size={17}
             color={province?colors.emerald:colors.muted}/>
         </Pressable>}/>:null}
-      {!configuredPrayerApi()&&!loading&&!saving?<Text style={[styles.source,{color:colors.muted}]}>
-        İl/ilçe rehberi: İdamedya, gerektiğinde alternatif Diyanet kodlu açık liste.
-        Saatler ayrıca doğrulanır; resmî Diyanet API'si kullanılmıyor.
-      </Text>:null}
     </SafeAreaView>
   </Modal>;
 }
@@ -251,6 +247,4 @@ const styles=StyleSheet.create({
   pin:{width:38,height:38,borderRadius:13,alignItems:'center',justifyContent:'center'},
   retry:{minHeight:43,borderRadius:13,alignItems:'center',justifyContent:'center',
     flexDirection:'row',gap:8},
-  source:{fontSize:9.5,lineHeight:15,opacity:.7,textAlign:'center',marginHorizontal:23,
-    marginBottom:12},
 });
