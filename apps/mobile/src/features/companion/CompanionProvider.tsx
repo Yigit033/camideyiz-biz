@@ -116,7 +116,9 @@ export function CompanionProvider({children}:PropsWithChildren){
     const response=Notifications.addNotificationResponseReceivedListener(response=>{
       const event=toInboxEvent(response.notification);
       setInbox(prev=>appendUnique(prev,event,deletedIds.current));
-      if(event)router.replace('/(tabs)');
+      if(event)router.replace(
+        event.eventKey.startsWith('announcement:')?'/companion':'/(tabs)',
+      );
     });
     // Recover any delivered items still present in the OS notification list.
     const collect=()=>{
@@ -144,7 +146,8 @@ export function CompanionProvider({children}:PropsWithChildren){
       const found=toInboxEvent(last.notification);
       if(found){
         setInbox(prev=>appendUnique(prev,found,deletedIds.current));
-        router.replace('/(tabs)');
+        router.replace(found.eventKey.startsWith('announcement:')
+          ?'/companion':'/(tabs)');
       }
       Notifications.clearLastNotificationResponse();
     }
