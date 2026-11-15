@@ -5,15 +5,21 @@ import {router} from 'expo-router';
 import {CamideyizBrandLogo} from '@/components/CamideyizBrandLogo';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import type {PrayerPlaceSelection} from './prayerApi';
+import type {PrayerPlaceMode} from './usePrayerSource';
+import type {DevicePlaceStatus} from './useDevicePrayerLocation';
 
 /** The logo is the FIRST visual row. Location and system actions are beneath
  * it, rather than competing with the mark in a three-column header.
  */
 export const HomeBrandHeader=memo(function HomeBrandHeader({
-  place,onOpenLocation,compact=false,
+  place,onOpenLocation,onEnableAutoLocation,locationMode,autoLocationStatus,
+  compact=false,
 }:{
   place:PrayerPlaceSelection|null;
   onOpenLocation:()=>void;
+  onEnableAutoLocation:()=>Promise<void>|void;
+  locationMode:PrayerPlaceMode|'booting';
+  autoLocationStatus:DevicePlaceStatus;
   compact?:boolean;
 }){
   const {colors,setMode}=useAppTheme();
@@ -27,30 +33,51 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
       <CamideyizBrandLogo compact={compact}/>
     </View>
     <View style={{flexDirection:'row',alignItems:'center',gap:8}}>
-      <Pressable accessibilityRole="button"
-        accessibilityLabel={place
-          ?place.stateName+' ilinin '+place.name+' takvimi. İl veya ilçeyi değiştir.'
-          :'Namaz vakitleri için il ve ilçe seç'}
-        onPress={onOpenLocation}
-        style={{flex:1,minWidth:0,height:49,borderRadius:16,borderWidth:1,
-          borderColor:colors.border,
-          backgroundColor:dark?'rgba(7,48,43,.89)':'rgba(255,255,255,.85)',
-          paddingHorizontal:11,alignItems:'center',flexDirection:'row',gap:9}}>
-        <View style={{width:31,height:31,borderRadius:11,alignItems:'center',
-          justifyContent:'center',backgroundColor:colors.soft}}>
-          <Feather name="map-pin" size={16} color={colors.emerald}/>
-        </View>
-        <View style={{flex:1,minWidth:0,gap:2}}>
-          <Text style={{fontSize:9.5,color:colors.muted,fontWeight:'700'}}>
-            {place?place.stateName:'Konum'}
-          </Text>
-          <Text style={{fontSize:13,fontWeight:'800',color:colors.text}}
-            numberOfLines={1} adjustsFontSizeToFit>
-            {district}
-          </Text>
-        </View>
-        <Feather name="chevron-down" size={15} color={colors.gold}/>
-      </Pressable>
+      <View style={{flex:1,minWidth:0,height:49,borderRadius:16,borderWidth:1,
+        borderColor:colors.border,
+        backgroundColor:dark?'rgba(7,48,43,.89)':'rgba(255,255,255,.85)',
+        paddingHorizontal:7,alignItems:'center',flexDirection:'row',gap:7}}>
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={locationMode==='auto'
+            ?'Otomatik konumu yeniden bul':'GPS ile konumumu otomatik bul'}
+          onPress={()=>{void onEnableAutoLocation();}}
+          hitSlop={6}
+          style={{width:33,height:35,borderRadius:11,
+            alignItems:'center',justifyContent:'center',
+            backgroundColor:locationMode==='auto'?
+              (dark?'rgba(35,107,85,.7)':'#E1F4E9'):colors.soft}}>
+          <Feather name={locationMode==='auto'?'crosshair':'map-pin'}
+            size={17} color={colors.emerald}/>
+        </Pressable>
+        <Pressable accessibilityRole="button"
+          accessibilityLabel={place
+            ?place.stateName+' ilinin '+place.name+
+              ' takvimi. İl ve ilçeyi elle değiştirmek için dokun.'
+            :'Namaz vakitleri için il ve ilçeyi elle seç'}
+          onPress={onOpenLocation}
+          style={{flex:1,minWidth:0,flexDirection:'row',
+            alignItems:'center',height:'100%',gap:5}}>
+          <View style={{flex:1,minWidth:0,gap:2}}>
+            <Text style={{fontSize:9.5,color:colors.muted,fontWeight:'700'}}
+              numberOfLines={1}>
+              {locationMode==='auto'
+                ?autoLocationStatus==='active'
+                  ?'Otomatik · '+(place?.stateName??'Konum')
+                  :autoLocationStatus==='locating'
+                    ?'Konumun bulunuyor…'
+                    :autoLocationStatus==='permission-denied'
+                      ?'Konum izni gerekli'
+                      :'Otomatik konum alınamadı'
+                :place?.stateName??'Konum'}
+            </Text>
+            <Text style={{fontSize:13,fontWeight:'800',color:colors.text}}
+              numberOfLines={1} adjustsFontSizeToFit>
+              {district}
+            </Text>
+          </View>
+          <Feather name="chevron-down" size={15} color={colors.gold}/>
+        </Pressable>
+      </View>
       <Pressable accessibilityRole="button" accessibilityLabel={dark?'Açık temaya geç':'Koyu temaya geç'}
         onPress={()=>setMode(dark?'light':'dark')}
         style={{width:43,height:43,borderRadius:15,borderWidth:1,
