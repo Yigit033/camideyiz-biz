@@ -49,7 +49,7 @@ function WidgetShowcase({now}: {now:number}){
         <MaterialCommunityIcons name="widgets-outline" size={21} color={colors.gold}/>
         <Text style={[styles.sectionTitle,{color:colors.text}]}>Ana ekran widget’ları</Text>
       </View>
-      <InfoPill icon="smartphone" text="2 tasarım"/>
+      <InfoPill icon="smartphone" text="Önizleme"/>
     </View>
     <ScrollView horizontal showsHorizontalScrollIndicator={false}
       contentContainerStyle={{gap:12,paddingRight:12}}>
@@ -130,7 +130,8 @@ function WidgetShowcase({now}: {now:number}){
       </View>:null}
     <Text style={{fontSize:11,lineHeight:18,color:colors.muted}}>
       Telefonun ana ekranında boş bir alana uzun bas, Widget’lar bölümünden
-      Camideyiz Biz’i bul ve boyut seç. Widget’a dokununca ana sayfa açılır.
+      Camideyiz Biz’i bul ve boyut seç. Buradaki önizleme, telefon
+      ana ekranındaki widget’ın güncellendiği anlamına gelmez.
     </Text>
     <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
       <Feather name="refresh-cw" size={15} color={colors.gold}/>
@@ -172,7 +173,7 @@ function WidgetShowcase({now}: {now:number}){
         onPress={()=>void companion.refreshWidgets()}
         style={[styles.miniButton,{backgroundColor:colors.emerald}]}>
         <Feather name="refresh-cw" size={14} color="#FFF9ED"/>
-        <Text style={{color:'#FFF9ED',fontSize:11,fontWeight:'800'}}>Yenile</Text>
+        <Text style={{color:'#FFF9ED',fontSize:11,fontWeight:'800'}}>Widget’ı yenile</Text>
       </Pressable>
     </View>
     {preview.status==='ready'&&!companion.widget.updated
