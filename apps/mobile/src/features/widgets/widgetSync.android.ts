@@ -25,12 +25,19 @@ export async function syncPrayerWidgets(
         detail:'Native widget modülü yüklenemedi; uygulamayı widget desteğiyle yeniden derle.'};
     }
     const snapshot=toWidgetProps(buildPrayerWidgetSnapshot(days,nowMs));
+    // Expo's updateSnapshot persists the props and requests a render. Explicit
+    // reload asks Android's AppWidgetHost to redraw already pinned instances,
+    // which some OEM launchers otherwise leave at their initialLayout.
+    // These native calls do not prove launcher rendering: physical QA needed.
     next.default.updateSnapshot(snapshot);
     day.default.updateSnapshot(snapshot);
+    next.default.reload();
+    day.default.reload();
     return {available:true,updated:true,
       detail:snapshot.ready
-        ?snapshot.city+' · Android widget vakitleri güncellendi. Uygulama kapalıyken otomatik yenilenme garantisi yok.'
-        :'Takvim verisi henüz doğrulanmadı. Konum ve bağlantıyı kontrol edip Yenile’ye bas.'};
+        ?'Her iki widget için '+snapshot.city+' · '+snapshot.dateISO+
+          ' namaz vakitleri aktarıldı (ana ekran görüntüsü ayrıca kontrol edilmeli).'
+        :'Güncel takvim hazır olmadığından widget boş durumda.'};
   }catch(e){
     return {available:false,updated:false,
       detail:'Native widget güncellenemedi: '+
