@@ -64,19 +64,19 @@ async function mirrorGet(path:string,timeoutMs=10000):Promise<unknown>{
 export async function getMirrorStates():Promise<StateOption[]>{
   return parseMirrorStates(await mirrorGet('/iller'));
 }
-// The public prayer provider sometimes fails on district directory requests.
-// A separate public Diyanet-coded DIRECTORY is fallback only; prayer hours
-// always come from the explicitly selected original times provider.
+// All three open directory publishers use the same Diyanet numeric region
+// IDs. Directory-only fallback must not change the user's selected province.
 const BACKUP_DIRECTORY='https://ezanvakti.emushaf.net';
-async function backupDirectory(stateId:number):Promise<CityOption[]>{
+const VERIFIED_DIRECTORY='https://namazvakti.mtopal.dev';
+async function publishedGet(root:string,path:string,timeoutMs=8000):Promise<unknown>{
   const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),9500);
+  const timeout=setTimeout(()=>controller.abort(),timeoutMs);
   try{
-    const result=await fetch(BACKUP_DIRECTORY+'/ilceler/'+stateId,{
+    const result=await fetch(root+path,{
       method:'GET',headers:{Accept:'application/json'},signal:controller.signal,
     });
-    if(!result.ok)throw new Error('Backup directory HTTP '+result.status);
-    return parseBackupDiyanetCities(await result.json(),stateId);
+    if(!result.ok)throw new Error('Published provider HTTP '+result.status);
+    return await result.json();
   }finally{clearTimeout(timeout);}
 }
 export async function getMirrorCities(stateId:number):Promise<CityOption[]>{
@@ -84,9 +84,17 @@ export async function getMirrorCities(stateId:number):Promise<CityOption[]>{
   try{
     const result=parseMirrorCities(await mirrorGet('/ilceler/'+stateId,4500),stateId);
     if(result.length)return result;
-  }catch{/* The directory alone may be unavailable; try verified ID-format backup. */}
-  return backupDirectory(stateId);
+  }catch{/* Try separately operated Diyanet code directories. */}
+  for(const root of [VERIFIED_DIRECTORY,BACKUP_DIRECTORY]){
+    try{
+      const parsed=parseBackupDiyanetCities(
+        await publishedGet(root,'/ilceler/'+stateId,6000),stateId);
+      if(parsed.length)return parsed;
+    }catch{/* Next independent directory. */}
+  }
+  throw new Error('district_directory_unavailable');
 }
+
 /** Published Diyanet district code, never city centre substitution. Two
  * independent sources: Idamedya first, emushaf if the request or the strict
  * parsing/identity/date checks fail. Never calculate or invent prayer hours. */
@@ -95,32 +103,32 @@ export async function getMirrorPrayerTriplet(
 ):Promise<MirrorTriplet>{
   if(!Number.isSafeInteger(place.id)||place.id<=0||place.id>1_000_000)
     throw new Error('invalid_district');
-  let firstError:unknown=null;
+  const errors:string[]=[];
   try{
-    const raw=await mirrorGet('/'+place.id,6500);
+    const raw=await mirrorGet('/'+place.id,6000);
     return parseMirrorTriplet(raw,place.id,dateISO,place.name,new Date().toISOString());
-  }catch(e){firstError=e;}
-  // The fallback directory and its prayer endpoint share the same Diyanet
-  // district IDs. Published clock values are validated as carefully as primary.
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),8500);
-  try{
-    const response=await fetch(BACKUP_DIRECTORY+'/vakitler/'+place.id,{
-      method:'GET',headers:{Accept:'application/json'},
-      signal:controller.signal,
-    });
-    if(!response.ok)throw new Error('backup_http_'+response.status);
-    return parseEmushafTriplet(await response.json(),
-      place.id,dateISO,place.name,new Date().toISOString());
-  }catch(backupError){
-    // Known categories only: never surface arbitrary server contents to UI.
-    const name=(error:unknown)=>error instanceof Error?error.message:'unknown';
-    const a=name(firstError).toLowerCase(),b=name(backupError).toLowerCase();
-    if(/missing today|missing mirror dates|backup calendar missing|missing today or next/.test(a+' '+b))
-      throw new Error('calendar_missing_dates');
-    if(/invalid|mismatch|non-increasing|duplicate|impossible/.test(a+' '+b))
-      throw new Error('calendar_invalid_response');
-    if(/429|too many/.test(a+' '+b))throw new Error('calendar_rate_limited');
-    throw new Error('calendar_network_unavailable');
-  }finally{clearTimeout(timeout);}
+  }catch(e){errors.push(e instanceof Error?e.message:'primary unavailable');}
+
+  // mtopal has independently confirmed HTTP 200 for /vakitler/9551
+  // whereas Idamedya returned 503 for 9551 and 9545, and emushaf 403.
+  // Use only the selected Diyanet district ID, never a provincial stand-in.
+  const alternates=[
+    {root:VERIFIED_DIRECTORY,provider:'mtopal' as const},
+    {root:BACKUP_DIRECTORY,provider:'emushaf' as const},
+  ];
+  for(const candidate of alternates){
+    try{
+      const raw=await publishedGet(candidate.root,'/vakitler/'+place.id,7500);
+      return parseEmushafTriplet(raw,place.id,dateISO,
+        place.name,new Date().toISOString(),candidate.provider);
+    }catch(error){errors.push(error instanceof Error?error.message:'backup unavailable');}
+  }
+  // No invented or stale timetable: surface a safe reason and retry.
+  const explanation=errors.join(' ').toLowerCase();
+  if(/missing today|missing published dates|backup calendar missing/.test(explanation))
+    throw new Error('calendar_missing_dates');
+  if(/invalid|mismatch|non-increasing|duplicate|impossible/.test(explanation))
+    throw new Error('calendar_invalid_response');
+  if(/429|too many/.test(explanation))throw new Error('calendar_rate_limited');
+  throw new Error('calendar_network_unavailable');
 }
