@@ -76,7 +76,7 @@ const PrayerDayWidget=(props:Props)=>{
       </Text>}
     {props.ready
       ?<Text color="#9BBFB1" maxLines={1} style={{fontSize:10}}>
-        Son takvim eşitlemesi · {props.updatedClock}
+        Widget yenilemesi · {props.updatedClock}
       </Text>:null}
   </Column>;
 };
