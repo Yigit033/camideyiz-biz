@@ -126,7 +126,11 @@ function buildPublishedTriplet(rows:unknown,cityId:number,dateISO:string,
   locationName:string,fetchTime:string,provider:PublishedCalendarProvider):MirrorTriplet{
   if(!validId(cityId))throw new Error('Invalid district ID');
   assertISODate(dateISO);
-  if(!Array.isArray(rows)||rows.length>45||rows.length<2)
+  // Idamedya/eMushaf return monthly windows; mtopal supplies *all*
+  // remaining days of the year (which can exceed 45 even in November).
+  // Bound to one Gregorian year; never discard a valid longer publication.
+  const maximum=provider==='mtopal'?370:45;
+  if(!Array.isArray(rows)||rows.length>maximum||rows.length<2)
     throw new Error('Missing published dates');
   const byDate=new Map<string,MirrorPrayerDay>();
   const label=name(locationName);
@@ -167,7 +171,8 @@ export function parseEmushafTriplet(raw:unknown,cityId:number,dateISO:string,
   provider:'mtopal'|'emushaf'='emushaf'):MirrorTriplet{
   if(!validId(cityId))throw new Error('Invalid published district ID');
   assertISODate(dateISO);
-  if(!Array.isArray(raw)||raw.length<2||raw.length>45)
+  const maximum=provider==='mtopal'?370:45;
+  if(!Array.isArray(raw)||raw.length<2||raw.length>maximum)
     throw new Error('Backup calendar missing');
   const converted=raw.map(item=>{
     const r=object(item);
