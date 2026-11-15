@@ -381,7 +381,7 @@ export default function CompanionScreen(){
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <View style={styles.sectionHeader}>
           <View style={{flex:1,flexDirection:'row',gap:8,alignItems:'center'}}>
-            <Feather name="megaphone" size={20} color={colors.gold}/>
+            <MaterialCommunityIcons name="bullhorn-outline" size={20} color={colors.gold}/>
             <Text style={[styles.sectionTitle,{color:colors.text}]}>
               Özel Duyurular
             </Text>
