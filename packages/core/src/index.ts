@@ -11,3 +11,4 @@ export * from './kerahat';
 export * from './dailyWisdom';
 export * from './prayerCompanion';
 export * from './widgetCalendarCache';
+export * from './shareGallery';
