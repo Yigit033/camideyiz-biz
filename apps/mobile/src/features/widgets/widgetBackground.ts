@@ -45,7 +45,7 @@ export async function readLastWidgetTransfer():Promise<LastWidgetTransfer|null>{
     const v=record as LastWidgetTransfer;
     if(!Number.isSafeInteger(v.cityId)||v.cityId<1||
       typeof v.city!=='string'||!v.city.trim()||
-      typeof v.dateISO!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(v.dateISO)||
+      typeof v.dateISO!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v.dateISO)||
       !Number.isFinite(v.sentAt)||v.sentAt>Date.now()+60_000||
       Date.now()-v.sentAt>72*60*60_000||
       typeof v.nextName!=='string'||typeof v.nextTime!=='string'||
