@@ -2,6 +2,7 @@ import {useCallback,useEffect,useMemo,useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   zonedClock,validateTriplet,validateCachedMirrorTriplet,DEFAULT_MIRROR_PLACE,
+  MIRROR_OFFLINE_CACHE_MS,
   type OfficialTriplet,type MirrorTriplet,
 } from '@camideyiz/core';
 import {
@@ -32,6 +33,7 @@ export function usePrayerSource(now:Date){
   const [booted,setBooted]=useState(false);
   const [data,setData]=useState<PrayerSourceTriplet|null>(null);
   const [status,setStatus]=useState<DataStatus>('loading');
+  const [failureReason,setFailureReason]=useState<string|null>(null);
   const [refresh,setRefresh]=useState(0);
   const dateISO=zonedClock(now,'Europe/Istanbul').dateISO;
 
@@ -70,6 +72,7 @@ export function usePrayerSource(now:Date){
     );
     setData(null);
     setStatus('loading');
+    setFailureReason(null);
     setPlace(next);
   },[officialConfigured]);
   const retry=useCallback(()=>setRefresh(n=>n+1),[]);
@@ -93,17 +96,27 @@ export function usePrayerSource(now:Date){
       return previous;
     });
     setStatus('loading');
+    setFailureReason(null);
     (async()=>{
       let cached:PrayerSourceTriplet|null=null;
+      let olderVerified:PrayerSourceTriplet|null=null;
       try{
         const raw=await AsyncStorage.getItem(key);
         if(raw){
           const value:unknown=JSON.parse(raw);
-          cached=officialConfigured
-            ?validateTriplet(value,place.id,dateISO)
-            :validateCachedMirrorTriplet(value,place.id,dateISO);
+          if(officialConfigured){
+            cached=validateTriplet(value,place.id,dateISO);
+          }else{
+            try{cached=validateCachedMirrorTriplet(value,place.id,dateISO);}
+            catch{
+              // Revalidate older published data ONLY for today's same district,
+              // and only when both live providers are unreachable.
+              olderVerified=validateCachedMirrorTriplet(value,place.id,dateISO,
+                Date.now(),MIRROR_OFFLINE_CACHE_MS);
+            }
+          }
         }
-      }catch{/* any corrupted or expired local data is ignored */}
+      }catch{/* any corrupted, cross-district or expired cache is ignored */}
       if(!live)return;
       if(cached){
         setData(cached);
@@ -119,9 +132,18 @@ export function usePrayerSource(now:Date){
         if(!live)return;
         setData(next);
         setStatus(officialConfigured?'verified':'mirror');
+        setFailureReason(null);
         AsyncStorage.setItem(key,JSON.stringify(next)).catch(()=>undefined);
-      }catch{
-        if(live&&!cached){setData(null);setStatus('unavailable');}
+      }catch(error){
+        if(!live)return;
+        const reason=error instanceof Error?error.message:'calendar_network_unavailable';
+        setFailureReason(reason);
+        if(!cached&&olderVerified){
+          setData(olderVerified);
+          setStatus('mirror-cached');
+        }else if(!cached){
+          setData(null);setStatus('unavailable');
+        }
       }
     })();
     return ()=>{live=false;};
@@ -129,9 +151,13 @@ export function usePrayerSource(now:Date){
 
   const sourceLabel=officialConfigured
     ?'Diyanet Awqat Salah · resmî API'
-    :'İdamedya · Diyanet kaynaklı olduğu belirtilen takvim (üçüncü taraf)';
+    :data?.source==='idamedya-diyanet-republished'
+      ?data.provider==='emushaf'
+        ?'EzanVakti eMushaf · Diyanet verilerinin bağımsız aktarımı'
+        :'İdamedya · Diyanet verilerinin bağımsız aktarımı'
+      :'Üçüncü taraf yayımlanmış namaz takvimi';
   return useMemo(()=>({
-    place,status,days:data,selectPlace,retry,
+    place,status,days:data,selectPlace,retry,failureReason,
     configured:true,officialConfigured,sourceLabel,
-  }),[place,status,data,selectPlace,retry,officialConfigured,sourceLabel]);
+  }),[place,status,data,selectPlace,retry,failureReason,officialConfigured,sourceLabel]);
 }
