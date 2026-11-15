@@ -46,6 +46,8 @@ create table if not exists public.cb_announcement_deliveries (
   attempts integer not null default 0 check(attempts between 0 and 8),
   lease_until timestamptz,
   expo_ticket_id text,
+  receipt_status text check(receipt_status in ('pending','ok','error','expired')),
+  receipt_checked_at timestamptz,
   error_code text,
   accepted_at timestamptz,
   created_at timestamptz not null default now(),
@@ -241,6 +243,78 @@ begin
       where d.announcement_id=a.id and d.status in ('queued','sending'));
   return n;
 end; $$;
+
+-- Provider receipts report downstream push-provider acceptance, not
+-- whether a user saw or opened the announcement.
+create or replace function public.cb_push_claim_receipts(p_limit integer default 80)
+returns table(delivery_id bigint,ticket_id text)
+language plpgsql security definer set search_path=''
+as $
+begin
+  if p_limit not between 1 and 100 then return; end if;
+  update public.cb_announcement_deliveries set receipt_status='expired'
+   where status='accepted' and expo_ticket_id is not null
+     and coalesce(receipt_status,'pending')='pending'
+     and accepted_at<now()-interval '24 hours';
+  return query
+  with picked as (
+    select d.id from public.cb_announcement_deliveries d
+      where d.status='accepted' and d.expo_ticket_id is not null
+        and coalesce(d.receipt_status,'pending')='pending'
+        and d.accepted_at<now()-interval '15 minutes'
+        and d.accepted_at>now()-interval '24 hours'
+        and (d.receipt_checked_at is null
+           or d.receipt_checked_at<now()-interval '10 minutes')
+      order by d.accepted_at,d.id for update skip locked limit p_limit
+  ), touched as (
+    update public.cb_announcement_deliveries d set receipt_checked_at=now()
+      from picked where d.id=picked.id
+      returning d.id,d.expo_ticket_id
+  )
+  select t.id,t.expo_ticket_id from touched t;
+end; $;
+
+create or replace function public.cb_push_finish_receipts(p_results jsonb)
+returns integer language plpgsql security definer set search_path=''
+as $
+declare elem jsonb; n integer:=0; code text;
+begin
+  if jsonb_typeof(p_results)<>'array' or jsonb_array_length(p_results)>100
+    then raise exception 'Invalid receipt batch'; end if;
+  for elem in select value from jsonb_array_elements(p_results) loop
+    if not ((elem->>'id') ~ '^[1-9][0-9]{0,17}
+  public.cb_push_set_subscription(uuid,text,text,text,boolean),
+  public.cb_push_materialize_due(integer),
+  public.cb_push_claim_deliveries(integer),
+  public.cb_push_finish_deliveries(jsonb),
+  public.cb_push_claim_receipts(integer),
+  public.cb_push_finish_receipts(jsonb) from public,anon,authenticated;
+grant execute on function public.cb_push_take_registration_slot(text,integer),
+  public.cb_push_set_subscription(uuid,text,text,text,boolean),
+  public.cb_push_materialize_due(integer),
+  public.cb_push_claim_deliveries(integer),
+  public.cb_push_finish_deliveries(jsonb),
+  public.cb_push_claim_receipts(integer),
+  public.cb_push_finish_receipts(jsonb) to service_role;
+commit;
+) or
+      (elem->>'status') not in ('ok','error','pending')
+      then raise exception 'Invalid receipt result'; end if;
+    code:=left(coalesce(elem->>'error',''),80);
+    update public.cb_announcement_deliveries
+      set receipt_status=elem->>'status',
+        error_code=case when elem->>'status'='error'
+          then nullif(code,'') else error_code end
+      where id=(elem->>'id')::bigint and status='accepted';
+    if code='DeviceNotRegistered' then
+      update public.cb_push_devices set enabled=false,updated_at=now()
+       where id in (select device_id from public.cb_announcement_deliveries
+          where id=(elem->>'id')::bigint);
+    end if;
+    n:=n+1;
+  end loop;
+  return n;
+end; $;
 
 revoke execute on function public.cb_push_take_registration_slot(text,integer),
   public.cb_push_set_subscription(uuid,text,text,text,boolean),
