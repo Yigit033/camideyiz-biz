@@ -74,6 +74,8 @@ async function register(enabled:boolean,askPermission:boolean):Promise<void>{
   const cred=await identity(enabled);
   if(!cred){
     if(enabled)throw Error('Cihaz kaydı oluşturulamadı.');
+    if(await SecureStore.getItemAsync(SERVER_STATE_KEY)==='true')
+      throw Error('Eski sunucu kaydı için cihaz kimliği bulunamadı. Destek ile iletişime geç.');
     return;
   }
   if(Platform.OS==='android'){
@@ -101,8 +103,8 @@ async function register(enabled:boolean,askPermission:boolean):Promise<void>{
     await SecureStore.setItemAsync(TOKEN_KEY,pushToken);
   }
   if(!pushToken||!TOKEN_PATTERN.test(pushToken)){
-    if(!enabled)return;
-    throw Error('Önceden kayıtlı cihaz bildirimi bulunamadı.');
+    if(!enabled&&await SecureStore.getItemAsync(SERVER_STATE_KEY)!=='true')return;
+    throw Error('Sunucudaki kayıt iptal edilemedi: önceki cihaz anahtarı kayıp.');
   }
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),14000);
