@@ -6,7 +6,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,calculateMirrorPhase,getKerahatView,type PrayerTime} from '@camideyiz/core';
+import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,MIRROR_OFFLINE_CACHE_MS,calculateMirrorPhase,getKerahatView,type PrayerTime} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere} from '@/components/LuxuryArtwork';
@@ -163,24 +163,20 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         compact={compact} onOpenLocation={()=>setPickerOpen(true)}/>
       <DateDivider now={now} dark={dark} timezone={SCHEDULE.timezone} hijriDate={official.days?.today.hijriDate??null} officialSource={isOfficial}/>
       <Pressable accessibilityRole="button"
-        accessibilityLabel="Namaz vakitleri veri kaynağını görüntüle"
-        onPress={()=>Alert.alert('Namaz vakitleri kaynağı',
-          official.sourceLabel+'\nİlçe: '+(official.place?.name??SCHEDULE.locationName)+
-          '\nVeri alım zamanı: '+official.days!.today.fetchedAt+
-          '\nDurum: '+(official.status==='offline'||official.status==='mirror-cached'?'Önbellekten':'Kaynak servisten')+
-          (isOfficial?'':'\nBu Diyanet’in resmî API servisi değildir; bağımsız sağlayıcı Diyanet takviminden aktardığını belirtir.'))}
+        accessibilityLabel="Namaz takviminin kaynağı ve güncellenme bilgisi"
+        onPress={()=>Alert.alert('Namaz vakitleri hakkında',
+          official.sourceLabel+
+          '\nİlçe: '+(official.place?.name??SCHEDULE.locationName)+
+          '\nVeri alım zamanı: '+SCHEDULE.fetchedAt+
+          '\nDurum: '+(official.status==='offline'||official.status==='mirror-cached'
+            ?'Kaydedilmiş yayımlanmış takvim':'Çevrimiçi kaynak')+
+          (isOfficial?'':'\nBağımsız yayıncı üzerinden aktarılmış takvimdir; resmî Diyanet API bağlantısı değildir.'))}
         onLongPress={__DEV__?showPreviewOptions:undefined}
-        style={[styles.demo,{
-          backgroundColor:'transparent',
-          borderColor:'transparent',
-        }]}>
-        <Feather name="info" size={12} color={colors.gold}/>
-        <Text style={[styles.demoText,{color:colors.muted}]}>
-          {timePreview?'Geliştirici zaman önizlemesi':isOfficial?(official.status==='offline'?'Diyanet · Çevrimdışı resmî takvim':'Diyanet · Resmî API'):'İdamedya · Diyanet kaynaklı aktarılan takvim (üçüncü taraf)'}
-        </Text>
-
+        style={{alignSelf:'flex-end',minHeight:28,flexDirection:'row',
+          gap:5,alignItems:'center',paddingHorizontal:8,marginTop:-2}}>
+        <Feather name="info" size={13} color={colors.gold}/>
+        <Text style={{fontSize:10,color:colors.muted}}>Takvim bilgisi</Text>
       </Pressable>
-
       <View style={styles.wheelStage}>
         <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
         <PrayerWheel
@@ -281,7 +277,10 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         <View style={{flex:1,gap:3}}>
           <Text style={{fontSize:10,letterSpacing:.85,fontWeight:'800',color:accented}}>{stateTitle}</Text>
           <Text style={{fontSize:11,color:colors.text,lineHeight:16}}>{stateDescription}</Text>
-          <Text style={{fontSize:9.5,color:colors.muted}}>Namaz saatleri · {isOfficial?'Diyanet resmî API':'İdamedya · üçüncü taraf kaynak'}</Text>
+          <Text style={{fontSize:9.5,color:colors.muted}}>
+            {official.status==='mirror-cached'||official.status==='offline'
+              ?'Kaydedilmiş yayımlanmış vakitler':'Yayımlanmış ilçe takvimi'}
+          </Text>
         </View>
         <Feather name="chevron-right" size={14} color={colors.muted}/>
       </Pressable>
@@ -290,9 +289,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           İkindi farzı kılındıktan sonra nafile namazlar konusunda ayrıca kısıtlamalar vardır.
         </Text>
         :null}
-      <Text style={{textAlign:'center',color:colors.muted,fontSize:10,marginBottom:11}}>
-        Namaz vakitleri · {isOfficial?'Diyanet resmî API':'İdamedya (Diyanet takvimi aktarıldığı belirtiliyor)'}
-      </Text>
+      <View style={{height:7,marginBottom:4}}/>
     </ScrollView>
     <LocationPicker visible={pickerOpen} onClose={()=>setPickerOpen(false)}
       onSelect={async p=>{
@@ -331,11 +328,30 @@ function CalendarLoadingHome({official,now}:{
       <HomeBrandHeader place={official.place}
         onOpenLocation={()=>setPickerOpen(true)}/>
       <DateDivider now={now} dark={dark} timezone="Europe/Istanbul" hijriDate={null}/>
-      <View style={[styles.demo,{alignSelf:'center'}]}>
-        <Feather name="info" size={12} color={colors.gold}/>
-        <Text style={[styles.demoText,{color:colors.muted}]}>
-          {official.officialConfigured?'Diyanet · resmî kaynak bekleniyor':'İdamedya · açık takvim kaynağı'}
+      <View style={{flexDirection:'row',alignItems:'center',
+        alignSelf:'center',gap:8,minHeight:35,
+        paddingHorizontal:10,paddingVertical:6,borderRadius:13,
+        backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border}}>
+        <Feather name={official.status==='unavailable'?'alert-circle':'clock'}
+          size={14} color={colors.gold}/>
+        <Text style={{fontSize:11,color:colors.text,flexShrink:1}}>
+          {official.status==='unavailable'
+            ?official.failureReason==='calendar_missing_dates'
+              ?'Seçilen ilçenin güncel vakitleri kaynaklarda bulunamadı'
+              :official.failureReason==='calendar_invalid_response'
+                ?'Gelen takvim doğrulanamadı'
+                :official.failureReason==='calendar_rate_limited'
+                  ?'Takvim kaynakları yoğun, yeniden dene'
+                  :'Takvim bağlantısına erişilemedi'
+            :official.status==='choose-location'
+              ?'İl ve ilçeni seç':'Seçilen ilçenin takvimi yükleniyor'}
         </Text>
+        {official.status==='unavailable'?<Pressable
+          accessibilityRole="button" accessibilityLabel="Takvimi yeniden dene"
+          onPress={official.retry} hitSlop={9}
+          style={{padding:5}}>
+          <Feather name="refresh-cw" size={17} color={colors.emerald}/>
+        </Pressable>:null}
       </View>
       <View style={styles.wheelStage}>
         <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
@@ -404,7 +420,9 @@ export default function HomeScreen(){
   const official=useSharedPrayerSource();
   const usable=official.days&&(
     official.days.source!==MIRROR_SOURCE||
-    now.getTime()-Date.parse(official.days.today.fetchedAt)<=MIRROR_CACHE_MS
+    now.getTime()-Date.parse(official.days.today.fetchedAt)<=
+      (official.status==='mirror-cached'
+        ?MIRROR_OFFLINE_CACHE_MS:MIRROR_CACHE_MS)
   );
   return usable
     ?<ConfiguredHome key={official.place?.id??0} official={official} now={now}/>
