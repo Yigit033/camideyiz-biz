@@ -30,6 +30,9 @@ test('P1 sector labels move toward the relevant start clock without crossing a w
     assert.ok(angle<=middle+0.001,'label moves toward clock rather than wedge tail');
     assert.ok(angle-sector.from>=12,'leave clock-to-label breathing room');
   }
+  const tiny=prayerSectorLabelAngle(80,86);
+  assert.ok(tiny>80&&tiny<83,
+    'even a very narrow valid wedge keeps its caption inside the boundary');
   assert.throws(()=>prayerSectorLabelAngle(36,32));
 });
 test('P1 kerahat ring has a 20m amber approach and burgundy active band at exact bounds',()=>{
