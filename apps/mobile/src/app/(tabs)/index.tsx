@@ -12,7 +12,7 @@ import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere} from '@/components/LuxuryArtwork';
-import {useKerahatSettings} from '@/features/prayer/useKerahatSettings';
+import {useKerahatSettings} from '@/features/prayer/KerahatSettingsProvider';
 import {KerahatPanel} from '@/features/prayer/KerahatPanel';
 import {DailyWisdomSection} from '@/features/wisdom/DailyWisdomSection';
 import {usePrayerSource} from '@/features/prayer/usePrayerSource';
@@ -40,13 +40,16 @@ function DateDivider({now,dark,timezone,hijriDate,officialSource=false}: {now:Da
   const date=new Intl.DateTimeFormat('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone}).format(now);
   const hijri=hijriDate??formatHijri(now);
   return <View style={styles.dateSection}>
-    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10}}>
-      <View style={[styles.dateLine,{backgroundColor:colors.gold}]}/>
+    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7}}>
       <Feather name="calendar" size={13} color={colors.gold}/>
-      <Text style={[styles.dateText,{color:colors.text}]}>{date}</Text>
-      <View style={[styles.dateLine,{backgroundColor:colors.gold}]}/>
+      <Text style={[styles.dateText,{color:colors.text,textAlign:'center',flexShrink:1}]}>
+        {hijri?hijri+'  —  '+date:date}
+      </Text>
     </View>
-    {hijri?<Text style={[styles.hijri,{color:dark?'#A6D8C3':'#4B806D'}]}>{hijri} · {hijriDate?(officialSource?'Hicrî · Diyanet API':'Hicrî · kaynak takvim'):'Hicrî (yaklaşık)'}</Text>:null}
+    {hijri?<Text style={[styles.hijri,{color:dark?'#A6D8C3':'#4B806D'}]}>
+      {hijriDate?(officialSource?'Hicrî tarih · Diyanet API':'Hicrî tarih · kaynak takvim')
+        :'Hicrî tarih yaklaşık hesaplanmıştır'}
+    </Text>:null}
   </View>;
 }
 function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
@@ -72,7 +75,7 @@ function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
 function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSource>;now:Date}){
   const SCHEDULE=official.days!.today;
   const isOfficial=official.days!.source==='diyanet-awqat-salah';
-  const {settings:kerahatSettings,update:updateKerahatSettings}=useKerahatSettings();
+  const {settings:kerahatSettings}=useKerahatSettings();
   const {colors,mode,setMode}=useAppTheme();
   const {width,height}=useWindowDimensions();
   const dark=colors.isDark;
@@ -125,7 +128,9 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
       ? calculateMirrorPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
       : calculateVerifiedPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
     : awareness.phase;
-  const upcomingIndex=SCHEDULE.times.findIndex(item=>item.key===phase.next.key);
+  // The top needle follows the prayer period currently in progress, never
+  // the next prayer. Countdown in the centre still refers to the next prayer.
+  const currentIndex=Math.max(0,SCHEDULE.times.findIndex(item=>item.key===phase.current.key));
   const remainingText=minutesToNextEvent(phase.secondsRemaining);
   const nafileOnly=phase.current.key==='imsak' && !restriction;
   const accented=restriction
@@ -147,7 +152,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     : phase.urgency!=='normal'
     ? phase.next.label+' vaktine '+remainingText+'. '
     : phase.next.label+' vaktine '+remainingText+' · '+Math.round(phase.progress*100)+'% ilerleme.';
-  const selectedIndex=manualIndex??upcomingIndex;
+  const selectedIndex=manualIndex??currentIndex;
   const selectedPrayer=SCHEDULE.times[selectedIndex];
   const compact=height<730;
 
@@ -277,7 +282,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
       </View>
 
       <KerahatPanel view={kerahat} settings={kerahatSettings}
-        update={updateKerahatSettings} locationName={SCHEDULE.locationName}/>
+        locationName={SCHEDULE.locationName}/>
       <DailyWisdomSection dateISO={zoned.dateISO} dark={dark}/>
       <Pressable accessibilityRole="button"
         accessibilityLabel="Güncel zaman durumu ve kerahet açıklamasını oku"
