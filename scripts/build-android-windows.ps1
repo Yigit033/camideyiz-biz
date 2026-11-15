@@ -5,6 +5,7 @@
 param(
   [ValidateSet('Release','Debug')]
   [string]$Configuration = 'Release',
+  [switch]$CleanNative,
   [string]$CheckoutPath = 'C:\cb',
   [string]$Branch = 'feat/widgets-and-prayer-alerts-2'
 )
@@ -108,11 +109,20 @@ try {
   Invoke-Checked 'Install workspace dependencies' { & npm.cmd install --package-lock=false --no-audit --no-fund }
   Push-Location 'apps\mobile'
   try {
-    # Isolated checkout means regenerating native files cannot overwrite the main worktree.
-    Invoke-Checked 'Generate native Android project' {
-      & npx.cmd expo prebuild --platform android --no-install --clean
-    }
+    # Default: preserve Gradle/CMake/Ninja intermediate objects between builds.
+    # A clean prebuild is only required on first setup or when -CleanNative
+    # is explicitly requested to recover from a broken native project.
     $androidDir = Join-Path (Get-Location).Path 'android'
+    $gradleFile = Join-Path $androidDir 'settings.gradle'
+    if ($CleanNative -or -not (Test-Path -LiteralPath $gradleFile)) {
+      Invoke-Checked 'Generate clean native Android project' {
+        & npx.cmd expo prebuild --platform android --no-install --clean
+      }
+    } else {
+      Invoke-Checked 'Update native config in place (preserves CMake/Gradle cache)' {
+        & npx.cmd expo prebuild --platform android --no-install
+      }
+    }
     $gradlew = Join-Path $androidDir 'gradlew.bat'
     if (-not (Test-Path -LiteralPath $gradlew -PathType Leaf)) {
       throw "Gradle wrapper not generated: $gradlew"
@@ -132,7 +142,7 @@ try {
     try {
       Write-Host "Gradle project root: $((Get-Location).Path)" -ForegroundColor Cyan
       Invoke-Checked "Build native $Configuration APK (arm64)" {
-        & $gradlew $task --no-daemon --stacktrace '-PreactNativeArchitectures=arm64-v8a'
+        & $gradlew $task --stacktrace '-PreactNativeArchitectures=arm64-v8a'
       }
     } finally {
       Pop-Location
