@@ -157,6 +157,14 @@ export default function CompanionScreen(){
     return ()=>clearInterval(id);
   },[]);
   const {settings,permission,sync,ready,settings:alerts}=companion;
+  const announcement=companion.announcement;
+  const allAtTime=(['imsak','ogle','ikindi','aksam','yatsi'] as const)
+    .every(key=>settings.rules[key].enabled&&settings.rules[key].atTime);
+  const nextReminder=sync.nextAt
+    ?new Date(sync.nextAt).toLocaleString('tr-TR',{
+      timeZone:'Europe/Istanbul',day:'numeric',month:'short',hour:'2-digit',
+      minute:'2-digit',
+    }):null;
   const [working,setWorking]=useState(false);
   const toggleMaster=async(next:boolean)=>{
     setWorking(true);
@@ -218,7 +226,7 @@ export default function CompanionScreen(){
         <View style={styles.sectionHeader}>
           <View style={{flex:1,flexDirection:'row',gap:8,alignItems:'center'}}>
             <Feather name="bell" size={21} color={colors.gold}/>
-            <Text style={[styles.sectionTitle,{color:colors.text}]}>Namaz vakti uyarıları</Text>
+            <Text style={[styles.sectionTitle,{color:colors.text}]}>Ezan Vakti Bildirimleri</Text>
           </View>
           <Switch
             value={settings.enabled}
@@ -229,15 +237,44 @@ export default function CompanionScreen(){
             thumbColor={settings.enabled?'#F5D6A4':'#FFFFFF'}/>
         </View>
         <Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
-          Her namaz vaktini ayrı seçebilir, vaktinde ve öncesinde hatırlatma alabilirsin.
-          İzin yalnızca etkinleştirdiğinde istenir. Başlangıçta tüm bildirimler kapalıdır.
+          İmsak, öğle, ikindi, akşam ve yatsı vakti başladığında bildirim
+          alabilir, ayrıca 5–60 dakika öncesini seçebilirsin. Güneş doğuşu
+          ezan vakti değildir. Başlangıçta izin ve bildirimler kapalıdır.
         </Text>
+        <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
+          <MaterialCommunityIcons name="mosque" size={21} color={colors.gold}/>
+          <View style={{flex:1,gap:7}}>
+            <Text style={{fontSize:13,fontWeight:'800',color:colors.text}}>
+              Beş vakitte bildir
+            </Text>
+            <Text style={{fontSize:10.5,color:colors.muted,lineHeight:17}}>
+              Ezan vakitlerinin başlangıcında telefonun bildirimini planlar.
+              Gerçek ezan sesini çalmaz; telefonun sistem sesi kullanılır.
+            </Text>
+            <Pressable accessibilityRole="button"
+              accessibilityState={{selected:allAtTime}}
+              onPress={()=>companion.setEzanAtTimeForAll(!allAtTime)}
+              disabled={!settings.enabled}
+              style={[styles.miniButton,{alignSelf:'flex-start',
+                backgroundColor:allAtTime?colors.emerald:colors.surface,
+                borderWidth:allAtTime?0:1,borderColor:colors.border,
+                opacity:settings.enabled?1:.5}]}>
+              <Feather name={allAtTime?'check-circle':'bell'} size={14}
+                color={allAtTime?'#FFFFFF':colors.gold}/>
+              <Text style={{fontSize:11,fontWeight:'800',
+                color:allAtTime?'#FFFFFF':colors.text}}>
+                {allAtTime?'Beş vakit açık':'Beş vakti etkinleştir'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
         <View style={{flexDirection:'row',flexWrap:'wrap',gap:6}}>
           <InfoPill text={permission==='granted'?'İzin verildi':
             permission==='denied'?'İzin kapalı':'İzin bekleniyor'}
             icon={permission==='granted'?'check-circle':'alert-circle'}/>
           <InfoPill text={sync.scheduled+' planlanan uyarı'} icon="calendar"/>
           <InfoPill text={source.place?.name??'Konum seçilmedi'} icon="map-pin"/>
+          {nextReminder?<InfoPill text={'Sıradaki: '+nextReminder} icon="clock"/>:null}
         </View>
         {sync.error?<Text style={{fontSize:11,color:'#D17E70'}}>
           Uyarı: {sync.error}
@@ -311,10 +348,11 @@ export default function CompanionScreen(){
           </Pressable>)}
         </View>
         <Text style={{fontSize:10,color:colors.muted,lineHeight:17}}>
-          PDF’de önerilen ezan sesleri bu sürümde eklenmedi; kayıt ve kullanım hakları
-          netleştirilmeden dinî seslendirme kullanılmayacak. Telefonun sessiz modu,
-          odak ayarları ve Android pil optimizasyonu bildirimi geciktirebilir.
-          Dakikası kesin teslimat garantisi verilmez.
+          Ezan sesi kaydı henüz eklenmedi: bu seçenek yalnızca ezan vaktinde
+          sistem bildirimi gönderir. Lisans/izin durumu netleşmeden ses kaydı
+          kullanılmaz. Android pil optimizasyonu, kesin alarm izni, telefonun
+          sessiz modu ve iOS Odak modu nedeniyle teslimat gecikebilir;
+          saniye garantisi yoktur.
         </Text>
         <View style={{flexDirection:'row',gap:8}}>
           <Pressable disabled={!settings.enabled||companion.syncing}
@@ -339,6 +377,63 @@ export default function CompanionScreen(){
             açarak ilçe ve takvimi yeniden eşitlemelisin; arka planda sınırsız yenileme garanti edilmez.
           </Text>
         </View>
+      </View>
+      <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
+        <View style={styles.sectionHeader}>
+          <View style={{flex:1,flexDirection:'row',gap:8,alignItems:'center'}}>
+            <Feather name="megaphone" size={20} color={colors.gold}/>
+            <Text style={[styles.sectionTitle,{color:colors.text}]}>
+              Özel Duyurular
+            </Text>
+          </View>
+          <Switch
+            accessibilityLabel="Ürün sahibinin duyuru bildirimlerine abone ol"
+            value={announcement.enabled}
+            disabled={!announcement.ready||announcement.status==='syncing'||
+              (!announcement.available&&!announcement.enabled)}
+            onValueChange={next=>void announcement.setEnabled(next)}
+            trackColor={{false:colors.border,true:colors.emerald}}
+            thumbColor={announcement.enabled?'#F4D49C':'#FFFFFF'}/>
+        </View>
+        <Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
+          Camideyiz Biz ekibinin özel duyurularını ayrı bir izinle alabilirsin.
+          Bu seçenek namaz vakti bildirimlerinden bağımsızdır. Kişisel ilçe
+          tercihin, mesajların veya fotoğrafların duyuru sunucusuna gönderilmez.
+        </Text>
+        <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
+          <Feather name={announcement.status==='registered'?'check-circle':
+            announcement.status==='not-configured'?'shield':'info'}
+            size={18} color={colors.gold}/>
+          <View style={{flex:1,gap:6}}>
+            <Text style={{fontSize:12,fontWeight:'800',color:colors.text}}>
+              {announcement.status==='registered'?'Duyurular etkin':
+                announcement.status==='pending-disable'?'Sunucudan kayıt silme bekleniyor':
+                announcement.status==='not-configured'?'Duyuru altyapısı hazırlık aşamasında':
+                announcement.status==='error'?'Duyuru bağlantısında sorun var':
+                announcement.status==='syncing'?'Duyuru tercihi eşitleniyor':
+                'Duyurular kapalı'}
+            </Text>
+            <Text style={{fontSize:10.5,lineHeight:18,color:colors.muted}}>
+              {announcement.detail}
+            </Text>
+          </View>
+        </View>
+        {announcement.available&&
+          (announcement.enabled||announcement.status==='pending-disable')
+          ?<Pressable accessibilityRole="button"
+            onPress={()=>void announcement.refresh()}
+            style={[styles.miniButton,{alignSelf:'flex-start',
+              backgroundColor:colors.soft,borderWidth:1,borderColor:colors.border}]}>
+            <Feather name="refresh-cw" size={14} color={colors.gold}/>
+            <Text style={{fontSize:11,fontWeight:'800',color:colors.text}}>
+              Duyuru kaydını eşitle
+            </Text>
+          </Pressable>:null}
+        <Text style={{fontSize:10,lineHeight:17,color:colors.muted}}>
+          Duyurular yalnızca yönetici onayıyla, belirlenen tarihte sunucudan
+          push olarak gönderilebilir. Cihazın teslim zamanı ağ ve sistem
+          koşullarına bağlıdır; gönderilme garantisi yoktur.
+        </Text>
       </View>
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <View style={styles.sectionHeader}>
@@ -379,8 +474,9 @@ export default function CompanionScreen(){
           </View>}
       </View>
       <Text style={{textAlign:'center',fontSize:10,color:colors.muted,lineHeight:17}}>
-        Her iki widget ve bildirimler ek sunucu veya ücretli API gerektirmez.
-        Native widget desteği için yeni uygulama derlemesi zorunludur.
+        Namaz hatırlatmaları ve widget'lar cihazda çalışır. Özel duyurular
+        isteğe bağlı sunucu push altyapısı gerektirir. Native özellikler için
+        yeni APK gereklidir.
       </Text>
     </ScrollView>
   </SafeAreaView>;
