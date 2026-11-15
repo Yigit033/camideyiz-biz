@@ -131,6 +131,8 @@ function DailyRing({bands,selected,kind,nowSeconds,hasCalendar,size}:{
   </View>;
 }
 
+const DIyanetILMIHAL_URL=
+  'https://namaz.diyanet.gov.tr/namaz/html/kutuphane/HTML/NamazIlmihali/assets/common/downloads/publication.pdf';
 const pad=(n:number)=>String(n).padStart(2,'0');
 function clock(seconds:number):string{
   return pad(Math.floor(seconds/3600))+':'+pad(Math.floor((seconds%3600)/60));
@@ -187,7 +189,7 @@ export default function KerahatGuideScreen(){
       return day.times[3].time+' – '+day.times[4].time+' · koşullu';
     return null;
   };
-  const openSource=()=>void Linking.openURL(KERAHAT_SOURCE_URL)
+  const openSource=(url:string)=>void Linking.openURL(url)
     .catch(()=>Alert.alert('Bağlantı açılamadı',
       'Diyanet kaynağına erişilemiyor. İnternet bağlantını kontrol et.'));
 
@@ -338,13 +340,22 @@ export default function KerahatGuideScreen(){
             eğitim görselleridir; kesin fetva veya güneş yüksekliği
             hesabı değildir.
           </Text>
-          <Pressable accessibilityRole="link" onPress={openSource}
+          <Pressable accessibilityRole="link"
+            onPress={()=>openSource(KERAHAT_SOURCE_URL)}
             style={[styles.source,{borderColor:colors.border}]}>
             <Feather name="external-link" size={15} color={colors.emerald}/>
             <Text style={{fontSize:11.5,color:colors.emerald,fontWeight:'800'}}>
-              Diyanet Din İşleri Yüksek Kurulu
+              Din İşleri Yüksek Kurulu açıklaması
             </Text>
           </Pressable>
+          {tab==='light'?<Pressable accessibilityRole="link"
+            onPress={()=>openSource(DIyanetILMIHAL_URL)}
+            style={[styles.source,{borderColor:colors.border}]}>
+            <Feather name="book-open" size={15} color={colors.emerald}/>
+            <Text style={{fontSize:11.5,color:colors.emerald,fontWeight:'800'}}>
+              Diyanet Namaz İlmihali · PDF
+            </Text>
+          </Pressable>:null}
         </View>
       </View>
     </ScrollView>
