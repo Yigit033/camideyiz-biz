@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import Svg,{Defs,LinearGradient,Stop,Rect,Path,Circle} from 'react-native-svg';
 import type {GalleryDraft,GalleryFont,GalleryTextTone} from '@camideyiz/core';
-import {galleryTextRelativeTop} from '@camideyiz/core';
+import {galleryTextRelativeTop,galleryTextFitScale} from '@camideyiz/core';
 import type {GallerySlot} from './galleryCatalog';
 
 const TONES:Record<GalleryTextTone,string>={
@@ -37,7 +37,8 @@ export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function 
   const y=galleryTextRelativeTop(draft.position);
   const textStyle=useMemo(()=>{
     const fontSize=(draft.font==='condensed'?36:34)*scale*
-      (draft.textSize==='small'?.8:draft.textSize==='large'?1.2:1);
+      (draft.textSize==='small'?.8:draft.textSize==='large'?1.2:1)*
+      galleryTextFitScale(draft.text);
     return {
       fontFamily:FONTS[draft.font],fontSize,
       lineHeight:fontSize*(draft.font==='handwriting'?1.36:1.2),
@@ -49,7 +50,7 @@ export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function 
       textAlign:'center' as const,
       includeFontPadding:false,
     };
-  },[draft.font,draft.tone,draft.textSize,scale]);
+  },[draft.font,draft.tone,draft.textSize,draft.text,scale]);
 
   return <View ref={ref} collapsable={false} accessible
     accessibilityLabel={source
@@ -87,8 +88,8 @@ export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function 
       justifyContent:'center',alignItems:'center',
       paddingHorizontal:width*.09,
     }}>
-      <Text allowFontScaling={false} numberOfLines={5}
-        adjustsFontSizeToFit minimumFontScale={.65}
+      <Text allowFontScaling={false} numberOfLines={9}
+        adjustsFontSizeToFit minimumFontScale={.7}
         style={textStyle}>{draft.text}</Text>
     </View>
     {!source?<View pointerEvents="none" style={[styles.pending,{
