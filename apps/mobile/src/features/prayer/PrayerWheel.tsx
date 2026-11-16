@@ -102,16 +102,17 @@ function SectorStartClock({sector,size,rotation,preview=false}:{
     style={[styles.sectorStartClock,{
       left:point.x*scale-width/2,top:point.y*scale-height/2,
       width,height,borderRadius:10*scale,
-      paddingVertical:2*scale,
+      paddingVertical:1*scale,
+      backgroundColor:colors.isDark?'rgba(8,35,57,.96)':'rgba(4,35,32,.93)',
     },unrotate]}>
     <Text allowFontScaling={false} numberOfLines={1} style={{
-      fontVariant:['tabular-nums'],fontSize:11.4*scale,
-      lineHeight:14*scale,color:'#FFF6E7',
+      fontVariant:['tabular-nums'],fontSize:10.1*scale,
+      lineHeight:12.3*scale,color:'#FFF6E7',
       fontWeight:'900',textAlign:'center',
     }}>{sector.time}</Text>
     <Text allowFontScaling={false} numberOfLines={1} style={{
       fontSize:layout.fontSize*scale,
-      lineHeight:12*scale,color:'#F0D5A1',
+      lineHeight:10.5*scale,color:'#F0D5A1',
       fontFamily:'serif',fontWeight:'700',textAlign:'center',
     }}>{sector.label}</Text>
   </Animated.View>;
@@ -526,7 +527,7 @@ export function PrayerWheel({
 const styles=StyleSheet.create({
   sectorLabel:{position:'absolute',alignItems:'center',justifyContent:'center'},
   sectorStartClock:{position:'absolute',alignItems:'center',justifyContent:'center',
-    backgroundColor:'rgba(4,35,32,.93)',borderWidth:.8,borderColor:'rgba(255,236,193,.72)'},
+    borderWidth:.8,borderColor:'rgba(255,236,193,.72)'},
   needle:{position:'absolute',alignItems:'center',justifyContent:'center'},
   center:{alignItems:'center',justifyContent:'center',gap:3},
   kicker:{fontSize:9,fontWeight:'800',letterSpacing:1.15,textAlign:'center'},
