@@ -64,7 +64,7 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
       <View style={{
         flex:1,minWidth:0,minHeight:61,borderRadius:18,borderWidth:1,
         borderColor:colors.border,
-        backgroundColor:dark?'rgba(7,48,43,.89)':'rgba(255,255,255,.88)',
+        backgroundColor:dark?'rgba(13,47,72,.93)':'rgba(255,255,255,.88)',
         paddingHorizontal:small?6:8,alignItems:'center',flexDirection:'row',
         gap:small?5:7,
       }}>
@@ -90,7 +90,7 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
           style={{width:small?32:36,height:40,borderRadius:12,
             alignItems:'center',justifyContent:'center',
             backgroundColor:locationMode==='auto'
-              ?(dark?'rgba(35,107,85,.7)':'#E1F4E9'):colors.soft}}>
+              ?(dark?'rgba(28,103,145,.75)':'#E1F4E9'):colors.soft}}>
           <Feather name={locationMode==='auto'?'crosshair':'map-pin'}
             size={17} color={colors.emerald}/>
         </Pressable>
