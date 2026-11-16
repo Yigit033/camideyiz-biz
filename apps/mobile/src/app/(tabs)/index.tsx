@@ -34,16 +34,25 @@ function formatHijri(now:Date){
     }).format(now);
   } catch {return null;}
 }
-function DateDivider({now,timezone,hijriDate}: {now:Date;timezone:string;hijriDate:string|null}) {
+function DateDivider({now,timezone,hijriDate}:{
+  now:Date;timezone:string;hijriDate:string|null;
+}){
   const {colors}=useAppTheme();
-  const date=new Intl.DateTimeFormat('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone}).format(now);
+  const date=new Intl.DateTimeFormat('tr-TR',{
+    weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone,
+  }).format(now);
   const hijri=hijriDate??formatHijri(now);
-  return <View style={styles.dateSection}>
-    <Text accessibilityLabel={hijri?hijri+' | '+date:date}
-      numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.74}
-      style={[styles.dateText,{color:colors.text,textAlign:'center'}]}>
-      {hijri?<>{hijri}<Text style={{color:colors.gold}}>{'  |  '}</Text>{date}</>:date}
-    </Text>
+  // Equal flexible halves ensure the vertical rule is at the actual screen
+  // centre, independent of the very different lengths of Hijri/Gregorian dates.
+  return <View style={styles.dateSection}
+    accessible accessibilityLabel={hijri?hijri+'; '+date:date}>
+    {hijri?<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.67}
+      style={[styles.dateText,{color:colors.text}]}>{hijri}</Text>:null}
+    {hijri?<View pointerEvents="none" style={{
+      width:1,height:18,marginHorizontal:7,backgroundColor:colors.gold,opacity:.85,
+    }}/>:null}
+    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.67}
+      style={[styles.dateText,{color:colors.text}]}>{date}</Text>
   </View>;
 }
 function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
@@ -428,9 +437,9 @@ export default function HomeScreen(){
 }
 const styles=StyleSheet.create({
   content:{paddingHorizontal:11,paddingBottom:14,gap:8},
-  dateSection:{alignItems:'center',justifyContent:'center',alignSelf:'stretch',paddingHorizontal:8,marginTop:1},
+  dateSection:{alignItems:'center',justifyContent:'center',alignSelf:'stretch',flexDirection:'row',paddingHorizontal:4,marginTop:1,minHeight:24},
   dateLine:{width:27,height:1,opacity:.65},
-  dateText:{fontFamily:'serif',fontSize:13.1,fontWeight:'600',width:'100%',lineHeight:21},
+  dateText:{fontFamily:'serif',fontSize:12.6,fontWeight:'600',flex:1,minWidth:0,lineHeight:21,textAlign:'center'},
   wheelStage:{alignItems:'center',justifyContent:'center',position:'relative',marginTop:-2,marginBottom:-12},
   halo:{position:'absolute',height:235,width:235,borderRadius:118},
   tinyActions:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:7,minHeight:26},
