@@ -40,6 +40,8 @@ jobs:
           npm run typecheck
       - name: Verify the two actual kerahat WebP posters
         run: npm run verify:kerahat-posters
+      - name: Verify all 27 optimized gallery photographs
+        run: npm run verify:gallery-assets
 
       - name: Generate native Android project
         working-directory: apps/mobile
