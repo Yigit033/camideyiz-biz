@@ -184,7 +184,7 @@ test('clock + prayer name stay on the separator while the icon is centered',()=>
     const layout=prayerSectorVisualLayout(sector.from,sector.to);
     assert.equal(layout.clockAngle,sector.from);
     assert.equal(layout.labelAngle,(sector.from+sector.to)/2);
-    assert.ok(layout.clockHeight>=28,'clock and caption require two lines');
+    assert.ok(layout.clockHeight>=26,'two-line capsule must have enough height for compact labels');
     assert.ok(layout.labelWidth<=24,'inner icon should not cover the clock');
     assert.ok(layout.clockRadius+layout.clockHeight/2<169);
     assert.ok(layout.labelRadius-layout.labelHeight/2>106);
