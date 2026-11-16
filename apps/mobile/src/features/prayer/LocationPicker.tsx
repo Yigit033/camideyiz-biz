@@ -155,11 +155,11 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
         <View style={{width:42}}/>
       </View>
       <View style={styles.steps}>
-        <View style={[styles.step,{backgroundColor:province?colors.soft:colors.emerald}]}>
+        <View style={[styles.step,{backgroundColor:province?colors.soft:colors.accentStrong}]}>
           <Text style={{fontSize:11,fontWeight:'800',color:province?colors.text:'#FFF'}}>1 · İl</Text>
         </View>
         <Feather name="chevron-right" size={15} color={colors.muted}/>
-        <View style={[styles.step,{backgroundColor:province?colors.emerald:colors.soft}]}>
+        <View style={[styles.step,{backgroundColor:province?colors.accentStrong:colors.soft}]}>
           <Text style={{fontSize:11,fontWeight:'800',color:province?'#FFF':colors.muted}}>2 · İlçe</Text>
         </View>
       </View>
@@ -197,7 +197,7 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
         </View>
         <Pressable accessibilityRole="button" disabled={saving}
           onPress={()=>province?void loadDistricts(province):void loadProvinces()}
-          style={[styles.retry,{backgroundColor:colors.emerald}]}>
+          style={[styles.retry,{backgroundColor:colors.accentStrong}]}>
           <Feather name="refresh-cw" color="#FFF" size={16}/>
           <Text style={{color:'#FFF',fontWeight:'800'}}>Tekrar dene</Text>
         </Pressable>
