@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import Svg,{Defs,LinearGradient,Stop,Rect,Path,Circle} from 'react-native-svg';
 import type {GalleryDraft,GalleryFont,GalleryTextTone} from '@camideyiz/core';
-import {galleryTextRelativeTop,galleryTextFitScale} from '@camideyiz/core';
+import {galleryTextRelativeTop,galleryTextFitScale,galleryPhotoFraming} from '@camideyiz/core';
 import type {GallerySlot} from './galleryCatalog';
 
 const TONES:Record<GalleryTextTone,string>={
@@ -36,6 +36,7 @@ export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function 
   const height=Math.round(width*(draft.format==='story'?16/9:5/4));
   const scale=width/360;
   const y=galleryTextRelativeTop(draft.position);
+  const framing=galleryPhotoFraming(draft.photoFit);
   const textStyle=useMemo(()=>{
     const fontSize=(draft.font==='condensed'?36:34)*scale*
       (draft.textSize==='small'?.8:draft.textSize==='large'?1.2:1)*
@@ -68,8 +69,8 @@ export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function 
           backgroundColor:'rgba(4,20,31,.63)',
         }]}/>
         <View style={{
-          position:'absolute',left:width*.045,right:width*.045,
-          top:height*.065,bottom:height*.065,
+          position:'absolute',left:width*framing.horizontalInset,right:width*framing.horizontalInset,
+          top:height*framing.verticalInset,bottom:height*framing.verticalInset,
           borderWidth:1,borderColor:'rgba(255,230,189,.38)',
           borderRadius:Math.max(5,width*.022),
           backgroundColor:'rgba(5,19,29,.18)',
@@ -78,7 +79,7 @@ export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function 
           {/* Exact source aspect is honoured by contain. Cropping is
               impossible and changing the mode causes an obvious visual
               difference even for near-9:16 photographs. */}
-          <Image key={'full-'+slot.id} source={source} resizeMode="contain"
+          <Image key={'full-'+slot.id} source={source} resizeMode={framing.resizeMode}
             fadeDuration={0} style={{width:'100%',height:'100%'}}
             onLoad={()=>onImageLoaded?.(true)}
             onError={()=>onImageLoaded?.(false)}/>
