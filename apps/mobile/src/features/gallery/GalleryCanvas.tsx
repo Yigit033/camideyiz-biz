@@ -27,8 +27,8 @@ type Props={
 /** The very same full-resolution native scene is used for both preview
  * and PNG capture. Fit mode is the safe default: no photograph is blown up or
  * silently cropped to force a 9:16 Story or 4:5 post.
- * The letterbox is filled with a subdued blurred copy of the SAME local photo;
- * users can explicitly switch to cover when a filled crop is desired.
+ * The uncropped source is presented in a distinct 91%-wide photo mount
+ * against a subdued background. Cover uses full-bleed cropping only on request.
  */
 export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function GalleryCanvas({
   width,slot,source,draft,onImageLoaded,
@@ -60,18 +60,33 @@ export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function 
     style={[styles.canvas,{width,height,backgroundColor:slot.accent}]}>
     {source?<View style={StyleSheet.absoluteFill} pointerEvents="none">
       {draft.photoFit==='contain'?<>
-        <Image source={source} resizeMode="cover" resizeMethod="scale"
-          blurRadius={18} fadeDuration={0}
-          style={[StyleSheet.absoluteFill,{opacity:.68}]}/>
+        {/* The muted photographic mat is intentionally faint: the full
+            sharp original stays the clear foreground focal point. */}
+        <Image source={source} resizeMode="cover" blurRadius={28}
+          fadeDuration={0} style={[StyleSheet.absoluteFill,{opacity:.24}]}/>
         <View style={[StyleSheet.absoluteFill,{
-          backgroundColor:'rgba(5,24,24,.36)',
+          backgroundColor:'rgba(4,20,31,.63)',
         }]}/>
-      </>:null}
-      <Image source={source} resizeMode={draft.photoFit}
-        resizeMethod="scale" fadeDuration={0}
-        style={StyleSheet.absoluteFill}
+        <View style={{
+          position:'absolute',left:width*.045,right:width*.045,
+          top:height*.065,bottom:height*.065,
+          borderWidth:1,borderColor:'rgba(255,230,189,.38)',
+          borderRadius:Math.max(5,width*.022),
+          backgroundColor:'rgba(5,19,29,.18)',
+          overflow:'hidden',justifyContent:'center',alignItems:'center',
+        }}>
+          {/* Exact source aspect is honoured by contain. Cropping is
+              impossible and changing the mode causes an obvious visual
+              difference even for near-9:16 photographs. */}
+          <Image key={'full-'+slot.id} source={source} resizeMode="contain"
+            fadeDuration={0} style={{width:'100%',height:'100%'}}
+            onLoad={()=>onImageLoaded?.(true)}
+            onError={()=>onImageLoaded?.(false)}/>
+        </View>
+      </>:<Image key={'crop-'+slot.id} source={source} resizeMode="cover"
+        fadeDuration={0} style={StyleSheet.absoluteFill}
         onLoad={()=>onImageLoaded?.(true)}
-        onError={()=>onImageLoaded?.(false)}/>
+        onError={()=>onImageLoaded?.(false)}/>}
     </View>:<Svg width="100%" height="100%"
       viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"
       style={StyleSheet.absoluteFill} pointerEvents="none">
