@@ -225,7 +225,7 @@ export default function QiblaScreen(){
   const detailMessage=compassAccuracy===1
     ?'Pusula sinyali düşük. Metal eşyalardan uzaklaş ve cihazı kalibre et.'
     :message;
-  return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:dark?'#002B25':colors.canvas}}>
+  return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:dark?'#06192C':colors.canvas}}>
     <QiblaBackdrop dark={dark}/>
     <ScrollView showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.content,{paddingHorizontal:Math.max(14,Math.min(22,width*.045))}]}>
@@ -244,7 +244,7 @@ export default function QiblaScreen(){
           <View style={[styles.rule,{backgroundColor:colors.gold}]}/>
         </View>
         <Text style={{fontFamily:'serif',fontSize:42,letterSpacing:-1.1,
-          fontWeight:'700',color:colors.text,textShadowColor:dark?'#052822':'transparent',
+          fontWeight:'700',color:colors.text,textShadowColor:dark?'#0A2742':'transparent',
           textShadowRadius:8}}>
           Kıble
         </Text>
@@ -257,7 +257,7 @@ export default function QiblaScreen(){
       </View>
 
       <View style={[styles.status,{
-        backgroundColor:dark?'rgba(8,54,44,.91)':'rgba(255,253,243,.93)',
+        backgroundColor:dark?'rgba(12,45,68,.93)':'rgba(255,253,243,.93)',
         borderColor:hasValidHeading?GOLD:colors.border,
         shadowColor:hasValidHeading?'#DAB56A':'transparent',
         shadowOpacity:hasValidHeading?.27:0,shadowRadius:13,
@@ -269,7 +269,7 @@ export default function QiblaScreen(){
       </View>
       <View style={[styles.anglePlaque,{
         borderColor:colors.gold,
-        backgroundColor:dark?'rgba(5,55,43,.85)':'rgba(255,252,240,.89)',
+        backgroundColor:dark?'rgba(10,49,75,.90)':'rgba(255,252,240,.89)',
       }]}>
         <View style={styles.guidanceRow}>
           <Feather name={guidance?.direction==='right'?'rotate-cw'
@@ -294,8 +294,8 @@ export default function QiblaScreen(){
       </View>
 
       <View style={[styles.locationCard,{
-        backgroundColor:dark?'rgba(8,63,52,.9)':'rgba(255,254,247,.9)',
-        borderColor:dark?'#407E67':colors.border,
+        backgroundColor:dark?'rgba(11,54,80,.93)':'rgba(255,254,247,.9)',
+        borderColor:dark?'#467E9D':colors.border,
       }]}>
         <MaterialCommunityIcons name="map-marker" size={30} color={GOLD}/>
         <View style={{flex:1,gap:5,minWidth:0}}>
@@ -307,7 +307,7 @@ export default function QiblaScreen(){
             {'  ·  Pusula: '+statusName(compassAccuracy)}
           </Text>
         </View>
-        <View style={[styles.sensorBadge,{borderColor:colors.isDark?'#388A70':'#B7C8B9'}]}>
+        <View style={[styles.sensorBadge,{borderColor:colors.isDark?'#4696BB':'#B7C8B9'}]}>
           <MaterialCommunityIcons name="crosshairs-gps" size={18}
             color={compassAccuracy===3?'#9EEDB9':colors.gold}/>
           <Text style={{fontSize:10,fontWeight:'800',color:colors.text}}>
@@ -329,7 +329,7 @@ export default function QiblaScreen(){
         </Pressable>
         <Pressable accessibilityRole="button" onPress={()=>void openMap()}
           style={({pressed})=>[styles.secondaryButton,{
-            flex:.93,backgroundColor:dark?'rgba(4,53,43,.85)':'rgba(253,250,238,.89)',
+            flex:.93,backgroundColor:dark?'rgba(10,47,74,.9)':'rgba(253,250,238,.89)',
             borderColor:colors.gold,opacity:pressed?.78:1,
           }]}>
           <Feather name="map" size={20} color={colors.gold}/>
@@ -341,7 +341,7 @@ export default function QiblaScreen(){
       </View>
       <View style={[styles.helper,{
         borderColor:showGuide?colors.gold:'transparent',
-        backgroundColor:showGuide?(dark?'rgba(10,55,48,.6)':'rgba(255,251,239,.65)'):'transparent',
+        backgroundColor:showGuide?(dark?'rgba(10,49,75,.65)':'rgba(255,251,239,.65)'):'transparent',
       }]}>
         <MaterialCommunityIcons name="infinity" size={30} color={colors.gold}/>
         <View style={{height:34,width:1,backgroundColor:colors.gold,opacity:.54}}/>
