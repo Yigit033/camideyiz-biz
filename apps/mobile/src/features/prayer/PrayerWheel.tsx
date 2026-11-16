@@ -87,8 +87,8 @@ function SectorIcon({sector,size,rotation}:{
 /** HH:MM and its name share one capsule at the exact boundary angle.
  * Counter-rotation keeps both text lines upright during free rotation.
  */
-function SectorStartClock({sector,size,rotation,preview=false}:{
-  sector:PrayerArc;size:number;rotation:SharedValue<number>;preview?:boolean;
+function SectorStartClock({sector,size,rotation,preview=false,dark}:{
+  sector:PrayerArc;size:number;rotation:SharedValue<number>;preview?:boolean;dark:boolean;
 }){
   const layout=prayerSectorVisualLayout(sector.from,sector.to);
   const point=polar(layout.clockAngle,layout.clockRadius);
@@ -103,7 +103,7 @@ function SectorStartClock({sector,size,rotation,preview=false}:{
       left:point.x*scale-width/2,top:point.y*scale-height/2,
       width,height,borderRadius:10*scale,
       paddingVertical:1*scale,
-      backgroundColor:colors.isDark?'rgba(8,35,57,.96)':'rgba(4,35,32,.93)',
+      backgroundColor:dark?'rgba(8,35,57,.96)':'rgba(4,35,32,.93)',
     },unrotate]}>
     <Text allowFontScaling={false} numberOfLines={1} style={{
       fontVariant:['tabular-nums'],fontSize:10.1*scale,
@@ -454,7 +454,7 @@ export function PrayerWheel({
           {sectors.map(item=><SectorIcon key={'icon-'+item.key}
              sector={item} size={size} rotation={rotation}/>)} 
           {sectors.map(item=><SectorStartClock key={'clock-'+item.key}
-            sector={item} size={size} rotation={rotation} preview={preview}/>)}
+            sector={item} size={size} rotation={rotation} preview={preview} dark={colors.isDark}/>)}
         </Animated.View>
       </View>
     </GestureDetector>
