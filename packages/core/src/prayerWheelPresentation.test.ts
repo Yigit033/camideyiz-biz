@@ -20,7 +20,7 @@ const schedule={...DEMO_SCHEDULE,isDemo:false,dateISO:'2026-11-15',
 };
 const sec=(hh:number,mm:number)=>hh*3600+mm*60;
 const windows=indicativeKerahatWindows(schedule);
-test('P1 sector labels move toward the relevant start clock without crossing a wedge boundary',()=>{
+test('Prayer icons sit at the angular midpoint of their own sector',()=>{
   const sectors=makeVisualDialSectors(schedule.times);
   assert.equal(sectors.length,6);
   for(const sector of sectors){
@@ -28,14 +28,14 @@ test('P1 sector labels move toward the relevant start clock without crossing a w
     const middle=(sector.from+sector.to)/2;
     assert.ok(angle>sector.from,'label must remain inside');
     assert.ok(angle<sector.to,'label must remain inside');
-    assert.ok(angle<=middle+0.001,'label moves toward clock rather than wedge tail');
+    assert.equal(angle,middle,'icon must be centered between separator angles');
     const span=sector.to-sector.from;
     assert.ok(angle-sector.from>=Math.min(12,span*.38),
       'keep label inside even a short proportional prayer wedge');
   }
   const tiny=prayerSectorLabelAngle(80,86);
-  assert.ok(tiny>80&&tiny<83,
-    'even a very narrow valid wedge keeps its caption inside the boundary');
+  assert.ok(tiny>80&&tiny<84,
+    'even a narrow wedge retains a centered icon');
   assert.throws(()=>prayerSectorLabelAngle(36,32));
 });
 test('P1 kerahat ring has a 20m amber approach and burgundy active band at exact bounds',()=>{
@@ -111,7 +111,7 @@ test('kerahat windows retain exact 24-hour proportional dial angles',()=>{
   }
 });
 
-test('clock and name boxes are separated on actual crowded six-prayer day',()=>{
+test('separator time-name badges and center icons do not overlap on crowded six-prayer day',()=>{
   const sectors=makeVisualDialSectors(schedule.times);
   const polar=(deg:number,r:number)=>({
     x:180+r*Math.sin(deg*Math.PI/180),
@@ -139,7 +139,7 @@ test('clock and name boxes are separated on actual crowded six-prayer day',()=>{
   }
 });
 
-test('16 November 2026 wheel keeps Akşam and İmsak labels inside narrow strips',()=>{
+test('16 November 2026 wheel keeps icons separated from clock+name badges',()=>{
   const times=[
     {key:'imsak' as const,label:'İmsak',time:'06:16'},
     {key:'gunes' as const,label:'Güneş',time:'07:44'},
@@ -176,5 +176,17 @@ test('16 November 2026 wheel keeps Akşam and İmsak labels inside narrow strips
     const layout=prayerSectorVisualLayout(sector.from,sector.to);
     assert.ok(layout.labelWidth<=48,'narrow names need a compact radial lane');
     assert.ok(layout.labelHeight<=27,'do not clip narrow-sector text with oversized cards');
+  }
+});
+
+test('clock + prayer name stay on the separator while the icon is centered',()=>{
+  for(const sector of makeVisualDialSectors(schedule.times)){
+    const layout=prayerSectorVisualLayout(sector.from,sector.to);
+    assert.equal(layout.clockAngle,sector.from);
+    assert.equal(layout.labelAngle,(sector.from+sector.to)/2);
+    assert.ok(layout.clockHeight>=28,'clock and caption require two lines');
+    assert.ok(layout.labelWidth<=24,'inner icon should not cover the clock');
+    assert.ok(layout.clockRadius+layout.clockHeight/2<169);
+    assert.ok(layout.labelRadius-layout.labelHeight/2>106);
   }
 });
