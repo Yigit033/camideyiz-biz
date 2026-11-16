@@ -14,8 +14,13 @@ export const lightTokens: ColorTokens = {
   muted:'#65736C',border:'#DEE4DB',emerald:base.emerald,gold:'#A88A5C',
   warning:base.warning,soft:'#E5EEE6',isDark:false
 };
+/** The blue logo defines the dark visual identity: midnight blue canvases,
+ * deep ocean surfaces and luminous cyan actions. "emerald" is retained as
+ * the semantic API key so existing components inherit the new accent without
+ * disturbing the separately defined original light theme.
+ */
 export const darkTokens: ColorTokens = {
-  canvas:'#0C1717',surface:base.emerald,elevated:base.navy,text:'#F8F4E9',
-  muted:'#A7B9AF',border:'#29443F',emerald:'#43D1A8',gold:'#D2BB89',
-  warning:'#E78B90',soft:'#1C3832',isDark:true
+  canvas:'#071725',surface:'#102B40',elevated:'#173D58',text:'#F2F7FB',
+  muted:'#B2C6D6',border:'#2B536B',emerald:'#20B6EB',gold:'#D8BF8D',
+  warning:'#F08F9A',soft:'#16344C',isDark:true
 };
