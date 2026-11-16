@@ -24,7 +24,9 @@ for(const name of full){
  seen.add(digest);
  const meta=await sharp(data).metadata();
  if(meta.format!=='webp'||!meta.width||!meta.height)throw Error('Invalid WebP: '+name);
- if(!name.endsWith('-thumb.webp') && Math.min(meta.width,meta.height)<550)
-   console.warn('Lower-resolution source; test exported quality:',name,meta.width,meta.height);
+ // 1080px-wide WhatsApp exports cannot recover detail from a narrower
+ // original. Warn without rejecting owner-provided photographs.
+ if(!name.endsWith('-thumb.webp') && meta.width<1080)
+   console.warn('Source narrower than 1080px: inspect Story export on device:',name,meta.width,meta.height);
 }
 console.log(`Gallery QA OK: ${photos.length} photos + ${thumbs.length} thumbnails`);
