@@ -64,8 +64,8 @@ function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
     style={[
       styles.prayerChip,{
         width,
-        borderColor:active?(dark?'#65E5BF':'#177D60'):(dark?'#48615A':'#DAD7CE'),
-        backgroundColor:active?(dark?'#076751':'#087351'):(dark?'rgba(6,30,31,.83)':'rgba(255,255,255,.81)'),
+        borderColor:active?(dark?'#80D7FF':'#177D60'):(dark?'#395975':'#DAD7CE'),
+        backgroundColor:active?(dark?'#126A9A':'#087351'):(dark?'rgba(13,38,60,.87)':'rgba(255,255,255,.81)'),
         shadowColor:active?'#26BD90':'#776D5E',shadowOpacity:active?.26:.045,
         shadowRadius:active?11:3,elevation:active?4:1,
       }]}>
@@ -238,7 +238,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
 
       <View style={[styles.chipsContainer,{
         borderColor:dark?'#5C6353':'#ECE2D1',
-        backgroundColor:dark?'rgba(5,32,33,.65)':'rgba(255,255,255,.76)',
+        backgroundColor:dark?'rgba(12,36,54,.73)':'rgba(255,255,255,.76)',
       }]}>
         <View style={styles.chipsRow}>
           {SCHEDULE.times.map((item,index)=>
@@ -281,7 +281,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           borderWidth:1,borderRadius:14,padding:10,
         }]}>
         <View style={{height:31,width:31,borderRadius:11,alignItems:'center',justifyContent:'center',
-          backgroundColor:restriction?(dark?'#5B3032':'#F4D6D0'):(dark?'#245149':'#D9E9E1')}}>
+          backgroundColor:restriction?(dark?'#5B3032':'#F4D6D0'):(dark?'#234C69':'#D9E9E1')}}>
           <Feather name={restriction?'alert-triangle':nafileOnly?'book-open':phase.urgency==='normal'?'clock':'sun'}
             size={15} color={accented}/>
         </View>
