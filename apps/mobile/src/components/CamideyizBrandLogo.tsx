@@ -19,16 +19,16 @@ function Ink(){
     <Path d={LOGO_PATH} fill="url(#brandBlue)" fillRule="evenodd"/>
   </>;
 }
-export const CamideyizBrandLogo=memo(function CamideyizBrandLogo({compact=false}:{
-  compact?:boolean;
-}){
-  // Original user-supplied brand artwork: icon ABOVE the exact wordmark.
-  // Preserve the vector contours, gradient and original typography.
-  const iconWidth=compact?72:83;
-  const wordWidth=compact?126:146;
+export const CamideyizBrandLogo=memo(function CamideyizBrandLogo({
+  compact=false,horizontal=false,
+}:{compact?:boolean;horizontal?:boolean}){
+  // Two cropped viewBoxes preserve the supplied mark and ORIGINAL wordmark.
+  // The horizontal home header reuses that same vector artwork, not a font.
+  const iconWidth=horizontal?(compact?68:77):(compact?72:83);
+  const wordWidth=horizontal?(compact?156:181):(compact?126:146);
   return <View accessible accessibilityLabel="camideyiz.biz"
-    style={{flexDirection:'column',alignItems:'center',justifyContent:'center',
-      gap:compact?0:1}}>
+    style={{flexDirection:horizontal?'row':'column',alignItems:'center',
+      justifyContent:'center',gap:horizontal?(compact?8:10):compact?0:1}}>
     <Svg width={iconWidth} height={iconWidth*297/461}
       viewBox="0 0 461 297" pointerEvents="none">
       <Ink/>
