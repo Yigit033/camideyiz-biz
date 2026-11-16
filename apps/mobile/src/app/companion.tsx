@@ -171,7 +171,7 @@ function WidgetShowcase({now}: {now:number}){
       <Pressable accessibilityRole="button"
         accessibilityLabel="Ana ekran widget'larını şimdi yenile"
         onPress={()=>void companion.refreshWidgets()}
-        style={[styles.miniButton,{backgroundColor:colors.emerald}]}>
+        style={[styles.miniButton,{backgroundColor:colors.accentStrong}]}>
         <Feather name="refresh-cw" size={14} color="#FFF9ED"/>
         <Text style={{color:'#FFF9ED',fontSize:11,fontWeight:'800'}}>Widget’ı yenile</Text>
       </Pressable>
@@ -298,7 +298,7 @@ export default function CompanionScreen(){
               onPress={()=>companion.setEzanAtTimeForAll(!allAtTime)}
               disabled={!settings.enabled}
               style={[styles.miniButton,{alignSelf:'flex-start',
-                backgroundColor:allAtTime?colors.emerald:colors.surface,
+                backgroundColor:allAtTime?colors.accentStrong:colors.surface,
                 borderWidth:allAtTime?0:1,borderColor:colors.border,
                 opacity:settings.enabled?1:.5}]}>
               <Feather name={allAtTime?'check-circle':'bell'} size={14}
@@ -358,7 +358,7 @@ export default function CompanionScreen(){
                     accessibilityState={{selected:rule.minutesBefore===lead}}
                     onPress={()=>companion.setRule(key,{minutesBefore:lead})}
                     style={[styles.lead,{borderColor:rule.minutesBefore===lead?colors.gold:colors.border,
-                      backgroundColor:rule.minutesBefore===lead?colors.emerald:colors.surface}]}>
+                      backgroundColor:rule.minutesBefore===lead?colors.accentStrong:colors.surface}]}>
                     <Text style={{color:rule.minutesBefore===lead?'#FFFFFF':colors.text,
                       fontSize:11,fontWeight:'700'}}>
                       {lead===0?'Yok':lead+' dk'}
@@ -381,7 +381,7 @@ export default function CompanionScreen(){
             accessibilityRole="button" accessibilityState={{selected:settings.sound===option.id}}
             onPress={()=>companion.setSound(option.id)}
             style={[styles.soundOption,{flex:1,
-              backgroundColor:settings.sound===option.id?colors.emerald:colors.soft,
+              backgroundColor:settings.sound===option.id?colors.accentStrong:colors.soft,
               borderColor:settings.sound===option.id?colors.gold:colors.border}]}>
             <Feather name={option.icon} size={17}
               color={settings.sound===option.id?'#FFFFFF':colors.gold}/>
@@ -399,7 +399,7 @@ export default function CompanionScreen(){
         <View style={{flexDirection:'row',gap:8}}>
           <Pressable disabled={!settings.enabled||companion.syncing}
             onPress={companion.refresh} accessibilityRole="button"
-            style={[styles.action,{flex:1,backgroundColor:colors.emerald,
+            style={[styles.action,{flex:1,backgroundColor:colors.accentStrong,
               opacity:!settings.enabled?.5:1}]}>
             <Feather name="refresh-cw" color="#FFFFFF" size={16}/>
             <Text style={{color:'#FFFFFF',fontWeight:'800',fontSize:12}}>Vakitleri eşitle</Text>
