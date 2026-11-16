@@ -110,7 +110,7 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
     </View>
     <Modal visible={!!detail||savedOpen} transparent animationType="slide"
       onRequestClose={close}>
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop,{backgroundColor:colors.isDark?'rgba(2,11,24,.72)':'rgba(0,15,13,.66)'}]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={close}/>
         <View style={[styles.sheet,{backgroundColor:colors.canvas,borderColor:colors.border}]}>
           <View style={styles.sheetHead}>
@@ -198,7 +198,7 @@ const styles=StyleSheet.create({
   bookmark:{position:'absolute',right:8,top:8,width:30,height:30,borderRadius:11,
     justifyContent:'center',alignItems:'center'},
   savedDot:{width:4,height:4,borderRadius:2,backgroundColor:'#EDC77B',position:'absolute',bottom:4},
-  backdrop:{flex:1,backgroundColor:'rgba(2,11,24,.72)',justifyContent:'flex-end'},
+  backdrop:{flex:1,justifyContent:'flex-end'},
   sheet:{padding:19,paddingBottom:29,borderTopLeftRadius:25,borderTopRightRadius:25,
     borderWidth:1,maxHeight:'88%'},
   sheetHead:{flexDirection:'row',alignItems:'center',gap:10,marginBottom:19},
