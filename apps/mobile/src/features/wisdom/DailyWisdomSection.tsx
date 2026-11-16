@@ -108,9 +108,6 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
         isFavorite={saved.includes(selections.hadith.id)}
         onToggle={()=>toggle(selections.hadith.id)}/>
     </View>
-    <Text style={{fontSize:10,lineHeight:16,color:colors.muted,paddingHorizontal:3}}>
-      Belgenizdeki ayet ve hadislerin tamamı için karta dokunun. Metinler 30 günde bir tekrar eder.
-    </Text>
     <Modal visible={!!detail||savedOpen} transparent animationType="slide"
       onRequestClose={close}>
       <View style={styles.backdrop}>
@@ -165,20 +162,10 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
               <Text style={{fontSize:14,fontWeight:'800',color:colors.emerald}}>
                 {detail.reference}
               </Text>
-              <Text style={{fontSize:10.5,color:colors.muted}}>
-                Belgedeki metin · {detail.day}. gün
-              </Text>
             </View>
             {detail.note?<Text style={{fontSize:12.5,lineHeight:21,color:colors.text}}>
               {detail.note}
             </Text>:null}
-            <View style={[styles.notice,{borderColor:colors.border}]}>
-              <Feather name="info" size={17} color={colors.gold}/>
-              <Text style={{flex:1,fontSize:11,lineHeight:19,color:colors.muted}}>
-                Metinler ve kaynak bilgileri sağladığınız 30 günlük belgeden aktarılmıştır.
-                Bağımsız kaynak doğrulaması yapılmamıştır.
-              </Text>
-            </View>
             <View style={{flexDirection:'row',gap:10}}>
               <Pressable accessibilityRole="button" disabled={!ready}
                 onPress={()=>toggle(detail.id)}
@@ -216,7 +203,6 @@ const styles=StyleSheet.create({
     borderWidth:1,maxHeight:'88%'},
   sheetHead:{flexDirection:'row',alignItems:'center',gap:10,marginBottom:19},
   quote:{borderRadius:18,borderWidth:1,padding:20,gap:13},
-  notice:{borderWidth:1,borderRadius:14,padding:12,flexDirection:'row',gap:9},
   primary:{height:50,borderRadius:14,flexDirection:'row',gap:9,alignItems:'center',justifyContent:'center'},
   secondary:{height:46,borderRadius:13,borderWidth:1,flexDirection:'row',gap:9,alignItems:'center',justifyContent:'center'},
   savedItem:{borderWidth:1,borderRadius:13,padding:11,flexDirection:'row',gap:12,alignItems:'center'},
