@@ -118,7 +118,7 @@ export default function Gallery(){
         accessibilityRole="button" accessibilityState={{selected:category===c.id}}
         onPress={()=>setCategory(c.id)}
         style={[styles.chip,{
-          backgroundColor:category===c.id?colors.emerald:colors.surface,
+          backgroundColor:category===c.id?colors.accentStrong:colors.surface,
           borderColor:category===c.id?colors.emerald:colors.border,
         }]}>
         <Text style={{fontSize:11.5,fontWeight:'800',
