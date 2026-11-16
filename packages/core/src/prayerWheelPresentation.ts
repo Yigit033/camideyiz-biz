@@ -2,47 +2,35 @@ import type {RestrictionWindow} from './timeline.ts';
 import {timeToMinutes,type PrayerTime} from './prayer.ts';
 import {clockSecondsToVisualAngle} from './visualDial.ts';
 
-/** Positions for the *visual* prayer wheel. Clock pills stay anchored close
- * to the opening boundary, while icons/names sit adjacent inside the sector.
- * This is a non-linear visual dial, NOT a proportional civil-time clock.
+/** The clock and its prayer name share the exact beginning separator.
+ * A separate prayer icon is centered angularly within its own coloured wedge.
+ * Geometry is computed on the same 360-unit canvas as the wheel: no drifting
+ * labels when the user rotates repeatedly or the date/location changes.
  */
 export function prayerSectorLabelAngle(from:number,to:number):number{
   if(!Number.isFinite(from)||!Number.isFinite(to)||
     from<0||to>360||to<=from)throw new RangeError('Invalid dial sector');
-  const span=to-from;
-  // Move from the sector midpoint toward its starting clock without
-  // compressing labels into the previous boundary on narrow sectors.
-  // Actual 24-hour sectors can span 20° (Akşam) or over 160° (Yatsı).
-  // Cap the name's offset on LONG sectors too, so the word stays alongside
-  // its start-time badge instead of drifting into the enormous night wedge.
-  const inset=span<30?span*.43:span<=55?span/2:Math.max(13,Math.min(20,span*.33));
-  return from+Math.min(span*.49,inset);
+  return (from+to)/2;
 }
 
-
-/** Presentation measurements in the same 360-unit dial coordinate system.
- * Boundary clocks are centered EXACTLY on the dark separator, inside the rim.
- * Short wedges place their compact icon/title closer to the inner circular
- * band, not under the start-time badge. The artwork/sector angles never move.
+/** Compact clock+name capsule on the separator; icon sits in a distinct
+ * inner radial lane so even adjacent 20-degree wedges remain legible.
+ * Separators and icons travel with the ring, their text counter-rotates.
  */
 export function prayerSectorVisualLayout(from:number,to:number){
-  const angle=prayerSectorLabelAngle(from,to);
-  const span=to-from;
-  const narrow=span<30;
-  const middle=span<56;
+  const middle=prayerSectorLabelAngle(from,to);
+  const narrow=to-from<30;
   return {
-    labelAngle:angle,
-    // At ~20° (Akşam / İmsak), a horizontal icon+title would cross the
-    // neighbouring separator. Stack the two glyphs in a narrow radial lane.
-    labelRadius:narrow?126:middle?127:130,
-    labelWidth:narrow?48:middle?53:68,
-    labelHeight:narrow?26:middle?36:39,
-    iconSize:narrow?12:middle?14.5:15.5,
-    fontSize:narrow?10.2:middle?11.6:12.5,
+    labelAngle:middle,
+    labelRadius:117,
+    labelWidth:19,
+    labelHeight:19,
+    iconSize:narrow?15:17,
+    fontSize:10,
     clockAngle:from,
-    clockRadius:158,
-    clockWidth:45,
-    clockHeight:18.5,
+    clockRadius:151,
+    clockWidth:52,
+    clockHeight:31,
   };
 }
 
