@@ -28,9 +28,9 @@ export function prayerSectorVisualLayout(from:number,to:number){
     iconSize:narrow?15:17,
     fontSize:narrow?9.4:10.2,
     clockAngle:from,
-    clockRadius:151,
+    clockRadius:152,
     clockWidth:52,
-    clockHeight:31,
+    clockHeight:33,
   };
 }
 
