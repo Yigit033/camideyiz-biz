@@ -250,7 +250,11 @@ export default function GalleryEditor(){
                 accessibilityRole="button"
                 accessibilityState={{selected:draft.photoFit===fit}}
                 accessibilityLabel={label+(fit==='cover'?' (fotoğraf kırpılabilir)':'')}
-                onPress={()=>update('photoFit',fit)}
+                onPress={()=>{
+                  if(draft.photoFit===fit)return;
+                  setImageLoaded(false);
+                  update('photoFit',fit);
+                }}
                 style={[styles.pill,{
                   borderColor:draft.photoFit===fit?colors.emerald:colors.border,
                   backgroundColor:draft.photoFit===fit?colors.soft:colors.canvas,
