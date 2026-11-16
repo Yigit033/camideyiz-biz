@@ -74,8 +74,8 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
   const shareItem=async(item:WisdomItem)=>{
     try{await Share.share({message:
       (item.kind==='verse'?'Ayet-i Celile':'Hadis-i Şerif')+
-      '\\n\\n'+item.text+'\\n\\n'+item.reference+
-      '\\n\\nCamideyiz Biz · '+item.day+'. gün'});}
+      '\n\n'+item.text+'\n\n'+item.reference+
+      '\n\nCamideyiz Biz · '+item.day+'. gün'});}
     catch{/* dismissed or OS share failure */}
   };
   return <View style={{gap:10,width:'100%'}}>
