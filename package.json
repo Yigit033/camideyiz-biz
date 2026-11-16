@@ -13,7 +13,8 @@
     "admin": "npm run dev --workspace @camideyiz/admin",
     "test": "node --experimental-strip-types --test packages/core/src/*.test.ts",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "verify:kerahat-posters": "node scripts/verify-kerahat-posters.mjs"
+    "verify:kerahat-posters": "node scripts/verify-kerahat-posters.mjs",
+    "verify:gallery-assets": "node scripts/verify-gallery-assets.mjs"
   },
   "engines": {
     "node": ">=22.13.0"
