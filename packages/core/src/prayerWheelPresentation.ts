@@ -13,24 +13,26 @@ export function prayerSectorLabelAngle(from:number,to:number):number{
   return (from+to)/2;
 }
 
-/** Compact clock+name capsule on the separator; icon sits in a distinct
- * inner radial lane so even adjacent 20-degree wedges remain legible.
- * Separators and icons travel with the ring, their text counter-rotates.
+/** The coloured annular band occupies radii 106.5..171.5.
+ * Both the clock/name badge on its dark separator and the icon in its sector
+ * occupy the exact middle radius (139), rather than clustering at either rim.
+ * 35x27 + 14x14 boxes remain distinct even in ~20-degree Akşam wedges.
  */
 export function prayerSectorVisualLayout(from:number,to:number){
   const middle=prayerSectorLabelAngle(from,to);
   const narrow=to-from<30;
+  const bandMiddle=(106.5+171.5)/2;
   return {
     labelAngle:middle,
-    labelRadius:117,
-    labelWidth:19,
-    labelHeight:19,
-    iconSize:narrow?15:17,
-    fontSize:narrow?9.4:10.2,
+    labelRadius:bandMiddle,
+    labelWidth:14,
+    labelHeight:14,
+    iconSize:14,
+    fontSize:narrow?8.2:8.7,
     clockAngle:from,
-    clockRadius:152,
-    clockWidth:52,
-    clockHeight:33,
+    clockRadius:bandMiddle,
+    clockWidth:35,
+    clockHeight:27,
   };
 }
 
