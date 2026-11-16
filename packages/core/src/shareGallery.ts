@@ -5,6 +5,20 @@ export const GALLERY_TEXT_MAX_LENGTH=160;
 export type GalleryCategory='cuma'|'dua'|'kandil'|'ramazan'|'bayram'|'gunaydin'|'genel';
 export type GalleryFormat='story'|'post';
 export type GalleryPhotoFit='contain'|'cover';
+/** Exact same framing math is shared by on-screen preview and export capture.
+ * Full mode reserves deliberate breathing room around an uncropped image.
+ * Fill mode is edge-to-edge and may crop the source by aspect ratio.
+ */
+export function galleryPhotoFraming(fit:GalleryPhotoFit){
+  if(fit==='contain')return {
+    horizontalInset:.045,verticalInset:.065,resizeMode:'contain' as const,
+  };
+  if(fit==='cover')return {
+    horizontalInset:0,verticalInset:0,resizeMode:'cover' as const,
+  };
+  throw new RangeError('Unknown gallery framing mode');
+}
+
 export type GalleryFont='serif'|'modern'|'handwriting'|'condensed';
 export type GalleryTextPosition='top'|'center'|'bottom';
 export type GalleryTextTone='ivory'|'white'|'gold'|'dark';
