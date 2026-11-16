@@ -29,9 +29,9 @@ function GalleryTile({item,width}:{
     accessibilityLabel={item.title+' tasarımını aç'+(!photo?' (fotoğraf henüz eklenmedi)':'')}
     onPress={()=>router.push({pathname:'/gallery-editor',params:{slot:item.id}})}
     style={[styles.tile,{width,backgroundColor:colors.surface,borderColor:colors.border}]}>
-    <View style={[styles.thumb,{backgroundColor:colors.isDark?'#143A54':'#0D403F',height:width*1.12}]}>
-      {photo?<Image source={photo} resizeMode="cover"
-        style={StyleSheet.absoluteFill}/>:<View style={styles.placeholder}>
+    <View style={[styles.thumb,{backgroundColor:colors.isDark?'#143A54':'#0D403F',height:width*1.36}]}>
+      {photo?<Image source={photo} resizeMode="contain"
+        style={[StyleSheet.absoluteFill,{margin:5}]}/>:<View style={styles.placeholder}>
         <MaterialCommunityIcons name="image-filter-hdr" color={item.accent} size={43}/>
         <View style={{height:1,width:42,backgroundColor:item.accent,opacity:.7}}/>
         <Text style={{fontSize:9,fontWeight:'800',letterSpacing:1.5,
