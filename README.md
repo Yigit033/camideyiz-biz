@@ -46,7 +46,13 @@ Orijinal namaz çemberi, günlük kartlar ve çevrimli vakit akışı; ücretsiz
 
 ## Kerahat 2.0 ve Günün Seçkisi 2.0
 
-Yayımlanmış il/ilçe namaz vakitlerine dayalı üç yaklaşık kerahat bandı, manuel gösterim ayarları, kaynaklı açıklamalar; ayrıca 12 ayet ve 7 hadisten oluşan offline günlük seçki, favoriler ve paylaşım: [Teknik karar ve QA](docs/KERAHAT_AND_DAILY_WISDOM_2.md).
+Yayımlanmış il/ilçe namaz vakitlerine dayalı üç yaklaşık kerahat bandı, manuel gösterim ayarları, kaynaklı açıklamalar; ayrıca sağlanan belgeye dayalı 30 eşleşmiş ayet-hadis çiftinin çevrimdışı döngüsü, favoriler ve paylaşım: [Teknik karar ve QA](docs/KERAHAT_AND_DAILY_WISDOM_2.md).
+
+## Paylaşım Galerisi
+
+Sahibinin yüklediği 27 fotoğraf ve ayrı 27 WebP küçük önizleme yerel olarak paketlenmiştir. Tasarım Atölyesi varsayılan olarak **Tam Fotoğraf** kadrajını kullanır (kırpma yok, yumuşak arka plan); isteyen **Çerçeveyi Doldur** seçeneğiyle kırpabilir. 9:16 WhatsApp Durumu ve 4:5 gönderi formatları, hazır veya özel yazı, yerel kaydetme ve sistem paylaşım menüsü korunur.
+
+`npm run verify:gallery-assets` ile her 27 tam fotoğrafın ve 27 önizlemenin format/boyut kontrolünü yapın. Windows APK betiği ve Android CI bu kontrolü release aşamasında çalıştırır. Kaynağı düşük çözünürlüklü fotoğraflar yeni detay kazanmaz; gerçek cihazda kaydetme/paylaşma çıktısı ayrıca kontrol edilmelidir.
 
 ## Widget ve Bildirimler 2.0
 
