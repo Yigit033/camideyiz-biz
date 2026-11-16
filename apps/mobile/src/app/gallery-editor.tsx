@@ -419,7 +419,7 @@ export default function GalleryEditor(){
         <Pressable accessibilityRole="button"
           accessibilityLabel="Hazırladığın görseli WhatsApp veya diğer uygulamalarla paylaş"
           onPress={()=>void share()} disabled={!canExport}
-          style={[styles.primary,{backgroundColor:colors.emerald,
+          style={[styles.primary,{backgroundColor:colors.accentStrong,
             opacity:canExport?1:.44}]}>
           {busy==='share'?<ActivityIndicator size="small" color="#FFF"/>
             :<Feather name="share-2" size={18} color="#FFF"/>}
