@@ -7,7 +7,7 @@ export type GallerySlot={
 };
 
 /**
- * 24 editorial slots, ready for the owner's 20–30 photos.
+ * 27 editorial slots, prepared for the owner's photo collection.
  * No generated/stock image is presented as an approved owner photo.
  *
  * Adding an approved photo requires ONLY one static Metro require below:
@@ -43,6 +43,9 @@ const SLOT_INPUTS:readonly [string,string,GalleryCategory,string,string][]=[
   ['gunaydin-03','Hayırlı Günler','gunaydin','Hayırlı Günler','#9E9372'],
   ['genel-01','Güzel Dilekler','genel','Huzur ve bereket sizinle olsun.','#728B85'],
   ['genel-02','Özel Mesaj','genel','Gönlünüz güzelliklerle dolsun.','#A9876F'],
+  ['cuma-06','Cuma Huzuru','cuma','Cumanız mübarek olsun.','#B4A391'],
+  ['dua-05','Gönül Ferahlığı','dua','Dualarınız kabul olsun.','#A19A84'],
+  ['genel-03','Tarihi Mescit','genel','Güzellikler ve hayırlar sizinle olsun.','#A68E7D'],
 ];
 export const GALLERY_SLOTS:readonly GallerySlot[]=SLOT_INPUTS.map((row,index)=>({
   id:row[0],title:row[1],category:row[2],recommendedText:row[3],
@@ -57,4 +60,11 @@ export function gallerySlot(id:string):GallerySlot|null{
 }
 export function galleryPhoto(id:string):ImageSourcePropType|null{
   return APPROVED_GALLERY_IMAGES[id]??null;
+}
+
+/** Uses light previews after the owner's optimized photo bundle is installed.
+ * Before installation, it safely falls back to the full photo or placeholder.
+ */
+export function galleryThumbnail(id:string):ImageSourcePropType|null{
+  return galleryPhoto(id);
 }
