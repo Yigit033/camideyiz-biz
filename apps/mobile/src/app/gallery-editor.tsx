@@ -241,6 +241,31 @@ export default function GalleryEditor(){
                 </Text>
               </Pressable>)}
           </View>
+          <Text style={{fontSize:11.5,fontWeight:'800',color:colors.text}}>
+            Fotoğraf Kadrajı
+          </Text>
+          <View style={styles.options}>
+            {([['contain','Tam Fotoğraf'],['cover','Çerçeveyi Doldur']] as const)
+              .map(([fit,label])=><Pressable key={fit}
+                accessibilityRole="button"
+                accessibilityState={{selected:draft.photoFit===fit}}
+                accessibilityLabel={label+(fit==='cover'?' (fotoğraf kırpılabilir)':'')}
+                onPress={()=>update('photoFit',fit)}
+                style={[styles.pill,{
+                  borderColor:draft.photoFit===fit?colors.emerald:colors.border,
+                  backgroundColor:draft.photoFit===fit?colors.soft:colors.canvas,
+                  flexDirection:'row',alignItems:'center',gap:7,
+                }]}>
+                <Feather name={fit==='contain'?'minimize-2':'maximize-2'} size={14}
+                  color={draft.photoFit===fit?colors.emerald:colors.gold}/>
+                <Text style={{color:colors.text,fontSize:11.5,fontWeight:'800'}}>{label}</Text>
+              </Pressable>)}
+          </View>
+          <Text style={{fontSize:10.5,lineHeight:17,color:colors.muted}}>
+            {draft.photoFit==='contain'
+              ?'Fotoğrafın tümü korunur; kalan alan aynı fotoğrafın yumuşak fonuyla tamamlanır.'
+              :'Fotoğraf çerçeveyi doldurur; kenarlarının bir bölümü kırpılabilir.'}
+          </Text>
         </View>
 
         <View style={[styles.panel,{borderColor:colors.border,
