@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {
   Alert, Pressable, ScrollView, StyleSheet, Text,
   useWindowDimensions, View,
@@ -77,15 +77,38 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
   const [pickerOpen,setPickerOpen]=useState(false);
   const [manualIndex,setManualIndex]=useState<number|null>(null);
   const [focusRequest,setFocusRequest]=useState(0);
+  // Give a user time to explore the wheel, then gently self-center on the
+  // actual live prayer. Repeated gestures restart the idle countdown.
+  const liveReturnTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const cancelLiveReturn=useCallback(()=>{
+    if(liveReturnTimer.current!==null){
+      clearTimeout(liveReturnTimer.current);
+      liveReturnTimer.current=null;
+    }
+  },[]);
+  const scheduleLiveReturn=useCallback(()=>{
+    cancelLiveReturn();
+    liveReturnTimer.current=setTimeout(()=>{
+      liveReturnTimer.current=null;
+      setManualIndex(null);
+      setFocusRequest(value=>value+1);
+    },1800);
+  },[cancelLiveReturn]);
+  useEffect(()=>()=>cancelLiveReturn(),[cancelLiveReturn]);
   const handleWheelSelection=useCallback((index:number)=>{
     setManualIndex(index);
     Haptics.selectionAsync().catch(()=>undefined);
   },[]);
   const focusIndex=(index:number|null)=>{
+    cancelLiveReturn();
     setManualIndex(index);
     setFocusRequest(value=>value+1);
+    if(index!==null)scheduleLiveReturn();
   };
-  useEffect(()=>{setManualIndex(null);},[official.place?.id]);
+  useEffect(()=>{
+    cancelLiveReturn();
+    setManualIndex(null);
+  },[official.place?.id,cancelLiveReturn]);
   const zoned=useMemo(()=>zonedClock(now,SCHEDULE.timezone),[now,SCHEDULE.timezone]);
   const previewSeconds=zoned.secondsOfDay;
   const awareness=useMemo(
@@ -154,7 +177,10 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
         <PrayerWheel
           times={SCHEDULE.times} selectedIndex={selectedIndex}
-          onSelect={handleWheelSelection} focusRequest={focusRequest}
+          onSelect={handleWheelSelection}
+          onGestureStart={cancelLiveReturn}
+          onGestureEnd={scheduleLiveReturn}
+          focusRequest={focusRequest}
           nowSeconds={previewSeconds} colors={colors}
           size={wheelSize} countdown={formatCountdown(phase.secondsRemaining)}
           isManualSelection={manualIndex!==null}
@@ -193,11 +219,11 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           </Text>
         </View>
         {manualIndex!==null
-          ?<Pressable accessibilityRole="button" onPress={()=>focusIndex(null)}
+          ?<View accessible accessibilityLabel="Çember kısa süre sonra otomatik canlı vakte döner"
             style={{minHeight:28,flexDirection:'row',alignItems:'center',gap:5}}>
             <Feather name="rotate-ccw" size={12} color={colors.emerald}/>
-            <Text style={{fontSize:11,color:colors.emerald,fontWeight:'700'}}>Canlıya dön</Text>
-          </Pressable>
+            <Text style={{fontSize:10,color:colors.muted}}>Otomatik canlıya döner</Text>
+          </View>
           :<Text style={{fontSize:10,color:colors.muted}}>Vakit ilerlemesi %{Math.round(phase.progress*100)}</Text>}
       </View>
 

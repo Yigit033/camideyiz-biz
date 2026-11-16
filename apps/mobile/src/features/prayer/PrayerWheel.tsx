@@ -5,7 +5,7 @@ import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {GestureDetector, usePanGesture} from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation, Easing, useAnimatedReaction, useAnimatedStyle,
-  useReducedMotion, useSharedValue, withDecay, withTiming,
+  useReducedMotion, useSharedValue, withSpring, withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import {scheduleOnRN} from 'react-native-worklets';
@@ -132,6 +132,9 @@ type Props = {
   times: readonly PrayerTime[];
   selectedIndex: number;
   onSelect: (index: number) => void;
+  /** Called after a real annular drag begins / ends; used to arm live return. */
+  onGestureStart?: () => void;
+  onGestureEnd?: () => void;
   focusRequest: number;
   size: number;
   colors: ColorTokens;
@@ -149,7 +152,7 @@ type Props = {
   nextImsakTime?:string|null;
 };
 export function PrayerWheel({
-  times, selectedIndex, onSelect, focusRequest, size,
+  times, selectedIndex, onSelect, onGestureStart, onGestureEnd, focusRequest, size,
   colors, countdown, isManualSelection, nowSeconds,
   urgency, nextKey, restriction, indicativeWindows,
   preview=false, locationName, previousYatsiTime, nextImsakTime,
@@ -174,8 +177,8 @@ export function PrayerWheel({
     () => sectors.map(({from, to}) => ({from, to})), [sectors],
   );
 
-  // Requests originate from the bottom chips or the "live" button, not from the dial.
-  // This avoids re-centering on each segment boundary while the user is dragging.
+  // Only explicit focus requests or a new live prayer period re-center the dial.
+  // Ordinary rotation-induced selection changes must never interrupt a drag.
   useEffect(() => {
     const autoShift=!isManualSelection && previousSelected.current!==selectedIndex;
     const explicitlyRequested=previousFocus.current!==focusRequest;
@@ -188,10 +191,14 @@ export function PrayerWheel({
     active.value = false;
     hasTouch.value = false;
     const destination = nearestCenterRotation(rotation.value, sectors[selectedIndex]);
-    rotation.value = withTiming(destination, {
-      duration: reduceMotion ? 0 : autoShift ? 780 : 510,
-      easing: Easing.out(Easing.cubic),
-    });
+    // Physically damped self-centering, with no overshoot into a different
+    // prayer period. Shortest-angle math works even after multiple turns.
+    rotation.value = reduceMotion
+      ? withTiming(destination, {duration:0})
+      : withSpring(destination, {
+          damping:22,stiffness:autoShift?105:96,
+          mass:.9,overshootClamping:true,
+        });
   }, [focusRequest,selectedIndex,isManualSelection]);
 
   const ringStyle = useAnimatedStyle(() => ({
@@ -212,6 +219,7 @@ export function PrayerWheel({
         return;
       }
       cancelAnimation(rotation);
+      if (onGestureStart) scheduleOnRN(onGestureStart);
       prevTouch.value = angleOfTouch(event.x, event.y, centerPt);
       hasTouch.value = true;
       active.value = true;
@@ -231,29 +239,22 @@ export function PrayerWheel({
       'worklet';
       if (!active.value || !hasTouch.value) return;
       hasTouch.value = false;
-      if (event.canceled || reduceMotion) {
-        const idx = sectorAtNeedle(rotation.value, sectorBounds);
-        if (idx >= 0) {
-          rotation.value = withTiming(
-            nearestCenterRotation(rotation.value, sectorBounds[idx]),
-            {duration: reduceMotion ? 0 : 260, easing: Easing.out(Easing.cubic)},
-            () => {active.value = false;},
-          );
-        } else active.value = false;
-        return;
-      }
-      const dx = event.x - centerPt, dy = event.y - centerPt;
-      const velocity = tangentialVelocity(dx, dy, event.velocityX, event.velocityY);
-      rotation.value = withDecay({velocity, deceleration: .966}, (finished) => {
-        if (!finished) return;
-        const idx = sectorAtNeedle(rotation.value, sectorBounds);
-        if (idx < 0) {active.value = false;return;}
-        const target = nearestCenterRotation(rotation.value, sectorBounds[idx]);
-        rotation.value = withTiming(target, {
-          duration: 350,
-          easing: Easing.out(Easing.cubic),
-        }, () => {active.value = false;});
-      });
+      // Start the quiet period when the finger actually leaves the screen.
+      // Any subsequent touch cancels the pending return on the RN thread.
+      if (onGestureEnd) scheduleOnRN(onGestureEnd);
+      const dx=event.x-centerPt,dy=event.y-centerPt;
+      const velocity=event.canceled||reduceMotion?0
+        :tangentialVelocity(dx,dy,event.velocityX,event.velocityY);
+      // Predict only a small flick (rather than a long-running decay).
+      // This guarantees the idle-return can never race infinite inertia.
+      const projected=rotation.value+velocity*.13;
+      const idx=sectorAtNeedle(projected,sectorBounds);
+      if(idx<0){active.value=false;return;}
+      const destination=nearestCenterRotation(rotation.value,sectorBounds[idx]);
+      rotation.value=withTiming(destination,{
+        duration:reduceMotion?0:event.canceled?180:340,
+        easing:Easing.out(Easing.cubic),
+      },()=>{active.value=false;});
     },
   });
 
