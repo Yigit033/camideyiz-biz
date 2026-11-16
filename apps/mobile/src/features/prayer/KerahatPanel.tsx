@@ -52,7 +52,7 @@ export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
         :'Bugünkü aralıklar tamamlandı';
 
   return <View style={[styles.panel,{
-    backgroundColor:dark?'rgba(8,52,46,.92)':'rgba(255,252,244,.97)',
+    backgroundColor:dark?'rgba(16,48,71,.94)':'rgba(255,252,244,.97)',
     borderColor:active?'#9C4354':approaching?'#B59460':colors.border,
   }]}>
     <View style={styles.heading}>
@@ -172,10 +172,10 @@ export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
         onPress={()=>openGuide('light')}
         style={[styles.guideButton,{
           borderColor:colors.border,
-          backgroundColor:dark?'#123F41':'#E7F5F1',
+          backgroundColor:dark?'#17415C':'#E7F5F1',
         }]}>
         <MaterialCommunityIcons name="information-outline" size={19}
-          color={dark?'#68D4CC':'#168D8B'}/>
+          color={dark?'#6CCCF7':'#168D8B'}/>
         <Text style={[styles.guideText,{color:colors.text}]}>
           Hafif Kerahat
         </Text>
