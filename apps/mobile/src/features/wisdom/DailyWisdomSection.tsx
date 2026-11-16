@@ -12,18 +12,18 @@ function WisdomCard({item,isDark,onOpen,isFavorite,onToggle}:{
 }){
   const {colors}=useAppTheme();
   const verse=item.kind==='verse';
-  const paperColor=verse?(isDark?'#083B34':'#0A6E55'):(isDark?'#152A28':'#FFF9EE');
+  const paperColor=verse?(isDark?'#104263':'#0A6E55'):(isDark?'#142F44':'#FFF9EE');
   const foreground=verse?'#FFF9EA':colors.text;
   return <View style={[styles.card,{
       backgroundColor:paperColor,
-      borderColor:verse?(isDark?'#63836D':'#D1B979'):(isDark?'#806B4D':'#E1C79B'),
+      borderColor:verse?(isDark?'#587F9E':'#D1B979'):(isDark?'#806B4D':'#E1C79B'),
     }]}>
     {verse?<Svg width="100%" height="100%" viewBox="0 0 230 170"
       preserveAspectRatio="xMidYMid slice" style={StyleSheet.absoluteFill} pointerEvents="none">
       <Defs>
         <LinearGradient id="wisdomGreen" x1="0%" y1="0%" x2="100%" y2="100%">
-          <Stop offset="0%" stopColor="#116F5E"/>
-          <Stop offset="100%" stopColor="#063529"/>
+          <Stop offset="0%" stopColor={isDark?'#176E9A':'#116F5E'}/>
+          <Stop offset="100%" stopColor={isDark?'#082E50':'#063529'}/>
         </LinearGradient>
       </Defs>
       <Path d="M0 0H230V170H0Z" fill="url(#wisdomGreen)"/>
@@ -47,10 +47,10 @@ function WisdomCard({item,isDark,onOpen,isFavorite,onToggle}:{
         {item.text}
       </Text>
       <View style={{gap:5}}>
-        <Text numberOfLines={1} style={{color:verse?'#C2DFCD':colors.muted,fontSize:11}}>
+        <Text numberOfLines={1} style={{color:verse?(isDark?'#C4E7F7':'#C2DFCD'):colors.muted,fontSize:11}}>
           {item.reference}
         </Text>
-        <Text style={{fontSize:9.5,color:verse?'#A9D7C5':colors.muted}}>Tam metni okumak için dokun</Text>
+        <Text style={{fontSize:9.5,color:verse?(isDark?'#AED9EF':'#A9D7C5'):colors.muted}}>Tam metni okumak için dokun</Text>
       </View>
     </Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={isFavorite?'Favorilerden çıkar':'Favorilere kaydet'}
@@ -198,7 +198,7 @@ const styles=StyleSheet.create({
   bookmark:{position:'absolute',right:8,top:8,width:30,height:30,borderRadius:11,
     justifyContent:'center',alignItems:'center'},
   savedDot:{width:4,height:4,borderRadius:2,backgroundColor:'#EDC77B',position:'absolute',bottom:4},
-  backdrop:{flex:1,backgroundColor:'rgba(0,15,13,.66)',justifyContent:'flex-end'},
+  backdrop:{flex:1,backgroundColor:'rgba(2,11,24,.72)',justifyContent:'flex-end'},
   sheet:{padding:19,paddingBottom:29,borderTopLeftRadius:25,borderTopRightRadius:25,
     borderWidth:1,maxHeight:'88%'},
   sheetHead:{flexDirection:'row',alignItems:'center',gap:10,marginBottom:19},
