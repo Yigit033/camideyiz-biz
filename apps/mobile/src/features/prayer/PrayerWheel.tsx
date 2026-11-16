@@ -61,54 +61,36 @@ function arc(from: number, to: number, radius: number) {
     ' A ' + radius + ' ' + radius + ' 0 ' + (to - from > 180 ? 1 : 0) +
     ' 1 ' + end.x.toFixed(3) + ' ' + end.y.toFixed(3);
 }
-function SectorLabel({
-  sector, size, rotation, selected, dark, preview=false,
-}: {
-  sector: PrayerArc; size: number; rotation: SharedValue<number>; selected: boolean; dark: boolean;preview?:boolean;
-}) {
-  // The time pill marks the BEGINNING of this coloured wedge. Keep the
-  // icon/name close to that pill instead of floating in the wedge midpoint.
+/** One upright pictogram at the exact angular centre of its prayer period. */
+function SectorIcon({sector,size,rotation}:{
+  sector:PrayerArc;size:number;rotation:SharedValue<number>;
+}){
   const layout=prayerSectorVisualLayout(sector.from,sector.to);
   const point=polar(layout.labelAngle,layout.labelRadius);
-  const iconSize=layout.iconSize*size/DIAMETER;
-  const labelWidth=layout.labelWidth*size/DIAMETER;
-  const labelHeight=layout.labelHeight*size/DIAMETER;
-  const narrow=sector.to-sector.from<30;
-  const contrastInk=sector.key==='yatsi'?'#FFF6E6':sector.key==='aksam'?'#3A241B':'#16372E';
-  const centerX = point.x * size / DIAMETER;
-  const centerY = point.y * size / DIAMETER;
-  const style = useAnimatedStyle(() => ({
-    transform: [{rotateZ: (-rotation.value) + 'deg'}],
+  const scale=size/DIAMETER;
+  const width=layout.labelWidth*scale,height=layout.labelHeight*scale;
+  const contrastInk=sector.key==='yatsi'?'#FFF6E6'
+    :sector.key==='aksam'?'#3A241B':'#16372E';
+  const unrotate=useAnimatedStyle(()=>({
+    transform:[{rotateZ:-rotation.value+'deg'}],
   }));
-  return <Animated.View
-    pointerEvents="none"
-    style={[
-      styles.sectorLabel,
-      {left:centerX-labelWidth/2,top:centerY-labelHeight/2,
-        width:labelWidth,height:labelHeight,
-        flexDirection:'column',gap:narrow?0:1},
-      style,
-    ]}>
-    <MaterialCommunityIcons name={PRAYER_ICONS[sector.key]} size={iconSize}
-      color={contrastInk}/>
-    <Text numberOfLines={1} adjustsFontSizeToFit style={{
-      fontSize:layout.fontSize*size/DIAMETER,
-      fontFamily:'serif',fontWeight:'800',letterSpacing:-.15,
-      color:contrastInk,textAlign:'center',
-      textShadowColor:dark?'rgba(7,24,24,.24)':'rgba(255,246,229,.25)',
-      textShadowRadius:1,
-    }}>{sector.label}</Text>
+  return <Animated.View pointerEvents="none"
+    style={[styles.sectorLabel,{
+      left:point.x*scale-width/2,top:point.y*scale-height/2,
+      width,height,
+    },unrotate]}>
+    <MaterialCommunityIcons name={PRAYER_ICONS[sector.key]}
+      size={layout.iconSize*scale} color={contrastInk}/>
   </Animated.View>;
 }
 
-/** Clock labels belong at the BEGINNING of the coloured period, not
- * underneath its name. Position is relative to the segment boundary;
- * counter-rotation keeps HH:MM legible while the dial is dragged. */
+/** HH:MM and its name share one capsule at the exact boundary angle.
+ * Counter-rotation keeps both text lines upright during free rotation.
+ */
 function SectorStartClock({sector,size,rotation,preview=false}:{
   sector:PrayerArc;size:number;rotation:SharedValue<number>;preview?:boolean;
 }){
   const layout=prayerSectorVisualLayout(sector.from,sector.to);
-  // Exact separator angle; the clock badge stays inside the colour band.
   const point=polar(layout.clockAngle,layout.clockRadius);
   const scale=size/DIAMETER;
   const width=layout.clockWidth*scale,height=layout.clockHeight*scale;
@@ -119,12 +101,19 @@ function SectorStartClock({sector,size,rotation,preview=false}:{
   return <Animated.View pointerEvents="none"
     style={[styles.sectorStartClock,{
       left:point.x*scale-width/2,top:point.y*scale-height/2,
-      width,height,borderRadius:8*scale,
+      width,height,borderRadius:10*scale,
+      paddingVertical:2*scale,
     },unrotate]}>
-    <Text numberOfLines={1} adjustsFontSizeToFit style={{
-      fontVariant:['tabular-nums'],fontSize:11.3*scale,
-      color:'#FFF6E7',fontWeight:'800',textAlign:'center',
+    <Text allowFontScaling={false} numberOfLines={1} style={{
+      fontVariant:['tabular-nums'],fontSize:11.4*scale,
+      lineHeight:14*scale,color:'#FFF6E7',
+      fontWeight:'900',textAlign:'center',
     }}>{sector.time}</Text>
+    <Text allowFontScaling={false} numberOfLines={1} style={{
+      fontSize:layout.fontSize*scale,
+      lineHeight:12*scale,color:'#F0D5A1',
+      fontFamily:'serif',fontWeight:'700',textAlign:'center',
+    }}>{sector.label}</Text>
   </Animated.View>;
 }
 
@@ -461,9 +450,8 @@ export function PrayerWheel({
                 :null}
             </G>:null}
           </Svg>
-          {sectors.map((item,index) => <SectorLabel
-            key={item.key} sector={item} size={size}
-            rotation={rotation} selected={index===selectedIndex} dark={colors.isDark} preview={preview}/>)}
+          {sectors.map(item=><SectorIcon key={'icon-'+item.key}
+             sector={item} size={size} rotation={rotation}/>)} 
           {sectors.map(item=><SectorStartClock key={'clock-'+item.key}
             sector={item} size={size} rotation={rotation} preview={preview}/>)}
         </Animated.View>
@@ -536,9 +524,9 @@ export function PrayerWheel({
 }
 
 const styles=StyleSheet.create({
-  sectorLabel:{position:'absolute',alignItems:'center',justifyContent:'center',gap:1},
+  sectorLabel:{position:'absolute',alignItems:'center',justifyContent:'center'},
   sectorStartClock:{position:'absolute',alignItems:'center',justifyContent:'center',
-    backgroundColor:'rgba(4,35,32,.86)',borderWidth:.7,borderColor:'rgba(255,236,193,.65)'},
+    backgroundColor:'rgba(4,35,32,.93)',borderWidth:.8,borderColor:'rgba(255,236,193,.72)'},
   needle:{position:'absolute',alignItems:'center',justifyContent:'center'},
   center:{alignItems:'center',justifyContent:'center',gap:3},
   kicker:{fontSize:9,fontWeight:'800',letterSpacing:1.15,textAlign:'center'},
