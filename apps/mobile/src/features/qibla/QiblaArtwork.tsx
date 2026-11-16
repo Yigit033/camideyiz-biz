@@ -24,26 +24,26 @@ function KaabaSymbol({x=180,y=58}: {x?:number;y?:number}){
 }
 
 export const QiblaBackdrop=memo(function QiblaBackdrop({dark}: {dark:boolean}){
-  const sky=dark?'#053E37':'#D6EAE0';
-  const silhouette=dark?'#081E1D':'#9CAD9A';
-  const horizon=dark?'#051C1B':'#D1D8C8';
+  const sky=dark?'#0C3856':'#D6EAE0';
+  const silhouette=dark?'#0A2235':'#9CAD9A';
+  const horizon=dark?'#071D31':'#D1D8C8';
   return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
     <Svg width="100%" height="100%" viewBox="0 0 390 840"
       preserveAspectRatio="xMidYMin slice">
       <Defs>
         <LinearGradient id="nightWash" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor={dark?'#052C29':'#F8F6EB'}/>
-          <Stop offset="28%" stopColor={dark?'#08463C':'#E8EEE0'}/>
-          <Stop offset="56%" stopColor={dark?'#043D33':'#EDF0E3'}/>
-          <Stop offset="100%" stopColor={dark?'#001F1D':'#F7F3E9'}/>
+          <Stop offset="0%" stopColor={dark?'#071E33':'#F8F6EB'}/>
+          <Stop offset="28%" stopColor={dark?'#0B456C':'#E8EEE0'}/>
+          <Stop offset="56%" stopColor={dark?'#0B395B':'#EDF0E3'}/>
+          <Stop offset="100%" stopColor={dark?'#05192A':'#F7F3E9'}/>
         </LinearGradient>
         <RadialGradient id="skyBloom" cx="79%" cy="21%" rx="60%" ry="43%">
           <Stop offset="0%" stopColor={dark?'#D8B06C':'#E1BF84'} stopOpacity={dark?'.49':'.29'}/>
-          <Stop offset="51%" stopColor={dark?'#3B8575':'#A9D8C9'} stopOpacity=".23"/>
+          <Stop offset="51%" stopColor={dark?'#317FA9':'#A9D8C9'} stopOpacity=".23"/>
           <Stop offset="100%" stopColor={sky} stopOpacity="0"/>
         </RadialGradient>
         <LinearGradient id="fadingWater" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor={dark?'#236F61':'#BCD5C8'} stopOpacity=".3"/>
+          <Stop offset="0%" stopColor={dark?'#1F648D':'#BCD5C8'} stopOpacity=".3"/>
           <Stop offset="100%" stopColor={horizon} stopOpacity="0"/>
         </LinearGradient>
         <LinearGradient id="archMetal" x1="0" y1="0" x2="1" y2="1">
@@ -127,8 +127,8 @@ export const QiblaBackdrop=memo(function QiblaBackdrop({dark}: {dark:boolean}){
 });
 
 export const QiblaCompass=memo(function QiblaCompass({
-  size,relative,heading,available,aligned,
-}: {size:number;relative:number|null;heading:number|null;available:boolean;aligned:boolean}){
+  size,relative,heading,available,aligned,dark,
+}: {size:number;relative:number|null;heading:number|null;available:boolean;aligned:boolean;dark:boolean}){
   const animatedAngle=useSharedValue(0);
   const lastAngle=useRef(0);
   useEffect(()=>{
@@ -171,10 +171,10 @@ export const QiblaCompass=memo(function QiblaCompass({
       pointerEvents="none">
       <Defs>
         <RadialGradient id="qFace" cx="48%" cy="42%" rx="70%" ry="68%">
-          <Stop offset="0%" stopColor="#155244"/>
-          <Stop offset="55%" stopColor="#06362F"/>
-          <Stop offset="83%" stopColor="#062A25"/>
-          <Stop offset="100%" stopColor="#011C1C"/>
+          <Stop offset="0%" stopColor={dark?'#15597C':'#155244'}/>
+          <Stop offset="55%" stopColor={dark?'#0D3E64':'#06362F'}/>
+          <Stop offset="83%" stopColor={dark?'#0A3050':'#062A25'}/>
+          <Stop offset="100%" stopColor={dark?'#051B31':'#011C1C'}/>
         </RadialGradient>
         <LinearGradient id="qGold" x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0%" stopColor="#A57C3A"/>
@@ -188,14 +188,14 @@ export const QiblaCompass=memo(function QiblaCompass({
           <Stop offset="100%" stopColor="#D3E0C4" stopOpacity="0"/>
         </RadialGradient>
         <LinearGradient id="qStar" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0%" stopColor="#7AA59A"/>
-          <Stop offset="48%" stopColor="#215D53"/>
-          <Stop offset="100%" stopColor="#042824"/>
+          <Stop offset="0%" stopColor={dark?'#72C9E5':'#7AA59A'}/>
+          <Stop offset="48%" stopColor={dark?'#2675A1':'#215D53'}/>
+          <Stop offset="100%" stopColor={dark?'#123450':'#042824'}/>
         </LinearGradient>
       </Defs>
-      <Circle cx="180" cy="183" r="173" fill="#031B19" opacity=".38"/>
+      <Circle cx="180" cy="183" r="173" fill={dark?'#071D30':'#031B19'} opacity=".38"/>
       <Circle cx="180" cy="180" r="173" fill="url(#qGold)" stroke="#F6DAA5" strokeWidth="1"/>
-      <Circle cx="180" cy="180" r="167.5" fill="#0E4036" stroke="#45351F" strokeWidth="2"/>
+      <Circle cx="180" cy="180" r="167.5" fill={dark?'#104366':'#0E4036'} stroke="#45351F" strokeWidth="2"/>
       <Circle cx="180" cy="180" r="161" fill="url(#qGold)" stroke="#FAE2A4" strokeWidth=".9"/>
       <Circle cx="180" cy="180" r="152" fill="url(#qFace)" stroke="#654820" strokeWidth="2.1"/>
       {/* Filigree engravings along the outer gold bezel */}
@@ -217,7 +217,7 @@ export const QiblaCompass=memo(function QiblaCompass({
       <Circle cx="180" cy="180" r="112" stroke="#A6AF8C" strokeOpacity=".18" fill="none"/>
       <Circle cx="180" cy="180" r="107" stroke="#D8CC9B" strokeOpacity=".12" fill="none"/>
       {/* Intricate, restrained Islamic eight-sided starwork on the face */}
-      <G opacity=".18" stroke="#84B1A0" strokeWidth=".8" fill="none">
+      <G opacity=".18" stroke={dark?'#6CB5D8':'#84B1A0'} strokeWidth=".8" fill="none">
         {Array.from({length:8},(_,i)=><G key={'rose-'+i} transform={'rotate('+(i*45)+' 180 180)'}>
           <Path d="M180 89L191 157L180 180L169 157Z"/>
           <Path d="M180 91L212 130L180 164L148 130Z"/>
@@ -229,12 +229,12 @@ export const QiblaCompass=memo(function QiblaCompass({
       {Array.from({length:8},(_,i)=><G key={'facet-'+i}
         transform={'rotate('+(i*45)+' 180 180)'}>
         <Polygon points="180,88 164,166 180,180" fill="url(#qStar)" opacity={i%2===0?'.98':'.64'}/>
-        <Polygon points="180,88 196,166 180,180" fill={i%2===0?'#4D8878':'#195648'} opacity=".83"/>
+        <Polygon points="180,88 196,166 180,180" fill={i%2===0?(dark?'#3F90B9':'#4D8878'):(dark?'#1C567A':'#195648')} opacity=".83"/>
         <Path d="M180 88V180" fill="none" stroke="#D3E2B9" strokeWidth=".6" strokeOpacity=".38"/>
       </G>)}
       <Circle cx="180" cy="180" r="151" stroke="#FFF3CB" strokeOpacity=".16" fill="none"/>
     </Svg>
-  ),[size]);
+  ),[size,dark]);
   return <View accessible accessibilityRole="image"
     accessibilityLabel={available&&relative!==null
       ?'Kıble yönü pusulada saat yönünde '+Math.round(relative)+' derece'
