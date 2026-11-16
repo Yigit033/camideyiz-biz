@@ -30,6 +30,13 @@ test('invalid locally saved draft cannot override validated editor preferences',
   assert.deepEqual(parseGalleryDraft(DEFAULT_GALLERY_DRAFT),DEFAULT_GALLERY_DRAFT);
   assert.equal(parseGalleryDraft({ ...DEFAULT_GALLERY_DRAFT,font:'unknown'}),null);
   assert.equal(parseGalleryDraft({...DEFAULT_GALLERY_DRAFT,text:'x'.repeat(500)}),null);
+  assert.equal(DEFAULT_GALLERY_DRAFT.photoFit,'contain');
+  assert.equal(parseGalleryDraft({...DEFAULT_GALLERY_DRAFT,photoFit:'cover'})?.photoFit,'cover');
+  const {photoFit:_legacyFit,...legacyDraft}=DEFAULT_GALLERY_DRAFT;
+  assert.equal(parseGalleryDraft(legacyDraft)?.photoFit,'contain',
+    'existing saved user messages must survive framing migration');
+  assert.equal(parseGalleryDraft({...DEFAULT_GALLERY_DRAFT,photoFit:'stretch'}),null);
+
 });
 
 test('long greetings shrink before they can be truncated by the exported canvas',()=>{
