@@ -67,8 +67,8 @@ export default function MosquesScreen(){
       </View>
 
       <View style={[styles.hero,{
-        backgroundColor:colors.isDark?'#123B35':'#E8F0E7',
-        borderColor:colors.isDark?'#467F6F':'#C8D9CA',
+        backgroundColor:colors.isDark?'#17394F':'#E8F0E7',
+        borderColor:colors.isDark?'#3F718F':'#C8D9CA',
       }]}>
         <View pointerEvents="none" style={[styles.halo,{
           backgroundColor:colors.isDark?'rgba(95,177,145,.10)':'rgba(255,255,255,.62)',
@@ -76,8 +76,8 @@ export default function MosquesScreen(){
         <View style={styles.illustration}>
           <MosqueLandscape width={landscapeWidth} dark={colors.isDark}/>
           <View style={[styles.crest,{
-            backgroundColor:colors.isDark?'rgba(11,46,40,.7)':'rgba(255,255,255,.78)',
-            borderColor:colors.isDark?'#447F6C':'#C7D4C4',
+            backgroundColor:colors.isDark?'rgba(14,44,65,.81)':'rgba(255,255,255,.78)',
+            borderColor:colors.isDark?'#436F88':'#C7D4C4',
           }]}>
             <MosqueCrest width={64} dark={colors.isDark}/>
           </View>
@@ -93,7 +93,7 @@ export default function MosquesScreen(){
           onPress={()=>openMaps()}
           disabled={opening}
           style={({pressed})=>[styles.primary,{
-            backgroundColor:colors.isDark?'#128868':'#087456',
+            backgroundColor:colors.isDark?'#167FB6':'#087456',
             opacity:opening?.72:pressed?.88:1,
           }]}>
           {opening?<ActivityIndicator color="#FFF" size="small"/>:
