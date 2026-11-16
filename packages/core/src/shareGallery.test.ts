@@ -4,6 +4,7 @@ import {
   GALLERY_CATEGORIES,GALLERY_PRESETS,GALLERY_TEXT_MAX_LENGTH,
   DEFAULT_GALLERY_DRAFT,canExportGalleryDesign,cleanGalleryText,
   galleryFormatDimensions,galleryTextRelativeTop,galleryTextFitScale,parseGalleryDraft,
+  galleryPhotoFraming,
 } from './shareGallery.ts';
 
 test('Turkish ready greetings are unique, plain text and do not claim verses',()=>{
@@ -44,4 +45,19 @@ test('long greetings shrink before they can be truncated by the exported canvas'
   assert.ok(galleryTextFitScale('A'.repeat(160))<.5);
   assert.ok(galleryTextRelativeTop('top')>=.25);
   assert.ok(galleryTextRelativeTop('bottom')<=.75);
+});
+
+test('photo framing modes have measurably different layout even for near-9:16 images',()=>{
+  const full=galleryPhotoFraming('contain');
+  const crop=galleryPhotoFraming('cover');
+  assert.deepEqual(full,{horizontalInset:.045,verticalInset:.065,resizeMode:'contain'});
+  assert.deepEqual(crop,{horizontalInset:0,verticalInset:0,resizeMode:'cover'});
+  assert.ok(full.horizontalInset>crop.horizontalInset);
+  assert.ok(full.verticalInset>crop.verticalInset);
+  // Switching 9:16 to 4:5 must not turn "Tam Fotoğraf" into a crop.
+  for(const f of ['story','post'] as const){
+    const dims=galleryFormatDimensions(f);
+    assert.ok(dims.width*(1-2*full.horizontalInset)<dims.width);
+    assert.ok(dims.height*(1-2*full.verticalInset)<dims.height);
+  }
 });
