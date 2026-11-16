@@ -4,6 +4,7 @@
 export const GALLERY_TEXT_MAX_LENGTH=160;
 export type GalleryCategory='cuma'|'dua'|'kandil'|'ramazan'|'bayram'|'gunaydin'|'genel';
 export type GalleryFormat='story'|'post';
+export type GalleryPhotoFit='contain'|'cover';
 export type GalleryFont='serif'|'modern'|'handwriting'|'condensed';
 export type GalleryTextPosition='top'|'center'|'bottom';
 export type GalleryTextTone='ivory'|'white'|'gold'|'dark';
@@ -62,10 +63,11 @@ export type GalleryShade='light'|'medium'|'deep';
 export type GalleryDraft={
   text:string;font:GalleryFont;position:GalleryTextPosition;tone:GalleryTextTone;
   format:GalleryFormat;textSize:GalleryTextSize;shade:GalleryShade;
+  photoFit:GalleryPhotoFit;
 };
 export const DEFAULT_GALLERY_DRAFT:GalleryDraft={
   text:'Hayırlı Cumalar',font:'serif',position:'center',tone:'ivory',format:'story',
-  textSize:'normal',shade:'medium',
+  textSize:'normal',shade:'medium',photoFit:'contain',
 };
 export function parseGalleryDraft(value:unknown):GalleryDraft|null{
   if(!value||typeof value!=='object'||Array.isArray(value))return null;
@@ -76,7 +78,9 @@ export function parseGalleryDraft(value:unknown):GalleryDraft|null{
     !(['ivory','white','gold','dark'] as unknown[]).includes(d.tone)||
     !(['story','post'] as unknown[]).includes(d.format)||
     !(['small','normal','large'] as unknown[]).includes(d.textSize)||
-    !(['light','medium','deep'] as unknown[]).includes(d.shade))return null;
+    !(['light','medium','deep'] as unknown[]).includes(d.shade)||
+    (d.photoFit!==undefined&&!(['contain','cover'] as unknown[]).includes(d.photoFit)))return null;
   return {text:cleanGalleryText(d.text),font:d.font!,position:d.position!,
-    tone:d.tone!,format:d.format!,textSize:d.textSize!,shade:d.shade!};
+    tone:d.tone!,format:d.format!,textSize:d.textSize!,shade:d.shade!,
+    photoFit:d.photoFit??'contain'};
 }
