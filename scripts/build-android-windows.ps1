@@ -131,6 +131,9 @@ try {
     Invoke-Checked 'Verify original-source lossless WebP posters' {
       & node scripts/verify-kerahat-posters.mjs
     }
+    Invoke-Checked 'Verify all 27 gallery photos and thumbnails' {
+      & node scripts/verify-gallery-assets.mjs
+    }
   }
   Push-Location 'apps\mobile'
   try {
