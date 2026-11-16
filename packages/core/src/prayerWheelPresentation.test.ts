@@ -138,3 +138,43 @@ test('clock and name boxes are separated on actual crowded six-prayer day',()=>{
     }
   }
 });
+
+test('16 November 2026 wheel keeps Akşam and İmsak labels inside narrow strips',()=>{
+  const times=[
+    {key:'imsak' as const,label:'İmsak',time:'06:16'},
+    {key:'gunes' as const,label:'Güneş',time:'07:44'},
+    {key:'ogle' as const,label:'Öğle',time:'12:52'},
+    {key:'ikindi' as const,label:'İkindi',time:'15:28'},
+    {key:'aksam' as const,label:'Akşam',time:'17:51'},
+    {key:'yatsi' as const,label:'Yatsı',time:'19:14'},
+  ];
+  const sectors=makeVisualDialSectors(times);
+  const point=(angle:number,radius:number)=>({
+    x:180+radius*Math.sin(angle*Math.PI/180),
+    y:180-radius*Math.cos(angle*Math.PI/180),
+  });
+  const rects=sectors.flatMap((sector,index)=>{
+    const layout=prayerSectorVisualLayout(sector.from,sector.to);
+    return [
+      {type:'clock',index,...point(layout.clockAngle,layout.clockRadius),
+        width:layout.clockWidth,height:layout.clockHeight},
+      {type:'label',index,...point(layout.labelAngle,layout.labelRadius),
+        width:layout.labelWidth,height:layout.labelHeight},
+    ];
+  });
+  for(const label of rects.filter(r=>r.type==='label')){
+    for(const other of rects){
+      if(label===other)continue;
+      assert.ok(Math.abs(label.x-other.x)>=(label.width+other.width)/2-0.1 ||
+        Math.abs(label.y-other.y)>=(label.height+other.height)/2-0.1,
+        times[label.index].label+' label overlaps '+times[other.index].label+' '+other.type);
+    }
+  }
+  for(const key of ['imsak','aksam'] as const){
+    const i=times.findIndex(item=>item.key===key);
+    const sector=sectors[i];
+    const layout=prayerSectorVisualLayout(sector.from,sector.to);
+    assert.ok(layout.labelWidth<=48,'narrow names need a compact radial lane');
+    assert.ok(layout.labelHeight<=27,'do not clip narrow-sector text with oversized cards');
+  }
+});

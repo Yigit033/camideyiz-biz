@@ -32,11 +32,13 @@ export function prayerSectorVisualLayout(from:number,to:number){
   const middle=span<56;
   return {
     labelAngle:angle,
-    labelRadius:narrow?120:middle?127:130,
-    labelWidth:narrow?54:middle?53:68,
-    labelHeight:narrow?23:middle?36:39,
-    iconSize:narrow?13.5:middle?14.5:15.5,
-    fontSize:narrow?10.4:middle?11.6:12.5,
+    // At ~20° (Akşam / İmsak), a horizontal icon+title would cross the
+    // neighbouring separator. Stack the two glyphs in a narrow radial lane.
+    labelRadius:narrow?126:middle?127:130,
+    labelWidth:narrow?48:middle?53:68,
+    labelHeight:narrow?26:middle?36:39,
+    iconSize:narrow?12:middle?14.5:15.5,
+    fontSize:narrow?10.2:middle?11.6:12.5,
     clockAngle:from,
     clockRadius:158,
     clockWidth:45,

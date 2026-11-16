@@ -74,7 +74,7 @@ function SectorLabel({
   const labelWidth=layout.labelWidth*size/DIAMETER;
   const labelHeight=layout.labelHeight*size/DIAMETER;
   const narrow=sector.to-sector.from<30;
-  const contrastInk=sector.key==='yatsi'||sector.key==='aksam'?'#FFF6E6':'#16372E';
+  const contrastInk=sector.key==='yatsi'?'#FFF6E6':sector.key==='aksam'?'#3A241B':'#16372E';
   const centerX = point.x * size / DIAMETER;
   const centerY = point.y * size / DIAMETER;
   const style = useAnimatedStyle(() => ({
@@ -86,7 +86,7 @@ function SectorLabel({
       styles.sectorLabel,
       {left:centerX-labelWidth/2,top:centerY-labelHeight/2,
         width:labelWidth,height:labelHeight,
-        flexDirection:narrow?'row':'column',gap:narrow?2:1},
+        flexDirection:'column',gap:narrow?0:1},
       style,
     ]}>
     <MaterialCommunityIcons name={PRAYER_ICONS[sector.key]} size={iconSize}
