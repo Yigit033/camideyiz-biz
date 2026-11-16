@@ -190,3 +190,17 @@ test('clock + prayer name stay on the separator while the icon is centered',()=>
     assert.ok(layout.labelRadius-layout.labelHeight/2>106);
   }
 });
+
+test('prayer clocks and icons occupy the exact radial midpoint of coloured band',()=>{
+  const middle=(106.5+171.5)/2;
+  const sectors=makeVisualDialSectors(schedule.times);
+  for(const sector of sectors){
+    const layout=prayerSectorVisualLayout(sector.from,sector.to);
+    assert.equal(layout.clockRadius,middle,'clock/name capsule at band middle');
+    assert.equal(layout.labelRadius,middle,'icon at band middle');
+    assert.equal(layout.clockAngle,sector.from,'time/name belongs to divider');
+    assert.equal(layout.labelAngle,(sector.from+sector.to)/2,'icon belongs to wedge centre');
+    assert.ok(layout.clockWidth<=35,'time badge must be smaller than previous 52px');
+    assert.ok(layout.clockHeight<=27,'time and name fit compact two-line capsule');
+  }
+});
