@@ -11,7 +11,7 @@ import {
   GALLERY_CATEGORIES,type GalleryCategory,
 } from '@camideyiz/core';
 import {
-  GALLERY_SLOTS,READY_GALLERY_COUNT,galleryPhoto,
+  GALLERY_SLOTS,READY_GALLERY_COUNT,galleryPhoto,galleryThumbnail,
   type GallerySlot,
 } from '@/features/gallery/galleryCatalog';
 
@@ -24,7 +24,7 @@ function GalleryTile({item,width}:{
   item:GallerySlot;width:number;
 }){
   const {colors}=useAppTheme();
-  const photo=galleryPhoto(item.id);
+  const photo=galleryThumbnail(item.id);
   return <Pressable accessibilityRole="button"
     accessibilityLabel={item.title+' tasarımını aç'+(!photo?' (fotoğraf henüz eklenmedi)':'')}
     onPress={()=>router.push({pathname:'/gallery-editor',params:{slot:item.id}})}
