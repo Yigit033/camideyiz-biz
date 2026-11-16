@@ -271,9 +271,9 @@ export function PrayerWheel({
     return {hour,angle,sector};
   }).filter((entry):entry is {hour:number;angle:number;sector:PrayerArc}=>entry!==null);
   const selected = sectors[selectedIndex];
-  const centerFill = colors.isDark ? '#081E21' : '#FFF9EF';
+  const centerFill = colors.isDark ? '#081D2F' : '#FFF9EF';
   const rim = colors.isDark ? '#ECD19B' : '#C39B55';
-  const baseStroke = colors.isDark ? '#07332F' : '#E9E3D2';
+  const baseStroke = colors.isDark ? '#0D304C' : '#E9E3D2';
   // Recompute progress from the actual civil-time prayer boundaries,
   // independent from any manually selected dial wedge.
   const boost=urgency==='normal'?0.12:urgency==='approaching'?0.45:0.8;
@@ -305,7 +305,7 @@ export function PrayerWheel({
           <Svg width={size} height={size} viewBox="0 0 360 360" pointerEvents="none">
             <Defs>
               <RadialGradient id="dialInner" cx="46%" cy="40%" rx="72%" ry="72%">
-                <Stop offset="0%" stopColor={colors.isDark ? '#294B40' : '#FFFFFF'}/>
+                <Stop offset="0%" stopColor={colors.isDark ? '#264F6B' : '#FFFFFF'}/>
                 <Stop offset="100%" stopColor={centerFill}/>
               </RadialGradient>
               {sectors.map(item => <LinearGradient id={'fill-'+item.key} key={item.key}
@@ -368,7 +368,7 @@ export function PrayerWheel({
             {sectors.map(item => {
               const p1=polar(item.from,108),p2=polar(item.from,169);
               return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                stroke={colors.isDark?'#062724':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
+                stroke={colors.isDark?'#071E2D':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
             })}
             {/* Approximate kerahat arcs share the SAME angular coordinates
                 on two concentric tracks. Outer = warning, inner = interval.
@@ -465,7 +465,7 @@ export function PrayerWheel({
     }]}>
       <Svg width="100%" height="100%" viewBox="0 0 20 31">
         <Path d="M10 0 L19 11 L10 25 L1 11 Z" fill={rim}/>
-        <Circle cx="10" cy="10" r="2.8" fill={colors.isDark?'#18362E':'#FBF8EA'}/>
+        <Circle cx="10" cy="10" r="2.8" fill={colors.isDark?'#17364D':'#FBF8EA'}/>
         <Path d="M10 24 L10 31" stroke={rim} strokeWidth="1.5"/>
       </Svg>
     </View>
@@ -477,9 +477,9 @@ export function PrayerWheel({
       <Svg width="100%" height="100%" viewBox="0 0 220 220" style={StyleSheet.absoluteFill}>
         <Defs>
           <RadialGradient id="medallion" cx="50%" cy="52%" rx="60%" ry="61%">
-            <Stop offset="0%" stopColor={colors.isDark?'#07282A':'#FFFDF8'}/>
-            <Stop offset="76%" stopColor={colors.isDark?'#052326':'#FEF7EA'}/>
-            <Stop offset="100%" stopColor={colors.isDark?'#082F30':'#DDD6C7'}/>
+            <Stop offset="0%" stopColor={colors.isDark?'#0B2D47':'#FFFDF8'}/>
+            <Stop offset="76%" stopColor={colors.isDark?'#08253C':'#FEF7EA'}/>
+            <Stop offset="100%" stopColor={colors.isDark?'#0A3452':'#DDD6C7'}/>
           </RadialGradient>
         </Defs>
         <Circle cx="110" cy="110" r="108" fill="url(#medallion)" stroke={rim} strokeWidth="1.65"/>
