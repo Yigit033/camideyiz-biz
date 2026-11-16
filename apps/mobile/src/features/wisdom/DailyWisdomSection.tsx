@@ -1,5 +1,5 @@
 import {useMemo,useState} from 'react';
-import {Alert,Linking,Modal,Pressable,ScrollView,Share,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
+import {Modal,Pressable,ScrollView,Share,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import Svg,{Circle,Defs,LinearGradient,Path,Stop} from 'react-native-svg';
 import {ArabesqueCorner,GoldenLantern} from '@/components/LuxuryArtwork';
@@ -44,13 +44,13 @@ function WisdomCard({item,isDark,onOpen,isFavorite,onToggle}:{
       </View>
       <Text numberOfLines={4} style={{fontFamily:'serif',fontSize:15.5,fontStyle:'italic',
         fontWeight:'500',lineHeight:22,color:foreground,flexShrink:1}}>
-        “{item.excerpt}”
+        {item.text}
       </Text>
       <View style={{gap:5}}>
         <Text numberOfLines={1} style={{color:verse?'#C2DFCD':colors.muted,fontSize:11}}>
           {item.reference}
         </Text>
-        <Text style={{fontSize:9.5,color:verse?'#A9D7C5':colors.muted}}>Kısa alıntı · Kaynağı görüntüle</Text>
+        <Text style={{fontSize:9.5,color:verse?'#A9D7C5':colors.muted}}>Tam metni okumak için dokun</Text>
       </View>
     </Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={isFavorite?'Favorilerden çıkar':'Favorilere kaydet'}
@@ -71,15 +71,11 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
   const list=useMemo(()=>saved.map(id=>WISDOM_LIBRARY.find(x=>x.id===id)).filter(
     (x):x is WisdomItem=>x!==undefined),[saved]);
   const close=()=>{setDetail(null);setSavedOpen(false);};
-  const openSource=async(item:WisdomItem)=>{
-    try{await Linking.openURL(item.sourceUrl);}
-    catch{Alert.alert('Kaynak açılamadı','İnternet bağlantısını veya tarayıcını kontrol et.');}
-  };
   const shareItem=async(item:WisdomItem)=>{
     try{await Share.share({message:
-      (item.kind==='verse'?'Ayet-i Celile':'Hadis-i Şerif')+'\n\n“'+item.excerpt+
-      '”\n\n'+item.reference+'\nKısa alıntı · Tam metin: '+item.sourceUrl+
-      '\n\nCamideyiz Biz'});}
+      (item.kind==='verse'?'Ayet-i Celile':'Hadis-i Şerif')+
+      '\\n\\n'+item.text+'\\n\\n'+item.reference+
+      '\\n\\nCamideyiz Biz · '+item.day+'. gün'});}
     catch{/* dismissed or OS share failure */}
   };
   return <View style={{gap:10,width:'100%'}}>
@@ -91,7 +87,7 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
             Günün Seçkisi
           </Text>
         </View>
-        <Text style={{fontSize:10,color:colors.muted,paddingLeft:22}}>Her gün yenilenir</Text>
+        <Text style={{fontSize:10,color:colors.muted,paddingLeft:22}}>30 günlük seçki · {selections.day}. gün</Text>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Kaydedilen ayet ve hadisleri göster"
         onPress={()=>{setDetail(null);setSavedOpen(true);}}
@@ -113,7 +109,7 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
         onToggle={()=>toggle(selections.hadith.id)}/>
     </View>
     <Text style={{fontSize:10,lineHeight:16,color:colors.muted,paddingHorizontal:3}}>
-      Ayet meali ve hadislerden kısa alıntılar · Tam metin ve bağlam için kaynak bağlantısını açın.
+      Belgenizdeki ayet ve hadislerin tamamı için karta dokunun. Metinler 30 günde bir tekrar eder.
     </Text>
     <Modal visible={!!detail||savedOpen} transparent animationType="slide"
       onRequestClose={close}>
@@ -126,8 +122,8 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
                 {savedOpen?'Kaydedilen Seçkiler':detail?.kind==='verse'?'Ayet-i Celile':'Hadis-i Şerif'}
               </Text>
               <Text style={{fontSize:12,color:colors.muted}}>
-                {savedOpen?'İnternet olmadan kaydedilen kısa alıntıları okuyabilirsiniz.':
-                  detail?.category+' · Kaynaklı kısa alıntı'}
+                {savedOpen?'Kaydedilen ayet ve hadislerin tam metinleri çevrimdışı okunabilir.':
+                  detail?.day+'. gün · 30 günlük seçki'}
               </Text>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Kapat"
@@ -153,7 +149,7 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
                   size={20} color={colors.gold}/>
                 <View style={{flex:1,gap:4}}>
                   <Text style={{fontSize:12,fontWeight:'800',color:colors.text}}>{item.reference}</Text>
-                  <Text numberOfLines={2} style={{fontSize:11.5,lineHeight:18,color:colors.muted}}>{item.excerpt}</Text>
+                  <Text numberOfLines={2} style={{fontSize:11.5,lineHeight:18,color:colors.muted}}>{item.text}</Text>
                 </View>
                 <Feather name="chevron-right" size={17} color={colors.gold}/>
               </Pressable>)}
@@ -164,30 +160,25 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
                 size={25} color={colors.gold}/>
               <Text style={{fontSize:21,fontFamily:'serif',fontStyle:'italic',
                 fontWeight:'600',lineHeight:31,color:colors.text}}>
-                “{detail.excerpt}”
+                {detail.text}
               </Text>
               <Text style={{fontSize:14,fontWeight:'800',color:colors.emerald}}>
                 {detail.reference}
               </Text>
               <Text style={{fontSize:10.5,color:colors.muted}}>
-                {detail.sourceEdition} · kısa alıntı
+                Belgedeki metin · {detail.day}. gün
               </Text>
             </View>
-            <Text style={{fontSize:12.5,lineHeight:21,color:colors.text}}>
+            {detail.note?<Text style={{fontSize:12.5,lineHeight:21,color:colors.text}}>
               {detail.note}
-            </Text>
+            </Text>:null}
             <View style={[styles.notice,{borderColor:colors.border}]}>
               <Feather name="info" size={17} color={colors.gold}/>
               <Text style={{flex:1,fontSize:11,lineHeight:19,color:colors.muted}}>
-                Bu kart tam ayet/hadis metni yerine geçmez. Orijinal ifade,
-                bağlam, meal ve kaynak ayrıntıları için yayımlayan kurumun sayfasını okuyun.
+                Metinler ve kaynak bilgileri sağladığınız 30 günlük belgeden aktarılmıştır.
+                Bağımsız kaynak doğrulaması yapılmamıştır.
               </Text>
             </View>
-            <Pressable accessibilityRole="link" onPress={()=>void openSource(detail)}
-              style={[styles.primary,{backgroundColor:colors.emerald}]}>
-              <Feather name="external-link" color="#FFFFFF" size={17}/>
-              <Text style={{fontWeight:'800',color:'#FFFFFF'}}>Tam metni kaynağında oku</Text>
-            </Pressable>
             <View style={{flexDirection:'row',gap:10}}>
               <Pressable accessibilityRole="button" disabled={!ready}
                 onPress={()=>toggle(detail.id)}
