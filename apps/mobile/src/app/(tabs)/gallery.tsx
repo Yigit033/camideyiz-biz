@@ -29,7 +29,7 @@ function GalleryTile({item,width}:{
     accessibilityLabel={item.title+' tasarımını aç'+(!photo?' (fotoğraf henüz eklenmedi)':'')}
     onPress={()=>router.push({pathname:'/gallery-editor',params:{slot:item.id}})}
     style={[styles.tile,{width,backgroundColor:colors.surface,borderColor:colors.border}]}>
-    <View style={[styles.thumb,{backgroundColor:'#0D403F',height:width*1.12}]}>
+    <View style={[styles.thumb,{backgroundColor:colors.isDark?'#143A54':'#0D403F',height:width*1.12}]}>
       {photo?<Image source={photo} resizeMode="cover"
         style={StyleSheet.absoluteFill}/>:<View style={styles.placeholder}>
         <MaterialCommunityIcons name="image-filter-hdr" color={item.accent} size={43}/>
@@ -78,7 +78,7 @@ export default function Gallery(){
   return <Page title="Paylaşım Galerisi"
     subtitle="Bir fotoğraf seç, kendi mesajını tasarla ve WhatsApp'ta paylaş.">
     <View style={[styles.intro,{
-      backgroundColor:colors.isDark?'#0A403D':'#E8EFE5',borderColor:colors.border,
+      backgroundColor:colors.isDark?'#133850':'#E8EFE5',borderColor:colors.border,
     }]}>
       <View style={{flexDirection:'row',alignItems:'center',gap:10}}>
         <View style={[styles.introIcon,{backgroundColor:colors.soft}]}>
