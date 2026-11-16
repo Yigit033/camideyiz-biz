@@ -26,7 +26,7 @@ export function prayerSectorVisualLayout(from:number,to:number){
     labelWidth:19,
     labelHeight:19,
     iconSize:narrow?15:17,
-    fontSize:10,
+    fontSize:narrow?9.4:10.2,
     clockAngle:from,
     clockRadius:151,
     clockWidth:52,
