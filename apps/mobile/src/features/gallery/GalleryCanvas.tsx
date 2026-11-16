@@ -24,10 +24,11 @@ type Props={
   draft:GalleryDraft;onImageLoaded?:(loaded:boolean)=>void;
 };
 
-/** Same native View tree is used both for the user-facing preview and for
- * PNG capture. No separate CSS/HTML renderer, backend upload or hidden watermark.
- * The image is owner-provided, local-bundled and pixel-cropped to the selected
- * WhatsApp Story (9:16) / post (4:5) format.
+/** The very same full-resolution native scene is used for both preview
+ * and PNG capture. Fit mode is the safe default: no photograph is blown up or
+ * silently cropped to force a 9:16 Story or 4:5 post.
+ * The letterbox is filled with a subdued blurred copy of the SAME local photo;
+ * users can explicitly switch to cover when a filled crop is desired.
  */
 export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function GalleryCanvas({
   width,slot,source,draft,onImageLoaded,
@@ -57,10 +58,21 @@ export const GalleryCanvas=forwardRef<ComponentRef<typeof View>,Props>(function 
       ?slot.title+' görseli üzerine '+draft.text
       :'Fotoğraf henüz eklenmemiş şablon önizlemesi'}
     style={[styles.canvas,{width,height,backgroundColor:slot.accent}]}>
-    {source?<Image source={source} resizeMode="cover"
-      style={StyleSheet.absoluteFill}
-      onLoad={()=>onImageLoaded?.(true)}
-      onError={()=>onImageLoaded?.(false)}/>:<Svg width="100%" height="100%"
+    {source?<View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {draft.photoFit==='contain'?<>
+        <Image source={source} resizeMode="cover" resizeMethod="scale"
+          blurRadius={18} fadeDuration={0}
+          style={[StyleSheet.absoluteFill,{opacity:.68}]}/>
+        <View style={[StyleSheet.absoluteFill,{
+          backgroundColor:'rgba(5,24,24,.36)',
+        }]}/>
+      </>:null}
+      <Image source={source} resizeMode={draft.photoFit}
+        resizeMethod="scale" fadeDuration={0}
+        style={StyleSheet.absoluteFill}
+        onLoad={()=>onImageLoaded?.(true)}
+        onError={()=>onImageLoaded?.(false)}/>
+    </View>:<Svg width="100%" height="100%"
       viewBox="0 0 360 640" preserveAspectRatio="xMidYMid slice"
       style={StyleSheet.absoluteFill} pointerEvents="none">
       <Defs><LinearGradient id="placeholderShade" x1="0%" y1="0%"
