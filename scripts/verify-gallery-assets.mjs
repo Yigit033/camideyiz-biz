@@ -14,6 +14,7 @@ const photos=full.filter(name=>!name.endsWith('-thumb.webp'));
 const thumbs=full.filter(name=>name.endsWith('-thumb.webp'));
 if(photos.length!==27||thumbs.length!==27)throw Error('Expected 27 full and 27 thumbnail imports');
 const seen=new Set();
+const photoRatios=new Map();
 for(const name of full){
  const p=path.join(dir,name);
  if(!fs.existsSync(p))throw Error('Missing gallery image: '+name);
@@ -24,6 +25,16 @@ for(const name of full){
  seen.add(digest);
  const meta=await sharp(data).metadata();
  if(meta.format!=='webp'||!meta.width||!meta.height)throw Error('Invalid WebP: '+name);
+ const ratio=meta.width/meta.height;
+ if(name.endsWith('-thumb.webp')){
+   const photo=name.replace('-thumb.webp','.webp');
+   const expected=photoRatios.get(photo);
+   if(expected===undefined)throw Error('Missing matching source for thumbnail: '+name);
+   if(Math.abs(ratio-expected)>.01)
+     throw Error('Thumbnail aspect ratio changed (may be cropped): '+name);
+ }else{
+   photoRatios.set(name,ratio);
+ }
  // 1080px-wide WhatsApp exports cannot recover detail from a narrower
  // original. Warn without rejecting owner-provided photographs.
  if(!name.endsWith('-thumb.webp') && meta.width<1080)
