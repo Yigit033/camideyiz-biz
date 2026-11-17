@@ -1,7 +1,13 @@
 import {
   type PrayerWidgetSnapshot,zonedClock,
 } from '@camideyiz/core';
-export type WidgetSyncResult={available:boolean;updated:boolean;detail:string};
+export type WidgetSyncResult={
+  available:boolean;updated:boolean;detail:string;
+  /** Native storage and installed-host diagnostics, never visual proof. */
+  installedNext?:number;installedDay?:number;
+  lastNativeWriteAt?:number;nextNativeAlarmAt?:number;
+  nativePersisted?:boolean;launcherConfirmed?:false;
+};
 export type PrayerWidgetProps={
   ready:boolean;city:string;dateISO:string;nextName:string;nextTime:string;
   nextAt:number;updatedAt:number;remainingMinutes:number;updatedClock:string;
