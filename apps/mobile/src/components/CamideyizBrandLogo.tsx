@@ -33,8 +33,11 @@ export const CamideyizBrandLogo=memo(function CamideyizBrandLogo({
   compact=false,horizontal=false,
 }:{compact?:boolean;horizontal?:boolean}){
   const {colors}=useAppTheme();
-  const symbolWidth=horizontal?(compact?53:60):(compact?72:83);
-  const wordWidth=horizontal?(compact?195:219):(compact?184:212);
+  // Home branding deliberately prioritises the ORIGINAL untouched emblem.
+  // Shrink the wordmark rather than scaling both together; keep stacked
+  // (non-home) compositions unchanged.
+  const symbolWidth=horizontal?(compact?85:95):(compact?72:83);
+  const wordWidth=horizontal?(compact?151:172):(compact?184:212);
   return <View accessible accessibilityLabel="camideyiz.biz"
     style={{
       flexDirection:horizontal?'row':'column',
