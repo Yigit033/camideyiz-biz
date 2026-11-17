@@ -3,20 +3,20 @@
     android:id="@+id/widget_day_root"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:orientation="vertical" android:gravity="center_vertical"
-    android:padding="15dp" android:background="@drawable/widget_bg">
+    android:padding="10dp" android:background="@drawable/widget_bg">
     <TextView android:id="@+id/widget_day_brand"
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="☪  Camideyiz Biz"
-        android:textColor="#F2CE91" android:textSize="15sp" android:textStyle="bold"
+        android:textColor="#F2CE91" android:textSize="14sp" android:textStyle="bold"
         android:maxLines="1" android:ellipsize="end"/>
     <TextView android:id="@+id/widget_day_city"
         android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="2dp"
         android:text="Takvim bekleniyor"
         android:textColor="#BCD4DA" android:textSize="11sp"
         android:maxLines="1" android:ellipsize="end"/>
     <LinearLayout android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:layout_marginTop="10dp"
+        android:layout_height="wrap_content" android:layout_marginTop="5dp"
         android:orientation="horizontal" android:baselineAligned="false">
         <LinearLayout android:layout_width="0dp" android:layout_weight="1"
             android:layout_height="wrap_content" android:orientation="vertical">
@@ -24,19 +24,19 @@
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="0dp"
                 android:text="—"
-                android:textColor="#F6F4ED" android:textSize="12sp" android:textStyle="bold"
+                android:textColor="#F6F4ED" android:textSize="11sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end"/>
             <TextView android:id="@+id/widget_day_time_1"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="3dp"
                 android:text="—"
-                android:textColor="#F6F4ED" android:textSize="12sp" android:textStyle="bold"
+                android:textColor="#F6F4ED" android:textSize="11sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end"/>
             <TextView android:id="@+id/widget_day_time_2"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="3dp"
                 android:text="—"
-                android:textColor="#F6F4ED" android:textSize="12sp" android:textStyle="bold"
+                android:textColor="#F6F4ED" android:textSize="11sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end"/>
         </LinearLayout>
         <LinearLayout android:layout_width="0dp" android:layout_weight="1"
@@ -46,25 +46,25 @@
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="0dp"
                 android:text="—"
-                android:textColor="#F6F4ED" android:textSize="12sp" android:textStyle="bold"
+                android:textColor="#F6F4ED" android:textSize="11sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end"/>
             <TextView android:id="@+id/widget_day_time_4"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="3dp"
                 android:text="—"
-                android:textColor="#F6F4ED" android:textSize="12sp" android:textStyle="bold"
+                android:textColor="#F6F4ED" android:textSize="11sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end"/>
             <TextView android:id="@+id/widget_day_time_5"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:layout_marginTop="7dp"
+                android:layout_marginTop="3dp"
                 android:text="—"
-                android:textColor="#F6F4ED" android:textSize="12sp" android:textStyle="bold"
+                android:textColor="#F6F4ED" android:textSize="11sp" android:textStyle="bold"
                 android:maxLines="1" android:ellipsize="end"/>
         </LinearLayout>
     </LinearLayout>
     <TextView android:id="@+id/widget_day_footer"
         android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:layout_marginTop="9dp"
+        android:layout_marginTop="4dp"
         android:text="Açmak için dokun"
         android:textColor="#F2CE91" android:textSize="11sp"
         android:maxLines="1" android:ellipsize="end"/>
