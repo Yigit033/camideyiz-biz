@@ -3,6 +3,7 @@ import {
 } from '@camideyiz/core';
 import {isExpoGoRuntime} from '../native/nativeRuntime';
 import {toWidgetProps,type WidgetSyncResult} from './widgetSyncShared';
+import {publishAndroidWidgetTimeline} from './widgetNativeDiagnostics.android';
 
 // Metro may eagerly evaluate async import() chunks in Expo Go. Use a
 // synchronous require *inside* the guarded native-only function instead.
@@ -10,11 +11,11 @@ import {toWidgetProps,type WidgetSyncResult} from './widgetSyncShared';
 declare const require:(path:string)=>unknown;
 
 export async function syncPrayerWidgets(
-  days:readonly PrayerSchedule[],nowMs:number,
+  days:readonly PrayerSchedule[],nowMs:number,cityId=0,
 ):Promise<WidgetSyncResult>{
   if(isExpoGoRuntime())return {
     available:false,updated:false,
-    detail:'Expo Go: yalnızca widget önizlemesi. Ana ekran widget’ı için native uygulama derlemesi gerekli.',
+    detail:'Expo Go: gerçek widget için native Android APK gerekir.',
   };
   try{
     const next=require('./NextPrayerWidget.android') as typeof import('./NextPrayerWidget.android');
@@ -22,25 +23,41 @@ export async function syncPrayerWidgets(
     if(typeof next.default?.updateSnapshot!=='function'||
        typeof day.default?.updateSnapshot!=='function'){
       return {available:false,updated:false,
-        detail:'Native widget modülü yüklenemedi; uygulamayı widget desteğiyle yeniden derle.'};
+        detail:'Native Expo widget kaydı bulunamadı. Yeni APK kurulmalı.'};
     }
     const snapshot=toWidgetProps(buildPrayerWidgetSnapshot(days,nowMs));
-    // Expo's updateSnapshot persists the props and requests a render. Explicit
-    // reload asks Android's AppWidgetHost to redraw already pinned instances,
-    // which some OEM launchers otherwise leave at their initialLayout.
-    // These native calls do not prove launcher rendering: physical QA needed.
+    // Expo writes to shared preferences and enqueues a Glance refresh, but
+    // does NOT acknowledge that an external launcher rendered the pixels.
     next.default.updateSnapshot(snapshot);
     day.default.updateSnapshot(snapshot);
-    next.default.reload();
-    day.default.reload();
-    return {available:true,updated:true,
-      detail:snapshot.ready
-        ?'Her iki widget için '+snapshot.city+' · '+snapshot.dateISO+
-          ' namaz vakitleri aktarıldı (ana ekran görüntüsü ayrıca kontrol edilmeli).'
-        :'Güncel takvim hazır olmadığından widget boş durumda.'};
-  }catch(e){
+
+    // Native P0 bridge persists validated future prayer boundaries and
+    // schedules an inexact Android alarm for the NEXT transition. It also
+    // returns real AppWidgetManager pinned-instance counts and verifies
+    // the two currently stored Expo prop records agree.
+    const native=await publishAndroidWidgetTimeline(days,nowMs,cityId);
+    const total=native.installedNext+native.installedDay;
+    if(!days.length){
+      return {available:true,updated:native.persisted,
+        detail:'Widget takvimi temizlendi. Kurulu widget: '+total+
+          ' · Ana ekran görünümü ayrıca kontrol edilmeli.',
+        installedNext:native.installedNext,installedDay:native.installedDay,
+        lastNativeWriteAt:native.lastAppliedAt,nextNativeAlarmAt:native.nextAlarmAt,
+        nativePersisted:native.persisted,launcherConfirmed:false};
+    }
+    return {
+      available:true,updated:native.persisted,
+      detail:total===0
+        ?'Veriler Android native belleğine kaydedildi; ana ekrana henüz widget eklenmemiş.'
+        :'Android yerel belleği doğrulandı, '+total+' widget bulundu. '+
+          'Vakit geçişi için sistem alarmı planlandı. Ana ekran görüntüsü doğrulanmadı.',
+      installedNext:native.installedNext,installedDay:native.installedDay,
+      lastNativeWriteAt:native.lastAppliedAt,nextNativeAlarmAt:native.nextAlarmAt,
+      nativePersisted:native.persisted,launcherConfirmed:false,
+    };
+  }catch(error){
     return {available:false,updated:false,
-      detail:'Native widget güncellenemedi: '+
-        (e instanceof Error?e.message:'bilinmeyen hata')};
+      detail:'Widget P0 native aktarım hatası: '+
+        (error instanceof Error?error.message:'bilinmeyen hata')};
   }
 }
