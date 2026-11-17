@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DEMO_SCHEDULE} from './prayer.ts';
 import {DEFAULT_KERAHAT_SETTINGS,getKerahatView,validateKerahatSettings,
-  formatWindowClock,KERAHAT_SOURCE_URL} from './kerahat.ts';
+  formatWindowClock,KERAHAT_SOURCE_URL,migrateLegacyKerahatSettings} from './kerahat.ts';
 
 const istanbul={...DEMO_SCHEDULE,isDemo:false,dateISO:'2026-11-14',
   times:[
@@ -20,7 +20,7 @@ test('real Istanbul calendar produces three visibly separate approximate windows
  assert.deepEqual(result.windows.map(w=>[w.kind,
    formatWindowClock(w.startSeconds),formatWindowClock(w.endSeconds)]),[
      ['sunrise','07:43','08:28'],
-     ['zenith','12:43','12:53'],
+     ['zenith','12:23','12:53'],
      ['sunset','17:09','17:54'],
    ]);
  assert.equal(result.active?.kind,'sunrise');
@@ -65,16 +65,50 @@ test('active warning starts and ends at exact configured clock boundaries',()=>{
  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(7,42)).active,null);
  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(7,43)).active?.kind,'sunrise');
  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(8,28)).active,null);
- assert.equal(getKerahatView(istanbul,'2026-11-14',sec(12,43)).active?.kind,'zenith');
+ assert.equal(getKerahatView(istanbul,'2026-11-14',sec(12,23)).active?.kind,'zenith');
  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(17,54)).active,null);
 });
 
 test('new profiles offer one adjustable visual profile, not a standard preset',()=>{
   assert.equal(DEFAULT_KERAHAT_SETTINGS.mode,'custom');
+  assert.deepEqual([DEFAULT_KERAHAT_SETTINGS.sunriseMinutes,
+    DEFAULT_KERAHAT_SETTINGS.preNoonMinutes,DEFAULT_KERAHAT_SETTINGS.preSunsetMinutes],
+    [45,30,45]);
   const prefs=validateKerahatSettings(DEFAULT_KERAHAT_SETTINGS);
   assert.equal(getKerahatView(istanbul,'2026-11-14',sec(8,0),prefs).windows.length,3);
   // Older saved preferences remain accepted; users are not forced to reset them.
   assert.equal(validateKerahatSettings({...prefs,mode:'standard'}).mode,'standard');
   assert.equal(getKerahatView(istanbul,'2026-11-14',sec(8,0),
     {...prefs,mode:'hidden'}).windows.length,0);
+});
+
+test('legacy 45/10/45 untouched-factory profile migrates, personal adjustments remain',()=>{
+  const old={mode:'custom' as const,sunriseMinutes:45,preNoonMinutes:10,preSunsetMinutes:45};
+  assert.deepEqual(migrateLegacyKerahatSettings(old),
+    {...old,preNoonMinutes:30});
+  assert.deepEqual(migrateLegacyKerahatSettings({...old,mode:'hidden'}),
+    {...old,mode:'hidden',preNoonMinutes:30},
+    'hidden preference is preserved, only its former factory offset changes');
+  const personal={...old,sunriseMinutes:50,preNoonMinutes:10};
+  assert.deepEqual(migrateLegacyKerahatSettings(personal),personal,
+    'intentionally different old user settings must not be reset');
+  assert.deepEqual(migrateLegacyKerahatSettings({...old,preNoonMinutes:15}),
+    {...old,preNoonMinutes:15});
+  assert.throws(()=>migrateLegacyKerahatSettings({...old,preNoonMinutes:100}));
+});
+
+test('custom noon 30-minute interval changes active status at exact boundaries',()=>{
+  const v=getKerahatView(istanbul,'2026-11-14',sec(12,30));
+  assert.equal(v.active?.kind,'zenith');
+  assert.equal(v.method,'configurable-approximate');
+  assert.equal(formatWindowClock(v.windows[1].startSeconds),'12:23');
+  assert.equal(formatWindowClock(v.windows[1].endSeconds),'12:53');
+  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(12,22)).active,null);
+  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(12,53)).active,null);
+  const tenMin=getKerahatView(istanbul,'2026-11-14',sec(12,30),
+    {...DEFAULT_KERAHAT_SETTINGS,preNoonMinutes:10});
+  assert.equal(tenMin.active,null);
+  assert.equal(formatWindowClock(tenMin.windows[1].startSeconds),'12:43');
+  assert.match(v.windows[1].description,/30 dakikalık/);
+  assert.match(tenMin.windows[1].description,/10 dakikalık/);
 });
