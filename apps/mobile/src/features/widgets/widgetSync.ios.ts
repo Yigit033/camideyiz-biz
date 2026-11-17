@@ -10,6 +10,7 @@ declare const require:(path:string)=>unknown;
 
 export async function syncPrayerWidgets(
   days:readonly PrayerSchedule[],nowMs:number,
+  _cityId=0,_sourceAt=nowMs,
 ):Promise<WidgetSyncResult>{
   if(isExpoGoRuntime())return {
     available:false,updated:false,
