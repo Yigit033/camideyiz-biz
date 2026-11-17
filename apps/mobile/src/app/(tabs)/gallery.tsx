@@ -20,38 +20,57 @@ const CATEGORY_NAME:Record<GalleryCategory,string>={
   bayram:'Bayram',gunaydin:'Günlük',genel:'Diğer',
 };
 
+/** Each uploaded thumbnail has its own aspect ratio (0.56–0.82 in
+ * the owner's current collection). Respect its original width and height:
+ * fixed-height cards always add dead space or crop a photo.
+ */
+function previewAspectRatio(slot:GallerySlot):number{
+  const image=galleryThumbnail(slot.id);
+  if(!image)return 2/3;
+  const metadata=Image.resolveAssetSource(image);
+  if(!metadata||!Number.isFinite(metadata.width)||!Number.isFinite(metadata.height)
+    ||metadata.width<=0||metadata.height<=0)return 2/3;
+  return metadata.width/metadata.height;
+}
+
 function GalleryTile({item,width}:{
   item:GallerySlot;width:number;
 }){
   const {colors}=useAppTheme();
   const photo=galleryThumbnail(item.id);
+  const aspectRatio=previewAspectRatio(item);
   return <Pressable accessibilityRole="button"
     accessibilityLabel={item.title+' tasarımını aç'+(!photo?' (fotoğraf henüz eklenmedi)':'')}
     onPress={()=>router.push({pathname:'/gallery-editor',params:{slot:item.id}})}
     style={[styles.tile,{width,backgroundColor:colors.surface,borderColor:colors.border}]}>
-    <View style={[styles.thumb,{backgroundColor:colors.isDark?'#143A54':'#0D403F',height:width*1.36}]}>
+    <View style={[styles.thumb,{
+      backgroundColor:colors.isDark?'#143A54':'#E8EEF2',
+      aspectRatio,
+    }]}>
       {photo?<Image source={photo} resizeMode="contain"
-        style={[StyleSheet.absoluteFill,{margin:5}]}/>:<View style={styles.placeholder}>
+        style={StyleSheet.absoluteFill}/>:<View style={styles.placeholder}>
         <MaterialCommunityIcons name="image-filter-hdr" color={item.accent} size={43}/>
         <View style={{height:1,width:42,backgroundColor:item.accent,opacity:.7}}/>
         <Text style={{fontSize:9,fontWeight:'800',letterSpacing:1.5,
           color:'#C5D3C7'}}>GÖRSEL {String(item.index).padStart(2,'0')}</Text>
         <Text style={{fontSize:9,color:'#A4BEB7'}}>Yakında eklenecek</Text>
       </View>}
-      <View style={styles.formatBadge}>
-        <Feather name="edit-3" color="#F8EED8" size={12}/>
-        <Text style={{fontSize:9,color:'#F8EED8',fontWeight:'800'}}>
-          {photo?'Düzenle':'Önizle'}
-        </Text>
-      </View>
     </View>
-    <View style={{padding:10,gap:4}}>
+    <View style={{padding:10,gap:6}}>
       <Text numberOfLines={1} style={{fontSize:12.5,fontWeight:'800',color:colors.text}}>
         {item.title}
       </Text>
-      <Text numberOfLines={1} style={{fontSize:10.5,color:colors.muted}}>
-        {CATEGORY_NAME[item.category]} · {photo?'Paylaşmaya hazır':'Fotoğraf bekleniyor'}
-      </Text>
+      <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
+        <Text numberOfLines={1} style={{fontSize:10.5,color:colors.muted,flex:1}}>
+          {CATEGORY_NAME[item.category]}
+        </Text>
+        <View style={[styles.formatBadge,{backgroundColor:colors.soft}]}>
+          <Feather name="edit-3" color={colors.emerald} size={11}/>
+          <Text style={{fontSize:9,color:colors.text,fontWeight:'800'}}>
+            {photo?'Düzenle':'Önizle'}
+          </Text>
+        </View>
+      </View>
     </View>
   </Pressable>;
 }
@@ -63,7 +82,7 @@ export default function Gallery(){
   const [query,setQuery]=useState('');
   const tiles=useMemo(()=>{
     const text=query.trim().toLocaleLowerCase('tr-TR');
-    // During initial development all 24 slots remain inspectable; as soon as
+    // During initial development all slots remain inspectable; as soon as
     // owner photography starts arriving, show ONLY approved photos. Avoid
     // shipping empty/placeholder cards next to real content.
     const showPlanningSlots=READY_GALLERY_COUNT===0;
@@ -75,6 +94,18 @@ export default function Gallery(){
     );
   },[category,query]);
   const tileWidth=Math.max(120,(width-44-12)/2);
+  // Two balanced columns instead of flexWrap rows with dead gaps under tall
+  // natural-aspect photos. The original catalog order stays deterministic.
+  const columns=useMemo(()=>{
+    const result:[GallerySlot[],GallerySlot[]]=[[],[]];
+    const heights=[0,0];
+    for(const slot of tiles){
+      const column=heights[0]<=heights[1]?0:1;
+      result[column].push(slot);
+      heights[column]+=tileWidth/previewAspectRatio(slot)+73+12;
+    }
+    return result;
+  },[tiles,tileWidth]);
   return <Page title="Paylaşım Galerisi"
     subtitle="Bir fotoğraf seç, kendi mesajını tasarla ve WhatsApp'ta paylaş.">
     <View style={[styles.intro,{
@@ -132,11 +163,14 @@ export default function Gallery(){
       <Text style={{fontSize:11,color:colors.muted}}>{tiles.length} şablon</Text>
     </View>
     <View style={styles.grid}>
-      {tiles.map(slot=><GalleryTile key={slot.id} item={slot} width={tileWidth}/>)}
-      {tiles.length===0?<View style={{paddingVertical:30,width:'100%',alignItems:'center',gap:7}}>
+      {tiles.length>0?columns.map((column,index)=>
+        <View key={'col-'+index} style={{width:tileWidth,gap:12}}>
+          {column.map(slot=><GalleryTile key={slot.id} item={slot} width={tileWidth}/>)}
+        </View>)
+      :<View style={{paddingVertical:30,width:'100%',alignItems:'center',gap:7}}>
         <Feather name="search" size={25} color={colors.gold}/>
         <Text style={{color:colors.muted,fontSize:12}}>Bu aramada tasarım bulunamadı.</Text>
-      </View>:null}
+      </View>}
     </View>
     <View style={{flexDirection:'row',gap:8,alignItems:'flex-start',marginTop:4}}>
       <Feather name="shield" size={16} color={colors.gold}/>
@@ -155,11 +189,10 @@ const styles=StyleSheet.create({
     flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:13},
   categories:{gap:8,paddingVertical:2},
   chip:{borderWidth:1,paddingHorizontal:14,paddingVertical:10,borderRadius:22},
-  grid:{flexDirection:'row',flexWrap:'wrap',gap:12},
+  grid:{flexDirection:'row',alignItems:'flex-start',gap:12},
   tile:{borderRadius:17,overflow:'hidden',borderWidth:1},
   thumb:{width:'100%',overflow:'hidden',position:'relative'},
   placeholder:{flex:1,justifyContent:'center',alignItems:'center',gap:8},
-  formatBadge:{position:'absolute',right:9,top:9,
-    paddingHorizontal:8,paddingVertical:5,borderRadius:10,
-    flexDirection:'row',alignItems:'center',gap:5,backgroundColor:'rgba(4,33,32,.77)'},
+  formatBadge:{paddingHorizontal:7,paddingVertical:4,borderRadius:9,
+    flexDirection:'row',alignItems:'center',gap:4},
 });
