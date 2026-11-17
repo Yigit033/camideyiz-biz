@@ -51,7 +51,8 @@ test('P1 kerahat ring has a 20m amber approach and burgundy active band at exact
 });
 test('sunrise, zenith and sunset warnings are independent, approximate and date-sensitive',()=>{
   assert.deepEqual(windows.map(w=>w.kind),['sunrise','zenith','sunset']);
-  assert.equal(kerahatRingWindows(windows,sec(12,35))[1].state,'approaching');
+  assert.equal(kerahatRingWindows(windows,sec(12,10))[1].state,'approaching');
+  assert.equal(kerahatRingWindows(windows,sec(12,22))[1].state,'active');
   assert.equal(kerahatRingWindows(windows,sec(12,44))[1].state,'active');
   assert.equal(kerahatRingWindows(windows,sec(17,10))[2].state,'active');
   assert.ok(kerahatRingWindows(windows,sec(21,0)).every(w=>w.state==='inactive'));
@@ -203,4 +204,23 @@ test('prayer clocks and icons occupy the exact radial midpoint of coloured band'
     assert.ok(layout.clockWidth<=35,'time badge must be smaller than previous 52px');
     assert.ok(layout.clockHeight<=27,'time and name fit compact two-line capsule');
   }
+});
+
+test('inner red ring responds exactly to the user-selected noon duration',()=>{
+  const sectors=makeVisualDialSectors(schedule.times);
+  const defaults=indicativeKerahatWindows(schedule);
+  const customized=indicativeKerahatWindows(schedule,{preNoonMinutes:10});
+  const a=defaults[1],b=customized[1];
+  assert.equal((a.endSeconds-a.startSeconds)/60,30);
+  assert.equal((b.endSeconds-b.startSeconds)/60,10);
+  const aFrom=clockSecondsToVisualAngle(a.startSeconds,schedule.times,sectors);
+  const aTo=clockSecondsToVisualAngle(a.endSeconds,schedule.times,sectors);
+  const bFrom=clockSecondsToVisualAngle(b.startSeconds,schedule.times,sectors);
+  const bTo=clockSecondsToVisualAngle(b.endSeconds,schedule.times,sectors);
+  assert.equal(aTo,bTo,'same exact noon endpoint on the dial');
+  assert.ok(Math.abs((aTo-aFrom)-7.5)<1e-9,'30-minute overlay spans 7.5°');
+  assert.ok(Math.abs((bTo-bFrom)-2.5)<1e-9,'10-minute overlay spans 2.5°');
+  assert.equal(kerahatRingWindows(defaults,sec(12,30))[1].state,'active');
+  assert.equal(kerahatRingWindows(customized,sec(12,30))[1].state,'inactive');
+  assert.equal(kerahatRingWindows(defaults,sec(12,52))[1].state,'inactive');
 });
