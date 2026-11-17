@@ -61,6 +61,9 @@ export function useQiblaEngine(){
   const locationPending=useRef(false);
   const latestFixAt=useRef(0);
   const geocodedAt=useRef(0);
+  const geocodeSource=useRef<PositionSource>('none');
+  const geocodeSequence=useRef(0);
+  const [positionUsable,setPositionUsable]=useState(false);
   const filter=useRef<HeadingFilter|null>(null);
 
   useEffect(()=>{
@@ -82,20 +85,25 @@ export function useQiblaEngine(){
     setPositionSource(source);
     setHeadingEnabled(true);
     latestFixAt.current=source==='fresh'?now:fix.timestamp;
-    const geocodeDue=now-geocodedAt.current>90_000;
+    setPositionUsable(true);
+    const geocodeDue=now-geocodedAt.current>90_000 ||
+      (source==='fresh'&&geocodeSource.current!=='fresh');
     if(geocodeDue){
       geocodedAt.current=now;
+      geocodeSource.current=source;
+      const requestSequence=++geocodeSequence.current;
       // Reverse geocoding is presentation only; it never delays compass updates.
       void Location.reverseGeocodeAsync({
         latitude:fix.coords.latitude,longitude:fix.coords.longitude,
       }).then(addresses=>{
-        if(!mounted.current)return;
+        if(!mounted.current||requestSequence!==geocodeSequence.current)return;
         const first=addresses[0];
         const city=first?.city??first?.region??first?.subregion??null;
         const country=first?.country??null;
         setLocationLabel(city?[city,country].filter(Boolean).join(', '):'Konum alındı');
       }).catch(()=>{
-        if(mounted.current)setLocationLabel('Konum alındı');
+        if(mounted.current&&requestSequence===geocodeSequence.current)
+          setLocationLabel('Konum alındı');
       });
     }
     return true;
@@ -238,12 +246,17 @@ export function useQiblaEngine(){
       }else{
         lastValidAt=0;
         subscribe();
+        if(Date.now()-latestFixAt.current>=GPS_REFRESH_MS)
+          void requestLocation(false);
       }
     });
     if(foreground)subscribe();
     const ticker=setInterval(()=>{
       if(!active||!foreground)return;
       const now=Date.now();
+      const locationFresh=latestFixAt.current>0 &&
+        now-latestFixAt.current<=QIBLA_POSITION_MAX_AGE_MS;
+      setPositionUsable(old=>old===locationFresh?old:locationFresh);
       const fresh=lastValidAt?headingFreshness(lastValidAt,now):'recovering';
       setFreshness(previous=>previous===fresh?previous:fresh);
       const disconnected=!lastValidAt||now-lastValidAt>HEADING_RESUBSCRIBE_MS;
@@ -260,7 +273,7 @@ export function useQiblaEngine(){
       remove();
       setFreshness('stale');
     };
-  },[headingEnabled,cycle]));
+  },[headingEnabled,cycle,requestLocation]));
 
   const recalibrateHeading=useCallback(()=>{
     // Start a fresh foreground subscription without discarding the last
@@ -273,6 +286,6 @@ export function useQiblaEngine(){
   },[]);
 
   return {bearing,heading,compassAccuracy,freshness,
-    locationAccuracy,locationLabel,positionSource,
+    locationAccuracy,locationLabel,positionSource,positionUsable,
     permissionDenied,busy,message,requestLocation,recalibrateHeading};
 }
