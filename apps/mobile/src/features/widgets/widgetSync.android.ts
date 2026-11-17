@@ -11,7 +11,7 @@ import {publishAndroidWidgetTimeline} from './widgetNativeDiagnostics.android';
 declare const require:(path:string)=>unknown;
 
 export async function syncPrayerWidgets(
-  days:readonly PrayerSchedule[],nowMs:number,cityId=0,
+  days:readonly PrayerSchedule[],nowMs:number,cityId=0,sourceAt=nowMs,
 ):Promise<WidgetSyncResult>{
   if(isExpoGoRuntime())return {
     available:false,updated:false,
@@ -35,7 +35,7 @@ export async function syncPrayerWidgets(
     // schedules an inexact Android alarm for the NEXT transition. It also
     // returns real AppWidgetManager pinned-instance counts and verifies
     // the two currently stored Expo prop records agree.
-    const native=await publishAndroidWidgetTimeline(days,nowMs,cityId);
+    const native=await publishAndroidWidgetTimeline(days,nowMs,cityId,sourceAt);
     const total=native.installedNext+native.installedDay;
     if(!days.length){
       return {available:true,updated:native.persisted,
