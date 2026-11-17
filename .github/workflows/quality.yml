@@ -101,8 +101,17 @@ jobs:
           grep -F 'WidgetBoundaryReceiver' "$app/AndroidManifest.xml"
           grep -F 'RECEIVE_BOOT_COMPLETED' "$app/AndroidManifest.xml"
           grep -F 'setAndAllowWhileIdle' "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
-          grep -F 'expo.modules.widgets' "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
-          echo 'P0 native Android bridge, reboot receiver, inexact boundary schedule and Expo cache contract present'
+          grep -F 'RemoteViews' "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          grep -F 'setOnClickPendingIntent' "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          test -s "$app/java/biz/camideyiz/app/NextPrayerWidgetProvider.java"
+          test -s "$app/java/biz/camideyiz/app/PrayerDayWidgetProvider.java"
+          test -s "$app/res/layout/widget_next_prayer.xml"
+          test -s "$app/res/layout/widget_prayer_day.xml"
+          test -s "$app/res/xml/widget_next_prayer_info.xml"
+          test -s "$app/res/xml/widget_prayer_day_info.xml"
+          grep -F 'NextPrayerWidgetProvider' "$app/AndroidManifest.xml"
+          grep -F 'PrayerDayWidgetProvider' "$app/AndroidManifest.xml"
+          echo 'Native RemoteViews widget layouts, tappable providers and rollover bridge present'
       - name: Verify release WorkManager R8 keep rules
         run: |
           grep -F 'androidx.room.RoomDatabase { <init>(); }' apps/mobile/android/app/proguard-rules.pro
