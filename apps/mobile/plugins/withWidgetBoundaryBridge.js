@@ -15,6 +15,17 @@ const FILES=[
   'CamideyizWidgetBridge.java',
   'CamideyizWidgetPackage.java',
 ];
+const PROVIDERS=[
+  {name:'NextPrayerWidgetProvider',title:'Sıradaki Vakit',
+    info:'widget_next_prayer_info'},
+  {name:'PrayerDayWidgetProvider',title:'Günlük Namaz Vakitleri',
+    info:'widget_prayer_day_info'},
+];
+const RESOURCES={
+  layout:['widget_next_prayer.xml','widget_prayer_day.xml'],
+  drawable:['widget_bg.xml'],
+  xml:['widget_next_prayer_info.xml','widget_prayer_day_info.xml'],
+};
 
 function withReceiver(config){
   return withAndroidManifest(config,async cfg=>{
@@ -44,6 +55,26 @@ function withReceiver(config){
       entry.$['android:exported']='false';
       entry['intent-filter']=intentFilters;
     }
+    // Native providers retain the old component FQCNs so existing pinned
+    // widgets survive an in-place APK upgrade. The Expo Android renderer is
+    // intentionally disabled in app.json; iOS WidgetKit remains enabled.
+    for(const item of PROVIDERS){
+      const providerName='biz.camideyiz.app.'+item.name;
+      const provider={
+        $:{'android:name':providerName,'android:exported':'true',
+          'android:label':item.title},
+        'intent-filter':[{'action':[{
+          $:{'android:name':'android.appwidget.action.APPWIDGET_UPDATE'},
+        }]}],
+        'meta-data':[{$:{'android:name':'android.appwidget.provider',
+          'android:resource':'@xml/'+item.info}}],
+      };
+      const idx=application.receiver.findIndex(x=>
+        x.$?.['android:name']===providerName||
+        x.$?.['android:name']==='.'+item.name);
+      if(idx<0)application.receiver.push(provider);
+      else application.receiver[idx]=provider;
+    }
     return cfg;
   });
 }
@@ -72,12 +103,27 @@ function withRegistration(config){
 
 function withSources(config){
   return withDangerousMod(config,['android',async cfg=>{
-    const target=path.join(cfg.modRequest.platformProjectRoot,'app','src','main','java',
-      ...PACKAGE.split('.'));
+    const srcRoot=path.join(cfg.modRequest.platformProjectRoot,'app','src','main');
+    const javaRoot=path.join(srcRoot,'java','biz','camideyiz','app');
+    const target=path.join(javaRoot,'widget');
     await fs.mkdir(target,{recursive:true});
     for(const file of FILES){
-      const source=path.join(__dirname,'widget-native',file);
-      await fs.copyFile(source,path.join(target,file));
+      await fs.copyFile(path.join(__dirname,'widget-native',file),
+        path.join(target,file));
+    }
+    await fs.mkdir(javaRoot,{recursive:true});
+    for(const item of PROVIDERS){
+      const file=item.name+'.java';
+      await fs.copyFile(path.join(__dirname,'widget-native',file),
+        path.join(javaRoot,file));
+    }
+    for(const [dir,files] of Object.entries(RESOURCES)){
+      const targetDir=path.join(srcRoot,'res',dir);
+      await fs.mkdir(targetDir,{recursive:true});
+      for(const file of files){
+        await fs.copyFile(path.join(__dirname,'widget-native',file),
+          path.join(targetDir,file));
+      }
     }
     return cfg;
   }]);
