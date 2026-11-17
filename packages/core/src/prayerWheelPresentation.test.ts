@@ -221,6 +221,7 @@ test('inner red ring responds exactly to the user-selected noon duration',()=>{
   assert.ok(Math.abs((aTo-aFrom)-7.5)<1e-9,'30-minute overlay spans 7.5°');
   assert.ok(Math.abs((bTo-bFrom)-2.5)<1e-9,'10-minute overlay spans 2.5°');
   assert.equal(kerahatRingWindows(defaults,sec(12,30))[1].state,'active');
-  assert.equal(kerahatRingWindows(customized,sec(12,30))[1].state,'inactive');
+  assert.equal(kerahatRingWindows(customized,sec(12,30))[1].state,'approaching');
+  assert.equal(kerahatRingWindows(customized,sec(12,20))[1].state,'inactive');
   assert.equal(kerahatRingWindows(defaults,sec(12,52))[1].state,'inactive');
 });
