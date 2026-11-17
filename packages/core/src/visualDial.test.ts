@@ -62,7 +62,8 @@ test('rejects invalid angle inputs and unordered prayer times',()=>{
 
 test('a continuously rotating dial tracks real seconds, wraps smoothly at imsak',()=>{
  const s=makeVisualDialSectors(DEMO_SCHEDULE.times);
- const clocks=[19*3600,21*3600,23*3600,86400-1];
+ const clocks=[19*3600,21*3600,23*3600,
+   (timeToMinutes(DEMO_SCHEDULE.times[0].time)-1)*60+59];
  let rotation=-clockSecondsToVisualAngle(clocks[0],DEMO_SCHEDULE.times,s);
  for(const now of clocks.slice(1)){
    const angle=clockSecondsToVisualAngle(now,DEMO_SCHEDULE.times,s);
