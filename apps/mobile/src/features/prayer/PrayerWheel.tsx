@@ -15,6 +15,7 @@ import {
   nearestCenterRotation, sectorAtNeedle, shortestAngularDelta,
   tangentialVelocity, makeVisualDialSectors, clockSecondsToVisualAngle,
   kerahatRingWindows,prayerSectorVisualLayout,currentPrayerArc,
+  prayerBadgeForeground,PRAYER_BADGE_LIGHT_INK,
 } from '@camideyiz/core';
 import {type ColorTokens} from '@/theme/tokens';
 import {DialLighting} from './DialLighting';
@@ -87,13 +88,18 @@ function SectorIcon({sector,size,rotation}:{
 /** HH:MM and its name share one capsule at the exact boundary angle.
  * Counter-rotation keeps both text lines upright during free rotation.
  */
-function SectorStartClock({sector,size,rotation,preview=false,dark}:{
-  sector:PrayerArc;size:number;rotation:SharedValue<number>;preview?:boolean;dark:boolean;
+function SectorStartClock({sector,size,rotation,preview=false}:{
+  sector:PrayerArc;size:number;rotation:SharedValue<number>;preview?:boolean;
 }){
   const layout=prayerSectorVisualLayout(sector.from,sector.to);
   const point=polar(layout.clockAngle,layout.clockRadius);
   const scale=size/DIAMETER;
   const width=layout.clockWidth*scale,height=layout.clockHeight*scale;
+  // Match each badge to its exact sector colour in both app themes.
+  const badgeColor=PRAYER_COLORS[sector.key];
+  const ink=prayerBadgeForeground(badgeColor);
+  const badgeBorder=ink===PRAYER_BADGE_LIGHT_INK
+    ?'rgba(255,255,255,.66)':'rgba(8,26,38,.56)';
   const unrotate=useAnimatedStyle(()=>({
     transform:[{rotateZ:-rotation.value+'deg'}],
   }));
@@ -103,16 +109,16 @@ function SectorStartClock({sector,size,rotation,preview=false,dark}:{
       left:point.x*scale-width/2,top:point.y*scale-height/2,
       width,height,borderRadius:10*scale,
       paddingVertical:1*scale,
-      backgroundColor:dark?'rgba(8,35,57,.96)':'rgba(4,35,32,.93)',
+      backgroundColor:badgeColor,borderColor:badgeBorder,
     },unrotate]}>
     <Text allowFontScaling={false} numberOfLines={1} style={{
       fontVariant:['tabular-nums'],fontSize:10.1*scale,
-      lineHeight:12.3*scale,color:'#FFF6E7',
+      lineHeight:12.3*scale,color:ink,
       fontWeight:'900',textAlign:'center',
     }}>{sector.time}</Text>
     <Text allowFontScaling={false} numberOfLines={1} style={{
       fontSize:layout.fontSize*scale,
-      lineHeight:10.5*scale,color:'#F0D5A1',
+      lineHeight:10.5*scale,color:ink,
       fontFamily:'serif',fontWeight:'700',textAlign:'center',
     }}>{sector.label}</Text>
   </Animated.View>;
@@ -454,21 +460,10 @@ export function PrayerWheel({
           {sectors.map(item=><SectorIcon key={'icon-'+item.key}
              sector={item} size={size} rotation={rotation}/>)} 
           {sectors.map(item=><SectorStartClock key={'clock-'+item.key}
-            sector={item} size={size} rotation={rotation} preview={preview} dark={colors.isDark}/>)}
+            sector={item} size={size} rotation={rotation} preview={preview}/>)}
         </Animated.View>
       </View>
     </GestureDetector>
-
-    {/* Static top needle: all prayer segments rotate UNDER this indicator. */}
-    <View pointerEvents="none" style={[styles.needle, {
-      left: centerPt-10, top: 8*scale, width:20*scale, height:31*scale,
-    }]}>
-      <Svg width="100%" height="100%" viewBox="0 0 20 31">
-        <Path d="M10 0 L19 11 L10 25 L1 11 Z" fill={rim}/>
-        <Circle cx="10" cy="10" r="2.8" fill={colors.isDark?'#17364D':'#FBF8EA'}/>
-        <Path d="M10 24 L10 31" stroke={rim} strokeWidth="1.5"/>
-      </Svg>
-    </View>
 
     <View pointerEvents="none" style={{
       position:'absolute',alignSelf:'center',width:size*.585,height:size*.585,
@@ -527,8 +522,7 @@ export function PrayerWheel({
 const styles=StyleSheet.create({
   sectorLabel:{position:'absolute',alignItems:'center',justifyContent:'center'},
   sectorStartClock:{position:'absolute',alignItems:'center',justifyContent:'center',
-    borderWidth:.8,borderColor:'rgba(255,236,193,.72)'},
-  needle:{position:'absolute',alignItems:'center',justifyContent:'center'},
+    borderWidth:.8},
   center:{alignItems:'center',justifyContent:'center',gap:3},
   kicker:{fontSize:9,fontWeight:'800',letterSpacing:1.15,textAlign:'center'},
   prayerName:{fontFamily:'serif',fontSize:17,fontWeight:'800',textAlign:'center'},
