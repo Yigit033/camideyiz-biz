@@ -50,6 +50,19 @@ jobs:
           EXPO_NO_TELEMETRY: '1'
         run: npx expo prebuild --platform android --no-install --clean
 
+      - name: Verify P0 receiver and native source registration in generated Android app
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="apps/mobile/android/app/src/main"
+          test -s "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          test -s "$root/java/biz/camideyiz/app/widget/WidgetBoundaryReceiver.java"
+          test -s "$root/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
+          test -s "$root/java/biz/camideyiz/app/widget/CamideyizWidgetPackage.java"
+          grep -F 'CamideyizWidgetPackage()' "$root/java/biz/camideyiz/app/MainApplication.kt"
+          grep -F 'WidgetBoundaryReceiver' "$root/AndroidManifest.xml"
+          grep -F 'RECEIVE_BOOT_COMPLETED' "$root/AndroidManifest.xml"
+          echo 'P0 native widget code and manifest installed by Expo CNG'
       - name: Assemble standalone Release APK (arm64)
         working-directory: apps/mobile/android
         run: |
