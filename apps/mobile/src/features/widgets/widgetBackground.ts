@@ -182,13 +182,15 @@ export async function syncForegroundWidgetCalendar(
     return {available:true,updated:false,detail:'İlçe değişimi sırasında eşitleme yenilendi'};
   }
   const cache=await readCache(now,place.id);
-  const verified=(cache&&(!fresh||cache.fetchedAt>fresh.fetchedAt)
-    ?cache:fresh??cache)?.days??[];
+  const verifiedCache=cache&&(!fresh||cache.fetchedAt>fresh.fetchedAt)
+    ?cache:fresh??cache;
+  const verified=verifiedCache?.days??[];
   const snapshot=buildPrayerWidgetSnapshot(verified,now);
   // Always clear a previous-district snapshot if the current district has no
   // valid published data; otherwise, preserve the same-district cache.
   const selected=snapshot.status==='ready'?verified:[];
-  const result=await syncPrayerWidgets(selected,now,place.id);
+  const result=await syncPrayerWidgets(selected,now,place.id,
+    verifiedCache?.fetchedAt??now);
   // Diagnostic distinction: an app preview may have valid hours while the
   // defensive native cache cannot accept the payload. Never mislabel that
   // as an Android launcher or notification-permission problem.
@@ -243,7 +245,8 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
   if(!latest||latest.id!==place.id||latest.source!==place.source)return true;
   const usable=cached&&parseWidgetCalendarCache(cached,Date.now(),place.id);
   const snapshot=usable?buildPrayerWidgetSnapshot(usable.days,Date.now()):null;
-  const result=await syncPrayerWidgets(snapshot?.status==='ready'?usable!.days:[],Date.now(),place.id);
+  const result=await syncPrayerWidgets(snapshot?.status==='ready'?usable!.days:[],
+    Date.now(),place.id,usable?.fetchedAt??Date.now());
   if(!result.updated){
     await report('error',result.detail,networkAt,false);
     return false;
