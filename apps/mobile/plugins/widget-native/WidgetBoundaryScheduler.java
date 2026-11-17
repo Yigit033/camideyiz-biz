@@ -55,8 +55,11 @@ final class WidgetBoundaryScheduler {
         root.optString("city").trim().isEmpty())
       throw new JSONException("invalid district identity");
     long generatedAt = root.optLong("generatedAt", -1);
-    if (generatedAt < now - 60_000 || generatedAt > now + 60_000)
-      throw new JSONException("outdated widget sync request");
+    long sourceAt = root.optLong("sourceAt", -1);
+    if (generatedAt < now - 60_000 || generatedAt > now + 60_000 ||
+        sourceAt > now + 60_000 || sourceAt <= 0 ||
+        now - sourceAt > MAX_AGE)
+      throw new JSONException("outdated widget source or sync request");
     JSONArray entries = root.optJSONArray("entries");
     if (entries == null || entries.length() < 1 || entries.length() > 110)
       throw new JSONException("invalid prayer boundary count");
@@ -111,9 +114,10 @@ final class WidgetBoundaryScheduler {
       if (raw != null) {
         JSONObject root = new JSONObject(raw);
         long generatedAt = root.getLong("generatedAt");
-        // A 72h offline ceiling prevents an old district calendar from being
-        // presented as a new published timetable after prolonged inactivity.
-        if (generatedAt <= now && now - generatedAt <= MAX_AGE) {
+        long sourceAt = root.getLong("sourceAt");
+        // Bound validity to the REAL source fetch, not the last app open.
+        // Reopening an offline app must not extend a 72h validity window.
+        if (generatedAt <= now && sourceAt <= now && now - sourceAt <= MAX_AGE) {
           JSONArray entries = root.getJSONArray("entries");
           for (int i = 0; i < entries.length(); i++) {
             JSONObject item = entries.getJSONObject(i);
@@ -121,7 +125,7 @@ final class WidgetBoundaryScheduler {
             if (at <= now) selection = item.getJSONObject("props");
             else { nextBoundary = at; break; }
           }
-          long expiresAt = generatedAt + MAX_AGE;
+          long expiresAt = sourceAt + MAX_AGE;
           if (nextBoundary == 0 || nextBoundary > expiresAt) {
             nextBoundary = expiresAt > now ? expiresAt : 0;
           }
