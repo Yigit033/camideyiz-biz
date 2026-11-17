@@ -16,6 +16,8 @@ jobs:
       - run: npm run typecheck
       - name: Verify exact owner-supplied brand icon is unchanged
         run: node scripts/verify-brand-symbol.mjs
+      - name: Verify home, gallery and kerahat visual regression contracts
+        run: node scripts/verify-home-visual-contracts.mjs
       - name: Parse Windows APK build script
         shell: pwsh
         run: |
