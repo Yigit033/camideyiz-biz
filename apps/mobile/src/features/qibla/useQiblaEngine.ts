@@ -65,6 +65,7 @@ export function useQiblaEngine(){
   const geocodeSequence=useRef(0);
   const [positionUsable,setPositionUsable]=useState(false);
   const filter=useRef<HeadingFilter|null>(null);
+  const lastUiHeadingAt=useRef(0);
 
   useEffect(()=>{
     mounted.current=true;
@@ -220,7 +221,12 @@ export function useQiblaEngine(){
         lastValidAt=now;
         setCompassAccuracy(result.filter!.accuracy);
         setFreshness('live');
-        if(result.updated)setHeading(result.filter!.angle);
+        // Native sensors may emit >50 readings/second. Filter every sample,
+        // render the heavy compass tree at <=20 Hz to limit JS/UI load.
+        if(result.updated&&(now-lastUiHeadingAt.current>=50)){
+          lastUiHeadingAt.current=now;
+          setHeading(result.filter!.angle);
+        }
       },()=>{
         if(active&&current===generation){
           setFreshness('recovering');
