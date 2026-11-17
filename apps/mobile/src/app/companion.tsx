@@ -107,7 +107,7 @@ function WidgetShowcase({now}: {now:number}){
         <Feather name="check-circle" size={17} color={colors.emerald}/>
         <View style={{flex:1,gap:5}}>
           <Text style={{fontSize:12,fontWeight:'800',color:colors.text}}>
-            Widget'a son aktarılan vakitler
+            Native belleğe aktarılan takvim
           </Text>
           <Text style={{fontSize:11,color:colors.text,fontWeight:'700'}}>
             {companion.lastWidgetTransfer.city} ·
@@ -128,6 +128,40 @@ function WidgetShowcase({now}: {now:number}){
           </Text>
         </View>
       </View>:null}
+    {Platform.OS==='android'&&companion.widget.available?<View style={[
+      styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
+      <Feather name="shield" size={16} color={colors.gold}/>
+      <View style={{flex:1,gap:5}}>
+        <Text style={{fontSize:12,color:colors.text,fontWeight:'800'}}>
+          Android widget çalışma durumu
+        </Text>
+        <Text style={{fontSize:11,color:colors.text}}>
+          {'Ana ekrana ekli: '+(companion.widget.installedNext??0)+
+            ' sıradaki vakit · '+(companion.widget.installedDay??0)+' günlük takvim'}
+        </Text>
+        <Text style={{fontSize:10.5,lineHeight:17,color:colors.muted}}>
+          {companion.widget.nativePersisted
+            ?'Doğrulanmış takvim iki native widget kaydına yazıldı. '+
+              'Ekranda çizim tamamlandığını Android bildirmez.'
+            :'Native kayıt henüz doğrulanmadı.'}
+        </Text>
+        {companion.widget.lastNativeWriteAt
+          ?<Text style={{fontSize:10.5,color:colors.muted}}>
+            {'Son native yazım: '+new Date(companion.widget.lastNativeWriteAt)
+              .toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}
+          </Text>:null}
+        {companion.widget.nextNativeAlarmAt
+          ?<Text style={{fontSize:10.5,color:colors.muted}}>
+            {'Sonraki vakit geçişi için planlanan kontrol: '+
+              new Date(companion.widget.nextNativeAlarmAt)
+                .toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}
+          </Text>:null}
+        <Text style={{fontSize:10,color:colors.muted,lineHeight:16}}>
+          Alarm zamanı pil tasarrufuna bağlı gecikebilir. Saatlerin gerçek
+          görünümünü telefonunun ana ekranında karşılaştır.
+        </Text>
+      </View>
+    </View>:null}
     <Text style={{fontSize:11,lineHeight:18,color:colors.muted}}>
       Telefonun ana ekranında boş bir alana uzun bas, Widget’lar bölümünden
       Camideyiz Biz’i bul ve boyut seç. Buradaki önizleme, telefon
@@ -161,10 +195,10 @@ function WidgetShowcase({now}: {now:number}){
         {companion.lastWidgetTransfer?.cityId===source.place?.id&&
         companion.lastWidgetTransfer?.dateISO===
           zonedClock(new Date(now),'Europe/Istanbul').dateISO
-          ?'Namaz saatleri widget’a aktarıldı'
+          ?'Namaz takvimi native belleğe kaydedildi'
           :preview.status==='ready'
             ?companion.widget.updated
-              ?'Widget’a aktarım yapıldı; ana ekranı kontrol et'
+              ?'Native veri doğrulandı; ana ekran görünümünü kontrol et'
               :'Widget’a aktarım başarısız. Ayrıntıları incele'
             :'Vakitler yüklendiğinde widget güncellenecek'}
       </Text>
