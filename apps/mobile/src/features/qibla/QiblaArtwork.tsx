@@ -133,11 +133,20 @@ export const QiblaCompass=memo(function QiblaCompass({
   const lastAngle=useRef(0);
   useEffect(()=>{
     if(relative===null)return;
-    const next=normalizeBearing(relative),previous=lastAngle.current;
+    const next=normalizeBearing(relative);
+    let previous=lastAngle.current;
+    // Preserve shortest-arc movement while keeping transforms bounded during
+    // repeated full rotations; changing by 360*N has no visible angle jump.
+    if(Math.abs(previous)>2880){
+      previous-=Math.trunc(previous/360)*360;
+      lastAngle.current=previous;
+      animatedAngle.value=previous;
+    }
     const step=((next-previous+540)%360)-180;
     lastAngle.current=previous+step;
     animatedAngle.value=withTiming(lastAngle.current,{
-      duration:240,easing:Easing.out(Easing.cubic),
+      duration:Math.abs(step)>35?155:125,
+      easing:Easing.out(Easing.cubic),
     });
   },[relative,animatedAngle]);
   const animatedStyle=useAnimatedStyle(()=>({
