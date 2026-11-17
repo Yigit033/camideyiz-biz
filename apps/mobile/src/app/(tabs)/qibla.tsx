@@ -1,21 +1,19 @@
-import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {
   ActivityIndicator,Alert,Linking,Pressable,ScrollView,StyleSheet,
   Text,View,useWindowDimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useFocusEffect} from 'expo-router';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
-import * as Location from 'expo-location';
 import * as Haptics from 'expo-haptics';
 import Svg,{Defs,LinearGradient,Rect,Stop} from 'react-native-svg';
-import {qiblaBearing,relativeQiblaAngle,qiblaGuidance} from '@camideyiz/core';
+import {relativeQiblaAngle,qiblaGuidance} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {QiblaBackdrop,QiblaCompass,QiblaKaabaGlyph} from '@/features/qibla/QiblaArtwork';
+import {useQiblaEngine,type CompassAccuracy} from '@/features/qibla/useQiblaEngine';
 
 const KAABA_MAP_URL='https://www.google.com/maps/search/?api=1&query=21.4225%2C39.8262';
 const GOLD='#EDCE8A';
-type CompassAccuracy=0|1|2|3;
 
 function statusName(value:CompassAccuracy|null){
   switch(value){
@@ -45,145 +43,20 @@ export default function QiblaScreen(){
   const {colors}=useAppTheme();
   const {width}=useWindowDimensions();
   const dark=colors.isDark;
-  const [bearing,setBearing]=useState<number|null>(null);
-  const [heading,setHeading]=useState<number|null>(null);
-  const [compassAccuracy,setCompassAccuracy]=useState<CompassAccuracy|null>(null);
-  const [locationAccuracy,setLocationAccuracy]=useState<number|null>(null);
-  const [locationLabel,setLocationLabel]=useState('Konum bekleniyor');
-  const [headingEnabled,setHeadingEnabled]=useState(false);
-  const [permissionDenied,setPermissionDenied]=useState(false);
-  const [busy,setBusy]=useState(false);
-  const [cycle,setCycle]=useState(0);
+  const {bearing,heading,compassAccuracy,freshness,locationAccuracy,
+    locationLabel,positionSource,permissionDenied,busy,message,
+    requestLocation,recalibrateHeading}=useQiblaEngine();
   const [showGuide,setShowGuide]=useState(false);
-  const [message,setMessage]=useState('Konumuna izin vererek kıble yönünü bulabilirsin.');
-  const mounted=useRef(true);
-  const pending=useRef(false);
-  const headingSample=useRef<{angle:number;time:number}|null>(null);
   const lastAlignedHaptic=useRef(0);
-  const lastLocationFixAt=useRef(0);
   const compassSize=Math.min(Math.max(255,width-42),352);
   const locationReady=bearing!==null;
   const relative=locationReady&&heading!==null?relativeQiblaAngle(bearing,heading):null;
-  // Low calibration does not yield actionable turn directions.
-  const hasValidHeading=relative!==null&&compassAccuracy!==null&&compassAccuracy>=2;
+  // A historical angle may remain visible, but it must never be actionable.
+  const hasValidHeading=freshness==='live'&&relative!==null&&
+    compassAccuracy!==null&&compassAccuracy>=2;
   const guidance=useMemo(()=>hasValidHeading&&bearing!==null&&heading!==null
     ?qiblaGuidance(bearing,heading):null,[hasValidHeading,bearing,heading]);
   const aligned=guidance?.direction==='near'&&compassAccuracy===3;
-
-  const locate=useCallback(async(requestPermission:boolean)=>{
-    if(pending.current)return;
-    pending.current=true;
-    if(mounted.current)setBusy(true);
-    try{
-      const permission=requestPermission
-        ?await Location.requestForegroundPermissionsAsync()
-        :await Location.getForegroundPermissionsAsync();
-      if(!permission.granted){
-        if(requestPermission&&mounted.current){
-          setPermissionDenied(true);
-          setMessage('Konum izni olmadan güvenilir kıble yönü hesaplanamaz.');
-        }
-        return;
-      }
-      if(mounted.current)setPermissionDenied(false);
-      const position=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High});
-      if(!mounted.current)return;
-      const nextBearing=qiblaBearing(position.coords.latitude,position.coords.longitude);
-      lastLocationFixAt.current=Date.now();
-      setBearing(nextBearing);
-      setLocationAccuracy(position.coords.accuracy??null);
-      setHeadingEnabled(true);
-      setMessage('Telefonu düz tutup yavaşça çevir. Metal ve mıknatıslardan uzak dur.');
-      try{
-        const addresses=await Location.reverseGeocodeAsync({
-          latitude:position.coords.latitude,
-          longitude:position.coords.longitude,
-        });
-        if(!mounted.current)return;
-        const a=addresses[0];
-        const city=a?.city??a?.region??a?.subregion??null;
-        const country=a?.country??null;
-        setLocationLabel(city?[city,country].filter(Boolean).join(', '):'Konum alındı');
-      }catch{
-        if(mounted.current)setLocationLabel('Konum alındı');
-      }
-    }catch{
-      if(mounted.current)setMessage('Konum belirlenemedi. Konum servislerini kontrol edip yeniden dene.');
-    }finally{
-      pending.current=false;
-      if(mounted.current)setBusy(false);
-    }
-  },[]);
-
-  useEffect(()=>{
-    mounted.current=true;
-    return ()=>{mounted.current=false;};
-  },[]);
-
-  // Refresh coordinates on screen focus after time away from this tab.
-  // Merely opening the screen never triggers a new permission prompt.
-  useFocusEffect(useCallback(()=>{
-    let active=true;
-    if(Date.now()-lastLocationFixAt.current>=90_000){
-      Location.getForegroundPermissionsAsync().then(permission=>{
-        if(active&&permission.granted)void locate(false);
-      }).catch(()=>undefined);
-    }
-    return ()=>{active=false;};
-  },[locate]));
-
-  useFocusEffect(useCallback(()=>{
-    if(!headingEnabled)return;
-    let active=true;
-    let subscription:Location.LocationSubscription|null=null;
-    headingSample.current=null;
-    // Do not carry a compass reading from a prior session while the sensor warms up.
-    setHeading(null);
-    setCompassAccuracy(null);
-    const staleCheck=setInterval(()=>{
-      const sample=headingSample.current;
-      if(active&&(!sample||Date.now()-sample.time>4500)){
-        setHeading(null);
-        setCompassAccuracy(null);
-      }
-    },2200);
-    Location.watchHeadingAsync(reading=>{
-      if(!active||!Number.isFinite(reading.trueHeading)||reading.trueHeading<0){
-        if(active){headingSample.current=null;setHeading(null);setCompassAccuracy(null);}
-        return;
-      }
-      const accuracy=Number.isFinite(reading.accuracy)
-        ?Math.max(0,Math.min(3,Math.trunc(reading.accuracy))) as CompassAccuracy:0;
-      setCompassAccuracy(old=>old===accuracy?old:accuracy);
-      if(accuracy===0){headingSample.current=null;setHeading(null);return;}
-      const now=Date.now();
-      const previous=headingSample.current;
-      const delta=previous?Math.abs(((reading.trueHeading-previous.angle+540)%360)-180):360;
-      if(previous&&now-previous.time<90&&delta<.7)return;
-      headingSample.current={angle:reading.trueHeading,time:now};
-      setHeading(reading.trueHeading);
-    },()=>{
-      if(active){
-        setHeading(null);setCompassAccuracy(null);
-        setMessage('Pusula sensörü kullanılamıyor. Cihazını kalibre etmeyi dene.');
-      }
-    }).then(next=>{
-      if(active)subscription=next;
-      else next.remove();
-    }).catch(()=>{
-      if(active){
-        setHeading(null);setCompassAccuracy(null);
-        setMessage('Bu cihazda pusula sensörüne erişilemiyor.');
-      }
-    });
-    return ()=>{
-      active=false;
-      clearInterval(staleCheck);
-      headingSample.current=null;
-      subscription?.remove();
-      if(mounted.current){setHeading(null);setCompassAccuracy(null);}
-    };
-  },[headingEnabled,cycle]));
 
   useEffect(()=>{
     if(!aligned||Date.now()-lastAlignedHaptic.current<12000)return;
@@ -192,12 +65,9 @@ export default function QiblaScreen(){
   },[aligned]);
 
   const primaryAction=()=>{
-    if(!locationReady){void locate(true);return;}
+    if(!locationReady){void requestLocation(true);return;}
     setShowGuide(true);
-    setHeading(null);
-    setCompassAccuracy(null);
-    setCycle(old=>old+1);
-    setMessage('Kalibrasyon için telefonu havada yatay bir 8 hareketiyle yavaşça döndür.');
+    recalibrateHeading();
     Haptics.selectionAsync().catch(()=>undefined);
   };
   const openMap=async()=>{
@@ -207,6 +77,7 @@ export default function QiblaScreen(){
   // Relative live turn guidance is the primary instruction. Absolute bearing is
   // shown only as a labelled reference, never presented as a turn instruction.
   const turnInstruction=!locationReady?'Konum bekleniyor'
+    :freshness!=='live'?'Pusula sinyali bekleniyor'
     :compassAccuracy===1?'Önce pusulayı kalibre et'
     :!guidance?'Pusula yönü bekleniyor'
     :guidance.direction==='near'
@@ -215,14 +86,17 @@ export default function QiblaScreen(){
       :'Sola '+guidance.turnDegrees+'° dön';
   const absoluteBearingText=bearing===null
     ?'Kâbe açısı konum alındığında hesaplanır'
-    :'Kâbe açısı '+Math.round(bearing)+'° · Gerçek kuzeye göre';
+    :'Kâbe açısı '+Math.round(bearing)+'° · Gerçek kuzeye göre'+
+      (positionSource==='last-known'?' · Son konum':'');
   const headingStatus=!locationReady?'Konumunu etkinleştir'
+    :freshness==='recovering'?'Pusula yeniden bağlanıyor'
+    :freshness==='stale'?'Pusula verisi bekleniyor'
     :compassAccuracy===1?'Kalibrasyon gerekli'
     :!hasValidHeading?'Pusula sinyali bekleniyor'
     :aligned?'Kıble doğrultusuna yakınsın'
     :guidance?.direction==='near'?'Sensör doğruluğunu artır'
     :'İbreyi takip ederek yönel';
-  const detailMessage=compassAccuracy===1
+  const detailMessage=compassAccuracy===1&&freshness==='live'
     ?'Pusula sinyali düşük. Metal eşyalardan uzaklaş ve cihazı kalibre et.'
     :message;
   return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:dark?'#06192C':colors.canvas}}>
