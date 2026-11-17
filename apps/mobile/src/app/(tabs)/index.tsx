@@ -227,7 +227,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     ? 'İmsak ile güneş arasında sabah namazının sünneti dışındaki nafile namazlarla ilgili kısıtlamalar vardır.'
     : phase.urgency!=='normal'
     ? phase.next.label+' vaktine '+remainingText+'. '
-    : phase.next.label+' vaktine '+remainingText+' · '+Math.round(phase.progress*100)+'% ilerleme.';
+    : phase.next.label+' vaktine '+remainingText+'. Çember canlı saati izliyor.';
   const selectedIndex=manualIndex??currentIndex;
   const selectedPrayer=SCHEDULE.times[selectedIndex];
   const compact=height<730;
@@ -247,7 +247,10 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         <PrayerWheel
           times={SCHEDULE.times} selectedIndex={selectedIndex}
           onSelect={handleWheelSelection}
-          onGestureStart={cancelLiveReturn}
+          onGestureStart={()=>{
+            cancelLiveReturn();
+            setManualIndex(previous=>previous??currentIndex);
+          }}
           onGestureEnd={scheduleLiveReturn}
           focusRequest={focusRequest}
           nowSeconds={previewSeconds} colors={colors}
@@ -283,7 +286,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
               : approachingKerahat?'Kerahat aralığına yaklaşık '+kerahatMinutes+' dk'
               : nafileOnly ? 'İmsak sonrası · Nafile namaz bilgisi'
               : phase.urgency==='normal'
-              ? 'Canlı vakit ilerlemesi'
+              ? 'Çember canlı zamanla dönüyor'
               : phase.next.label+' vaktine '+remainingText}
           </Text>
         </View>
@@ -293,7 +296,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
             <Feather name="rotate-ccw" size={12} color={colors.emerald}/>
             <Text style={{fontSize:10,color:colors.muted}}>Otomatik canlıya döner</Text>
           </View>
-          :<Text style={{fontSize:10,color:colors.muted}}>Vakit ilerlemesi %{Math.round(phase.progress*100)}</Text>}
+          :<Text style={{fontSize:10,color:colors.muted}}>Çember canlı zamanı izliyor</Text>}
       </View>
 
       <View style={[styles.chipsContainer,{
@@ -332,7 +335,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           restriction?'Yaklaşık kerahet aralığı':phase.next.label+' vaktine kalan',
           restriction
             ? restriction.description+'\n\nBu aralıklar genel Diyanet açıklamasından türetilmiş yaklaşık değerlendirmelerdir. Farklı namaz türleri için hükümler ve istisnalar bulunmaktadır. Gerçek ibadet için kullanılmamalıdır.'
-            : 'Vakit zaman çizelgesinin yaklaşık %'+Math.round(phase.progress*100)+' kısmı geçti. Sonraki vakte '+remainingText+' var. Saatler seçilen takvim kaynağından alınmıştır.',
+            : 'Çember gerçek saatle birlikte sürekli döner. Sonraki vakte '+remainingText+' var. Saatler seçilen takvim kaynağından alınmıştır.',
         )}
         style={[styles.kerahetNote,{
           borderColor:restriction ? (dark?'#B96364':'#D59A98') : colors.border,
