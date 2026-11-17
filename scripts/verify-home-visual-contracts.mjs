@@ -45,7 +45,7 @@ assert.match(gallery,/return metadata\.width\/metadata\.height/);
 assert.match(wheel,/const kerahatArcs=ringWindows\.flatMap/);
 assert.match(wheel,/strokeWidth=\{kerahatActive\?3\.5:kerahatApproaching\?2\.6:\.8\}/);
 assert.match(wheel,/'KERAHAT VAKTİ'/);
-assert.match(wheel,/kerahatActive\?15\.5/);
-assert.match(wheel,/kerahatActive\?14/);
+assert.match(wheel,/window\.state==='active'\?15\.5/);
+assert.match(wheel,/window\.state==='active'\?14/);
 
 console.log('Home visual QA: original emblem hierarchy, stationary mosque pin, uncropped smaller gallery, removed redundant card and strong kerahat cues OK');
