@@ -209,6 +209,7 @@ export function useQiblaEngine(){
       listener?.remove();
       listener=null;
       observing=false;
+      lastValidAt=0;
     };
     const subscribe=()=>{
       if(!active||!foreground||observing)return;
@@ -223,6 +224,8 @@ export function useQiblaEngine(){
         if(!result.accepted){
           invalidRun+=1;
           if(invalidRun>=3){
+            lastValidAt=0; // Never revive the last accepted sample as live.
+            setCompassAccuracy(0);
             setFreshness('recovering');
             if(!Number.isFinite(reading.trueHeading)||reading.trueHeading<0)
               setMessage('Gerçek kuzey verisi bulunamadı. Konum ve pusula izinlerini kontrol et.');
