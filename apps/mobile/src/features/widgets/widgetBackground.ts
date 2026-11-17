@@ -166,7 +166,7 @@ export async function syncForegroundWidgetCalendar(
 ):Promise<import('./widgetSyncShared').WidgetSyncResult>{
   if(!enabled())return syncPrayerWidgets(days,now);
   await setWidgetActivePlace(place,source);
-  if(!place)return syncPrayerWidgets([],now);
+  if(!place)return syncPrayerWidgets([],now,0);
   // Validate the current foreground result directly. Native widget updates
   // must not depend on an AsyncStorage read/write round-trip succeeding.
   // Storage is still used for offline/headless WorkManager refreshes.
@@ -188,7 +188,7 @@ export async function syncForegroundWidgetCalendar(
   // Always clear a previous-district snapshot if the current district has no
   // valid published data; otherwise, preserve the same-district cache.
   const selected=snapshot.status==='ready'?verified:[];
-  const result=await syncPrayerWidgets(selected,now);
+  const result=await syncPrayerWidgets(selected,now,place.id);
   // Diagnostic distinction: an app preview may have valid hours while the
   // defensive native cache cannot accept the payload. Never mislabel that
   // as an Android launcher or notification-permission problem.
@@ -243,7 +243,7 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
   if(!latest||latest.id!==place.id||latest.source!==place.source)return true;
   const usable=cached&&parseWidgetCalendarCache(cached,Date.now(),place.id);
   const snapshot=usable?buildPrayerWidgetSnapshot(usable.days,Date.now()):null;
-  const result=await syncPrayerWidgets(snapshot?.status==='ready'?usable!.days:[],Date.now());
+  const result=await syncPrayerWidgets(snapshot?.status==='ready'?usable!.days:[],Date.now(),place.id);
   if(!result.updated){
     await report('error',result.detail,networkAt,false);
     return false;
