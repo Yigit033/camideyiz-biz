@@ -7,8 +7,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.util.Log;
+import android.widget.RemoteViews;
+
+import biz.camideyiz.app.R;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,23 +22,20 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 /**
- * Android-only precomputed prayer-boundary refresher.
+ * Android launcher widgets — native RemoteViews, not the isolated Expo
+ * widget JS engine. Both provider component names are retained during app
+ * upgrades, so already-pinned widgets keep their appWidget IDs.
  *
- * Expo Widgets Android only supports updateSnapshot, not updateTimeline.
- * JS supplies an already verified district calendar converted to boundary
- * snapshots; these are persisted before returning to JS. An Android inexact
- * alarm recomputes the effective snapshot at wake time, writes Expo Widgets'
- * documented-in-source SharedPreferences keys, and broadcasts a refresh to
- * the actual Glance widget providers without starting the React runtime.
+ * The only source of times is the already validated published prayer
+ * calendar supplied by the React app. Native code does NOT calculate
+ * astronomical times or fetch potentially mismatched district data.
  *
- * NO invented prayer times and NO exact-alarm/notification permission.
- * In Doze, AlarmManager may deliver late. Last-write/instance diagnostics
- * attest only native storage and broadcast, never launcher pixel rendering.
+ * All user taps use a real launcher PendingIntent, not an inert label.
+ * No exact-alarm, location, or notification permission is required.
  */
-final class WidgetBoundaryScheduler {
-  private static final String TAG = "CamideyizWidgetP0";
+public final class WidgetBoundaryScheduler {
+  private static final String TAG = "CamideyizWidget";
   private static final String PREFS = "camideyiz.widget.boundaries.v1";
-  private static final String EXPO_PREFS = "expo.modules.widgets";
   private static final String CALENDAR = "timeline";
   private static final String ACTION = "biz.camideyiz.app.WIDGET_BOUNDARY";
   private static final String[] NAMES = {"NextPrayerWidget", "PrayerDayWidget"};
@@ -46,7 +45,8 @@ final class WidgetBoundaryScheduler {
   private WidgetBoundaryScheduler() {}
 
   private static SharedPreferences prefs(Context context) {
-    return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    return context.getApplicationContext()
+        .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
   }
 
   private static JSONObject parseAndValidate(String raw, long now) throws JSONException {
@@ -88,186 +88,238 @@ final class WidgetBoundaryScheduler {
     return root;
   }
 
-  static synchronized JSONObject publish(Context context, String raw) throws JSONException {
+  public static synchronized JSONObject publish(Context context, String raw)
+      throws JSONException {
     Context app = context.getApplicationContext();
     long now = System.currentTimeMillis();
+    SharedPreferences.Editor editor=prefs(app).edit().putLong("lastSyncAt",now);
     if (raw == null || raw.isEmpty()) {
-      prefs(app).edit().remove(CALENDAR).putLong("lastSyncAt", now).commit();
+      editor.remove(CALENDAR);
     } else {
-      JSONObject validated = parseAndValidate(raw, now);
-      if (!prefs(app).edit().putString(CALENDAR, validated.toString())
-          .putLong("lastSyncAt", now).commit())
-        throw new JSONException("cannot persist native prayer timeline");
+      editor.putString(CALENDAR,parseAndValidate(raw,now).toString());
     }
+    if (!editor.commit()) throw new JSONException("cannot persist calendar");
     refresh(app);
     return status(app);
   }
 
-  static synchronized void refresh(Context context) {
-    Context app = context.getApplicationContext();
-    long now = System.currentTimeMillis();
-    SharedPreferences nativePrefs = prefs(app);
-    JSONObject selection = null;
-    long nextBoundary = 0;
-    String raw = nativePrefs.getString(CALENDAR, null);
+  /**
+   * Called by app foreground sync, system widget installation, reboot and
+   * an inexact AlarmManager prayer boundary. Time is read at DELIVERY, not
+   * the originally expected instant, so a delayed alarm catches up at once.
+   */
+  public static synchronized void refresh(Context context) {
+    Context app=context.getApplicationContext();
+    SharedPreferences local=prefs(app);
+    long now=System.currentTimeMillis();
+    long nextBoundary=0;
     try {
-      if (raw != null) {
-        JSONObject root = new JSONObject(raw);
-        long generatedAt = root.getLong("generatedAt");
-        long sourceAt = root.getLong("sourceAt");
-        // Bound validity to the REAL source fetch, not the last app open.
-        // Reopening an offline app must not extend a 72h validity window.
-        if (generatedAt <= now && sourceAt <= now && now - sourceAt <= MAX_AGE) {
-          JSONArray entries = root.getJSONArray("entries");
-          for (int i = 0; i < entries.length(); i++) {
-            JSONObject item = entries.getJSONObject(i);
-            long at = item.getLong("at");
-            if (at <= now) selection = item.getJSONObject("props");
-            else { nextBoundary = at; break; }
+      JSONObject selection=null;
+      String raw=local.getString(CALENDAR,null);
+      if(raw!=null){
+        JSONObject root=new JSONObject(raw);
+        long generatedAt=root.getLong("generatedAt");
+        long sourceAt=root.getLong("sourceAt");
+        if(generatedAt<=now && sourceAt<=now && now-sourceAt<=MAX_AGE){
+          JSONArray entries=root.getJSONArray("entries");
+          for(int i=0;i<entries.length();i++){
+            JSONObject item=entries.getJSONObject(i);
+            long at=item.getLong("at");
+            if(at<=now) selection=item.getJSONObject("props");
+            else { nextBoundary=at; break; }
           }
-          long expiresAt = sourceAt + MAX_AGE;
-          if (nextBoundary == 0 || nextBoundary > expiresAt) {
-            nextBoundary = expiresAt > now ? expiresAt : 0;
-          }
+          long expiresAt=sourceAt+MAX_AGE;
+          if(nextBoundary==0 || nextBoundary>expiresAt)
+            nextBoundary=expiresAt>now?expiresAt:0;
         }
       }
-      if (selection == null) selection = emptyProps(now);
-      // The on-device refresh time must not masquerade as the date the source
-      // timetable was published. It describes only this widget re-render.
-      selection.put("updatedAt", now);
-      selection.put("updatedClock", clock(now));
-      selection.put("nativeAppliedAt", now);
-      SharedPreferences.Editor editor =
-          app.getSharedPreferences(EXPO_PREFS, Context.MODE_PRIVATE).edit();
-      for (String name : NAMES) {
-        editor.putString("__expo_widgets_" + name + "_props", selection.toString());
-      }
-      if (!editor.commit()) throw new IllegalStateException("expo props not committed");
-      int count = broadcastWidgetRefresh(app);
-      nativePrefs.edit()
-          .putLong("lastAppliedAt", now)
-          .putString("lastNextName", selection.optString("nextName", ""))
-          .putString("lastNextTime", selection.optString("nextTime", ""))
-          .putString("lastCity", selection.optString("city", ""))
-          .putString("lastDateISO", selection.optString("dateISO", ""))
-          .putBoolean("lastReady", selection.optBoolean("ready", false))
-          .putInt("lastInstanceCount", count)
-          .remove("lastError").apply();
-    } catch (Exception error) {
-      Log.e(TAG, "Native widget boundary refresh failed", error);
-      nativePrefs.edit().putString("lastError", error.getClass().getSimpleName()
-          + ": " + error.getMessage()).apply();
-      // Clear any scheduled alarm rather than looping rapidly on corruption.
-      nextBoundary = 0;
+      if(selection==null)selection=emptyProps(now);
+      selection.put("updatedAt",now);
+      selection.put("updatedClock",clock(now));
+      selection.put("nativeAppliedAt",now);
+
+      // Commit native data BEFORE a launcher update; if writing fails,
+      // report the error rather than treating update as successful.
+      if(!local.edit().putLong("lastAppliedAt",now)
+          .putString("lastProps",selection.toString())
+          .putString("lastNextName",selection.optString("nextName",""))
+          .putString("lastNextTime",selection.optString("nextTime",""))
+          .putString("lastCity",selection.optString("city",""))
+          .putString("lastDateISO",selection.optString("dateISO",""))
+          .putBoolean("lastReady",selection.optBoolean("ready",false))
+          .remove("lastError").commit())
+        throw new IllegalStateException("native snapshot commit failed");
+
+      int count=renderWidgets(app,selection);
+      local.edit().putInt("lastInstanceCount",count).apply();
+    }catch(Exception error){
+      Log.e(TAG,"Native launcher widget update failed",error);
+      local.edit().putString("lastError",
+          error.getClass().getSimpleName()+": "+error.getMessage()).apply();
+      nextBoundary=0;
     }
-    scheduleNext(app, nextBoundary, now);
+    scheduleNext(app,nextBoundary,now);
   }
 
   private static JSONObject emptyProps(long now) throws JSONException {
-    JSONObject props = new JSONObject();
-    props.put("ready", false);
-    props.put("city", "Konum seç");
-    props.put("dateISO", "");
-    props.put("nextName", "Takvimi aç");
-    props.put("nextTime", "");
-    props.put("nextAt", 0);
-    props.put("updatedAt", now);
-    props.put("remainingMinutes", 0);
-    props.put("updatedClock", clock(now));
-    props.put("times", new JSONArray());
+    JSONObject props=new JSONObject();
+    props.put("ready",false);
+    props.put("city","Konum seçilmedi");
+    props.put("dateISO","");
+    props.put("nextName","Takvimi aç");
+    props.put("nextTime","");
+    props.put("nextAt",0);
+    props.put("updatedAt",now);
+    props.put("remainingMinutes",0);
+    props.put("updatedClock",clock(now));
+    props.put("times",new JSONArray());
     return props;
   }
 
   private static String clock(long now) {
-    SimpleDateFormat formatter = new SimpleDateFormat("HH:mm", Locale.forLanguageTag("tr-TR"));
-    formatter.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
-    return formatter.format(new Date(now));
+    SimpleDateFormat fmt=new SimpleDateFormat("HH:mm",Locale.forLanguageTag("tr-TR"));
+    fmt.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
+    return fmt.format(new Date(now));
   }
 
-  private static int installedCount(Context context, String widget) {
-    try {
-      ComponentName component = new ComponentName(
-          context.getPackageName(), context.getPackageName() + "." + widget + "Provider");
-      return AppWidgetManager.getInstance(context).getAppWidgetIds(component).length;
-    } catch (Exception ignored) { return 0; }
+  private static ComponentName component(Context context,String name){
+    // Keep the old Expo provider FQCN to retain the user's pinned instances.
+    return new ComponentName(context.getPackageName(),
+        context.getPackageName()+"."+name+"Provider");
   }
 
-  private static int broadcastWidgetRefresh(Context context) {
-    AppWidgetManager manager = AppWidgetManager.getInstance(context);
-    int installed = 0;
-    for (String name : NAMES) {
-      ComponentName component = new ComponentName(
-          context.getPackageName(), context.getPackageName() + "." + name + "Provider");
-      int[] ids = manager.getAppWidgetIds(component);
-      installed += ids.length;
-      if (ids.length == 0) continue;
-      Intent refresh = new Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-      refresh.setComponent(component);
-      refresh.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids);
-      refresh.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-      context.sendBroadcast(refresh);
+  private static int installedCount(Context context,String name){
+    try{
+      return AppWidgetManager.getInstance(context)
+          .getAppWidgetIds(component(context,name)).length;
+    }catch(Exception error){
+      Log.w(TAG,"Cannot inspect pinned widget IDs",error);
+      return 0;
     }
-    return installed;
   }
 
-  private static PendingIntent alarmIntent(Context context) {
-    Intent intent = new Intent(context, WidgetBoundaryReceiver.class).setAction(ACTION);
-    return PendingIntent.getBroadcast(context, 41017, intent,
-        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+  /** Use an actual PendingIntent to MainActivity. A text label in a widget
+   * cannot launch the app by itself; the entire native card is tappable. */
+  private static PendingIntent launchAction(Context context,int requestCode) {
+    Intent launch=context.getPackageManager()
+        .getLaunchIntentForPackage(context.getPackageName());
+    if(launch==null) {
+      launch=new Intent(Intent.ACTION_MAIN);
+      launch.addCategory(Intent.CATEGORY_LAUNCHER);
+      launch.setPackage(context.getPackageName());
+    }
+    launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+        |Intent.FLAG_ACTIVITY_CLEAR_TOP
+        |Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    return PendingIntent.getActivity(context,requestCode,launch,
+        PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
   }
 
-  private static void scheduleNext(Context context, long next, long now) {
-    SharedPreferences preferences = prefs(context);
-    try {
-      AlarmManager manager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-      if (manager == null) throw new IllegalStateException("AlarmManager absent");
-      PendingIntent intent = alarmIntent(context);
+  private static int renderWidgets(Context context,JSONObject props)
+      throws JSONException {
+    AppWidgetManager manager=AppWidgetManager.getInstance(context);
+    boolean ready=props.optBoolean("ready",false);
+    String city=props.optString("city","Konum seçilmedi");
+    String next=props.optString("nextName","");
+    String time=props.optString("nextTime","");
+    int count=0;
+
+    int[] small=manager.getAppWidgetIds(component(context,NAMES[0]));
+    if(small.length>0){
+      RemoteViews card=new RemoteViews(context.getPackageName(),R.layout.widget_next_prayer);
+      card.setTextViewText(R.id.widget_city,ready?city:"Takvim henüz yüklenmedi");
+      card.setTextViewText(R.id.widget_next_label,ready?"Sıradaki vakit · "+next
+          :"Uygulama takvimini aç");
+      card.setTextViewText(R.id.widget_next_time,ready?time:"Vakitleri yükle");
+      card.setTextViewText(R.id.widget_hint,ready
+          ?"Güncelleme "+props.optString("updatedClock","")
+          :"Takvimi açmak için dokun");
+      card.setOnClickPendingIntent(R.id.widget_root,launchAction(context,41018));
+      manager.updateAppWidget(small,card);
+      count+=small.length;
+    }
+
+    int[] day=manager.getAppWidgetIds(component(context,NAMES[1]));
+    if(day.length>0){
+      RemoteViews card=new RemoteViews(context.getPackageName(),R.layout.widget_prayer_day);
+      card.setTextViewText(R.id.widget_day_city,
+          ready?city+" · Bugünün vakitleri":"Takvim henüz yüklenmedi");
+      JSONArray times=ready?props.getJSONArray("times"):new JSONArray();
+      int[] cells={
+        R.id.widget_day_time_0,R.id.widget_day_time_1,R.id.widget_day_time_2,
+        R.id.widget_day_time_3,R.id.widget_day_time_4,R.id.widget_day_time_5
+      };
+      for(int i=0;i<cells.length;i++){
+        if(i<times.length()){
+          JSONObject row=times.getJSONObject(i);
+          card.setTextViewText(cells[i],
+              row.optString("label","")+"  "+row.optString("time",""));
+        }else{
+          card.setTextViewText(cells[i],i==0?"Vakitleri yükle":"—");
+        }
+      }
+      card.setTextViewText(R.id.widget_day_footer,
+          ready?"Sıradaki · "+next+" "+time
+            :"Uygulamayı açmak için widget'a dokun");
+      card.setOnClickPendingIntent(R.id.widget_day_root,launchAction(context,41019));
+      manager.updateAppWidget(day,card);
+      count+=day.length;
+    }
+    return count;
+  }
+
+  private static PendingIntent alarmIntent(Context context){
+    Intent intent=new Intent(context,WidgetBoundaryReceiver.class).setAction(ACTION);
+    return PendingIntent.getBroadcast(context,41017,intent,
+        PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+  }
+
+  private static void scheduleNext(Context context,long next,long now){
+    SharedPreferences local=prefs(context);
+    try{
+      AlarmManager manager=(AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+      if(manager==null)throw new IllegalStateException("AlarmManager absent");
+      PendingIntent intent=alarmIntent(context);
       manager.cancel(intent);
-      if (next <= now) {
-        preferences.edit().putLong("nextAlarmAt", 0).apply();
+      if(next<=now){
+        local.edit().putLong("nextAlarmAt",0).apply();
         return;
       }
-      // Do not request exact-alarm permissions. setAndAllowWhileIdle is an
-      // inexact wakeup, delivered no earlier than the prayer boundary.
-      manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, next + 1200, intent);
-      preferences.edit().putLong("nextAlarmAt", next).apply();
-    } catch (Exception exception) {
-      preferences.edit().putLong("nextAlarmAt", 0)
-          .putString("lastError", "alarm: " + exception.getMessage()).apply();
+      // Android Doze may delay inexact alarms. No exact-alarm permission.
+      manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next+1200,intent);
+      local.edit().putLong("nextAlarmAt",next).apply();
+    }catch(Exception error){
+      local.edit().putLong("nextAlarmAt",0)
+          .putString("lastError","alarm: "+error.getMessage()).apply();
     }
   }
 
-  static JSONObject status(Context context) throws JSONException {
-    SharedPreferences local = prefs(context);
-    SharedPreferences expo = context.getSharedPreferences(EXPO_PREFS, Context.MODE_PRIVATE);
-    JSONObject state = new JSONObject();
-    state.put("supported", true);
-    state.put("installedNext", installedCount(context, NAMES[0]));
-    state.put("installedDay", installedCount(context, NAMES[1]));
-    state.put("lastAppliedAt", local.getLong("lastAppliedAt", 0));
-    state.put("nextAlarmAt", local.getLong("nextAlarmAt", 0));
-    state.put("lastSyncAt", local.getLong("lastSyncAt", 0));
-    state.put("lastError", local.getString("lastError", ""));
-    state.put("lastNextName", local.getString("lastNextName", ""));
-    state.put("lastNextTime", local.getString("lastNextTime", ""));
-    state.put("lastCity", local.getString("lastCity", ""));
-    state.put("lastDateISO", local.getString("lastDateISO", ""));
-    state.put("lastReady", local.getBoolean("lastReady", false));
-    String next = expo.getString("__expo_widgets_NextPrayerWidget_props", "");
-    String day = expo.getString("__expo_widgets_PrayerDayWidget_props", "");
-    boolean persisted = false;
-    try {
-      JSONObject a = new JSONObject(next);
-      JSONObject b = new JSONObject(day);
-      long at = local.getLong("lastAppliedAt", 0);
-      persisted = at > 0 && a.optLong("nativeAppliedAt") == at &&
-          b.optLong("nativeAppliedAt") == at &&
-          a.optString("nextName").equals(b.optString("nextName"));
-    } catch (JSONException ignored) {}
-    state.put("persisted", persisted);
-    state.put("hasTimeline", local.contains(CALENDAR));
-    // Not a rendering acknowledgment: Android's launcher is another process.
-    state.put("launcherConfirmed", false);
-    return state;
+  public static JSONObject status(Context context) throws JSONException{
+    SharedPreferences local=prefs(context);
+    JSONObject result=new JSONObject();
+    result.put("supported",true);
+    result.put("installedNext",installedCount(context,NAMES[0]));
+    result.put("installedDay",installedCount(context,NAMES[1]));
+    long last=local.getLong("lastAppliedAt",0);
+    result.put("lastAppliedAt",last);
+    result.put("nextAlarmAt",local.getLong("nextAlarmAt",0));
+    result.put("lastSyncAt",local.getLong("lastSyncAt",0));
+    result.put("lastError",local.getString("lastError",""));
+    result.put("lastNextName",local.getString("lastNextName",""));
+    result.put("lastNextTime",local.getString("lastNextTime",""));
+    result.put("lastCity",local.getString("lastCity",""));
+    result.put("lastDateISO",local.getString("lastDateISO",""));
+    result.put("lastReady",local.getBoolean("lastReady",false));
+    boolean persisted=false;
+    try{
+      JSONObject payload=new JSONObject(local.getString("lastProps",""));
+      persisted=last>0 && payload.optLong("nativeAppliedAt")==last &&
+          payload.optBoolean("ready")==local.getBoolean("lastReady",false);
+    }catch(JSONException ignored){}
+    result.put("persisted",persisted);
+    result.put("hasTimeline",local.contains(CALENDAR));
+    // Android Launcher is outside this process: no pixel acknowledgment.
+    result.put("launcherConfirmed",false);
+    return result;
   }
 }
