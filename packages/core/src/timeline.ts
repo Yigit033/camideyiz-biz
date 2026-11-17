@@ -81,10 +81,11 @@ export function calculatePrayerPhase(schedule: PrayerSchedule, secondsOfDay: num
   };
 }
 
-/** 
- * Diyanet Din İşleri Yüksek Kurulu: common *approximate* windows in temperate areas.
- * Do not infer official minute-accurate intervals from these values; actual solar altitude,
- * juristic interpretation and high latitudes may change applicability.
+/**
+ * User-configurable visual overlays relative to the selected prayer timetable.
+ * Product defaults are 45 / 30 / 45 minutes. The 30-minute pre-noon caution
+ * is a PRODUCT CHOICE; Diyanet's published approximate noon interval is ~10m.
+ * Do not imply these minute intervals are official rulings or solar-altitude data.
  */
 export function indicativeKerahatWindows(
   schedule: PrayerSchedule,
@@ -92,7 +93,7 @@ export function indicativeKerahatWindows(
 ): RestrictionWindow[] {
   validateSchedule(schedule);
   const sunriseMinutes=options.sunriseMinutes ?? 45;
-  const preNoonMinutes=options.preNoonMinutes ?? 10;
+  const preNoonMinutes=options.preNoonMinutes ?? 30;
   const preSunsetMinutes=options.preSunsetMinutes ?? 45;
   for (const offset of [sunriseMinutes,preNoonMinutes,preSunsetMinutes]) {
     if (!Number.isFinite(offset) || offset < 0 || offset > 120) {
@@ -107,21 +108,21 @@ export function indicativeKerahatWindows(
       kind:'sunrise', startSeconds:m.gunes*60,
       endSeconds:(m.gunes+sunriseMinutes)*60,
       title:'Güneş doğuşu · kerahet',
-      description:'Güneş doğuşundan sonraki yaklaşık 40–50 dakika. Namaz türüne göre hükümler farklıdır.',
+      description:'Güneş doğuşundan sonraki yaklaşık '+sunriseMinutes+' dakika. Namaz türüne göre hükümler farklıdır.',
       approximate:true,
     },
     {
       kind:'zenith', startSeconds:(m.ogle-preNoonMinutes)*60,
       endSeconds:m.ogle*60,
       title:'Zeval · kerahet',
-      description:'Öğle vaktinden yaklaşık 10 dakika önceki kısıtlı zaman aralığı.',
+      description:'Öğle vaktinden önce seçilmiş yaklaşık '+preNoonMinutes+' dakikalık görsel uyarı aralığıdır.',
       approximate:true,
     },
     {
       kind:'sunset', startSeconds:(m.aksam-preSunsetMinutes)*60,
       endSeconds:m.aksam*60,
       title:'Gün batımı · kerahet',
-      description:'Akşama yaklaşık 40–50 dakika kala. O günün ikindi farzına ilişkin istisna vardır.',
+      description:'Akşama yaklaşık '+preSunsetMinutes+' dakika kala. O günün ikindi farzına ilişkin istisna vardır.',
       approximate:true,
     },
   ];
