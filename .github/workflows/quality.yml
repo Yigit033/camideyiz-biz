@@ -89,6 +89,20 @@ jobs:
       - run: cd apps/mobile && npx expo install --check
       - name: Native widget Android CNG prebuild smoke test
         run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo prebuild --platform android --no-install --clean
+      - name: Verify P0 native widget receiver and bridge are registered by CNG
+        run: |
+          set -euo pipefail
+          app=apps/mobile/android/app/src/main
+          test -s "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          test -s "$app/java/biz/camideyiz/app/widget/WidgetBoundaryReceiver.java"
+          test -s "$app/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
+          test -s "$app/java/biz/camideyiz/app/widget/CamideyizWidgetPackage.java"
+          grep -F 'CamideyizWidgetPackage()' "$app/java/biz/camideyiz/app/MainApplication.kt"
+          grep -F 'WidgetBoundaryReceiver' "$app/AndroidManifest.xml"
+          grep -F 'RECEIVE_BOOT_COMPLETED' "$app/AndroidManifest.xml"
+          grep -F 'setAndAllowWhileIdle' "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          grep -F 'expo.modules.widgets' "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          echo 'P0 native Android bridge, reboot receiver, inexact boundary schedule and Expo cache contract present'
       - name: Verify release WorkManager R8 keep rules
         run: |
           grep -F 'androidx.room.RoomDatabase { <init>(); }' apps/mobile/android/app/proguard-rules.pro
