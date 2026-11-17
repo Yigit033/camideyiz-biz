@@ -19,7 +19,8 @@ const WINDOWS:{
 
 /** The three bands are adjustable *approximate* guides, NOT an assertion
  * about whether an individual prayer is permissible. Detail stays in the
- * Heavy/Light guides; this home card only presents ranges and their state.
+ * Heavy/Light guides; three compact range cards show individual states.
+ * The redundant 'Bugünün aralıkları' status card is intentionally removed.
  */
 export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
   view:KerahatView;settings:KerahatSettings;
@@ -31,25 +32,10 @@ export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
   const bands=kerahatRingWindows(view.windows,secondsOfDay);
   const active=bands.find(w=>w.state==='active')??null;
   const approaching=bands.find(w=>w.state==='approaching')??null;
-  const next=view.next;
   const showBands=enabled&&bands.length>0;
   const openGuide=(tab:'heavy'|'light')=>router.push({
     pathname:'/kerahat-guide',params:{tab},
   });
-  const statusColor=active?(dark?'#F4B6B3':'#92364A')
-    :approaching?(dark?'#EFCB87':'#95652C'):colors.emerald;
-  const statusText=active?'Şu an yaklaşık kerahat aralığı'
-    :approaching?'Kerahat aralığı yaklaşıyor':'Bugünün aralıkları';
-  const statusDetail=active
-    ?kerahatWindowLabel(active.kind)+' · '+formatWindowClock(active.endSeconds)+
-      ' saatine kadar (yaklaşık)'
-    :approaching
-      ?kerahatWindowLabel(approaching.kind)+' · yaklaşık '+
-        Math.ceil((approaching.startSeconds-secondsOfDay)/60)+' dk kaldı'
-      :next
-        ?'Sıradaki: '+kerahatWindowLabel(next.kind)+' · '+
-          formatWindowClock(next.startSeconds)
-        :'Bugünkü aralıklar tamamlandı';
 
   return <View style={[styles.panel,{
     backgroundColor:dark?'rgba(16,48,71,.94)':'rgba(255,252,244,.97)',
@@ -78,28 +64,6 @@ export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
         <Feather name="book-open" color={colors.gold} size={17}/>
       </Pressable>
     </View>
-
-    {showBands?<View style={[styles.statusRow,{
-      borderColor:active?'rgba(188,85,97,.43)':approaching?'rgba(185,145,84,.48)':colors.border,
-      backgroundColor:active
-        ?dark?'rgba(141,48,67,.25)':'#F9E9E5'
-        :approaching
-          ?dark?'rgba(173,118,44,.17)':'#FBF3DF'
-          :colors.soft,
-    }]}>
-      <View style={[styles.statusDot,{backgroundColor:statusColor}]}/>
-      <View style={{flex:1,gap:2}}>
-        <Text style={[styles.statusTitle,{color:active||approaching?statusColor:colors.text}]}>
-          {statusText}
-        </Text>
-        <Text style={[styles.statusDetail,{color:colors.muted}]}>
-          {statusDetail}
-        </Text>
-      </View>
-      {(active||approaching)?<Feather
-        name={active?'alert-circle':'clock'} size={16}
-        color={statusColor}/>:null}
-    </View>:null}
 
     {showBands?<View style={styles.cards}>
       {WINDOWS.map(entry=>{
@@ -192,10 +156,6 @@ const styles=StyleSheet.create({
   title:{fontFamily:'serif',fontSize:18,fontWeight:'800'},
   subtitle:{fontSize:10.5,lineHeight:16},
   infoIcon:{width:36,height:36,borderRadius:13,borderWidth:1,alignItems:'center',justifyContent:'center'},
-  statusRow:{flexDirection:'row',alignItems:'center',gap:10,padding:11,borderWidth:1,borderRadius:13},
-  statusDot:{height:9,width:9,borderRadius:5},
-  statusTitle:{fontSize:11.5,fontWeight:'800'},
-  statusDetail:{fontSize:10.5,lineHeight:16},
   cards:{flexDirection:'row',gap:7},
   card:{flex:1,minWidth:0,borderRadius:14,
     alignItems:'center',justifyContent:'center',paddingHorizontal:3,
