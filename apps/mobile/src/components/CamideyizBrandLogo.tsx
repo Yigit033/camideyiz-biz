@@ -1,6 +1,6 @@
 import {memo} from 'react';
 import {View} from 'react-native';
-import Svg,{Defs,LinearGradient,Stop,Path} from 'react-native-svg';
+import Svg,{Defs,LinearGradient,RadialGradient,Stop,Path} from 'react-native-svg';
 import {useAppTheme} from '@/theme/ThemeProvider';
 
 /**
@@ -26,8 +26,20 @@ function MosqueSymbol({width}:{width:number}){
         <Stop offset="41%" stopColor="#049BDF"/>
         <Stop offset="100%" stopColor="#0788D3"/>
       </LinearGradient>
+      <RadialGradient id="symbolDepthLeft" cx="27%" cy="68%" rx="42%" ry="63%">
+        <Stop offset="0%" stopColor="#004C82" stopOpacity=".30"/>
+        <Stop offset="63%" stopColor="#006AA6" stopOpacity=".11"/>
+        <Stop offset="100%" stopColor="#006AA6" stopOpacity="0"/>
+      </RadialGradient>
+      <RadialGradient id="symbolDepthRight" cx="73%" cy="68%" rx="42%" ry="63%">
+        <Stop offset="0%" stopColor="#004C82" stopOpacity=".30"/>
+        <Stop offset="63%" stopColor="#006AA6" stopOpacity=".11"/>
+        <Stop offset="100%" stopColor="#006AA6" stopOpacity="0"/>
+      </RadialGradient>
     </Defs>
     <Path d={SYMBOL_PATH} fill="url(#camideyizIconBlue)" fillRule="evenodd"/>
+    <Path d={SYMBOL_PATH} fill="url(#symbolDepthLeft)" fillRule="evenodd"/>
+    <Path d={SYMBOL_PATH} fill="url(#symbolDepthRight)" fillRule="evenodd"/>
   </Svg>;
 }
 function ModernWordmark({width,dark}:{width:number;dark:boolean}){
