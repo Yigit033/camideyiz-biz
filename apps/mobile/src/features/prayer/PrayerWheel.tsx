@@ -291,7 +291,8 @@ export function PrayerWheel({
   const ringWindows=preview?[]:kerahatRingWindows(indicativeWindows,nowSeconds);
   const kerahatActive=ringWindows.some(window=>window.state==='active');
   const kerahatApproaching=ringWindows.some(window=>window.state==='approaching');
-  const warningTint=kerahatActive?'#9B3546':kerahatApproaching?'#CA863E':null;
+  // Distinct high-contrast status colours; no change to kerahat intervals.
+  const warningTint=kerahatActive?'#9B3546':kerahatApproaching?'#C78A38':null;
   const kerahatArcs=ringWindows.flatMap(window=>{
     const from=clockSecondsToVisualAngle(window.startSeconds,times,sectors);
     const to=clockSecondsToVisualAngle(window.endSeconds,times,sectors);
@@ -326,7 +327,12 @@ export function PrayerWheel({
                 <Stop offset="100%" stopColor={blendHex(PRAYER_COLORS[item.key],'#061B1C',colors.isDark?.48:.26)}/>
               </LinearGradient>)}
             </Defs>
-            <Circle cx="180" cy="180" r="176" stroke={rim} strokeWidth="0.8" strokeOpacity=".55" fill="none"/>
+            {warningTint?<Circle cx="180" cy="180" r="173"
+              stroke={warningTint} strokeWidth={kerahatActive?9:6}
+              strokeOpacity={kerahatActive?.42:.30} fill="none"/>:null}
+            <Circle cx="180" cy="180" r="176" stroke={warningTint??rim}
+              strokeWidth={kerahatActive?3.5:kerahatApproaching?2.6:.8}
+              strokeOpacity={warningTint?1:.55} fill="none"/>
             <Circle cx="180" cy="180" r="169" stroke={rim} strokeWidth="1" strokeOpacity=".36" fill="none"/>
             <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="65" fill="none"/>
             {sectors.map((item,index) => <G key={item.key}>
@@ -386,41 +392,43 @@ export function PrayerWheel({
                 Active: deep burgundy; next 20min: warm amber; otherwise muted. */}
             {kerahatArcs.length>0
               ?<Circle cx="180" cy="180" r="112" fill="none"
-                stroke={rim} strokeOpacity=".48" strokeWidth="3"/>:null}
+                stroke={rim} strokeOpacity=".62" strokeWidth="3.2"/>:null}
             {kerahatArcs.map(window=><G key={'kerahat-'+window.kind+'-'+window.sectorKey}>
               {window.state!=='inactive'?<Path
                 d={arc(window.from,window.to,112)}
                 stroke={window.state==='active'?'#AE4054':'#D49A55'}
-                strokeOpacity=".34" strokeWidth="17" fill="none"
+                strokeOpacity={window.state==='active'?.55:.40}
+                strokeWidth={window.state==='active'?22:19} fill="none"
                 strokeLinecap="round"/>:null}
               <Path d={arc(window.from,window.to,112)}
-                stroke={window.state==='active'?'#962F44'
-                  :window.state==='approaching'?'#C7823C':'#C5716F'}
-                strokeOpacity={window.state==='inactive'?.73:1}
-                strokeWidth={window.state==='active'?12.6
-                  :window.state==='approaching'?11:8}
+                stroke={window.state==='active'?'#B82B4C'
+                  :window.state==='approaching'?'#E3A94E':'#A74F58'}
+                strokeOpacity={window.state==='inactive'?.91:1}
+                strokeWidth={window.state==='active'?15.5
+                  :window.state==='approaching'?13.2:9.6}
                 fill="none" strokeLinecap="round"/>
               <Path d={arc(window.from,window.to,112)}
                 stroke="#FFE1AC"
-                strokeOpacity={window.state==='inactive'?.37:.8}
-                strokeWidth={window.state==='active'?1.7:1.3}
+                strokeOpacity={window.state==='inactive'?.55:.95}
+                strokeWidth={window.state==='active'?2.3:1.7}
                 fill="none"/>
               {window.state!=='inactive'?<Path
                 d={arc(window.from,window.to,161)}
                 stroke={window.state==='active'?'#8E2639':'#B97032'}
-                strokeOpacity=".26" strokeWidth="16"
+                strokeOpacity={window.state==='active'?.48:.34}
+                strokeWidth={window.state==='active'?21:18}
                 fill="none" strokeLinecap="butt"/>:null}
               <Path d={arc(window.from,window.to,161)}
-                stroke={window.state==='active'?'#952F43'
-                  :window.state==='approaching'?'#C7853D':'#A76D66'}
-                strokeOpacity={window.state==='inactive'?.51:1}
-                strokeWidth={window.state==='active'?11.2
-                  :window.state==='approaching'?9.6:6}
+                stroke={window.state==='active'?'#B32E49'
+                  :window.state==='approaching'?'#E3A34E':'#A15B5E'}
+                strokeOpacity={window.state==='inactive'?.82:1}
+                strokeWidth={window.state==='active'?14
+                  :window.state==='approaching'?12:8.5}
                 fill="none" strokeLinecap="butt"/>
               {window.state==='active'?<Path
                 d={arc(window.from,window.to,158.5)}
-                stroke="#EDB4A1" strokeOpacity=".82"
-                strokeWidth="1.3" fill="none"/>:null}
+                stroke="#FFE2CA" strokeOpacity="1"
+                strokeWidth="2.2" fill="none"/>:null}
             </G>)}
           </Svg>
           {sectors.map(item=><SectorIcon key={'icon-'+item.key}
@@ -443,7 +451,9 @@ export function PrayerWheel({
             <Stop offset="100%" stopColor={colors.isDark?'#0A3452':'#DDD6C7'}/>
           </RadialGradient>
         </Defs>
-        <Circle cx="110" cy="110" r="108" fill="url(#medallion)" stroke={rim} strokeWidth="1.65"/>
+        <Circle cx="110" cy="110" r="108" fill="url(#medallion)"
+          stroke={warningTint??rim}
+          strokeWidth={kerahatActive?3.4:kerahatApproaching?2.5:1.65}/>
         <Circle cx="110" cy="110" r="104" fill="none" stroke={rim} strokeOpacity=".38" strokeWidth=".8"/>
         {Array.from({length:36},(_,i)=>{
           const a=(i*10)*Math.PI/180;return <Circle key={i}
@@ -451,19 +461,31 @@ export function PrayerWheel({
             fill={colors.gold} opacity={colors.isDark?.44:.42}/>;
         })}
       </Svg>
+      {/* Fixed "pin": the mosque dome almost touches the INSIDE edge
+          of the medallion; only the outer prayer dial rotates beneath it.
+          Size/position scale with the wheel, avoiding a detached top pin. */}
+      <View style={{position:'absolute',top:4*scale,left:0,right:0,
+        alignItems:'center',justifyContent:'center'}}>
+        <MaterialCommunityIcons name="mosque" size={36*scale}
+          color={colors.gold} accessibilityLabel="Sabit mescit zaman göstergesi"/>
+      </View>
       <View style={[styles.center,{width:size*.57,gap:5}]}>
-        <View style={{alignItems:'center',justifyContent:'center',gap:4}}>
-          <MaterialCommunityIcons name="mosque" size={27}
-            color={colors.gold} accessibilityLabel="Mescit simgesi"/>
-          <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
-            <View style={{width:23,height:1,backgroundColor:colors.gold,opacity:.7}}/>
-            <MaterialCommunityIcons name="star-four-points-outline"
-              size={10} color={colors.gold}/>
-            <View style={{width:23,height:1,backgroundColor:colors.gold,opacity:.7}}/>
-          </View>
+        <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
+          <View style={{width:23*scale,height:1,backgroundColor:colors.gold,opacity:.7}}/>
+          <MaterialCommunityIcons name="star-four-points-outline"
+            size={10*scale} color={colors.gold}/>
+          <View style={{width:23*scale,height:1,backgroundColor:colors.gold,opacity:.7}}/>
         </View>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.kicker,{color:colors.muted}]}>
-          {preview?'NAMAZ VAKİTLERİ':isManualSelection?'SEÇİLEN VAKİT':'SIRADAKİ VAKİT'}
+        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.kicker,{
+          color:!preview&&!isManualSelection&&kerahatActive
+            ?(colors.isDark?'#FFB9B7':'#932B43')
+            :!preview&&!isManualSelection&&kerahatApproaching
+              ?(colors.isDark?'#F4CB7B':'#9B651F'):colors.muted,
+          fontWeight:kerahatActive||kerahatApproaching?'900':'800',
+        }]}>
+          {preview?'NAMAZ VAKİTLERİ':isManualSelection?'SEÇİLEN VAKİT'
+            :kerahatActive?'KERAHAT VAKTİ'
+              :kerahatApproaching?'KERAHAT YAKLAŞIYOR':'SIRADAKİ VAKİT'}
         </Text>
         <Text numberOfLines={1} adjustsFontSizeToFit
           style={[styles.prayerName,{color:colors.text}]}>
