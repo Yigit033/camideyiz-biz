@@ -1,5 +1,6 @@
 export * from './prayer';
 export * from './qibla';
+export * from './qiblaTracking';
 export * from './wheel';
 export * from './timeline';
 export * from './visualDial';
