@@ -72,3 +72,41 @@ test('iOS timeline changes entry at every prayer boundary and midnight',()=>{
  assert.equal(result[1].snapshot.nextName,'Güneş');
  assert.ok(result.some(e=>e.date===prayerInstant('2026-11-15','00:00')));
 });
+
+test('Android native widget boundary plan changes prayer exactly at each published instant',()=>{
+  const now=prayerInstant('2026-11-14','06:05');
+  const entries=buildPrayerWidgetTimeline([base,next],now,100);
+  assert.equal(entries[0].date,now);
+  assert.equal(entries[0].snapshot.nextName,'İmsak');
+  for(const [time,expectedNext] of [
+    ['06:15','Güneş'],['07:43','Öğle'],['12:53','İkindi'],
+    ['15:30','Akşam'],['17:54','Yatsı'],['19:17','İmsak'],
+  ] as const){
+    const at=prayerInstant('2026-11-14',time);
+    const entry=entries.find(e=>e.date===at);
+    assert.ok(entry,'missing Android transition at '+time);
+    assert.equal(entry.snapshot.nextName,expectedNext);
+    assert.equal(entry.snapshot.status,'ready');
+    assert.equal(entry.snapshot.dateISO,'2026-11-14');
+  }
+  const midnight=entries.find(e=>e.date===prayerInstant('2026-11-15','00:00'));
+  assert.ok(midnight,'offline Android midnight must be a local native transition');
+  assert.equal(midnight.snapshot.dateISO,'2026-11-15');
+  assert.equal(midnight.snapshot.nextName,'İmsak');
+});
+
+test('Android next-boundary plan never skips times after multiple delayed wakeups',()=>{
+  const now=prayerInstant('2026-11-14','06:05');
+  const entries=buildPrayerWidgetTimeline([base,next],now,100);
+  const nativeAt=(time:number)=>{
+    const eligible=entries.filter(entry=>entry.date<=time);
+    return eligible[eligible.length-1]?.snapshot;
+  };
+  // Simulates Android delivering an inexact alarm 40 minutes late. It
+  // chooses the correct current time state, not the missed alarm's props.
+  assert.equal(nativeAt(prayerInstant('2026-11-14','07:05'))?.nextName,'Güneş');
+  assert.equal(nativeAt(prayerInstant('2026-11-14','08:25'))?.nextName,'Öğle');
+  assert.equal(nativeAt(prayerInstant('2026-11-15','00:05'))?.dateISO,'2026-11-15');
+  assert.equal(nativeAt(prayerInstant('2026-11-15','20:00'))?.status,'no-data',
+    'without a third verified day the widget must not invent tomorrow’s Imsak');
+});
