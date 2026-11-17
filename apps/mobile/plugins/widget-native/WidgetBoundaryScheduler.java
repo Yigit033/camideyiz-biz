@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.util.Log;
+import android.util.TypedValue;
 import android.widget.RemoteViews;
 
 import biz.camideyiz.app.R;
@@ -231,6 +232,8 @@ public final class WidgetBoundaryScheduler {
       card.setTextViewText(R.id.widget_next_label,ready?"Sıradaki vakit · "+next
           :"Uygulama takvimini aç");
       card.setTextViewText(R.id.widget_next_time,ready?time:"Vakitleri yükle");
+      card.setTextViewTextSize(R.id.widget_next_time,TypedValue.COMPLEX_UNIT_SP,
+          ready?28:17);
       card.setTextViewText(R.id.widget_hint,ready
           ?"Güncelleme "+props.optString("updatedClock","")
           :"Takvimi açmak için dokun");
