@@ -62,7 +62,16 @@ jobs:
           grep -F 'CamideyizWidgetPackage()' "$root/java/biz/camideyiz/app/MainApplication.kt"
           grep -F 'WidgetBoundaryReceiver' "$root/AndroidManifest.xml"
           grep -F 'RECEIVE_BOOT_COMPLETED' "$root/AndroidManifest.xml"
-          echo 'P0 native widget code and manifest installed by Expo CNG'
+          test -s "$root/java/biz/camideyiz/app/NextPrayerWidgetProvider.java"
+          test -s "$root/java/biz/camideyiz/app/PrayerDayWidgetProvider.java"
+          test -s "$root/res/layout/widget_next_prayer.xml"
+          test -s "$root/res/layout/widget_prayer_day.xml"
+          test -s "$root/res/xml/widget_next_prayer_info.xml"
+          test -s "$root/res/xml/widget_prayer_day_info.xml"
+          grep -F 'NextPrayerWidgetProvider' "$root/AndroidManifest.xml"
+          grep -F 'PrayerDayWidgetProvider' "$root/AndroidManifest.xml"
+          grep -F 'setOnClickPendingIntent' "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          echo 'Native RemoteViews and launcher click-through registered by CNG'
       - name: Assemble standalone Release APK (arm64)
         working-directory: apps/mobile/android
         run: |
