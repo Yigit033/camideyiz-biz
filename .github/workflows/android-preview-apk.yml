@@ -40,6 +40,7 @@ jobs:
           npm run typecheck
           node scripts/verify-brand-symbol.mjs
           node scripts/verify-home-visual-contracts.mjs
+          echo "Home visual and source-photo QA gates verified before native APK build"
       - name: Verify the two actual kerahat WebP posters
         run: npm run verify:kerahat-posters
       - name: Verify all 27 optimized gallery photographs
