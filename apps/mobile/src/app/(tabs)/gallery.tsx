@@ -28,7 +28,8 @@ function previewAspectRatio(slot:GallerySlot):number{
   const image=galleryThumbnail(slot.id);
   if(!image)return 2/3;
   const metadata=Image.resolveAssetSource(image);
-  if(!metadata||!Number.isFinite(metadata.width)||!Number.isFinite(metadata.height)
+  if(!metadata||typeof metadata.width!=='number'||typeof metadata.height!=='number'
+    ||!Number.isFinite(metadata.width)||!Number.isFinite(metadata.height)
     ||metadata.width<=0||metadata.height<=0)return 2/3;
   return metadata.width/metadata.height;
 }
