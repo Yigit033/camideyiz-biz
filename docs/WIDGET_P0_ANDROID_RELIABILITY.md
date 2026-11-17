@@ -1,98 +1,61 @@
-# Camideyiz Biz — Widget P0 / Android native continuity
+# Camideyiz Biz — Widget 3.1 / Android launcher reliability
 
-## Scope (17 November 2026)
+## Architecture (17 November 2026)
 
-Fix two release blockers while keeping the current widget UI unchanged:
+After a real-phone report showing **both widgets stuck on "Takvim yüklenmedi" while the Home screen displayed verified Tuzla times**, we replaced the Android-only Expo widget JSX renderer with **native Android `RemoteViews` + `AppWidgetProvider`**.
 
-1. **Distinguish data submission from actual launcher rendering.** Expo
-   `updateSnapshot` stores widget properties and queues a Glance update;
-   it does not return an image/pixel acknowledgment from Android Launcher.
-2. **Prayer-boundary transitions when the JS app is not running.**
-   Expo Widgets SDK 58 has no Android `updateTimeline`. WorkManager's 15-minute
-   minimum is NOT an execution deadline.
+This is an Android widget implementation change, **not a migration of the app**:
+- Expo Router + React Native/TypeScript Home, notifications, and location stay as before.
+- iOS `expo-widgets` + WidgetKit / `updateTimeline` stays as before.
+- The Expo config keeps iOS widgets but turns off Expo's Android renderer.
+- Android UI is built from CNG-managed XML and small Java providers.
+- Existing Android launcher provider class names `biz.camideyiz.app.NextPrayerWidgetProvider` and `biz.camideyiz.app.PrayerDayWidgetProvider` are retained, so previously pinned appWidget IDs can survive the APK upgrade.
 
-## Implementation
+## Data path (NO manual refresh required for normal use)
 
-- iOS remains WidgetKit + `updateTimeline`; none of the new native Android
-  Java/AlarmManager code is built on iOS.
-- Android's Expo widget layouts are unchanged. The `withWidgetBoundaryBridge`
-  config plugin registers an Android-only React Native bridge and a receiver
-  inside the generated CNG project; no manual edits under `android/`.
-- Native `publishCalendar` receives **precomputed snapshots** at upcoming
-  transitions, from `buildPrayerWidgetTimeline`, after the exact selected
-  Diyanet district's multi-day calendar passes `parseWidgetCalendarCache`.
-  The bridge rejects missing district identity and stale/unordered input.
-- Persisted native source validity is bound to the original verified
-  `fetchedAt`, **not** to the moment the user reopened the app. Maximum
-  offline age: 72 hours. Out-of-date data becomes an explicit no-data state.
-- At each upcoming prayer boundary, `AlarmManager.setAndAllowWhileIdle`
-  requests a best-effort inexact wakeup. The receiver determines the most
-  recent applicable snapshot **using current wall-clock time**, even if one or
-  several alarms were delivered late, persists it to Expo Widgets shared
-  preferences (`expo.modules.widgets`), sends explicit
-  `ACTION_APPWIDGET_UPDATE` to both pinned Glance widget providers, and
-  schedules the next boundary. The receiver also responds to reboot, phone
-  time/time-zone change and package replacement.
-- No exact-alarm permission (`SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM`)
-  or notification permission is requested. Under Doze/low-power modes,
-  Android can deliver the alarm late: **exact-second change is NOT guaranteed**.
-- Existing `expo-background-task` remains a secondary periodic network
-  source for published calendar updates; it is no longer the only way to
-  switch from one prayer to another.
+1. Selected district and a structurally validated *published* Diyanet-coded today/tomorrow calendar are read once by `PrayerSourceProvider`. No astronomical fallback and no placeholder clock values.
+2. `CompanionProvider` automatically calls `syncForegroundWidgetCalendar` after the source is ready and again after an app foreground refresh / location selection.
+3. The active district is stored before native writes, and the validated published days are persisted for offline use. A different district's old cache is rejected.
+4. `CamideyizWidgetBridge.publishCalendar` submits precomputed snapshots at each upcoming prayer boundary to `WidgetBoundaryScheduler`.
+5. The scheduler commits the snapshot and calls `AppWidgetManager.updateAppWidget(ids, RemoteViews)` directly. The external launcher does **not** run an Expo widget JavaScript bundle.
+6. `NextPrayerWidgetProvider.onUpdate` and `PrayerDayWidgetProvider.onUpdate` call the same scheduler when the user initially pins a widget or the OS updates it. They use the last validated snapshot without requiring the user to open the app at every pin/update.
+7. The entire widget surface uses a **real `PendingIntent.getActivity`** to open the app when tapped; the previous misleading inert "Open app" text is gone.
+8. `AlarmManager.setAndAllowWhileIdle` schedules best-effort native transitions; on delivery the receiver chooses the *actual current* precomputed state even after delayed wakeups. WorkManager remains a secondary best-effort network update mechanism.
+9. Last-published fetch timestamp bounds offline schedule validity to 72h. Reopening the app does not extend it. No exact-alarm, background location, or notification permission required.
 
-## Verification semantics — no false success
+## Honesty / observability
 
-`getStatus` reports:
-- `installedNext`, `installedDay`: Android AppWidgetManager's actual
-  pinned instance counts for each provider.
-- `persisted`: both Expo native snapshots are stored with the same
-  `nativeAppliedAt` revision and consistent next prayer.
-- `lastAppliedAt`, `nextAlarmAt`, `lastNextName/Time`, `lastError`.
-- `launcherConfirmed: false` ALWAYS: the external home-screen launcher does
-  not offer an acknowledgement for pixels it rendered. **Do not** call
-  native writes or a successful build "visually verified".
+Native diagnostic state includes:
+- Installed launcher instance counts for small and daily cards.
+- Committed native snapshot revision and effective next prayer.
+- Next requested native boundary, source validity, last native error.
+- `launcherConfirmed:false`: the external OEM launcher does not acknowledge drawing pixels. Neither a Java result nor a successful APK build proves the end-user screen is correct.
 
-The companion screen shows the native instance counts, last native write,
-next planned transition and this limitation.
+If the app shows verified prayer times but widgets remain blank, capture the native diagnostic error and `adb logcat -s CamideyizWidget:E AndroidRuntime:E`; **do not** attribute the issue to Expo Go if testing a real APK.
 
-## Android emulator/device QA acceptance (not done by GitHub CI)
+## Physical-device acceptance matrix (required before closing the incident)
 
-Use a standalone release APK containing the CNG plugin, not Expo Go:
-1. Install the APK. Open app, select district, wait for verified today +
-   tomorrow prayer times, and tap **Widget'ı yenile**.
-2. Long-press Android home screen, install both widgets; open app again and
-   resync. Expect `installedNext >= 1` and `installedDay >= 1`.
-3. Observe launcher and app diagnostics side-by-side. Compare six published
-   times and next prayer. `nativePersisted` alone is **not** a pass.
-4. Run `adb shell dumpsys appwidget | grep -i 'camideyiz\|NextPrayer\|PrayerDay'`
-   to confirm widget providers/IDs are actually registered. On Windows, use
-   `adb shell dumpsys appwidget | findstr /i "camideyiz NextPrayer PrayerDay"`.
-5. Run `adb logcat -s CamideyizWidgetP0:E AndroidRuntime:E` to capture
-   real native exceptions. Check for `CamideyizWidgetBridge` errors.
-6. At an upcoming real prayer boundary, close the app, leave both widgets on
-   screen and compare the next-prayer change. **Some delay is permitted by
-   Android**; if a delay happens, capture the timestamp, Doze/battery mode,
-   receiver logs, and UI state, not just a screenshot.
-7. Test offline / app force-stop / reboot / clock change / district change.
-   Android force-stop explicitly blocks alarms until the user opens the app;
-   it cannot be bypassed by a normal app. Never misreport stopped-app data
-   as "live". Reboot should restore scheduled transition if permission and
-   OS startup policy permit it.
-8. For native repro in CI, the separate Android QA workflow compiles a
-   signed arm64 release APK and validates CNG native source registration.
-   Core unit tests cover transition boundaries, delayed alarm recomputation,
-   midnight and no-data fallback.
+- **Fresh install**: select district, load today+tomorrow. Pin both widgets *after* verified data. Expect times with no manual refresh button.
+- **Upgrade from the previous APK**: existing pinned widgets should keep IDs. If OEM launcher did not restore instances, pin once and log device model + firmware.
+- **Launcher tap**: tap each card and confirm the app actually opens, including from a fully backgrounded app.
+- **Switch district**: old city's times must disappear; new city's verified times appear when fetched.
+- **Wi-Fi/airplane mode**: a validated still-current district calendar should remain readable. Past expiry show honest unavailable text, never an invented prayer hour.
+- **Transition**: leave app backgrounded over a published prayer boundary and confirm both cards advance. Android Doze may delay inexact wakeups; capture actual latency rather than claiming exact-second updates.
+- **Reboot/time-zone adjustment**: the receiver reschedules and chooses the appropriate current state.
+- **Force stop**: Android blocks pending alarms until the app is reopened; a normal app cannot bypass this OS guarantee.
+- **Two themes/launcher grid sizes**: check 2×2 and 4×2 layout, Turkish glyphs, text clipping, card tap area, and six actual Diyanet-coded hours.
+- **iOS**: separately test WidgetKit on a real iPhone; Android CI does not validate iOS widget rendering.
 
-## Source compatibility / maintenance watch
+## Commands (Windows PowerShell)
 
-The native helper writes Expo Widgets' Android private preferences:
-`expo.modules.widgets` / `__expo_widgets_<name>_props` and triggers the
-AppWidgetProvider broadcast. This is grounded in the Expo SDK 58 package
-source but **not a stable public API**. Pin `expo-widgets` version to
-`~58.0.28`, run a real native APK test before future Expo upgrades, and
-switch to a first-party native widget provider if Expo changes the storage
-contract.
+```powershell
+cd C:\active_projects\camideyiz-biz
+git pull --ff-only origin feat/widgets-and-prayer-alerts-2
+powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1 -CheckoutPath C:\cb -CleanNative
+adb shell dumpsys appwidget | findstr /i "camideyiz NextPrayer PrayerDay"
+adb logcat -s CamideyizWidget:E AndroidRuntime:E
+```
 
-- Expo official Android constraints: https://docs.expo.dev/versions/v58.0.0/sdk/widgets/
-- Android alarm restrictions: https://developer.android.com/develop/background-work/services/alarms
-- Android widget update guide: https://developer.android.com/develop/ui/views/appwidgets/advanced
+Note: Root remote-view provider and resources are produced from `apps/mobile/plugins/widget-native` by `apps/mobile/plugins/withWidgetBoundaryBridge.js`, so a `-CleanNative` build is required after this change.
+
+References: https://developer.android.com/develop/ui/views/appwidgets and https://developer.android.com/develop/background-work/services/alarms.
