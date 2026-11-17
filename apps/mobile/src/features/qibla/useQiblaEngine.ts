@@ -244,8 +244,7 @@ export function useQiblaEngine(){
     const ticker=setInterval(()=>{
       if(!active||!foreground)return;
       const now=Date.now();
-      const old=filter.current;
-      const fresh=headingFreshness(old?.acceptedAt??null,now);
+      const fresh=lastValidAt?headingFreshness(lastValidAt,now):'recovering';
       setFreshness(previous=>previous===fresh?previous:fresh);
       const disconnected=!lastValidAt||now-lastValidAt>HEADING_RESUBSCRIBE_MS;
       if(disconnected&&now-lastStartAt>=HEADING_RETRY_GAP_MS){
@@ -261,7 +260,7 @@ export function useQiblaEngine(){
       remove();
       setFreshness('stale');
     };
-  },[headingEnabled,cycle]);
+  },[headingEnabled,cycle]));
 
   const recalibrateHeading=useCallback(()=>{
     // Start a fresh foreground subscription without discarding the last
