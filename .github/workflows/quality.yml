@@ -14,6 +14,8 @@ jobs:
       # Lockfile generated after first networked clean install.
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm run typecheck
+      - name: Verify exact owner-supplied brand icon is unchanged
+        run: node scripts/verify-brand-symbol.mjs
       - name: Parse Windows APK build script
         shell: pwsh
         run: |
