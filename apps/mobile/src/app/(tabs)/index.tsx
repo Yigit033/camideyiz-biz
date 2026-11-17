@@ -140,8 +140,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
       ? calculateMirrorPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
       : calculateVerifiedPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
     : awareness.phase;
-  // The top needle follows the prayer period currently in progress, never
-  // the next prayer. Countdown in the centre still refers to the next prayer.
+  // Live prayer selection continues following the active period even though
+  // the decorative fixed top pin is gone. Centre countdown shows the next prayer.
   const currentIndex=Math.max(0,SCHEDULE.times.findIndex(item=>item.key===phase.current.key));
   const remainingText=minutesToNextEvent(phase.secondsRemaining);
   const nafileOnly=phase.current.key==='imsak' && !restriction;
