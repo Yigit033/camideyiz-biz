@@ -5,6 +5,7 @@ import {indicativeKerahatWindows} from './timeline.ts';
 import {
   prayerSectorLabelAngle,prayerSectorVisualLayout,currentPrayerArc,
   kerahatRingWindows,KERAHAT_APPROACH_SECONDS,
+  prayerBadgeForeground,PRAYER_BADGE_DARK_INK,PRAYER_BADGE_LIGHT_INK,
 } from './prayerWheelPresentation.ts';
 import {makeVisualDialSectors,clockSecondsToVisualAngle} from './visualDial.ts';
 
@@ -224,4 +225,25 @@ test('inner red ring responds exactly to the user-selected noon duration',()=>{
   assert.equal(kerahatRingWindows(customized,sec(12,30))[1].state,'approaching');
   assert.equal(kerahatRingWindows(customized,sec(12,20))[1].state,'inactive');
   assert.equal(kerahatRingWindows(defaults,sec(12,52))[1].state,'inactive');
+});
+
+test('all six exact prayer-colour clock badges meet WCAG small-caption contrast',()=>{
+  const sectorColours={
+    imsak:'#3593B5',gunes:'#D69E44',ogle:'#1EAFB0',
+    ikindi:'#10B981',aksam:'#DA7049',yatsi:'#7162BB',
+  } as const;
+  function luminance(hex:string){
+    const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255)
+      .map(x=>x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4));
+    return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
+  }
+  for(const [name,bg] of Object.entries(sectorColours)){
+    const ink=prayerBadgeForeground(bg);
+    const l1=luminance(bg),l2=luminance(ink);
+    const ratio=(Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05);
+    assert.ok(ratio>=4.5,name+' has insufficient clock/name contrast: '+ratio);
+  }
+  assert.equal(prayerBadgeForeground(sectorColours.imsak),PRAYER_BADGE_DARK_INK);
+  assert.equal(prayerBadgeForeground(sectorColours.yatsi),PRAYER_BADGE_LIGHT_INK);
+  assert.throws(()=>prayerBadgeForeground('orange'),RangeError);
 });
