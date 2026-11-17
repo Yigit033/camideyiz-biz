@@ -38,6 +38,7 @@ jobs:
         run: |
           npm test
           npm run typecheck
+          node scripts/verify-brand-symbol.mjs
       - name: Verify the two actual kerahat WebP posters
         run: npm run verify:kerahat-posters
       - name: Verify all 27 optimized gallery photographs
