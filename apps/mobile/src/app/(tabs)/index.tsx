@@ -6,7 +6,9 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,MIRROR_OFFLINE_CACHE_MS,calculateMirrorPhase,getKerahatView,type PrayerTime} from '@camideyiz/core';
+import Animated,{Easing,interpolateColor,useAnimatedStyle,useReducedMotion,
+  useSharedValue,withTiming} from 'react-native-reanimated';
+import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,MIRROR_OFFLINE_CACHE_MS,calculateMirrorPhase,getKerahatView,prayerBadgeForeground,type PrayerTime} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere} from '@/components/LuxuryArtwork';
@@ -55,25 +57,83 @@ function DateDivider({now,timezone,hijriDate}:{
       style={[styles.dateText,{color:colors.text}]}>{date}</Text>
   </View>;
 }
-function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
- title:string;active:boolean;icon:typeof ICONS[keyof typeof ICONS];clock:string;accent:string;width:number;onPress:()=>void;dark:boolean;
+/** A card is coloured only for the current published prayer period.
+ * Temporary manual wheel exploration gets a subtle outline, not a false
+ * active-vakit fill. Contrast stays readable throughout the 300ms transition.
+ */
+function Pill({title,current,focused,icon,clock,accent,width,onPress,dark}:{
+  title:string;current:boolean;focused:boolean;
+  icon:typeof ICONS[keyof typeof ICONS];clock:string;accent:string;
+  width:number;onPress:()=>void;dark:boolean;
 }){
   const {colors}=useAppTheme();
-  return <Pressable onPress={onPress} accessibilityRole="button"
-    accessibilityState={{selected:active}} accessibilityLabel={title+' '+clock}
-    style={[
-      styles.prayerChip,{
-        width,
-        borderColor:active?(dark?'#80D7FF':'#177D60'):(dark?'#395975':'#DAD7CE'),
-        backgroundColor:active?(dark?'#126A9A':'#087351'):(dark?'rgba(13,38,60,.87)':'rgba(255,255,255,.81)'),
-        shadowColor:active?'#26BD90':'#776D5E',shadowOpacity:active?.26:.045,
-        shadowRadius:active?11:3,elevation:active?4:1,
-      }]}>
-      <MaterialCommunityIcons name={icon} color={active?'#F7E8C6':dark?'#E4BF7D':'#B78D3D'} size={17}/>
-      <Text numberOfLines={1} adjustsFontSizeToFit
-        style={[styles.chipLabel,{color:active?'#FAF7EB':colors.text}]}>{title}</Text>
-      <Text style={[styles.chipTime,{color:active?'#FDF6E5':colors.text}]}>{clock}</Text>
-    </Pressable>;
+  const reducedMotion=useReducedMotion();
+  const animatedActive=useSharedValue(current?1:0);
+  const idleBg=dark?'#0D263C':'#FCFDFC';
+  const idleBorder=dark?'#395975':'#DAD7CE';
+  const finalInk=prayerBadgeForeground(accent);
+  const inkPalette=useMemo(()=>cardInkTransition(idleBg,accent),[idleBg,accent]);
+
+  useEffect(()=>{
+    animatedActive.value=reducedMotion?(current?1:0):withTiming(current?1:0,{
+      duration:300,easing:Easing.inOut(Easing.cubic),
+    });
+  },[current,reducedMotion,animatedActive]);
+  const surface=useAnimatedStyle(()=>({
+    backgroundColor:interpolateColor(animatedActive.value,[0,1],[idleBg,accent]),
+    borderColor:interpolateColor(animatedActive.value,[0,1],
+      [focused?colors.gold:idleBorder,accent]),
+  }),[idleBg,idleBorder,focused,colors.gold,accent]);
+  const ink=useAnimatedStyle(()=>({
+    color:animatedActive.value>=.999?finalInk:
+      animatedActive.value<inkPalette.switchAt?
+        inkPalette.startInk:inkPalette.endInk,
+  }),[inkPalette,finalInk]);
+
+  return <Pressable accessibilityRole="button" onPress={onPress}
+    accessibilityState={{selected:focused}}
+    accessibilityLabel={title+(clock?' '+clock:'')+(current?' · Şu anki vakit':'')}
+    style={{width,borderRadius:15,
+      shadowColor:current?accent:'#776D5E',
+      shadowOpacity:current?.22:.045,shadowRadius:current?10:3,
+      shadowOffset:{width:0,height:2},elevation:current?3:1}}>
+    <Animated.View pointerEvents="none" style={[styles.prayerChip,surface]}>
+      <MaterialCommunityIcons name={icon} size={17}
+        color={current?finalInk:(dark?'#E4BF7D':'#B78D3D')}/>
+      <Animated.Text numberOfLines={1} adjustsFontSizeToFit
+        style={[styles.chipLabel,ink]}>{title}</Animated.Text>
+      <Animated.Text style={[styles.chipTime,ink]}>{clock}</Animated.Text>
+    </Animated.View>
+  </Pressable>;
+}
+
+/** At the background's luminance midpoint, switch between white and black
+ * rather than fading through low-contrast grey during the colour animation.
+ */
+function cardInkTransition(from:string,to:string){
+  const luminance=(hex:string)=>{
+    const values=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255)
+      .map(x=>x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4));
+    return values[0]*.2126+values[1]*.7152+values[2]*.0722;
+  };
+  const cutoff=Math.sqrt(.05*1.05)-.05;
+  const fromLight=luminance(from)>=cutoff;
+  const toLight=luminance(to)>=cutoff;
+  let switchAt=1;
+  if(fromLight!==toLight){
+    for(let i=1;i<=1000;i++){
+      const p=i/1000;
+      const middle='#'+[1,3,5].map(k=>Math.round(
+        parseInt(from.slice(k,k+2),16)*(1-p)+
+        parseInt(to.slice(k,k+2),16)*p).toString(16).padStart(2,'0')).join('');
+      if((luminance(middle)>=cutoff)!==fromLight){
+        switchAt=p;
+        break;
+      }
+    }
+  }
+  return {switchAt,startInk:fromLight?'#000000':'#FFFFFF',
+    endInk:toLight?'#000000':'#FFFFFF'};
 }
 function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSource>;now:Date}){
   const SCHEDULE=official.days!.today;
@@ -243,7 +303,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         <View style={styles.chipsRow}>
           {SCHEDULE.times.map((item,index)=>
             <Pill key={item.key} title={item.label} clock={item.time}
-              icon={ICONS[item.key]} active={selectedIndex===index}
+              icon={ICONS[item.key]} current={currentIndex===index}
+              focused={selectedIndex===index}
               accent={PRAYER_COLORS[item.key]} width={chipWidth}
               dark={dark} onPress={()=>focusIndex(index)}/>)}
         </View>
@@ -381,7 +442,8 @@ function CalendarLoadingHome({official,now}:{
         <View style={styles.chipsRow}>
           {NO_DATA_TIMES.map((item,index)=><Pill key={item.key}
             title={item.label} clock="" icon={ICONS[item.key]}
-            active={selectedIndex===index} accent={PRAYER_COLORS[item.key]}
+            current={false} focused={selectedIndex===index}
+            accent={PRAYER_COLORS[item.key]}
             width={Math.max(49,(width-36)/6)}
             dark={dark} onPress={()=>{
               setSelectedIndex(index);setFocusRequest(x=>x+1);
