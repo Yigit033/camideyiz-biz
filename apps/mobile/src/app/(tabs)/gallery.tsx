@@ -11,7 +11,7 @@ import {
   GALLERY_CATEGORIES,type GalleryCategory,
 } from '@camideyiz/core';
 import {
-  GALLERY_SLOTS,READY_GALLERY_COUNT,galleryPhoto,galleryThumbnail,
+  GALLERY_SLOTS,READY_GALLERY_COUNT,galleryPhoto,
   type GallerySlot,
 } from '@/features/gallery/galleryCatalog';
 
@@ -20,12 +20,12 @@ const CATEGORY_NAME:Record<GalleryCategory,string>={
   bayram:'Bayram',gunaydin:'Günlük',genel:'Diğer',
 };
 
-/** Each uploaded thumbnail has its own aspect ratio (0.56–0.82 in
- * the owner's current collection). Respect its original width and height:
- * fixed-height cards always add dead space or crop a photo.
+/** The gallery uses the original photograph instead of its separate thumbnail.
+ * A pre-cropped thumbnail cannot be repaired by applying contain. Native
+ * downsampling keeps the full source frame within a compact card.
  */
 function previewAspectRatio(slot:GallerySlot):number{
-  const image=galleryThumbnail(slot.id);
+  const image=galleryPhoto(slot.id);
   if(!image)return 2/3;
   const metadata=Image.resolveAssetSource(image);
   if(!metadata||typeof metadata.width!=='number'||typeof metadata.height!=='number'
@@ -38,7 +38,7 @@ function GalleryTile({item,width}:{
   item:GallerySlot;width:number;
 }){
   const {colors}=useAppTheme();
-  const photo=galleryThumbnail(item.id);
+  const photo=galleryPhoto(item.id);
   const aspectRatio=previewAspectRatio(item);
   return <Pressable accessibilityRole="button"
     accessibilityLabel={item.title+' tasarımını aç'+(!photo?' (fotoğraf henüz eklenmedi)':'')}
@@ -49,6 +49,7 @@ function GalleryTile({item,width}:{
       aspectRatio,
     }]}>
       {photo?<Image source={photo} resizeMode="contain"
+        resizeMethod="resize" fadeDuration={0}
         style={StyleSheet.absoluteFill}/>:<View style={styles.placeholder}>
         <MaterialCommunityIcons name="image-filter-hdr" color={item.accent} size={43}/>
         <View style={{height:1,width:42,backgroundColor:item.accent,opacity:.7}}/>
@@ -57,7 +58,7 @@ function GalleryTile({item,width}:{
         <Text style={{fontSize:9,color:'#A4BEB7'}}>Yakında eklenecek</Text>
       </View>}
     </View>
-    <View style={{padding:10,gap:6}}>
+    <View style={{paddingHorizontal:9,paddingVertical:8,gap:5}}>
       <Text numberOfLines={1} style={{fontSize:12.5,fontWeight:'800',color:colors.text}}>
         {item.title}
       </Text>
@@ -94,7 +95,7 @@ export default function Gallery(){
         .some(value=>value.toLocaleLowerCase('tr-TR').includes(text)))
     );
   },[category,query]);
-  const tileWidth=Math.max(120,(width-44-12)/2);
+  const tileWidth=Math.max(118,Math.min(154,(width-44-26)/2));
   // Two balanced columns instead of flexWrap rows with dead gaps under tall
   // natural-aspect photos. The original catalog order stays deterministic.
   const columns=useMemo(()=>{
@@ -103,7 +104,7 @@ export default function Gallery(){
     for(const slot of tiles){
       const column=heights[0]<=heights[1]?0:1;
       result[column].push(slot);
-      heights[column]+=tileWidth/previewAspectRatio(slot)+73+12;
+      heights[column]+=tileWidth/previewAspectRatio(slot)+66+12;
     }
     return result;
   },[tiles,tileWidth]);
@@ -190,7 +191,7 @@ const styles=StyleSheet.create({
     flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:13},
   categories:{gap:8,paddingVertical:2},
   chip:{borderWidth:1,paddingHorizontal:14,paddingVertical:10,borderRadius:22},
-  grid:{flexDirection:'row',alignItems:'flex-start',gap:12},
+  grid:{flexDirection:'row',justifyContent:'center',alignItems:'flex-start',gap:12},
   tile:{borderRadius:17,overflow:'hidden',borderWidth:1},
   thumb:{width:'100%',overflow:'hidden',position:'relative'},
   placeholder:{flex:1,justifyContent:'center',alignItems:'center',gap:8},
