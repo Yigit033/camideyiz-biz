@@ -52,3 +52,15 @@ export function clockSecondsToVisualAngle(
   const ratio=Math.max(0,Math.min(1,(shifted-start)/(end-start)));
   return sectors[index].from+(sectors[index].to-sectors[index].from)*ratio;
 }
+
+/** Live 12-o'clock dial alignment. Keep angle unwrapped so the prayer wedge
+ * crossing 360° (next İmsak) never causes an entire reverse revolution.
+ * A complete dial revolution corresponds to 24h of actual published time.
+ */
+export function nearestLiveDialRotation(currentRotation:number,clockAngle:number):number{
+  if(!Number.isFinite(currentRotation)||!Number.isFinite(clockAngle)||
+     clockAngle<0||clockAngle>360)
+    throw new RangeError('Invalid live dial angle');
+  const target=-clockAngle;
+  return target+360*Math.round((currentRotation-target)/360);
+}
