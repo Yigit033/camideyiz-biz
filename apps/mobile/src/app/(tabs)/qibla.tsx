@@ -44,12 +44,12 @@ export default function QiblaScreen(){
   const {width}=useWindowDimensions();
   const dark=colors.isDark;
   const {bearing,heading,compassAccuracy,freshness,locationAccuracy,
-    locationLabel,positionSource,permissionDenied,busy,message,
+    locationLabel,positionSource,positionUsable,permissionDenied,busy,message,
     requestLocation,recalibrateHeading}=useQiblaEngine();
   const [showGuide,setShowGuide]=useState(false);
   const lastAlignedHaptic=useRef(0);
   const compassSize=Math.min(Math.max(255,width-42),352);
-  const locationReady=bearing!==null;
+  const locationReady=bearing!==null&&positionUsable;
   const relative=locationReady&&heading!==null?relativeQiblaAngle(bearing,heading):null;
   // A historical angle may remain visible, but it must never be actionable.
   const hasValidHeading=freshness==='live'&&relative!==null&&
@@ -59,9 +59,14 @@ export default function QiblaScreen(){
   const aligned=guidance?.direction==='near'&&compassAccuracy===3;
 
   useEffect(()=>{
-    if(!aligned||Date.now()-lastAlignedHaptic.current<12000)return;
-    lastAlignedHaptic.current=Date.now();
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>undefined);
+    if(!aligned)return;
+    // Require a stable alignment, not a momentary noisy 7-degree crossing.
+    const hold=setTimeout(()=>{
+      if(Date.now()-lastAlignedHaptic.current<12000)return;
+      lastAlignedHaptic.current=Date.now();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(()=>undefined);
+    },650);
+    return()=>clearTimeout(hold);
   },[aligned]);
 
   const primaryAction=()=>{
@@ -87,8 +92,10 @@ export default function QiblaScreen(){
   const absoluteBearingText=bearing===null
     ?'Kâbe açısı konum alındığında hesaplanır'
     :'Kâbe açısı '+Math.round(bearing)+'° · Gerçek kuzeye göre'+
-      (positionSource==='last-known'?' · Son konum':'');
-  const headingStatus=!locationReady?'Konumunu etkinleştir'
+      (positionSource==='last-known'?' · Son bilinen konum':'')+
+      (!positionUsable?' · Güncellenmeli':'');
+  const headingStatus=!locationReady?
+      (bearing===null?'Konumunu etkinleştir':'Konum güncellenmeli')
     :freshness==='recovering'?'Pusula yeniden bağlanıyor'
     :freshness==='stale'?'Pusula verisi bekleniyor'
     :compassAccuracy===1?'Kalibrasyon gerekli'
@@ -177,7 +184,7 @@ export default function QiblaScreen(){
             {locationLabel}
           </Text>
           <Text numberOfLines={2} style={{color:colors.muted,fontSize:11,lineHeight:17}}>
-            {locationReady?'Konum alındı':'Konum izni bekleniyor'}
+            {locationReady?'Konum alındı':bearing!==null?'Konum güncellenmeli':'Konum izni bekleniyor'}
             {'  ·  Pusula: '+statusName(compassAccuracy)}
           </Text>
         </View>
