@@ -54,7 +54,7 @@ Promise<AndroidWidgetNativeStatus|null>{
  * The system can delay inexact alarms under Doze; no false exact guarantee.
  */
 export async function publishAndroidWidgetTimeline(
-  days:readonly PrayerSchedule[],now:number,cityId:number,
+  days:readonly PrayerSchedule[],now:number,cityId:number,sourceAt:number,
 ):Promise<AndroidWidgetNativeStatus>{
   const native=bridge();
   if(!native)throw new Error(
@@ -63,13 +63,16 @@ export async function publishAndroidWidgetTimeline(
   if(!days.length||cityId<=0){
     return parseStatus(await native.publishCalendar(''));
   }
+  if(!Number.isFinite(sourceAt)||sourceAt<=0||sourceAt>now+60_000||
+     now-sourceAt>72*60*60_000)
+    throw new Error('Kaynak takvimin yayın doğrulaması eskimiş');
   const timeline=buildPrayerWidgetTimeline(days,now,100);
   if(!timeline.length||timeline[0].snapshot.status!=='ready')
     throw new Error('Doğrulanmış ileri tarihli namaz takvimi bulunamadı');
   // The native receiver does not calculate prayer times. Every boundary
   // already comes from published and structurally validated core schedules.
   const calendar={
-    version:1,cityId,city:timeline[0].snapshot.city,generatedAt:now,
+    version:1,cityId,city:timeline[0].snapshot.city,generatedAt:now,sourceAt,
     entries:timeline.map(({date,snapshot})=>({
       at:date,props:toWidgetProps(snapshot),
     })),
