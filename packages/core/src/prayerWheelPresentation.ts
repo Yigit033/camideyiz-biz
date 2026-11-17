@@ -36,6 +36,28 @@ export function prayerSectorVisualLayout(from:number,to:number){
   };
 }
 
+/** Keep small HH:MM and prayer captions legible on their *exact* sector
+ * colour, in both themes. Choose the foreground by WCAG 2.1 contrast rather
+ * than by assumed darkness or arbitrary translucent text overlays.
+ */
+export const PRAYER_BADGE_DARK_INK='#081A26';
+export const PRAYER_BADGE_LIGHT_INK='#FFFFFF';
+export function prayerBadgeForeground(backgroundHex:string):string{
+  if(!/^#[0-9a-f]{6}$/i.test(backgroundHex))
+    throw new RangeError('Expected six-digit sector colour');
+  const luminance=(hex:string)=>{
+    const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255)
+      .map(x=>x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4));
+    return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];
+  };
+  const bg=luminance(backgroundHex);
+  const dark=luminance(PRAYER_BADGE_DARK_INK);
+  const light=luminance(PRAYER_BADGE_LIGHT_INK);
+  const darkContrast=(Math.max(bg,dark)+.05)/(Math.min(bg,dark)+.05);
+  const lightContrast=(Math.max(bg,light)+.05)/(Math.min(bg,light)+.05);
+  return darkContrast>=lightContrast?PRAYER_BADGE_DARK_INK:PRAYER_BADGE_LIGHT_INK;
+}
+
 export type CurrentPrayerArc={
   sectorIndex:number;
   from:number;
