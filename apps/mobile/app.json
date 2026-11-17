@@ -35,7 +35,7 @@
       [
         "expo-widgets",
         {
-          "enableAndroid": true,
+          "enableAndroid": false,
           "groupIdentifier": "group.biz.camideyiz.app",
           "widgets": [
             {
