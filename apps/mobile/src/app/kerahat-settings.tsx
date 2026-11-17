@@ -5,7 +5,7 @@ import {Page,Panel} from '@/components/Page';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {useKerahatSettings} from '@/features/prayer/KerahatSettingsProvider';
 import {
-  KERAHAT_RANGES,KERAHAT_SOURCE_URL,type KerahatSettings,
+  DEFAULT_KERAHAT_SETTINGS,KERAHAT_RANGES,KERAHAT_SOURCE_URL,type KerahatSettings,
 } from '@camideyiz/core';
 
 type SettingKey='sunriseMinutes'|'preNoonMinutes'|'preSunsetMinutes';
@@ -20,6 +20,10 @@ export default function KerahatSettingsScreen(){
   const {settings,update,ready}=useKerahatSettings();
   const enabled=settings.mode!=='hidden';
   const toggle=(value:boolean)=>update({...settings,mode:value?'custom':'hidden'});
+  const isAtDefault=['sunriseMinutes','preNoonMinutes','preSunsetMinutes'].every(
+    key=>settings[key as SettingKey]===DEFAULT_KERAHAT_SETTINGS[key as SettingKey],
+  );
+  const resetToDefault=()=>update({...DEFAULT_KERAHAT_SETTINGS,mode:'custom'});
   const step=(key:SettingKey,delta:number)=>{
     const {min,max}=KERAHAT_RANGES[key];
     const value=Math.max(min,Math.min(max,settings[key]+delta));
@@ -60,9 +64,24 @@ export default function KerahatSettingsScreen(){
         Görsel aralık süreleri
       </Text>
       <Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
-        Her süre yalnızca yaklaşık grafik vurgusunu etkiler. Diyanet tarafından
-        yayımlanan namaz saatleri değiştirilmez.
+        Türkiye için uygulama başlangıç profili: 45 / 30 / 45 dk. Bu değerler
+        kişiselleştirilebilir görsel uyarı süreleridir; resmî dinî hüküm veya
+        Diyanet tarafından yayımlanan sabit kerahat süresi değildir.
+        Namaz vakitleri değiştirilmez.
       </Text>
+      <Pressable accessibilityRole="button"
+        accessibilityLabel="Kerahat uyarı sürelerini 45, 30 ve 45 dakikaya döndür"
+        disabled={!ready||isAtDefault}
+        onPress={resetToDefault}
+        style={[styles.resetButton,{
+          borderColor:colors.border,backgroundColor:colors.soft,
+          opacity:!ready||isAtDefault?.5:1,
+        }]}>
+        <Feather name="rotate-ccw" size={14} color={colors.emerald}/>
+        <Text style={{color:colors.emerald,fontSize:11.5,fontWeight:'800'}}>
+          45 · 30 · 45 dk varsayılana dön
+        </Text>
+      </Pressable>
       {ROWS.map(row=>{
         const range=KERAHAT_RANGES[row.key];
         const value=settings[row.key];
@@ -131,6 +150,9 @@ const styles=StyleSheet.create({
   timeRow:{borderWidth:1,borderRadius:15,padding:10,flexDirection:'row',
     alignItems:'center',gap:9},
   timeIcon:{height:34,width:34,borderRadius:11,alignItems:'center',justifyContent:'center'},
+  resetButton:{flexDirection:'row',alignItems:'center',justifyContent:'center',
+    alignSelf:'flex-start',gap:8,paddingHorizontal:12,paddingVertical:9,
+    borderRadius:12,borderWidth:1},
   adjust:{alignItems:'center',gap:4},
   adjustButton:{height:27,width:30,alignItems:'center',justifyContent:'center',
     borderWidth:1,borderRadius:9},
