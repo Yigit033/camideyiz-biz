@@ -58,6 +58,7 @@ export function useQiblaEngine(){
 
   const mounted=useRef(true);
   const focused=useRef(false);
+  const hadPermissionOnce=useRef(false);
   const locationPending=useRef(false);
   const latestFixAt=useRef(0);
   const geocodedAt=useRef(0);
@@ -119,12 +120,16 @@ export function useQiblaEngine(){
         :await Location.getForegroundPermissionsAsync();
       if(!mounted.current)return;
       if(!permission.granted){
-        if(prompt){
+        if(prompt||hadPermissionOnce.current){
           setPermissionDenied(true);
-          setMessage('Konum izni olmadan güvenilir kıble yönü hesaplanamaz.');
+          setPositionUsable(false);
+          setHeadingEnabled(false);
+          setFreshness('stale');
+          setMessage('Konum izni kapalı. Güvenli kıble yönü için izin gerekli.');
         }
         return;
       }
+      hadPermissionOnce.current=true;
       setPermissionDenied(false);
       // Android's cached fused fix avoids indefinite spinner indoors. It is
       // never silently treated as a new high-precision GPS observation.
@@ -173,7 +178,14 @@ export function useQiblaEngine(){
     focused.current=true;
     if(Date.now()-latestFixAt.current>=GPS_REFRESH_MS){
       void Location.getForegroundPermissionsAsync().then(p=>{
-        if(focused.current&&p.granted)void requestLocation(false);
+        if(!focused.current)return;
+        if(p.granted)void requestLocation(false);
+        else if(hadPermissionOnce.current){
+          setPositionUsable(false);
+          setHeadingEnabled(false);
+          setPermissionDenied(true);
+          setFreshness('stale');
+        }
       }).catch(()=>undefined);
     }
     return()=>{focused.current=false;};
