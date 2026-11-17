@@ -82,6 +82,7 @@
         }
       ],
       "./plugins/withWorkManagerR8",
+      "./plugins/withWidgetBoundaryBridge",
       [
         "expo-media-library",
         {
