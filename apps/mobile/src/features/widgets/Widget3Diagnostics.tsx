@@ -8,7 +8,10 @@ import {useCompanion} from '@/features/companion/CompanionProvider';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 
 type NativeWidgetHealth={
-  supported:true;nativeCityId:number;installedNext:number;installedDay:number;
+  supported:true;nativeCityId:number;activeCityId:number;
+  installedNext:number;installedDay:number;
+  lastTransferAttemptAt:number;lastTransferStage:string;
+  lastTransferDetail:string;lastTransferError:string;
   lastReady:boolean;persisted:boolean;hasTimeline:boolean;state:string;
   lastError:string;lastNextName:string;lastNextTime:string;lastDateISO:string;
   lastCity:string;lastAppliedAt:number;lastAttemptAt:number;
@@ -32,6 +35,8 @@ function readHealth(raw:string):NativeWidgetHealth{
     throw Error('Geçersiz native tanı kaydı');
   const v=value as Partial<NativeWidgetHealth>;
   if(v.supported!==true||typeof v.nativeCityId!=='number'||
+     typeof v.activeCityId!=='number'||typeof v.lastTransferError!=='string'||
+     typeof v.lastTransferDetail!=='string'||typeof v.lastTransferStage!=='string'||
      typeof v.installedNext!=='number'||typeof v.installedDay!=='number'||
      typeof v.lastReady!=='boolean'||typeof v.persisted!=='boolean'||
      typeof v.hasTimeline!=='boolean'||typeof v.lastError!=='string'||
@@ -48,27 +53,39 @@ function clock(value:number):string{
 }
 function displayState(status:NativeWidgetHealth|null,cityId:number|null){
   if(!status)return {title:'Widget motoruna erişilemiyor',
-    description:'Eski APK veya native bağlantı sorunu. Yeni Android APK ile test et.',
+    description:'Bu APK eski olabilir veya native modüle bağlanılamıyor.',
     icon:'alert-triangle' as const};
   if(status.installedNext+status.installedDay===0)return {
     title:'Ana ekranda kurulu widget yok',
-    description:'Telefonun Widget’lar menüsünden Camideyiz Biz’i ana ekrana ekle.',
+    description:'Telefonun widget menüsünden iki Camideyiz Biz widgetını ekle.',
     icon:'smartphone' as const};
-  if(status.lastError)return {title:'Native widget hatası',
-    description:status.lastError,icon:'alert-triangle' as const};
-  if(cityId!==null&&status.nativeCityId!==cityId)return {
-    title:'Widget farklı ilçenin verisini tutuyor',
-    description:'Yeni ilçe henüz native belleğe yazılmadı; takvimi yenile.',
+  if(cityId!==null && status.activeCityId!==cityId)return {
+    title:status.activeCityId===0?'İlçe native belleğe henüz aktarılmadı':
+      'Widget henüz yeni ilçeye geçmedi',
+    description:'Seçili ilçe ile Android widget seçim kaydı uyuşmuyor; yeniden eşitle.',
     icon:'map-pin' as const};
-  if(!status.hasTimeline||!status.lastReady)return {
-    title:'Widget için geçerli takvim yok',
-    description:'Seçilen ilçe için doğrulanmış yayın veya ileri tarihler bekleniyor.',
+  if(status.lastTransferError)return {title:'Takvim aktarımında hata',
+    description:status.lastTransferError,icon:'alert-triangle' as const};
+  if(status.lastError)return {title:'Android çizim / alarm hatası',
+    description:status.lastError,icon:'alert-triangle' as const};
+  if(!status.hasTimeline)return {
+    title:'Android henüz doğrulanmış takvim almadı',
+    description:status.lastTransferDetail||
+      'Seçilen ilçe için yayımlanmış güncel vakitlerin alınması bekleniyor.',
     icon:'calendar' as const};
-  if(!status.persisted)return {title:'Native veri kaydı doğrulanmadı',
-    description:'Takvimi yenile ve tanılama çıktısını paylaş.',
+  if(cityId!==null&&status.nativeCityId!==cityId)return {
+    title:'Kayıtlı takvim farklı ilçeye ait',
+    description:'Eski ilçenin saatleri güvenlik nedeniyle gösterilmiyor.',
+    icon:'map-pin' as const};
+  if(!status.lastReady)return {
+    title:'Kayıtlı takvimin geçerli günü yok',
+    description:'Yayımlanmış ileri tarihler için takvimi yeniden eşitle.',
+    icon:'calendar' as const};
+  if(!status.persisted)return {title:'Native veri doğrulanamadı',
+    description:'Android kayıt onayı eksik, rapordaki aktarım nedenini kontrol et.',
     icon:'alert-circle' as const};
-  return {title:'Android’e widget güncellemesi iletildi',
-    description:'Native kayıt hazır. Ana ekranda çizimin tamamlandığını Android uygulamaya bildirmez; cihaz ekranında karşılaştır.',
+  return {title:'Android’e doğrulanmış vakitler gönderildi',
+    description:'Native kayıt hazır. Ana ekran launcher çizimini telefon ekranında ayrıca kontrol et.',
     icon:'check-circle' as const};
 }
 export function Widget3Diagnostics(){
@@ -104,13 +121,16 @@ export function Widget3Diagnostics(){
     setBusy(true);
     setError(null);
     try{
-      await companion.refreshWidgets();
-      const native=bridge();
-      if(native?.refreshNow){
-        // Native repair is idempotent. It never invents an unpublished clock.
-        setHealth(readHealth(await native.refreshNow()));
+      const result=await companion.refreshWidgets();
+      if(result.updated){
+        const native=bridge();
+        if(native?.refreshNow){
+          // Repaint only AFTER a confirmed, verified data transfer.
+          setHealth(readHealth(await native.refreshNow()));
+        }
       }
       await query();
+      if(!result.updated)setError(result.detail);
     }catch(e){
       await query();
       setError(e instanceof Error?e.message:'Widget onarma isteği başarısız');
@@ -169,7 +189,11 @@ export function Widget3Diagnostics(){
     {opened?<View style={[styles.detail,{borderColor:colors.border}]}>
       {([
         ['Seçili ilçe',source.place?.name??'Henüz seçilmedi'],
-        ['Native ilçe kodu',String(health?.nativeCityId??0)],
+        ['Android seçili ilçe kodu',String(health?.activeCityId??0)],
+        ['Yayımlanmış takvim ilçe kodu',String(health?.nativeCityId??0)],
+        ['Uygulama takvim durumu',source.status],
+        ['Uygulama veri hatası',source.failureReason??'Yok'],
+        ['Son eşitleme sonucu',companion.widget.detail],
         ['Kurulu widgetlar',String(health?.installedNext??0)+' / '+String(health?.installedDay??0)],
         ['Native takvim',health?.hasTimeline?'Kayıtlı':'Yok'],
         ['Son yayın',clock(health?.calendarSourceAt??0)],
@@ -177,10 +201,15 @@ export function Widget3Diagnostics(){
         ['Son native çizim isteği',clock(health?.lastHostDispatchAt??0)],
         ['Son kontrol',clock(health?.lastAttemptAt??0)],
         ['Son tetikleyici',health?.lastRefreshReason||'—'],
+        ['Aktarım aşaması',health?.lastTransferStage||'Başlamadı'],
+        ['Son aktarım denemesi',clock(health?.lastTransferAttemptAt??0)],
+        ['Son aktarım açıklaması',health?.lastTransferDetail||'—'],
         ['Sonraki geçiş',clock(health?.nextAlarmAt??0)],
         ['Sonraki vakit',(health?.lastNextName??'')+' '+(health?.lastNextTime??'')],
         ['Arka plan işi',companion.backgroundRegistered?'Kayıtlı (kesin zaman yok)':'Kayıtlı değil'],
-        ['Hata',error||health?.lastError||'Yok'],
+        ['Arka plan servis durumu',companion.backgroundReport?.registrationStatus??'Henüz kontrol edilmedi'],
+        ['Arka plan kayıt sorunu',companion.backgroundReport?.registrationError||'Yok'],
+        ['Hata',error||health?.lastTransferError||health?.lastError||'Yok'],
       ] as [string,string][]).map(([name,value])=><View key={name} style={styles.detailRow}>
         <Text style={{fontSize:10.5,color:colors.muted,flex:1}}>{name}</Text>
         <Text style={{fontSize:10.5,fontWeight:'700',color:colors.text,flex:1.35,
@@ -199,7 +228,7 @@ export function Widget3Diagnostics(){
         style={[styles.button,{backgroundColor:colors.accentStrong,opacity:busy?.6:1,flex:1.45}]}>
         <Feather name="refresh-cw" size={15} color="#FFFFFF"/>
         <Text style={{fontSize:11,fontWeight:'800',color:'#FFFFFF'}}>
-          {busy?'Kontrol ediliyor…':'Tanıla ve yeniden çizdir'}
+          {busy?'Eşitleniyor…':'Takvimi eşitle ve çizdir'}
         </Text>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel="Widget tanı raporunu paylaş"
