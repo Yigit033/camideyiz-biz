@@ -23,7 +23,7 @@ public final class WidgetBoundaryReceiver extends BroadcastReceiver {
         !action.equals(Intent.ACTION_TIMEZONE_CHANGED) &&
         !action.equals(Intent.ACTION_MY_PACKAGE_REPLACED)) return;
     try {
-      WidgetBoundaryScheduler.refresh(context.getApplicationContext());
+      WidgetBoundaryScheduler.refresh(context.getApplicationContext(),"receiver:"+action);
     } catch (Exception error) {
       Log.e(TAG, "Cannot handle widget boundary/system event", error);
     }
