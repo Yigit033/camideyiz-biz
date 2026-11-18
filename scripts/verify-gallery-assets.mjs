@@ -51,6 +51,8 @@ if(!screen.includes('const TILE_PHOTO_RATIO=2/3')||
    !screen.includes('resizeMode="contain"')||
    !screen.includes('flexWrap:\'wrap\'')||
    !screen.includes('height:TILE_META_HEIGHT')||
+   !screen.includes('maxWidth:tileWidth*2+TILE_SPACING')||
+   !screen.includes("justifyContent:'flex-start'")||
    !screen.includes('tiles.map(slot=>'))
   throw Error('Gallery tiles must show uncropped full sources with identical row heights');
 if(screen.includes('StyleSheet.absoluteFill')||
