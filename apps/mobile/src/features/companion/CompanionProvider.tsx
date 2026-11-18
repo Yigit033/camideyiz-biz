@@ -8,12 +8,13 @@ import * as Notifications from 'expo-notifications';
 import {router} from 'expo-router';
 import {
   DEFAULT_ALERT_SETTINGS,validateAlertSettings,
-  type PrayerAlertSettings,type PrayerKey,type PrayerSchedule,
+  type AlertSound,type PrayerAlertSettings,type PrayerKey,type PrayerSchedule,
 } from '@camideyiz/core';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {getPrayerPermission,requestPrayerPermission,reconcilePrayerNotifications,
   toInboxEvent,prunePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
   type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
+import {clearNativeAdhan} from './nativeAdhan';
 import {useAnnouncementSubscription,type AnnouncementState}
   from './useAnnouncementSubscription';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
@@ -45,7 +46,7 @@ type CompanionContextValue={
   lastWidgetTransfer:LastWidgetTransfer|null;
   announcement:AnnouncementState;
   setEnabled:(next:boolean)=>Promise<boolean>;
-  setSound:(next:'default'|'silent')=>void;
+  setSound:(next:AlertSound)=>void;
   setEzanAtTimeForAll:(next:boolean)=>void;
   setRule:(key:PrayerKey,changes:Partial<PrayerAlertSettings['rules'][PrayerKey]>)=>void;
   refresh:()=>void;refreshWidgets:()=>Promise<void>;
@@ -229,6 +230,8 @@ export function CompanionProvider({children}:PropsWithChildren){
         // If the upstream is temporarily offline, do not erase a user's
         // already scheduled valid reminders for the same district.
         if(days.length===0&&settings.enabled){
+          // Never keep an old district's native ezan ringing while calendars reload.
+          if(settings.sound==='adhan')await clearNativeAdhan().catch(()=>undefined);
           // Remove previous-city alerts while keeping still-valid reminders
           // when only the data source is temporarily offline.
           if(cityId>0){
@@ -272,7 +275,7 @@ export function CompanionProvider({children}:PropsWithChildren){
     setSettings(old=>({...old,enabled:next}));
     return true;
   },[]);
-  const setSound=useCallback((next:'default'|'silent')=>
+  const setSound=useCallback((next:AlertSound)=>
     setSettings(old=>({...old,sound:next})),[]);
   const setEzanAtTimeForAll=useCallback((next:boolean)=>{
     setSettings(old=>{
