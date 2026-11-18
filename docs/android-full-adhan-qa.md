@@ -36,7 +36,7 @@
 - **Alarm:** Android \`setExactAndAllowWhileIdle\`; Android 12+ için kullanıcı onaylı \`SCHEDULE_EXACT_ALARM\`.
 - **Ses:** Android foreground media playback servisi, uygulamaya gömülü CC0 MP3.
 - **Denetim:** Android, çalma esnasında durdurma aksiyonu olan bir servis bildirimi göstermek zorundadır. Bu olağan bildirim zili değildir.
-- **İzin yoksa:** Tam sesli alarm kurulmaz; hatırlatma yalnızca sessiz OS bildirimi olarak kalır, kullanıcıya açık eksiklik gösterilir.
+- **İzin yoksa:** Tam sesli alarm kurulmaz; hatırlatma normal sistem sesi olan OS bildirimi olarak kalır, kullanıcıya açık eksiklik gösterilir.
 - **İleri hatırlatmalar:** 5–60 dk erken bildirimler mevcut sistemle çalışır; tam ezan yalnızca vakit girişinde başlar.
 - **iOS:** Standart özel bildirim sesleri 30 saniye ile sınırlıdır; tam ezan için telefon kilitliyken otomatik medya oynatma garanti edilemez.
 
