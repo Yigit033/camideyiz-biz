@@ -6,6 +6,7 @@ import {Feather} from '@expo/vector-icons';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {useCompanion} from '@/features/companion/CompanionProvider';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
+import {hasAndroidNativeWidgetBridge} from '@/features/native/nativeRuntime';
 
 type NativeWidgetHealth={
   supported:true;nativeCityId:number;activeCityId:number;
@@ -194,6 +195,8 @@ export function Widget3Diagnostics(){
         ['Uygulama takvim durumu',source.status],
         ['Uygulama veri hatası',source.failureReason??'Yok'],
         ['Son eşitleme sonucu',companion.widget.detail],
+        ['Android native bağlantısı',
+          hasAndroidNativeWidgetBridge()?'Hazır — gerçek APK köprüsü':'Eksik — APK desteği yok'],
         ['Kurulu widgetlar',String(health?.installedNext??0)+' / '+String(health?.installedDay??0)],
         ['Native takvim',health?.hasTimeline?'Kayıtlı':'Yok'],
         ['Son yayın',clock(health?.calendarSourceAt??0)],
