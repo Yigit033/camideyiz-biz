@@ -6,7 +6,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
-import {PRAYER_KEYS,buildPrayerWidgetSnapshot,zonedClock,type PrayerKey,type PrayerSchedule}
+import {PRAYER_KEYS,buildPrayerWidgetSnapshot,type PrayerKey,type PrayerSchedule}
   from '@camideyiz/core';
 import {Atmosphere} from '@/components/LuxuryArtwork';
 import {useAppTheme} from '@/theme/ThemeProvider';
@@ -38,7 +38,6 @@ function InfoPill({text,icon}:{
 function WidgetShowcase({now}: {now:number}){
   const {colors}=useAppTheme();
   const source=useSharedPrayerSource();
-  const companion=useCompanion();
   const days=useMemo(():readonly PrayerSchedule[]=>{
     const d=source.days;
     if(!d||d.city.id!==source.place?.id)return [];
@@ -101,128 +100,14 @@ function WidgetShowcase({now}: {now:number}){
         </Text>
       </View>
     </ScrollView>
-    {companion.lastWidgetTransfer&&
-      companion.lastWidgetTransfer.cityId===source.place?.id&&
-      companion.lastWidgetTransfer.dateISO===
-        zonedClock(new Date(now),'Europe/Istanbul').dateISO
-      ?<View style={[styles.note,{backgroundColor:colors.soft,
-        borderColor:colors.border}]}>
-        <Feather name="check-circle" size={17} color={colors.emerald}/>
-        <View style={{flex:1,gap:5}}>
-          <Text style={{fontSize:12,fontWeight:'800',color:colors.text}}>
-            Native belleğe aktarılan takvim
-          </Text>
-          <Text style={{fontSize:11,color:colors.text,fontWeight:'700'}}>
-            {companion.lastWidgetTransfer.city} ·
-            {' '+companion.lastWidgetTransfer.nextName+' '+
-              companion.lastWidgetTransfer.nextTime}
-          </Text>
-          <Text style={{fontSize:10.5,color:colors.muted,lineHeight:17}}>
-            {companion.lastWidgetTransfer.times
-              .map(item=>item.label+' '+item.time).join(' · ')}
-          </Text>
-          <Text style={{fontSize:10,color:colors.muted}}>
-            {'Son aktarım: '+new Date(companion.lastWidgetTransfer.sentAt)
-              .toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}
-          </Text>
-          <Text style={{fontSize:10,color:colors.muted,lineHeight:16}}>
-            Telefonun ana ekranındaki widget saatlerini bunlarla karşılaştır.
-            Aktarım kaydı, telefonun görüntülediğini tek başına doğrulamaz.
-          </Text>
-        </View>
-      </View>:null}
-    {Platform.OS==='android'&&companion.widget.available?<View style={[
-      styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
-      <Feather name="shield" size={16} color={colors.gold}/>
-      <View style={{flex:1,gap:5}}>
-        <Text style={{fontSize:12,color:colors.text,fontWeight:'800'}}>
-          Android widget çalışma durumu
-        </Text>
-        <Text style={{fontSize:11,color:colors.text}}>
-          {'Ana ekrana ekli: '+(companion.widget.installedNext??0)+
-            ' sıradaki vakit · '+(companion.widget.installedDay??0)+' günlük takvim'}
-        </Text>
-        <Text style={{fontSize:10.5,lineHeight:17,color:colors.muted}}>
-          {companion.widget.nativePersisted
-            ?'Doğrulanmış takvim iki native widget kaydına yazıldı. '+
-              'Ekranda çizim tamamlandığını Android bildirmez.'
-            :'Native kayıt henüz doğrulanmadı.'}
-        </Text>
-        {companion.widget.lastNativeWriteAt
-          ?<Text style={{fontSize:10.5,color:colors.muted}}>
-            {'Son native yazım: '+new Date(companion.widget.lastNativeWriteAt)
-              .toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}
-          </Text>:null}
-        {companion.widget.nextNativeAlarmAt
-          ?<Text style={{fontSize:10.5,color:colors.muted}}>
-            {'Sonraki vakit geçişi için planlanan kontrol: '+
-              new Date(companion.widget.nextNativeAlarmAt)
-                .toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'})}
-          </Text>:null}
-        <Text style={{fontSize:10,color:colors.muted,lineHeight:16}}>
-          Alarm zamanı pil tasarrufuna bağlı gecikebilir. Saatlerin gerçek
-          görünümünü telefonunun ana ekranında karşılaştır.
-        </Text>
-      </View>
-    </View>:null}
-    <Text style={{fontSize:11,lineHeight:18,color:colors.muted}}>
-      Telefonun ana ekranında boş bir alana uzun bas, Widget’lar bölümünden
-      Camideyiz Biz’i bul ve boyut seç. Buradaki önizleme, telefon
-      ana ekranındaki widget’ın güncellendiği anlamına gelmez.
-    </Text>
     <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
-      <Feather name="refresh-cw" size={15} color={colors.gold}/>
-      <View style={{flex:1,gap:4}}>
-        <Text style={{fontSize:11,fontWeight:'800',color:colors.text}}>
-          {Platform.OS==='ios'?'Otomatik vakit yenileme'
-            :companion.backgroundRegistered
-              ?'Otomatik yenileme planlandı'
-              :'Otomatik yenileme şu anda etkin değil'}
-        </Text>
-        <Text style={{fontSize:10.5,lineHeight:17,color:colors.muted}}>
-          {Platform.OS==='ios'
-            ?'Vakitler telefonun izin verdiği aralıklarda yenilenir.'
-            :companion.backgroundRegistered
-              ?'Telefonun izin verdiği zamanlarda yenilenir. Pil tasarrufu geciktirebilir.'
-              :'Saatler widget’a elle aktarılabilir. Arka plan güncellemesi telefon tarafından kısıtlanmış olabilir.'}
-        </Text>
-        {companion.backgroundReport?.status==='updated'
-          ?<Text style={{fontSize:10,color:colors.muted}}>
-            {'Son güncelleme: '+new Date(companion.backgroundReport.lastAttempt)
-              .toLocaleString('tr-TR')}
-          </Text>:null}
-      </View>
-    </View>
-    <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:10}}>
-      <Text style={{flex:1,fontSize:10.5,color:colors.muted}} numberOfLines={2}>
-        {companion.lastWidgetTransfer?.cityId===source.place?.id&&
-        companion.lastWidgetTransfer?.dateISO===
-          zonedClock(new Date(now),'Europe/Istanbul').dateISO
-          ?'Namaz takvimi native belleğe kaydedildi'
-          :preview.status==='ready'
-            ?companion.widget.updated
-              ?'Native veri doğrulandı; ana ekran görünümünü kontrol et'
-              :'Widget’a aktarım başarısız. Ayrıntıları incele'
-            :'Vakitler yüklendiğinde widget güncellenecek'}
+      <Feather name="shield" size={16} color={colors.gold}/>
+      <Text style={{fontSize:11,lineHeight:18,color:colors.muted,flex:1}}>
+        Bunlar tasarım önizlemeleridir. Telefon ana ekranındaki gerçek widget
+        durumunu aşağıdaki Widget 3.0 tanılama kartından kontrol edebilir,
+        gerektiğinde oradan yeniden çizdirebilirsin.
       </Text>
-      <Pressable accessibilityRole="button"
-        accessibilityLabel="Ana ekran widget'larını şimdi yenile"
-        onPress={()=>void companion.refreshWidgets()}
-        style={[styles.miniButton,{backgroundColor:colors.accentStrong}]}>
-        <Feather name="refresh-cw" size={14} color="#FFF9ED"/>
-        <Text style={{color:'#FFF9ED',fontSize:11,fontWeight:'800'}}>Widget’ı yenile</Text>
-      </Pressable>
     </View>
-    {preview.status==='ready'&&!companion.widget.updated
-      ?<Pressable accessibilityRole="button"
-        onPress={()=>Alert.alert('Widget güncelleme ayrıntısı',
-          companion.widget.detail+
-          '\n\nAna sayfada saatler görünüyorsa Widget Yenile butonuna bas. Sorun sürerse bu açıklamayı paylaş.')}
-        style={{alignSelf:'flex-start',paddingVertical:5}}>
-        <Text style={{fontSize:11,fontWeight:'700',color:colors.gold}}>
-          Neden güncellenmedi?
-        </Text>
-      </Pressable>:null}
   </View>;
 }
 
