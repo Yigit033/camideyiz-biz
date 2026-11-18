@@ -7,6 +7,7 @@ import {toWidgetProps} from './widgetSyncShared';
 type NativeBridge={
   publishCalendar:(json:string)=>Promise<string>;
   getStatus:()=>Promise<string>;
+  refreshNow:()=>Promise<string>;
 };
 
 export type AndroidWidgetNativeStatus={
@@ -15,6 +16,10 @@ export type AndroidWidgetNativeStatus={
   lastError:string;lastNextName:string;lastNextTime:string;
   lastCity:string;lastDateISO:string;lastReady:boolean;
   persisted:boolean;hasTimeline:boolean;launcherConfirmed:false;
+  nativeCityId:number;state:string;
+  lastAttemptAt:number;lastRefreshReason:string;lastHostDispatchAt:number;
+  lastInstanceCount:number;calendarSourceAt:number;calendarEndsAt:number;
+  sourceAgeHours:number;osRecoveryMinutes:number;
 };
 
 const bridge=():NativeBridge|null=>{
@@ -31,7 +36,9 @@ function parseStatus(raw:string):AndroidWidgetNativeStatus{
     typeof v.installedNext!=='number'||typeof v.installedDay!=='number'||
     typeof v.lastAppliedAt!=='number'||typeof v.nextAlarmAt!=='number'||
     typeof v.lastReady!=='boolean'||typeof v.lastError!=='string'||
-    typeof v.lastNextName!=='string'||typeof v.lastDateISO!=='string')
+    typeof v.lastNextName!=='string'||typeof v.lastDateISO!=='string'||
+    typeof v.nativeCityId!=='number'||typeof v.state!=='string'||
+    typeof v.calendarEndsAt!=='number'||typeof v.lastHostDispatchAt!=='number')
     throw new Error('Malformed native widget status');
   // Native module intentionally cannot report actual launcher pixels.
   return {...v,launcherConfirmed:false} as AndroidWidgetNativeStatus;
@@ -46,6 +53,17 @@ Promise<AndroidWidgetNativeStatus|null>{
   const native=bridge();
   if(!native)return null;
   return parseStatus(await native.getStatus());
+}
+
+/** Native resync from already verified persisted data when the JS provider
+ * is offline. Must only be used for the SAME district: no cross-city replay. */
+export async function repairPersistedAndroidWidget(cityId:number):
+Promise<AndroidWidgetNativeStatus|null>{
+  const native=bridge();
+  if(!native||typeof native.refreshNow!=='function'||cityId<=0)return null;
+  const before=parseStatus(await native.getStatus());
+  if(!before.hasTimeline||before.nativeCityId!==cityId)return null;
+  return parseStatus(await native.refreshNow());
 }
 
 /** Send a validated future timeline to Android. Unlike expo-widgets' Android
@@ -64,7 +82,7 @@ export async function publishAndroidWidgetTimeline(
     return parseStatus(await native.publishCalendar(''));
   }
   if(!Number.isFinite(sourceAt)||sourceAt<=0||sourceAt>now+60_000||
-     now-sourceAt>72*60*60_000)
+     now-sourceAt>16*24*60*60_000)
     throw new Error('Kaynak takvimin yayın doğrulaması eskimiş');
   const timeline=buildPrayerWidgetTimeline(days,now,100);
   if(!timeline.length||timeline[0].snapshot.status!=='ready')
