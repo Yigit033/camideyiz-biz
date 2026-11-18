@@ -9,6 +9,10 @@ on:
       # Later native builds can be started manually without rebuilding on every commit.
       - .github/workflows/android-preview-apk.yml
       - apps/mobile/src/features/adhan/**
+      - apps/mobile/src/app/_layout.tsx
+      - apps/mobile/app.json
+      - apps/mobile/package.json
+      - scripts/verify-adhan-playback-contracts.mjs
       - apps/mobile/plugins/adhan-native/**
       - apps/mobile/plugins/withNativeAdhanAlarm.js
       - apps/mobile/plugins/widget-native/**
@@ -51,6 +55,7 @@ jobs:
           npm test
           npm run typecheck
           node scripts/verify-widget3-contracts.mjs
+          node scripts/verify-adhan-playback-contracts.mjs
           node scripts/verify-brand-symbol.mjs
           node scripts/verify-home-visual-contracts.mjs
           echo "Home visual and source-photo QA gates verified before native APK build"
@@ -109,6 +114,8 @@ jobs:
           grep -F 'CamideyizAdhanPackage()' "$main/java/biz/camideyiz/app/MainApplication.kt"
           grep -F 'SCHEDULE_EXACT_ALARM' "$main/AndroidManifest.xml"
           grep -F 'mediaPlayback' "$main/AndroidManifest.xml"
+          grep -F 'expo.modules.audio.service.AudioControlsService' "$main/AndroidManifest.xml"
+          grep -F 'camideyiz_user_adhan.mp3' "$main/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
 
       - name: Assemble standalone Release APK (arm64)
         working-directory: apps/mobile/android
