@@ -91,6 +91,15 @@
           "savePhotosPermission": "Hazırladığınız görselleri telefon galerinize kaydetmek için izin.",
           "granularPermissions": []
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false,
+          "recordAudioAndroid": false,
+          "microphonePermission": false
+        }
       ]
     ]
   }
