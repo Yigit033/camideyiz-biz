@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {memo,useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {
   Alert, Pressable, ScrollView, StyleSheet, Text,
   useWindowDimensions, View,
@@ -62,10 +62,10 @@ function DateDivider({now,timezone,hijriDate}:{
  * Temporary manual wheel exploration gets a subtle outline, not a false
  * active-vakit fill. Contrast stays readable throughout the 300ms transition.
  */
-function Pill({title,current,focused,icon,clock,accent,width,onPress,dark}:{
+const Pill=memo(function Pill({title,current,focused,icon,clock,accent,width,onSelect,index,dark}:{
   title:string;current:boolean;focused:boolean;
   icon:typeof ICONS[keyof typeof ICONS];clock:string;accent:string;
-  width:number;onPress:()=>void;dark:boolean;
+  width:number;onSelect:(index:number)=>void;index:number;dark:boolean;
 }){
   const {colors}=useAppTheme();
   const reducedMotion=useReducedMotion();
@@ -91,7 +91,7 @@ function Pill({title,current,focused,icon,clock,accent,width,onPress,dark}:{
         inkPalette.startInk:inkPalette.endInk,
   }),[inkPalette,finalInk]);
 
-  return <Pressable accessibilityRole="button" onPress={onPress}
+  return <Pressable accessibilityRole="button" onPress={()=>onSelect(index)}
     accessibilityState={{selected:focused}}
     accessibilityLabel={title+(clock?' '+clock:'')+(current?' · Şu anki vakit':'')}
     style={{width,borderRadius:15,
@@ -106,7 +106,7 @@ function Pill({title,current,focused,icon,clock,accent,width,onPress,dark}:{
       <Animated.Text style={[styles.chipTime,ink]}>{clock}</Animated.Text>
     </Animated.View>
   </Pressable>;
-}
+});
 
 /** At the background's luminance midpoint, switch between white and black
  * rather than fading through low-contrast grey during the colour animation.
@@ -122,16 +122,18 @@ function cardInkTransition(from:string,to:string){
   const toLight=luminance(to)>=cutoff;
   let switchAt=1;
   if(fromLight!==toLight){
-    for(let i=1;i<=1000;i++){
-      const p=i/1000;
+    // Binary search needs 12 luminance calculations instead of up to 1000
+    // for EACH badge during cold start. Identical visual cutoff (<0.03%).
+    let lo=0,hi=1;
+    for(let i=0;i<12;i++){
+      const p=(lo+hi)/2;
       const middle='#'+[1,3,5].map(k=>Math.round(
         parseInt(from.slice(k,k+2),16)*(1-p)+
         parseInt(to.slice(k,k+2),16)*p).toString(16).padStart(2,'0')).join('');
-      if((luminance(middle)>=cutoff)!==fromLight){
-        switchAt=p;
-        break;
-      }
+      if((luminance(middle)>=cutoff)!==fromLight)hi=p;
+      else lo=p;
     }
+    switchAt=hi;
   }
   return {switchAt,startInk:fromLight?'#000000':'#FFFFFF',
     endInk:toLight?'#000000':'#FFFFFF'};
@@ -169,12 +171,12 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     setManualIndex(index);
     Haptics.selectionAsync().catch(()=>undefined);
   },[]);
-  const focusIndex=(index:number|null)=>{
+  const focusIndex=useCallback((index:number)=>{
     cancelLiveReturn();
     setManualIndex(index);
     setFocusRequest(value=>value+1);
-    if(index!==null)scheduleLiveReturn();
-  };
+    scheduleLiveReturn();
+  },[cancelLiveReturn,scheduleLiveReturn]);
   useEffect(()=>{
     cancelLiveReturn();
     setManualIndex(null);
@@ -310,7 +312,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
               icon={ICONS[item.key]} current={currentIndex===index}
               focused={selectedIndex===index}
               accent={PRAYER_COLORS[item.key]} width={chipWidth}
-              dark={dark} onPress={()=>focusIndex(index)}/>)}
+              dark={dark} index={index} onSelect={focusIndex}/>)}
         </View>
       </View>
 
@@ -386,6 +388,10 @@ function CalendarLoadingHome({official,now}:{
   const [pickerOpen,setPickerOpen]=useState(false);
   const [selectedIndex,setSelectedIndex]=useState(0);
   const [focusRequest,setFocusRequest]=useState(0);
+  const selectPlaceholder=useCallback((index:number)=>{
+    setSelectedIndex(index);
+    setFocusRequest(x=>x+1);
+  },[]);
   const label=official.status==='loading'?'Takvim yükleniyor'
     :official.status==='choose-location'?'Takvim konumunu seç'
     :'Takvim kaynağına erişilemedi';
@@ -450,9 +456,7 @@ function CalendarLoadingHome({official,now}:{
             current={false} focused={selectedIndex===index}
             accent={PRAYER_COLORS[item.key]}
             width={Math.max(49,(width-36)/6)}
-            dark={dark} onPress={()=>{
-              setSelectedIndex(index);setFocusRequest(x=>x+1);
-            }}/>)}
+            dark={dark} index={index} onSelect={selectPlaceholder}/>)}
         </View>
       </View>
       <DailyWisdomSection dateISO={zonedClock(now,'Europe/Istanbul').dateISO} dark={dark}/>
