@@ -227,6 +227,48 @@ export async function syncForegroundWidgetCalendar(
   return result;
 }
 
+/** Explicit user repair bypasses stale React state and fetches fresh,
+ * strictly validated published days directly for the selected district.
+ * Never substitute a province's center or synthesize prayer times.
+ * This is invoked only from a user action, not on every render.
+ */
+export async function fetchAndPublishVerifiedWidgetCalendar(
+  place:PrayerPlaceSelection,source:WidgetCalendarCache['source'],
+):Promise<import('./widgetSyncShared').WidgetSyncResult>{
+  if(!enabled())return {available:false,updated:false,
+    detail:'Native widget yalnız Android APK içinde kullanılabilir.'};
+  try{
+    await prepareWidgetDistrict(place.id);
+    await setWidgetActivePlace(place,source);
+    const today=zonedClock(new Date(),'Europe/Istanbul').dateISO;
+    const result=source==='idamedya-diyanet-republished'
+      ?await getMirrorPrayerTriplet(place,today)
+      :await getPrayerTriplet(place.id,today);
+    const entries=result.source==='idamedya-diyanet-republished'
+      ?result.upcoming:[result.today,result.next];
+    const fetchedAt=Date.parse(result.today.fetchedAt);
+    const cache=makeWidgetCalendarCache(place.id,place.name,source,entries,fetchedAt);
+    const now=Date.now();
+    const valid=parseWidgetCalendarCache(cache,now,place.id);
+    if(!valid||buildPrayerWidgetSnapshot(valid.days,now).status!=='ready')
+      throw new Error('Seçili ilçe için yayımlanan güncel namaz vakitleri doğrulanamadı.');
+    const current=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
+    if(!current||current.id!==place.id||current.source!==source)
+      return {available:true,updated:false,detail:
+        'İlçe değiştiği için eski eşitleme güvenli biçimde iptal edildi.'};
+    await saveForegroundWidgetCalendar(place,source,valid.days,valid.fetchedAt);
+    const receipt=await syncPrayerWidgets(valid.days,Date.now(),place.id,valid.fetchedAt);
+    if(receipt.updated)await noteNativeTransfer(current,valid.days,Date.now())
+      .catch(()=>undefined);
+    return receipt;
+  }catch(error){
+    const detail='Seçilen ilçenin yayımlanmış takvimi alınamadı: '+
+      (error instanceof Error?error.message:'Bilinmeyen kaynak hatası');
+    await recordWidgetTransferIssue(place.id,'waiting',detail).catch(()=>undefined);
+    return {available:true,updated:false,detail};
+  }
+}
+
 /** Runs without React components. Inexact WorkManager task, not a clock alarm.
  * Network refresh is limited to every two hours with a 72h published cache.
  * When offline, only already validated real provider data may be displayed. */
