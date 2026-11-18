@@ -89,8 +89,8 @@ assert.match(service,/current\.id!==place\.id\|\|current\.source!==source/,
   'after network fetch, recheck district before publishing');
 assert.match(companion,/fetchAndPublishVerifiedWidgetCalendar\(place,selectedSource\)/,
   'refresh button must call the dedicated verified publisher fallback');
-assert.match(companion,/if\(!ready\|\|!source\.place\)return/,
-  'startup with GPS still resolving must not erase native storage');
+assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!source\.place\)return/,
+  'startup must wait for first paint and a real GPS district before native writes');
 assert.match(panel,/if\(!result\.updated\)setError\(result\.detail\)/,
   'manual repair must not claim success before native publish');
 console.log('Widget 3.1: no blank cache writes, persistent diagnostics, verified offline horizon, native rollover, same-city recovery, 30m host fallback, diagnostic UX');
