@@ -1,7 +1,7 @@
 import type {PrayerSchedule} from '@camideyiz/core';
 import {isExpoGoRuntime} from '../native/nativeRuntime';
 import type {WidgetSyncResult} from './widgetSyncShared';
-import {publishAndroidWidgetTimeline} from './widgetNativeDiagnostics.android';
+import {publishAndroidWidgetTimeline,repairPersistedAndroidWidget} from './widgetNativeDiagnostics.android';
 
 /**
  * Android draws native RemoteViews; no isolated Expo widget JS engine.
@@ -42,5 +42,30 @@ export async function syncPrayerWidgets(
     return {available:false,updated:false,
       detail:'Widget native aktarım hatası: '+
         (error instanceof Error?error.message:'bilinmeyen hata')};
+  }
+}
+
+/** Recover persisted current-district calendar even while the upstream
+ * provider / AsyncStorage is temporarily unavailable. Never reuse another city. */
+export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResult|null>{
+  if(isExpoGoRuntime())return null;
+  try{
+    const status=await repairPersistedAndroidWidget(cityId);
+    if(!status)return null;
+    const count=status.installedNext+status.installedDay;
+    return {
+      available:true,updated:status.persisted&&status.lastReady&&!status.lastError,
+      detail:status.lastError
+        ?'Widget native kurtarma hatası: '+status.lastError
+        :status.lastReady
+          ?'Seçilen ilçenin kayıtlı yayımlanmış takvimi tekrar çizdirildi. '+count+' widget isteği gönderildi.'
+          :'Kayıtlı takvimin geçerli günü kalmadı; güncel yayın bekleniyor.',
+      installedNext:status.installedNext,installedDay:status.installedDay,
+      lastNativeWriteAt:status.lastAppliedAt,nextNativeAlarmAt:status.nextAlarmAt,
+      nativePersisted:status.persisted,launcherConfirmed:false,
+    };
+  }catch(error){
+    return {available:true,updated:false,detail:
+      'Widget kurtarma başarısız: '+(error instanceof Error?error.message:'Bilinmeyen hata')};
   }
 }
