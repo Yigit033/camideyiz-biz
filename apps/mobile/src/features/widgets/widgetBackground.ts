@@ -219,6 +219,9 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
   const now=Date.now();
   const place=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
   if(!place){await report('waiting-data','İlçe henüz seçilmedi',null,false);return true;}
+  // Paint the currently verified native snapshot FIRST, before a network
+  // request can time out or WorkManager's short execution budget expires.
+  const recoveredAtStart=await recoverPrayerWidgets(place.id);
   let cached=await readCache(now,place.id);
   let networkAt:null|number=null;
   let fetchError='';
@@ -258,8 +261,9 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
     await report('error',result.detail,networkAt,false);
     return false;
   }
-  const hasData=snapshot?.status==='ready';
-  if(hasData&&usable){
+  const hasCalendar=snapshot?.status==='ready';
+  const hasData=hasCalendar||Boolean(recoveredAtStart?.updated||recovered?.updated);
+  if(hasCalendar&&usable){
     await noteNativeTransfer(latest,usable.days,Date.now()).catch(()=>undefined);
   }
   let reminderDetail='';
@@ -284,8 +288,10 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
   }
   await report(hasData?'updated':'waiting-data',
     hasData
-      ?(fetchError?'Son doğrulanmış takvim kullanıldı; sağlayıcı: '+fetchError
-        :'Yayımlanmış namaz vakitleri tekrar eşitlendi')+reminderDetail
+      ?(hasCalendar
+        ?(fetchError?'Son doğrulanmış takvim kullanıldı; sağlayıcı: '+fetchError
+          :'Yayımlanmış namaz vakitleri tekrar eşitlendi')
+        :'Önceki doğrulanmış yerel takvimden widget çizimi yenilendi; ağ bağlantısı bekleniyor')+reminderDetail
       :'Güncel ve doğrulanmış ilçe takvimi henüz alınamadı',
     networkAt,Boolean(hasData));
   return true;
