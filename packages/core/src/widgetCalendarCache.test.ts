@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DEMO_SCHEDULE} from './prayer.ts';
-import {buildPrayerWidgetSnapshot,prayerInstant} from './prayerCompanion.ts';
+import {buildPrayerWidgetSnapshot,buildPrayerWidgetTimeline,prayerInstant} from './prayerCompanion.ts';
 import {makeWidgetCalendarCache,parseWidgetCalendarCache,
   WIDGET_CACHE_MAX_AGE_MS} from './widgetCalendarCache.ts';
 
@@ -101,4 +101,38 @@ test('Widget 3.0: old data must expire even if it carries future-looking dates',
     [{...today,locationName:'Tuzla'},{...tomorrow,locationName:'Tuzla'}],
     nowMs-WIDGET_CACHE_MAX_AGE_MS-1000);
   assert.equal(parseWidgetCalendarCache(tooOld,nowMs,9551),null);
+});
+
+test('Widget 3.1: 20:44 local after Yatsı still has a real upcoming next-day İmsak',()=>{
+  // Fixtures are structurally published-format, not claims about actual
+  // Diyanet clock values on this date.
+  const days=['2026-11-18','2026-11-19','2026-11-20'].map(dateISO=>({
+    ...today,dateISO,locationName:'Tuzla',
+    times:today.times.map((p,i)=>({
+      ...p,time:['06:11','07:40','12:51','15:27','17:48','19:12'][i],
+    })),
+  }));
+  const now=prayerInstant('2026-11-18','20:44');
+  const cache=makeWidgetCalendarCache(9551,'Tuzla',
+    'idamedya-diyanet-republished',days,now-30_000);
+  const restored=parseWidgetCalendarCache(cache,now,9551);
+  assert.ok(restored);
+  const initial=buildPrayerWidgetSnapshot(restored.days,now);
+  assert.equal(initial.status,'ready');
+  assert.equal(initial.nextName,'İmsak');
+  assert.equal(initial.nextTime,'06:11');
+  assert.equal(initial.dateISO,'2026-11-18');
+  const timeline=buildPrayerWidgetTimeline(restored.days,now,100);
+  assert.equal(timeline[0].date,now);
+  assert.equal(timeline[0].snapshot.status,'ready');
+  assert.ok(timeline.length>1);
+  for(let i=0;i<timeline.length;i++){
+    if(i>0)assert.ok(timeline[i].date>timeline[i-1].date);
+    if(timeline[i].snapshot.status==='ready')
+      assert.ok(timeline[i].snapshot.nextAt>timeline[i].date,
+        'native publish requires next prayer strictly in the future');
+  }
+  assert.equal(parseWidgetCalendarCache(cache,now,0),null);
+  assert.equal(parseWidgetCalendarCache(cache,now,9740),null,
+    'Tuzla must never be reused under Karataş or another district');
 });
