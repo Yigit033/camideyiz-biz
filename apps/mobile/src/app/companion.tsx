@@ -491,7 +491,7 @@ export default function CompanionScreen(){
         <Text style={{fontSize:10,color:colors.muted,lineHeight:17}}>
           Tam ezan seçeneği Android'de vakit girince uygulamaya gömülü MP3'ü
           otomatik çalmak üzere kesin alarm kurar. Erken hatırlatmalar standart
-          bildirim olarak kalır. Sessiz modda ses çıkmaz. Ezan yalnızca beş namaz
+          bildirim olarak kalır. Sessiz seçeneğinde ses çıkmaz. Ezan yalnızca beş namaz
           vaktinde çalar; güneş doğuşu ve erken hatırlatmalarda çalmaz.
         </Text>
         {settings.sound==='adhan'&&nativeAdhanSupported? <View style={[styles.note,{
