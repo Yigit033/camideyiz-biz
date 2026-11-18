@@ -49,7 +49,7 @@ type CompanionContextValue={
   setSound:(next:AlertSound)=>void;
   setEzanAtTimeForAll:(next:boolean)=>void;
   setRule:(key:PrayerKey,changes:Partial<PrayerAlertSettings['rules'][PrayerKey]>)=>void;
-  refresh:()=>void;refreshWidgets:()=>Promise<void>;
+  refresh:()=>void;refreshWidgets:()=>Promise<WidgetSyncResult>;
   clearInbox:()=>void;deleteInbox:(id:string)=>void;
 };
 const Context=createContext<CompanionContextValue|null>(null);
@@ -189,7 +189,9 @@ export function CompanionProvider({children}:PropsWithChildren){
   // that same district, rather than overwriting the widget with no-data.
   // Pending old-district writes are serialized and cancelled before execution.
   useEffect(()=>{
-    if(!ready||(cityId===0&&source.status==='loading'))return;
+    // GPS start-up may temporarily have no place. Do not erase the already
+    // verified native widget just because location is still resolving.
+    if(!ready||!source.place)return;
     const version=++widgetVersion.current;
     let active=true;
     const place=source.place;
@@ -301,28 +303,37 @@ export function CompanionProvider({children}:PropsWithChildren){
   // Manual widget refresh uses already validated district hours immediately.
   // A network reload before writing could temporarily clear the launcher.
   const refreshWidgets=useCallback(async()=>{
-    if(!ready)return;
+    if(!ready)return {available:false,updated:false,
+      detail:'Widget ayarları henüz açılmadı'};
     const place=source.place;
+    if(!place)return {available:true,updated:false,
+      detail:'Konum seçimi henüz tamamlanmadı'};
     const selectedSource=source.officialConfigured
       ?'diyanet-awqat-salah' as const
       :'idamedya-diyanet-republished' as const;
     const publishedAt=source.days?Date.parse(source.days.today.fetchedAt):null;
+    let result:WidgetSyncResult={available:true,updated:false,
+      detail:'Eşitleme başlamadı'};
     const run=async()=>{
       try{
-        const result=await syncForegroundWidgetCalendar(
+        result=await syncForegroundWidgetCalendar(
           place,selectedSource,days,publishedAt,Date.now());
         setWidget(result);
         const latest=await readLastWidgetTransfer();
         setLastWidgetTransfer(latest?.cityId===place?.id?latest:null);
       }catch(error){
-        setWidget({available:false,updated:false,
+        result={available:false,updated:false,
           detail:'Widget aktarılamadı: '+
-            (error instanceof Error?error.message:'Beklenmeyen hata')});
+            (error instanceof Error?error.message:'Beklenmeyen hata')};
+        setWidget(result);
       }
     };
     widgetQueue.current=widgetQueue.current.catch(()=>undefined).then(run);
     await widgetQueue.current;
-  },[ready,source.place,source.days,source.officialConfigured,days]);
+    // Do not report "repainted" when no calendar was actually transferred.
+    if(!result.updated)source.retry();
+    return result;
+  },[ready,source.place,source.days,source.officialConfigured,days,source.retry]);
 
   const rememberDeletion=useCallback((ids:readonly string[])=>{
     const next=[...new Set([...deletedIds.current,...ids])].slice(-512);
