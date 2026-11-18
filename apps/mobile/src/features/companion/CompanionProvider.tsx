@@ -18,11 +18,9 @@ import {clearNativeAdhan} from './nativeAdhan';
 import {useAnnouncementSubscription,type AnnouncementState}
   from './useAnnouncementSubscription';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
-import {ensureWidgetBackgroundRefresh,syncForegroundWidgetCalendar,
-  fetchAndPublishVerifiedWidgetCalendar,
-  readLastWidgetTransfer,readWidgetBackgroundReport,
-  type LastWidgetTransfer,type WidgetBackgroundReport}
+import type {LastWidgetTransfer,WidgetBackgroundReport}
   from '@/features/widgets/widgetBackground';
+const loadWidgetEngine=()=>import('@/features/widgets/widgetBackground');
 
 const PREFS=PRAYER_ALERT_PREFERENCES_KEY;
 const INBOX='@camideyiz/observed-reminders/v2';
@@ -185,10 +183,13 @@ export function CompanionProvider({children}:PropsWithChildren){
     let live=true;
     (async()=>{
       try{
-        const registered=await ensureWidgetBackgroundRefresh();
+        const engine=await loadWidgetEngine();
+        if(!live)return;
+        const registered=await engine.ensureWidgetBackgroundRefresh();
         if(live)setBackgroundRegistered(registered);
       }catch{if(live)setBackgroundRegistered(false);}
-      const report=await readWidgetBackgroundReport();
+      const engine=await loadWidgetEngine();
+      const report=await engine.readWidgetBackgroundReport();
       if(live)setBackgroundReport(report);
     })().catch(()=>undefined);
     return ()=>{live=false;};
@@ -220,11 +221,13 @@ export function CompanionProvider({children}:PropsWithChildren){
     const publishedAt=source.days?Date.parse(source.days.today.fetchedAt):null;
     const update=async()=>{
       try{
-        const result=await syncForegroundWidgetCalendar(
+        const engine=await loadWidgetEngine();
+        if(!active||version!==widgetVersion.current)return;
+        const result=await engine.syncForegroundWidgetCalendar(
           place,sourceKind,days,publishedAt,Date.now());
         if(active&&version===widgetVersion.current){
           setWidget(result);
-          const record=await readLastWidgetTransfer();
+          const record=await engine.readLastWidgetTransfer();
           if(active&&version===widgetVersion.current)
             setLastWidgetTransfer(record?.cityId===place?.id?record:null);
         }
@@ -335,15 +338,16 @@ export function CompanionProvider({children}:PropsWithChildren){
       detail:'Eşitleme başlamadı'};
     const run=async()=>{
       try{
-        result=await syncForegroundWidgetCalendar(
+        const engine=await loadWidgetEngine();
+        result=await engine.syncForegroundWidgetCalendar(
           place,selectedSource,days,publishedAt,Date.now());
         if(!result.updated){
           // A user-requested repair must work even if the React hook never
           // supplied hours; fetch the selected district's verified calendar.
-          result=await fetchAndPublishVerifiedWidgetCalendar(place,selectedSource);
+          result=await engine.fetchAndPublishVerifiedWidgetCalendar(place,selectedSource);
         }
         setWidget(result);
-        const latest=await readLastWidgetTransfer();
+        const latest=await engine.readLastWidgetTransfer();
         setLastWidgetTransfer(latest?.cityId===place?.id?latest:null);
       }catch(error){
         result={available:false,updated:false,
