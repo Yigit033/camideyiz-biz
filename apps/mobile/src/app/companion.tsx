@@ -16,6 +16,7 @@ import {CHANNEL_AUDIBLE,CHANNEL_SILENT,setPrayerChannels} from '@/features/compa
 import {isExpoGoRuntime} from '@/features/native/nativeRuntime';
 import {nativeAdhanSupported,nativeAdhanStatus,requestNativeAdhanPermission,testNativeAdhan}
   from '@/features/companion/nativeAdhan';
+import {Widget3Diagnostics} from '@/features/widgets/Widget3Diagnostics';
 
 const NAMES:Record<PrayerKey,string>={
   imsak:'İmsak',gunes:'Güneş',ogle:'Öğle',ikindi:'İkindi',aksam:'Akşam',yatsi:'Yatsı',
@@ -361,6 +362,7 @@ export default function CompanionScreen(){
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <WidgetShowcase now={now}/>
       </View>
+      <Widget3Diagnostics/>
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <View style={styles.sectionHeader}>
           <View style={{flex:1,flexDirection:'row',gap:8,alignItems:'center'}}>
