@@ -24,6 +24,10 @@ on:
       - packages/core/src/prayerCompanion.ts
       - apps/mobile/assets/audio/**
       - apps/mobile/src/app/(tabs)/index.tsx
+      - apps/mobile/src/app/(tabs)/gallery.tsx
+      - apps/mobile/src/features/gallery/**
+      - apps/mobile/assets/gallery/**
+      - scripts/verify-gallery-assets.mjs
 
 permissions:
   contents: read
