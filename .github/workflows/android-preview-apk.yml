@@ -8,6 +8,9 @@ on:
       # Automatically run once when this workflow is first introduced.
       # Later native builds can be started manually without rebuilding on every commit.
       - .github/workflows/android-preview-apk.yml
+      - apps/mobile/src/features/adhan/**
+      - apps/mobile/assets/audio/**
+      - apps/mobile/src/app/(tabs)/index.tsx
 
 permissions:
   contents: read
