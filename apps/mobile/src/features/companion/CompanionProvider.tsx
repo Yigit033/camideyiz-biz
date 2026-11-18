@@ -73,6 +73,9 @@ export function CompanionProvider({children}:PropsWithChildren){
   const [settings,setSettings]=useState<PrayerAlertSettings>(DEFAULT_ALERT_SETTINGS);
   const [inbox,setInbox]=useState<NativePrayerEvent[]>([]);
   const [ready,setReady]=useState(false);
+  // First paint and the user's Play button outrank optional native upkeep.
+  // Android alarms previously scheduled by the OS keep firing independently.
+  const [maintenanceReady,setMaintenanceReady]=useState(false);
   const [sync,setSync]=useState<NotificationSyncReport>(EMPTY_REPORT);
   const [widget,setWidget]=useState<WidgetSyncResult>(EMPTY_WIDGET);
   const [backgroundRegistered,setBackgroundRegistered]=useState(false);
@@ -84,9 +87,15 @@ export function CompanionProvider({children}:PropsWithChildren){
   const lastForegroundSync=useRef(0);
   const syncVersion=useRef(0);
   const widgetVersion=useRef(0);
+  const lastWidgetFingerprint=useRef<string|null>(null);
   const widgetQueue=useRef<Promise<void>>(Promise.resolve());
   const syncQueue=useRef<Promise<void>>(Promise.resolve());
   const deletedIds=useRef<Set<string>>(new Set());
+
+  useEffect(()=>{
+    const id=setTimeout(()=>setMaintenanceReady(true),1600);
+    return ()=>clearTimeout(id);
+  },[]);
 
   useEffect(()=>{
     let live=true;
@@ -172,7 +181,7 @@ export function CompanionProvider({children}:PropsWithChildren){
   // notification permissions. Do not retry background registration each time
   // the published calendar refreshes.
   useEffect(()=>{
-    if(!ready)return;
+    if(!ready||!maintenanceReady)return;
     let live=true;
     (async()=>{
       try{
@@ -183,7 +192,7 @@ export function CompanionProvider({children}:PropsWithChildren){
       if(live)setBackgroundReport(report);
     })().catch(()=>undefined);
     return ()=>{live=false;};
-  },[ready]);
+  },[ready,maintenanceReady]);
 
   // Exactly one foreground writer. Persist the selected district first;
   // while the provider reloads we reuse ONLY a validated cache belonging to
@@ -192,7 +201,16 @@ export function CompanionProvider({children}:PropsWithChildren){
   useEffect(()=>{
     // GPS start-up may temporarily have no place. Do not erase the already
     // verified native widget just because location is still resolving.
-    if(!ready||!source.place)return;
+    if(!ready||!maintenanceReady||!source.place)return;
+    // Status-only changes and AppState foreground checks must not republish
+    // identical calendars through the native UI pipeline.
+    const fingerprint=[
+      source.place.id,source.officialConfigured?'official':'mirror',
+      source.days?.today.fetchedAt??'no-calendar',
+      ...days.map(d=>d.dateISO),
+    ].join('|');
+    if(lastWidgetFingerprint.current===fingerprint)return;
+    lastWidgetFingerprint.current=fingerprint;
     const version=++widgetVersion.current;
     let active=true;
     const place=source.place;
@@ -221,10 +239,10 @@ export function CompanionProvider({children}:PropsWithChildren){
     widgetQueue.current=widgetQueue.current.catch(()=>undefined)
       .then(()=>active?update():Promise.resolve());
     return ()=>{active=false;};
-  },[ready,days,cityId,sequence,source.status,source.officialConfigured]);
+  },[ready,maintenanceReady,days,cityId,source.officialConfigured]);
 
   useEffect(()=>{
-    if(!ready)return;
+    if(!ready||!maintenanceReady)return;
     const id=++syncVersion.current;
     let active=true;
     const reconcile=async()=>{
@@ -263,7 +281,7 @@ export function CompanionProvider({children}:PropsWithChildren){
         }
       });
     return ()=>{active=false;};
-  },[ready,days,cityId,settings,sequence]);
+  },[ready,maintenanceReady,days,cityId,settings,sequence]);
 
   const setEnabled=useCallback(async(next:boolean)=>{
     if(next){
