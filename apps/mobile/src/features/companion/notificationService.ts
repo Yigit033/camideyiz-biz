@@ -97,8 +97,9 @@ export async function reconcilePrayerNotifications(
     const desired=enabled?createPrayerAlertPlan(days,settings,nowMs):[];
 
     // Full ezan is Android-only native playback, never a notification sound.
-    // A silent OS alert is retained as a fallback if special alarm permission
-    // was not granted or native scheduling failed. No hidden fake playback.
+    // A standard audible OS alert is retained as a fallback if special alarm
+    // permission was not granted or native scheduling failed. Never silently
+    // lose the reminder because the user requested an unavailable adhan.
     let nativeReady=false;
     let nativeCount=0;
     let nativeError:string|null=null;
@@ -121,9 +122,8 @@ export async function reconcilePrayerNotifications(
 
     const notifications=desired.filter(event=>
       !(nativeReady && event.kind==='atTime' && event.prayer!=='gunes'));
-    const effectiveSound=(event:PrayerAlertEvent):'default'|'silent'=>
-      settings.sound==='silent' || (settings.sound==='adhan' && event.kind==='atTime')
-        ?'silent':'default';
+    const effectiveSound=(_event:PrayerAlertEvent):'default'|'silent'=>
+      settings.sound==='silent'?'silent':'default';
     const existingByKey=new Map(ours.map(r=>[String(r.content.data?.eventKey),r]));
     const wanted=new Set(notifications.map(e=>e.key));
     // Reconcile ONLY our own pending prayer requests. Announcements untouched.
