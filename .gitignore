@@ -17,3 +17,6 @@ ios/
 *.p12
 google-services.json
 GoogleService-Info.plist
+
+# Generated CC0 ezan MP3; can be explicitly vendor-committed by GitHub Actions
+apps/mobile/assets/audio/*.mp3
