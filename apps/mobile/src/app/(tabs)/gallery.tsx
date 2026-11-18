@@ -152,7 +152,7 @@ export default function Gallery(){
       <Text style={{fontSize:15,fontWeight:'800',color:colors.text}}>Tasarım Koleksiyonu</Text>
       <Text style={{fontSize:11,color:colors.muted}}>{tiles.length} şablon</Text>
     </View>
-    <View style={styles.grid}>
+    <View style={[styles.grid,{maxWidth:tileWidth*2+TILE_SPACING}]}>
       {tiles.length>0?tiles.map(slot=>
         <GalleryTile key={slot.id} item={slot} width={tileWidth}/>
       ):<View style={{paddingVertical:30,width:'100%',alignItems:'center',gap:7}}>
@@ -177,8 +177,9 @@ const styles=StyleSheet.create({
     flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:13},
   categories:{gap:8,paddingVertical:2},
   chip:{borderWidth:1,paddingHorizontal:14,paddingVertical:10,borderRadius:22},
-  grid:{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',
-    alignItems:'flex-start',columnGap:TILE_SPACING,rowGap:TILE_SPACING},
+  grid:{flexDirection:'row',flexWrap:'wrap',alignSelf:'center',
+    justifyContent:'flex-start',alignItems:'flex-start',width:'100%',
+    columnGap:TILE_SPACING,rowGap:TILE_SPACING},
   tile:{borderRadius:17,overflow:'hidden',borderWidth:1},
   thumb:{width:'100%',overflow:'hidden',alignItems:'center',justifyContent:'center'},
   placeholder:{flex:1,justifyContent:'center',alignItems:'center',gap:8},
