@@ -54,7 +54,7 @@ assert.match(task,/await import\('\.\/widgetBackground'\)/,
 assert.doesNotMatch(widgets,/TaskManager\.defineTask\(/,
   'two task registrations can corrupt headless scheduling');
 assert.match(companion,/const loadWidgetEngine=\(\)=>import\('@\/features\/widgets\/widgetBackground'\)/);
-assert.match(companion,/setTimeout\(\(\)=>setMaintenanceReady\(true\),1600\)/,
+assert.match(companion,/setTimeout\(\(\)=>\{[\s\S]*?setMaintenanceReady\(true\);[\s\S]*?\},1600\)/,
   'initial native maintenance must yield first paint');
 assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!source\.place\)return/);
 assert.match(companion,/lastWidgetFingerprint\.current===fingerprint/,
