@@ -31,15 +31,20 @@ assert.match(panel,/styles\.cards/);
 assert.match(panel,/Ağır Kerahat/);
 assert.match(panel,/Hafif Kerahat/);
 
-// Never silently substitute a pre-cropped thumbnail for the approved image.
-// Also limit card width and retain the actual source aspect ratio.
-assert.match(gallery,/const image=galleryPhoto\(slot\.id\)/);
+// Never silently substitute a pre-cropped thumbnail for the full photograph.
+// A fixed portrait frame with explicit Android Image width/height prevents
+// unexpected source zooming; aligned rows are now the product requirement.
 assert.match(gallery,/const photo=galleryPhoto\(item\.id\)/);
 assert.doesNotMatch(gallery,/galleryThumbnail\(/);
+assert.doesNotMatch(gallery,/previewAspectRatio\(/);
+assert.doesNotMatch(gallery,/StyleSheet\.absoluteFill/);
+assert.doesNotMatch(gallery,/resizeMethod="resize"/);
 assert.match(gallery,/resizeMode="contain"/);
-assert.match(gallery,/resizeMethod="resize"/);
-assert.match(gallery,/const tileWidth=Math\.max\(118,Math\.min\(154,/);
-assert.match(gallery,/return metadata\.width\/metadata\.height/);
+assert.match(gallery,/const TILE_PHOTO_RATIO=2\/3/);
+assert.match(gallery,/style=\{\{width:width-2,height:imageHeight\}\}/);
+assert.match(gallery,/flexWrap:'wrap'/);
+assert.match(gallery,/tiles\.map\(slot=>/);
+assert.match(gallery,/maxWidth:tileWidth\*2\+TILE_SPACING/);
 
 // Keep ring calculation unchanged; kerahat stands out at a glance.
 assert.match(wheel,/const kerahatArcs=ringWindows\.flatMap/);
@@ -48,4 +53,4 @@ assert.match(wheel,/'KERAHAT VAKTİ'/);
 assert.match(wheel,/window\.state==='active'\?15\.5/);
 assert.match(wheel,/window\.state==='active'\?14/);
 
-console.log('Home visual QA: original emblem hierarchy, stationary mosque pin, uncropped smaller gallery, removed redundant card and strong kerahat cues OK');
+console.log('Home visual QA: original emblem hierarchy, stationary mosque pin, uncropped aligned gallery, removed redundant card and strong kerahat cues OK');
