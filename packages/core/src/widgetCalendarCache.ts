@@ -4,7 +4,10 @@ import {PRAYER_KEYS,timeToMinutes,type PrayerSchedule,type PrayerTime} from './p
 /** Background widgets never calculate astronomical times. They can only
  * reuse a previously validated published calendar from the selected district.
  * Expired data is rejected and the next request must fetch again. */
-export const WIDGET_CACHE_MAX_AGE_MS=72*60*60_000;
+/** A published multi-day timetable remains valid until its own dated coverage
+ * ends. Network fetch age alone must not wipe still-published offline dates.
+ * The 16-day cap matches the maximum retained contiguous calendar horizon. */
+export const WIDGET_CACHE_MAX_AGE_MS=16*24*60*60_000;
 export const WIDGET_NETWORK_REFRESH_MS=2*60*60_000;
 export const WIDGET_CACHE_MAX_DAYS=16;
 export type WidgetCalendarCache={
