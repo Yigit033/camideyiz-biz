@@ -40,7 +40,9 @@ public final class WidgetBoundaryScheduler {
   private static final String CALENDAR = "timeline";
   private static final String ACTION = "biz.camideyiz.app.WIDGET_BOUNDARY";
   private static final String[] NAMES = {"NextPrayerWidget", "PrayerDayWidget"};
-  private static final long MAX_AGE = 72L * 60 * 60 * 1000;
+  // Published days may remain valid offline up to their 16-day coverage.
+  // Do not erase a still-valid published timetable after only 72 hours.
+  private static final long MAX_AGE = 16L * 24 * 60 * 60 * 1000;
   private static final long MAX_FUTURE = 17L * 24 * 60 * 60 * 1000;
 
   private WidgetBoundaryScheduler() {}
@@ -100,7 +102,7 @@ public final class WidgetBoundaryScheduler {
       editor.putString(CALENDAR,parseAndValidate(raw,now).toString());
     }
     if (!editor.commit()) throw new JSONException("cannot persist calendar");
-    refresh(app);
+    refresh(app,raw == null || raw.isEmpty() ? "calendar:cleared" : "calendar:published");
     return status(app);
   }
 
@@ -110,26 +112,38 @@ public final class WidgetBoundaryScheduler {
    * the originally expected instant, so a delayed alarm catches up at once.
    */
   public static synchronized void refresh(Context context) {
+    refresh(context,"native:refresh");
+  }
+
+  /** Safe recovery is idempotent and reads only the persisted verified timeline.
+   * Reasons are recorded for actionable support diagnostics, not pixel claims. */
+  public static synchronized void refresh(Context context,String reason) {
     Context app=context.getApplicationContext();
     SharedPreferences local=prefs(app);
     long now=System.currentTimeMillis();
     long nextBoundary=0;
+    local.edit().putLong("lastAttemptAt",now)
+        .putString("lastRefreshReason",reason).apply();
     try {
       JSONObject selection=null;
       String raw=local.getString(CALENDAR,null);
+      long calendarEndsAt=0;
+      long sourceAt=0;
       if(raw!=null){
         JSONObject root=new JSONObject(raw);
         long generatedAt=root.getLong("generatedAt");
-        long sourceAt=root.getLong("sourceAt");
-        if(generatedAt<=now && sourceAt<=now && now-sourceAt<=MAX_AGE){
+        sourceAt=root.getLong("sourceAt");
+        if(generatedAt<=now+60_000 && sourceAt<=now+60_000 &&
+            sourceAt>0 && now-sourceAt<=MAX_AGE){
           JSONArray entries=root.getJSONArray("entries");
+          calendarEndsAt=entries.getJSONObject(entries.length()-1).getLong("at");
           for(int i=0;i<entries.length();i++){
             JSONObject item=entries.getJSONObject(i);
             long at=item.getLong("at");
             if(at<=now) selection=item.getJSONObject("props");
             else { nextBoundary=at; break; }
           }
-          long expiresAt=sourceAt+MAX_AGE;
+          long expiresAt=Math.min(sourceAt+MAX_AGE,calendarEndsAt);
           if(nextBoundary==0 || nextBoundary>expiresAt)
             nextBoundary=expiresAt>now?expiresAt:0;
         }
@@ -142,6 +156,8 @@ public final class WidgetBoundaryScheduler {
       // Commit native data BEFORE a launcher update; if writing fails,
       // report the error rather than treating update as successful.
       if(!local.edit().putLong("lastAppliedAt",now)
+          .putLong("calendarEndsAt",calendarEndsAt)
+          .putLong("calendarSourceAt",sourceAt)
           .putString("lastProps",selection.toString())
           .putString("lastNextName",selection.optString("nextName",""))
           .putString("lastNextTime",selection.optString("nextTime",""))
@@ -152,7 +168,8 @@ public final class WidgetBoundaryScheduler {
         throw new IllegalStateException("native snapshot commit failed");
 
       int count=renderWidgets(app,selection);
-      local.edit().putInt("lastInstanceCount",count).apply();
+      local.edit().putInt("lastInstanceCount",count)
+          .putLong("lastHostDispatchAt",count>0?now:0).apply();
     }catch(Exception error){
       Log.e(TAG,"Native launcher widget update failed",error);
       local.edit().putString("lastError",
@@ -306,6 +323,12 @@ public final class WidgetBoundaryScheduler {
     long last=local.getLong("lastAppliedAt",0);
     result.put("lastAppliedAt",last);
     result.put("nextAlarmAt",local.getLong("nextAlarmAt",0));
+    result.put("lastAttemptAt",local.getLong("lastAttemptAt",0));
+    result.put("lastRefreshReason",local.getString("lastRefreshReason",""));
+    result.put("lastHostDispatchAt",local.getLong("lastHostDispatchAt",0));
+    result.put("lastInstanceCount",local.getInt("lastInstanceCount",0));
+    result.put("calendarSourceAt",local.getLong("calendarSourceAt",0));
+    result.put("calendarEndsAt",local.getLong("calendarEndsAt",0));
     result.put("lastSyncAt",local.getLong("lastSyncAt",0));
     result.put("lastError",local.getString("lastError",""));
     result.put("lastNextName",local.getString("lastNextName",""));
@@ -320,7 +343,18 @@ public final class WidgetBoundaryScheduler {
           payload.optBoolean("ready")==local.getBoolean("lastReady",false);
     }catch(JSONException ignored){}
     result.put("persisted",persisted);
-    result.put("hasTimeline",local.contains(CALENDAR));
+    boolean hasTimeline=local.contains(CALENDAR);
+    result.put("hasTimeline",hasTimeline);
+    long sourceAge=local.getLong("calendarSourceAt",0);
+    boolean ready=local.getBoolean("lastReady",false);
+    String error=local.getString("lastError","");
+    int count=installedCount(context,NAMES[0])+installedCount(context,NAMES[1]);
+    String state=!error.isEmpty()?"native-error":count==0?"not-installed":
+        !hasTimeline?"no-published-calendar":!ready?"not-ready":"native-dispatched";
+    result.put("state",state);
+    result.put("sourceAgeHours",sourceAge>0?Math.max(0,
+        (System.currentTimeMillis()-sourceAge)/(60L*60L*1000L)):-1);
+    result.put("osRecoveryMinutes",30);
     // Android Launcher is outside this process: no pixel acknowledgment.
     result.put("launcherConfirmed",false);
     return result;
