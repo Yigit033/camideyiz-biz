@@ -18,6 +18,7 @@ import {clearNativeAdhan} from './nativeAdhan';
 import {useAnnouncementSubscription,type AnnouncementState}
   from './useAnnouncementSubscription';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
+import {markStartup} from '@/features/performance/startupMetrics';
 import type {LastWidgetTransfer,WidgetBackgroundReport}
   from '@/features/widgets/widgetBackground';
 const loadWidgetEngine=()=>import('@/features/widgets/widgetBackground');
@@ -91,7 +92,10 @@ export function CompanionProvider({children}:PropsWithChildren){
   const deletedIds=useRef<Set<string>>(new Set());
 
   useEffect(()=>{
-    const id=setTimeout(()=>setMaintenanceReady(true),1600);
+    const id=setTimeout(()=>{
+      markStartup('native-maintenance-start');
+      setMaintenanceReady(true);
+    },1600);
     return ()=>clearTimeout(id);
   },[]);
 
