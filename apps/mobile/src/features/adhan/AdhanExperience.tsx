@@ -1,14 +1,12 @@
 import {useState} from 'react';
 import {
-  Linking,Modal,Pressable,ScrollView,StyleSheet,Text,View,useWindowDimensions,
+  Modal,Pressable,ScrollView,StyleSheet,Text,View,useWindowDimensions,
 } from 'react-native';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import {useAdhanPlayback} from '@/features/adhan/AdhanPlaybackProvider';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {ArabesqueCorner} from '@/components/LuxuryArtwork';
 
-// Source URL is offered for users to listen/download themselves; never copied into the APK.
-const USSAK_SOURCE='https://konyacami.com/ses_dosya/Ogle_ezani.mp3';
 const DUA={
   arabic:'اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ الْمَقَامَ الْمَحْمُودَ الَّذِي وَعَدْتَهُ',
   reading:'Allâhümme rabbe hâzihi’d-da‘veti’t-tâmmeti ve’s-salâti’l-kâimeti, âti Muhammedeni’l-vesîlete ve’l-fazîlete, ve’b‘ashü makâmen mahmûdeni’llezî veadteh.',
@@ -26,8 +24,7 @@ export function AdhanExperience(){
   const {width}=useWindowDimensions();
   const [duaOpen,setDuaOpen]=useState(false);
   const [barWidth,setBarWidth]=useState(0);
-  const {playing,currentTime:position,duration,error,toggle,seek,
-    personalRecording,importRecording,restoreDefault}=useAdhanPlayback();
+  const {playing,currentTime:position,duration,error,toggle,seek}=useAdhanPlayback();
   const dark=colors.isDark;
   const progress=duration?position/duration:0;
 
@@ -108,33 +105,8 @@ export function AdhanExperience(){
             </Pressable>
           </View>
         </View>
-        <View style={{flexDirection:'row',gap:11,alignItems:'center',marginTop:5,
-          flexWrap:'wrap'}}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Telefondan ezan MP3 dosyası seç"
-            onPress={()=>void importRecording()}
-            style={{flexDirection:'row',alignItems:'center',gap:5,minHeight:34}}>
-            <Feather name="file-plus" size={15} color="#F6DAA4"/>
-            <Text style={{fontSize:10.5,fontWeight:'800',color:'#FFF4DE'}}>
-              {personalRecording?'MP3’ü değiştir':'MP3 seç'}
-            </Text>
-          </Pressable>
-          {personalRecording
-            ?<Pressable accessibilityRole="button" accessibilityLabel="Varsayılan ezana dön"
-              onPress={restoreDefault} style={{minHeight:34,justifyContent:'center'}}>
-              <Text style={{fontSize:10.5,fontWeight:'800',color:'#D5E7D9'}}>Varsayılana dön</Text>
-            </Pressable>
-            :<Pressable accessibilityRole="link" accessibilityLabel="Uşşak makamında öğle ezanı kaynağını aç"
-              onPress={()=>void Linking.openURL(USSAK_SOURCE)}
-              style={{minHeight:34,justifyContent:'center',flexDirection:'row',
-                alignItems:'center',gap:4}}>
-              <Text style={{fontSize:10.5,fontWeight:'800',color:'#E6CE99'}}>Uşşak kaydı</Text>
-              <Feather name="external-link" size={11} color="#E6CE99"/>
-            </Pressable>}
-        </View>
-        <Text style={{fontSize:9.5,color:'#C6DBD5',lineHeight:14}}>
-          {personalRecording
-            ?'Kendi MP3 dosyanız çevrimdışı kullanılıyor. Android otomatik ezanda da bu dosyayı çalar.'
-            :'Varsayılan çevrimdışı kayıt kullanılıyor. İsterseniz telefonunuzdan MP3 seçebilirsiniz.'}
+        <Text style={{fontSize:10.5,color:'#D5E7D9',marginTop:4}}>
+          Seçilen ezan kaydı · 3:17 · Çevrimdışı
         </Text>
         {error?<Text accessibilityRole="alert" style={{color:'#FFD4CB',fontSize:10}}>
           {error}
