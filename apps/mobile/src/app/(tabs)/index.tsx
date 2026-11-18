@@ -16,6 +16,7 @@ import {HomeBrandHeader} from '@/features/prayer/HomeBrandHeader';
 import {useKerahatSettings} from '@/features/prayer/KerahatSettingsProvider';
 import {KerahatPanel} from '@/features/prayer/KerahatPanel';
 import {DailyWisdomSection} from '@/features/wisdom/DailyWisdomSection';
+import {AdhanExperience} from '@/features/adhan/AdhanExperience';
 import {usePrayerSource} from '@/features/prayer/usePrayerSource';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {LocationPicker} from '@/features/prayer/LocationPicker';
@@ -329,6 +330,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
       <KerahatPanel view={kerahat} settings={kerahatSettings}
         locationName={SCHEDULE.locationName} secondsOfDay={previewSeconds}/>
       <DailyWisdomSection dateISO={zoned.dateISO} dark={dark}/>
+      <AdhanExperience/>
       <Pressable accessibilityRole="button"
         accessibilityLabel="Güncel zaman durumu ve kerahet açıklamasını oku"
         onPress={()=>Alert.alert(
@@ -454,6 +456,7 @@ function CalendarLoadingHome({official,now}:{
         </View>
       </View>
       <DailyWisdomSection dateISO={zonedClock(now,'Europe/Istanbul').dateISO} dark={dark}/>
+      <AdhanExperience/>
       <View style={[styles.kerahetNote,{
         backgroundColor:colors.surface,borderColor:colors.border,
         borderWidth:1,borderRadius:16,paddingVertical:14,paddingHorizontal:13,
