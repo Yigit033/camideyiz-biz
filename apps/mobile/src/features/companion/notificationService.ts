@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import {Platform} from 'react-native';
-import {isExpoGoRuntime} from '../native/nativeRuntime';
+import {hasAndroidNativeWidgetBridge,isExpoGoRuntime} from '../native/nativeRuntime';
 import {clearNativeAdhan,nativeAdhanStatus,scheduleNativeAdhan} from './nativeAdhan';
 import {
   createPrayerAlertPlan,
@@ -24,7 +24,7 @@ export type NativePrayerEvent={
 export async function setPrayerChannels():Promise<void>{
   // Expo Go does not contain our native notification channel configuration;
   // its platform fallback is used for best-effort local notification tests.
-  if(Platform.OS!=='android'||isExpoGoRuntime())return;
+  if(Platform.OS!=='android'||(isExpoGoRuntime()&&!hasAndroidNativeWidgetBridge()))return;
   await Notifications.setNotificationChannelAsync(CHANNEL_AUDIBLE,{
     name:'Namaz vakti hatırlatmaları',
     description:'Namaz vaktinde veya seçtiğiniz süre öncesinde sistem sesli bildirim',
@@ -150,7 +150,7 @@ export async function reconcilePrayerNotifications(
         trigger:{
           type:Notifications.SchedulableTriggerInputTypes.DATE,
           date:new Date(event.fireAt),
-          ...(isExpoGoRuntime()?{}:{
+          ...((isExpoGoRuntime()&&!hasAndroidNativeWidgetBridge())?{}:{
             channelId:mode==='silent'?CHANNEL_SILENT:CHANNEL_AUDIBLE,
           }),
           delivery:'bestEffort',
