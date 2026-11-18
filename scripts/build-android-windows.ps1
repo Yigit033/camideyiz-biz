@@ -123,6 +123,23 @@ if (-not (Test-Path -LiteralPath $CheckoutPath)) {
   Invoke-Checked 'Fast-forward isolated checkout' { & git -C $CheckoutPath pull --ff-only origin $Branch }
 }
 
+# The build happens in C:\cb, not in the developer's main checkout.
+# Copy the exact user-uploaded MP3 across this isolation boundary BEFORE npm
+# postinstall. .gitignore excludes it from git clone, not from an APK.
+$sourceAudio = Join-Path (Split-Path -Parent $PSScriptRoot) 'apps\mobile\assets\audio\camideyiz-biz-ezan.mp3'
+$targetAudio = Join-Path $CheckoutPath 'apps\mobile\assets\audio\camideyiz-biz-ezan.mp3'
+$ezanSha = '09b6077c9ec6acaa3de1721de4a1f558c9e7ec0044c916d29ba6ea19b53ea77f'
+if (Test-Path -LiteralPath $sourceAudio -PathType Leaf) {
+  $sourceHash = (Get-FileHash -LiteralPath $sourceAudio -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($sourceHash -ne $ezanSha) { throw "Ana proje MP3 SHA-256 değeri yüklenen ezanla eşleşmiyor." }
+  $targetDir = Split-Path -Parent $targetAudio
+  New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+  Copy-Item -LiteralPath $sourceAudio -Destination $targetAudio -Force
+  Write-Host 'Seçilen 3:17 ezan C:\cb derleme klasörüne aktarıldı.' -ForegroundColor Green
+} else {
+  Write-Warning 'Ana projede ses bulunamadı. npm postinstall URL kaynağını SHA-256 ile doğrulamayı deneyecek; farklı kayıt asla kullanılmayacak.'
+}
+
 Push-Location $CheckoutPath
 try {
   Invoke-Checked 'Install workspace dependencies' { & npm.cmd install --package-lock=false --no-audit --no-fund }
