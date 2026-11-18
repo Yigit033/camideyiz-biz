@@ -40,4 +40,26 @@ for(const name of full){
  if(!name.endsWith('-thumb.webp') && meta.width<1080)
    console.warn('Source narrower than 1080px: inspect Story export on device:',name,meta.width,meta.height);
 }
+
+// The original photograph must fill its own complete *image box*, not be
+// zoomed/cropped by Android Fresco's absoluteFill or resizeMethod=resize.
+// A two-column masonry layout causes staggered rows; enforce equal-size tiles.
+const screen=fs.readFileSync(path.join(root,'apps/mobile/src/app/(tabs)/gallery.tsx'),'utf8');
+if(!screen.includes('const TILE_PHOTO_RATIO=2/3')||
+   !screen.includes('height:imageHeight')||
+   !screen.includes('style={{width:width-2,height:imageHeight}}')||
+   !screen.includes('resizeMode="contain"')||
+   !screen.includes('flexWrap:\'wrap\'')||
+   !screen.includes('height:TILE_META_HEIGHT')||
+   !screen.includes('tiles.map(slot=>'))
+  throw Error('Gallery tiles must show uncropped full sources with identical row heights');
+if(screen.includes('StyleSheet.absoluteFill')||
+   screen.includes('resizeMethod="resize"')||
+   screen.includes('galleryThumbnail(')||
+   screen.includes('previewAspectRatio(')||
+   screen.includes('heights[0]<=heights[1]'))
+  throw Error('Gallery image scaling/masonry regression: full images may zoom or rows stagger');
+if(!screen.includes('galleryPhoto(item.id)'))
+  throw Error('Gallery must use 27 full images rather than 27 tiny thumbnails');
+
 console.log(`Gallery QA OK: ${photos.length} photos + ${thumbs.length} thumbnails`);
