@@ -83,6 +83,7 @@
       ],
       "./plugins/withWorkManagerR8",
       "./plugins/withWidgetBoundaryBridge",
+      "./plugins/withNativeAdhanAlarm",
       [
         "expo-media-library",
         {
