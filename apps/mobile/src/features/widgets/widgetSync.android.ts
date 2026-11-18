@@ -32,7 +32,7 @@ export async function syncPrayerWidgets(
 ):Promise<WidgetSyncResult>{
   if(!hasAndroidNativeWidgetBridge())return {
     available:false,updated:false,
-    detail:'Bu sürümde Android widget köprüsü bulunamadı. Native APK'yı güncelle.',
+    detail:'Bu sürümde Android widget köprüsü bulunamadı. Güncel native APK kurulmalı.',
   };
   if(!days.length||cityId<=0)return {
     available:true,updated:false,
