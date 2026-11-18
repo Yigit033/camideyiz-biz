@@ -5,3 +5,7 @@ export async function syncPrayerWidgets(_days:readonly PrayerSchedule[],
   return {available:false,updated:false,
     detail:'Yerel widget bu platformda desteklenmiyor'};
 }
+
+export async function recoverPrayerWidgets(_cityId:number):Promise<WidgetSyncResult|null>{
+  return null;
+}
