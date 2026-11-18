@@ -24,7 +24,7 @@ export function AdhanExperience(){
   const {width}=useWindowDimensions();
   const [duaOpen,setDuaOpen]=useState(false);
   const [barWidth,setBarWidth]=useState(0);
-  const {playing,currentTime:position,duration,error,toggle,seek}=useAdhanPlayback();
+  const {playing,starting,loaded,currentTime:position,duration,error,toggle,seek}=useAdhanPlayback();
   const dark=colors.isDark;
   const progress=duration?position/duration:0;
 
@@ -63,17 +63,17 @@ export function AdhanExperience(){
         <Text style={styles.playerSub}>Huzurlu bir dinleme anı</Text>
         <View style={styles.playRow}>
           <Pressable accessibilityRole="button"
-            accessibilityLabel={playing?'Ezanı duraklat':'Ezanı dinlemeye başla'}
+            accessibilityLabel={starting?'Ezan yüklenmesini iptal et':playing?'Ezanı duraklat':'Ezanı dinlemeye başla'}
             accessibilityHint="Çevrimdışı ezan kaydını oynatır veya duraklatır"
             onPress={()=>void toggle()}
             style={styles.playButton}>
-            <Feather name={playing?'pause':'play'} size={24} color="#11382F"/>
+            <Feather name={starting?'loader':playing?'pause':'play'} size={24} color="#11382F"/>
           </Pressable>
           <View style={{flex:1,gap:5}}>
             <Text numberOfLines={1} style={{fontSize:13,fontWeight:'700',color:'#FFF7E8'}}>
-              {playing?'Ezan okunuyor':duration&&position>=duration-.4?'Yeniden dinle':'Dinlemeye başla'}
+              {starting?'Ezan hazırlanıyor…':playing?'Ezan okunuyor':duration&&position>=duration-.4?'Yeniden dinle':'Dinlemeye başla'}
             </Text>
-            <Text style={{fontSize:10,color:'#C8DBDA'}}>Arka planda ve kilit ekranında dinle</Text>
+            <Text style={{fontSize:10,color:'#C8DBDA'}}>{starting?'Kaydedilmiş sese bağlanılıyor':loaded?'Arka planda ve kilit ekranında dinle':'Ses dosyası hazırlanıyor'}</Text>
           </View>
         </View>
         <Pressable accessible accessibilityRole="adjustable"
