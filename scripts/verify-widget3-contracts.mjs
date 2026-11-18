@@ -15,6 +15,7 @@ const native=read('apps/mobile/plugins/widget-native/WidgetBoundaryScheduler.jav
 const bridge=read('apps/mobile/plugins/widget-native/CamideyizWidgetBridge.java');
 const receiver=read('apps/mobile/plugins/widget-native/WidgetBoundaryReceiver.java');
 const sync=read('apps/mobile/src/features/widgets/widgetSync.android.ts');
+const nativeBridge=read('apps/mobile/src/features/widgets/widgetNativeDiagnostics.android.ts');
 const service=read('apps/mobile/src/features/widgets/widgetBackground.ts');
 const panel=read('apps/mobile/src/features/widgets/Widget3Diagnostics.tsx');
 const screen=read('apps/mobile/src/app/companion.tsx');
@@ -40,8 +41,10 @@ assert.match(native,/result\.put\("launcherConfirmed",false\)/,
 assert.match(bridge,/public void refreshNow\(Promise promise\)/,
   'one-tap repair bridge required');
 assert.match(receiver,/WidgetBoundaryScheduler\.refresh\(context\.getApplicationContext\(\),"receiver:"\+action\)/);
-assert.match(sync,/status\.nativeCityId!==cityId/,
+assert.match(nativeBridge,/before\.nativeCityId!==cityId/,
   'must never recover a different district');
+assert.match(sync,/repairPersistedAndroidWidget\(cityId\)/,
+  'Android sync must use the guarded native recovery helper');
 assert.match(service,/recoverPrayerWidgets\(place\.id\)/,
   'temporary JS/network failure must not erase valid native calendar');
 assert.match(panel,/Tanıla ve yeniden çizdir/);
