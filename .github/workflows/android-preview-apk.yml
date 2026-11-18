@@ -9,6 +9,11 @@ on:
       # Later native builds can be started manually without rebuilding on every commit.
       - .github/workflows/android-preview-apk.yml
       - apps/mobile/src/features/adhan/**
+      - apps/mobile/plugins/adhan-native/**
+      - apps/mobile/plugins/withNativeAdhanAlarm.js
+      - apps/mobile/src/features/companion/**
+      - apps/mobile/src/app/companion.tsx
+      - packages/core/src/prayerCompanion.ts
       - apps/mobile/assets/audio/**
       - apps/mobile/src/app/(tabs)/index.tsx
 
@@ -82,6 +87,18 @@ jobs:
           grep -F 'PrayerDayWidgetProvider' "$root/AndroidManifest.xml"
           grep -F 'setOnClickPendingIntent' "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
           echo 'Native RemoteViews and launcher click-through registered by CNG'
+      - name: Verify Android adhan alarm and media playback service
+        shell: bash
+        run: |
+          set -euo pipefail
+          main=apps/mobile/android/app/src/main
+          test -s "$main/res/raw/camideyiz_adhan.mp3"
+          test -s "$main/java/biz/camideyiz/app/adhan/AdhanAlarmReceiver.java"
+          test -s "$main/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
+          grep -F 'CamideyizAdhanPackage()' "$main/java/biz/camideyiz/app/MainApplication.kt"
+          grep -F 'SCHEDULE_EXACT_ALARM' "$main/AndroidManifest.xml"
+          grep -F 'mediaPlayback' "$main/AndroidManifest.xml"
+
       - name: Assemble standalone Release APK (arm64)
         working-directory: apps/mobile/android
         run: |
