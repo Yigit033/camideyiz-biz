@@ -134,10 +134,14 @@ public final class WidgetBoundaryScheduler {
     if(cityId!=selected)return status(app); // outdated network request
     String safe=(detail==null?"":detail).replace('\n',' ').replace('\r',' ');
     if(safe.length()>280)safe=safe.substring(0,280);
+    // Preserve a previously failed native transfer across subsequent
+    // "waiting for source" calls. Only a successful publication or an
+    // explicit district change clears the error.
+    String previousError=local.getString("lastTransferError","");
     if(!local.edit().putLong("lastTransferAttemptAt",System.currentTimeMillis())
         .putString("lastTransferStage",stage)
         .putString("lastTransferDetail",safe)
-        .putString("lastTransferError","failed".equals(stage)?safe:"")
+        .putString("lastTransferError","failed".equals(stage)?safe:previousError)
         .commit())throw new JSONException("cannot persist transfer diagnostic");
     return status(app);
   }
@@ -427,7 +431,9 @@ public final class WidgetBoundaryScheduler {
     String error=local.getString("lastError","");
     int count=installedCount(context,NAMES[0])+installedCount(context,NAMES[1]);
     String stage=local.getString("lastTransferStage","never-attempted");
-    String state=!error.isEmpty()||"failed".equals(stage)?"native-error":
+    String transferError=local.getString("lastTransferError","");
+    String state=!error.isEmpty()||!transferError.isEmpty()||
+        "failed".equals(stage)?"native-error":
         count==0?"not-installed":!hasTimeline?"no-published-calendar":
         !ready?"not-ready":"native-dispatched";
     result.put("state",state);
