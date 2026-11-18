@@ -26,6 +26,9 @@ on:
       - packages/core/src/prayerCompanion.ts
       - apps/mobile/assets/audio/**
       - apps/mobile/src/app/(tabs)/index.tsx
+      - apps/mobile/src/features/prayer/**
+      - apps/mobile/src/features/wisdom/**
+      - scripts/verify-startup-performance.mjs
       - apps/mobile/src/app/(tabs)/gallery.tsx
       - apps/mobile/src/features/gallery/**
       - apps/mobile/assets/gallery/**
@@ -62,6 +65,7 @@ jobs:
           npm test
           npm run typecheck
           node scripts/verify-widget3-contracts.mjs
+          node scripts/verify-startup-performance.mjs
           node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
           node scripts/verify-adhan-playback-contracts.mjs
           node scripts/verify-brand-symbol.mjs
