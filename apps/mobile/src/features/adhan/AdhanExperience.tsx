@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {memo,useState} from 'react';
 import {
   Modal,Pressable,ScrollView,StyleSheet,Text,View,useWindowDimensions,
 } from 'react-native';
@@ -19,7 +19,7 @@ function timeLabel(seconds:number){
   const total=Math.floor(seconds);
   return Math.floor(total/60)+':'+String(total%60).padStart(2,'0');
 }
-export function AdhanExperience(){
+export const AdhanExperience=memo(function AdhanExperience(){
   const {colors}=useAppTheme();
   const {width}=useWindowDimensions();
   const [duaOpen,setDuaOpen]=useState(false);
@@ -187,7 +187,7 @@ export function AdhanExperience(){
       </View>
     </Modal>
   </View>;
-}
+});
 const styles=StyleSheet.create({
   section:{gap:10,width:'100%'},
   sectionHeading:{flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:2},
