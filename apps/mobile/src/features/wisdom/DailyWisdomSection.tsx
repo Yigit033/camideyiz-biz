@@ -1,4 +1,4 @@
-import {useMemo,useState} from 'react';
+import {memo,useMemo,useState} from 'react';
 import {Modal,Pressable,ScrollView,Share,StyleSheet,Text,View,useWindowDimensions} from 'react-native';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import Svg,{Circle,Defs,LinearGradient,Path,Stop} from 'react-native-svg';
@@ -60,7 +60,7 @@ function WisdomCard({item,isDark,onOpen,isFavorite,onToggle}:{
     </Pressable>
   </View>;
 }
-export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}){
+export const DailyWisdomSection=memo(function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}){
   const {colors}=useAppTheme();
   const {width}=useWindowDimensions();
   const compact=width<360;
@@ -186,7 +186,7 @@ export function DailyWisdomSection({dateISO,dark}: {dateISO:string;dark:boolean}
       </View>
     </Modal>
   </View>;
-}
+});
 const styles=StyleSheet.create({
   heading:{flexDirection:'row',alignItems:'center',gap:7,justifyContent:'space-between'},
   savedButton:{minHeight:32,paddingHorizontal:8,borderRadius:12,borderWidth:1,
