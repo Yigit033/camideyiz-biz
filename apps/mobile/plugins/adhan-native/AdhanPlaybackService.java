@@ -11,6 +11,7 @@ import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import java.io.File;
 import android.os.Build;
 import android.os.IBinder;
 import android.os.PowerManager;
@@ -132,7 +133,25 @@ public final class AdhanPlaybackService extends Service {
     try{
       beginForeground(label);
       if(!acquireFocus())throw new IllegalStateException("Ses odağı alınamadı");
-      player=MediaPlayer.create(this,R.raw.camideyiz_adhan);
+      // Optional personal MP3 stays only in the app's private files folder,
+      // never embedded or redistributed in the APK. Expo FileSystem
+      // Paths.document maps to Context.getFilesDir() on Android.
+      File personal=new File(getFilesDir(),"camideyiz_user_adhan.mp3");
+      if(personal.isFile()&&personal.length()>=200_000&&personal.length()<=12_000_000){
+        try{
+          MediaPlayer custom=new MediaPlayer();
+          custom.setAudioAttributes(new AudioAttributes.Builder()
+              .setUsage(AudioAttributes.USAGE_MEDIA)
+              .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
+          custom.setDataSource(personal.getAbsolutePath());
+          custom.prepare();
+          player=custom;
+        }catch(Exception invalid){
+          Log.w(TAG,"Selected personal ezan file unavailable; reverting to packaged default",invalid);
+          if(player!=null){try{player.release();}catch(Exception ignored){}player=null;}
+        }
+      }
+      if(player==null)player=MediaPlayer.create(this,R.raw.camideyiz_adhan);
       if(player==null)throw new IllegalStateException("Paketlenmiş MP3 bulunamadı");
       player.setWakeMode(this,PowerManager.PARTIAL_WAKE_LOCK);
       player.setOnCompletionListener(media->stopSelf());
