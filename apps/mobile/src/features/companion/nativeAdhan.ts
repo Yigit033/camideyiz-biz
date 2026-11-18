@@ -1,6 +1,5 @@
 import {NativeModules,Platform} from 'react-native';
 import type {PrayerAlertEvent} from '@camideyiz/core';
-import {isExpoGoRuntime} from '@/features/native/nativeRuntime';
 
 type NativeBridge={
   getStatus:()=>Promise<string>;
@@ -12,9 +11,18 @@ type NativeBridge={
 export type NativeAdhanStatus={
   supported:boolean;exactPermission:boolean;scheduled:number;nextAt:number|null;
 };
+// A compiled native module is the reliable capability check: some standalone
+// Android builds expose Expo runtime markers that resemble Expo Go.
+const candidate=Platform.OS==='android'
+  ?NativeModules.CamideyizAdhanBridge as Partial<NativeBridge>|undefined
+  :undefined;
 const bridge:NativeBridge|null=
-  Platform.OS==='android'&&!isExpoGoRuntime()
-    ?(NativeModules.CamideyizAdhanBridge as NativeBridge|undefined)??null:null;
+  candidate&&typeof candidate.getStatus==='function'&&
+  typeof candidate.syncAlarms==='function'&&
+  typeof candidate.clearAlarms==='function'&&
+  typeof candidate.requestExactAlarmPermission==='function'&&
+  typeof candidate.testEzan==='function'
+    ?candidate as NativeBridge:null;
 
 function parseStatus(raw:string):NativeAdhanStatus{
   const value:unknown=JSON.parse(raw);
