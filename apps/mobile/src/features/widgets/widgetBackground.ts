@@ -17,7 +17,7 @@ import {
   reconcilePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
 } from '../companion/notificationService';
 
-export const WIDGET_BACKGROUND_TASK='camideyiz-widget-refresh-v3';
+import {WIDGET_BACKGROUND_TASK} from './widgetTaskRegistration';
 const ACTIVE_PLACE_KEY='@camideyiz/widget-active-place/v3';
 const CACHE_KEY='@camideyiz/widget-published-calendar/v3';
 const STATUS_KEY='@camideyiz/widget-background-status/v3';
@@ -361,22 +361,6 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
       :'Güncel ve doğrulanmış ilçe takvimi henüz alınamadı',
     networkAt,Boolean(hasData));
   return true;
-}
-
-/** Register in module scope for headless Android startup, as Expo TaskManager
- * requires. Keep this file imported by app/_layout.tsx at top level. */
-if(enabled()){
-  TaskManager.defineTask(WIDGET_BACKGROUND_TASK,async()=>{
-    try{
-      const ok=await runWidgetBackgroundRefresh();
-      return ok?BackgroundTask.BackgroundTaskResult.Success
-        :BackgroundTask.BackgroundTaskResult.Failed;
-    }catch(error){
-      try{await report('error',error instanceof Error?error.message:'Arka plan senkronizasyon hatası',null,false);}
-      catch{/* best-effort telemetry only */}
-      return BackgroundTask.BackgroundTaskResult.Failed;
-    }
-  });
 }
 
 /** The OS can restrict WorkManager; log why registration failed. This is
