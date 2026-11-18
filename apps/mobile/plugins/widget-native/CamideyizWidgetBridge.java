@@ -4,6 +4,7 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import org.json.JSONObject;
 
 /**
  * Deliberately small: no permission prompts, no periodic JS runtime, no GPS.
@@ -47,8 +48,12 @@ public final class CamideyizWidgetBridge extends ReactContextBaseJavaModule {
       try {
         int active=WidgetBoundaryScheduler.status(getReactApplicationContext())
             .optInt("activeCityId",0);
-        WidgetBoundaryScheduler.transferStage(getReactApplicationContext(),active,
-            "failed","native publish: "+error.getMessage());
+        int requested=new JSONObject(json).optInt("cityId",0);
+        // An old in-flight city response must not poison the newly selected
+        // district's health report.
+        if(requested>0&&requested==active)
+          WidgetBoundaryScheduler.transferStage(getReactApplicationContext(),active,
+              "failed","native publish: "+error.getMessage());
       } catch(Exception ignored){}
       promise.reject("WIDGET_NATIVE_PUBLISH",error);
     }
