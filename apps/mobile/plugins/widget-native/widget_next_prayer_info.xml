@@ -5,6 +5,6 @@
     android:targetCellWidth="2"
     android:targetCellHeight="2"
     android:initialLayout="@layout/widget_next_prayer"
-    android:updatePeriodMillis="0"
+    android:updatePeriodMillis="1800000"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />
