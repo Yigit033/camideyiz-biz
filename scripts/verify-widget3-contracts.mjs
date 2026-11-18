@@ -18,6 +18,7 @@ const sync=read('apps/mobile/src/features/widgets/widgetSync.android.ts');
 const nativeBridge=read('apps/mobile/src/features/widgets/widgetNativeDiagnostics.android.ts');
 const service=read('apps/mobile/src/features/widgets/widgetBackground.ts');
 const panel=read('apps/mobile/src/features/widgets/Widget3Diagnostics.tsx');
+const companion=read('apps/mobile/src/features/companion/CompanionProvider.tsx');
 const screen=read('apps/mobile/src/app/companion.tsx');
 
 assert.match(cache,/WIDGET_CACHE_MAX_AGE_MS=16\*24\*60\*60_000/,
@@ -80,4 +81,16 @@ assert.match(panel,/lastTransferError/);
 assert.match(panel,/source\.failureReason/);
 assert.match(panel,/companion\.widget\.detail/);
 assert.match(panel,/registrationError/);
+assert.match(service,/export async function fetchAndPublishVerifiedWidgetCalendar\(/,
+  'manual recovery must refetch selected district directly when React state is empty');
+assert.match(service,/await getMirrorPrayerTriplet\(place,today\)/);
+assert.match(service,/parseWidgetCalendarCache\(cache,now,place\.id\)/);
+assert.match(service,/current\.id!==place\.id\|\|current\.source!==source/,
+  'after network fetch, recheck district before publishing');
+assert.match(companion,/fetchAndPublishVerifiedWidgetCalendar\(place,selectedSource\)/,
+  'refresh button must call the dedicated verified publisher fallback');
+assert.match(companion,/if\(!ready\|\|!source\.place\)return/,
+  'startup with GPS still resolving must not erase native storage');
+assert.match(panel,/if\(!result\.updated\)setError\(result\.detail\)/,
+  'manual repair must not claim success before native publish');
 console.log('Widget 3.1: no blank cache writes, persistent diagnostics, verified offline horizon, native rollover, same-city recovery, 30m host fallback, diagnostic UX');
