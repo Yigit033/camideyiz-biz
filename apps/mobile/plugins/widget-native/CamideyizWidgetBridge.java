@@ -31,6 +31,17 @@ public final class CamideyizWidgetBridge extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void refreshNow(Promise promise) {
+    try {
+      ReactApplicationContext context=getReactApplicationContext();
+      WidgetBoundaryScheduler.refresh(context,"manual:diagnostic-repair");
+      promise.resolve(WidgetBoundaryScheduler.status(context).toString());
+    } catch (Exception error) {
+      promise.reject("WIDGET_NATIVE_REPAIR", error);
+    }
+  }
+
+  @ReactMethod
   public void getStatus(Promise promise) {
     try {
       promise.resolve(WidgetBoundaryScheduler.status(
