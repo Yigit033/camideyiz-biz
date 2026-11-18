@@ -93,6 +93,8 @@ jobs:
           set -euo pipefail
           main=apps/mobile/android/app/src/main
           test -s "$main/res/raw/camideyiz_adhan.mp3"
+          cmp apps/mobile/assets/audio/beautiful-adhan.mp3 "$main/res/raw/camideyiz_adhan.mp3"
+          echo 'Offline Android res/raw MP3 binary matches the vendored source exactly'
           test -s "$main/java/biz/camideyiz/app/adhan/AdhanAlarmReceiver.java"
           test -s "$main/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
           grep -F 'CamideyizAdhanPackage()' "$main/java/biz/camideyiz/app/MainApplication.kt"
