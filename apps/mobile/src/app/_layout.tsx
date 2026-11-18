@@ -1,4 +1,4 @@
-import '@/features/widgets/widgetBackground'; // Registers Android headless task before navigation mounts.
+import '@/features/widgets/widgetTaskRegistration'; // Lightweight synchronous headless task registration.
 import {Stack} from 'expo-router';
 import {StatusBar} from 'expo-status-bar';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
