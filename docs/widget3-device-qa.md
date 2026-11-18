@@ -55,3 +55,47 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1
 ~~~
 
 Bu Windows betiği varsayılan olarak C:\cb izole çalışma kopyasını kullanır ve kullanıcı değişikliklerini korur. Gerçek launcher görüntüsü ve kullanıcı cihazı testleri tamamlanmadan üretimde kusursuz çalıştığı iddia edilmemelidir.
+
+
+## Widget 3.1 — Native ilk aktarım P0 düzeltmesi (18 Kasım 2026)
+
+Cihaz ekranında iki Android widget'ı (1/1) kayıtlı, fakat
+`nativeCityId=0`, `hasTimeline=false`; buna rağmen
+`launcher:update:daily` ve `manual:diagnostic-repair`
+tetikleyicileri çalışmış. Bu, launcher'ın değil takvimin native
+belleğe **yazılmaması** katmanının incelenmesi gerektiğini gösterir.
+Veri sağlayıcısının asıl nedenini son kullanıcı cihazında
+`source.failureReason` ve `lastTransferDetail` açıklayabilir.
+
+Yenilikler:
+
+- `selectDistrict` ile ilçe seçimi veri yayınlamadan ayrıdır.
+- `publishCalendar('')` native tarafta reddedilir. Kaynak beklemesi
+  aynı ilçenin daha önce yayımlanmış vakitlerini silmez.
+- GPS/ilk açılışta seçili ilçe henüz bulunamamışsa takvim silinmez.
+- Eski ilçenin verisi, yeni ilçe seçildiğinde güvenle geçersiz kılınır.
+- Kalıcı `lastTransferError` rutin Android güncellemesinde silinmez;
+  yalnızca yeni bir başarılı yayın veya gerçek ilçe değişimi temizler.
+- Kullanıcının eşitleme düğmesi, mevcut cache boşsa seçili ilçenin
+  yayımlanmış vakitlerini doğrudan yeniden çeker, doğrular ve native
+  belleğe aktarır; rastgele yerel astronomik saat üretmez.
+- Tanılama, gerçek `background task` kayıt durumunu ve engelleme
+  nedenini ayrıca gösterir.
+
+Yeni APK için kabul kontrolü:
+
+1. Mevcut kurulu uygulamanın üzerine **uyumlu imzalı** QA APK kur.
+   İmza uyumsuzsa kullanıcı izni olmadan uygulamayı silme.
+2. İlçe seç ve yayımlanmış vakitlerin ana sayfada göründüğünü kontrol et.
+3. Widget 3.0 kartında **Takvimi eşitle ve çizdir** işlemini çalıştır.
+4. `Android seçili ilçe kodu` = `Yayımlanmış takvim ilçe kodu` ve her ikisi de
+   sıfırdan büyük olmalı. Native takvim **Kayıtlı**,
+   `Aktarım aşaması` = `native-committed` olmalı.
+5. Başarısızsa `Uygulama veri hatası`, `Son eşitleme sonucu`,
+   `Son aktarım açıklaması` ve `Hata` alanlarını içeren
+   **Raporu paylaş** çıktısını al.
+6. İnterneti kapatıp aynı ilçede widget yenile: geçerli veri silinmemeli.
+7. Farklı ilçe seçildiğinde eski ilçenin saatleri gösterilmemeli.
+8. Android'in launcher piksellerinin gerçekten değiştiğini ayrıca telefon
+   ana ekranından doğrula. CI/Java derlemesi bunu kanıtlamaz.
+
