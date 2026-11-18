@@ -1,23 +1,18 @@
-import {useEffect,useState} from 'react';
+import {useState} from 'react';
 import {
   Modal,Pressable,ScrollView,StyleSheet,Text,View,useWindowDimensions,
 } from 'react-native';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
-import {setAudioModeAsync,useAudioPlayer,useAudioPlayerStatus} from 'expo-audio';
+import {useAdhanPlayback} from '@/features/adhan/AdhanPlaybackProvider';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {ArabesqueCorner} from '@/components/LuxuryArtwork';
 
-// Vendored by scripts/prepare-adhan-audio.mjs during install/build.
-// This is a *local Metro asset*: playback does not stream from Wikimedia or Expo.
-const ADHAN_MP3=require('../../../assets/audio/beautiful-adhan.mp3');
-const ADHAN_SOURCE='Wikimedia Commons · Adam-synagda · CC0 1.0';
 const DUA={
   arabic:'اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ الْمَقَامَ الْمَحْمُودَ الَّذِي وَعَدْتَهُ',
   reading:'Allâhümme rabbe hâzihi’d-da‘veti’t-tâmmeti ve’s-salâti’l-kâimeti, âti Muhammedeni’l-vesîlete ve’l-fazîlete, ve’b‘ashü makâmen mahmûdeni’llezî veadteh.',
   meaning:'Allah’ım! Ey eksiksiz tevhid çağrısının ve kılınacak namazın Rabbi! Muhammed’e (s.a.s.) vesileyi ve fazileti ihsan eyle. Onu kendisine vadettiğin Makâm-ı Mahmûd’a ulaştır.',
   reference:'Buhârî, Ezan, 8 · Diyanet İşleri Başkanlığı, Alanya Müftülüğü',
 };
-const audioMode={playsInSilentMode:true,shouldPlayInBackground:false,interruptionMode:'doNotMix' as const};
 
 function timeLabel(seconds:number){
   if(!Number.isFinite(seconds)||seconds<0)return '0:00';
@@ -28,37 +23,11 @@ export function AdhanExperience(){
   const {colors}=useAppTheme();
   const {width}=useWindowDimensions();
   const [duaOpen,setDuaOpen]=useState(false);
-  const [error,setError]=useState<string|null>(null);
   const [barWidth,setBarWidth]=useState(0);
-  const player=useAudioPlayer(ADHAN_MP3);
-  const status=useAudioPlayerStatus(player);
+  const {playing,currentTime:position,duration,error,toggle,seek}=useAdhanPlayback();
   const dark=colors.isDark;
-  const duration=Number.isFinite(status.duration)?Math.max(0,status.duration):0;
-  const position=Math.max(0,Math.min(duration,Number.isFinite(status.currentTime)?status.currentTime:0));
   const progress=duration?position/duration:0;
 
-  useEffect(()=>{
-    // This manual player must not start or continue in the background.
-    void setAudioModeAsync(audioMode).catch(()=>undefined);
-    return ()=>{try{player.pause();}catch{/* already released */}};
-  },[player]);
-
-  async function toggle(){
-    setError(null);
-    try{
-      if(status.playing){player.pause();return;}
-      await setAudioModeAsync(audioMode);
-      if(duration>0&&position>=duration-.4)await player.seekTo(0);
-      player.play();
-    }catch{
-      setError('Ezan kaydı başlatılamadı. Lütfen tekrar deneyin.');
-    }
-  }
-  async function seek(seconds:number){
-    setError(null);
-    try{await player.seekTo(Math.max(0,Math.min(duration,seconds)));}
-    catch{setError('İlerleme işlemi yapılamadı.');}
-  }
   const compact=width<360;
   const surface=dark?'#0D2E43':'#FFFDF7';
   return <View style={styles.section}>
@@ -94,17 +63,17 @@ export function AdhanExperience(){
         <Text style={styles.playerSub}>Huzurlu bir dinleme anı</Text>
         <View style={styles.playRow}>
           <Pressable accessibilityRole="button"
-            accessibilityLabel={status.playing?'Ezanı duraklat':'Ezanı dinlemeye başla'}
+            accessibilityLabel={playing?'Ezanı duraklat':'Ezanı dinlemeye başla'}
             accessibilityHint="Çevrimdışı ezan kaydını oynatır veya duraklatır"
             onPress={()=>void toggle()}
             style={styles.playButton}>
-            <Feather name={status.playing?'pause':'play'} size={24} color="#11382F"/>
+            <Feather name={playing?'pause':'play'} size={24} color="#11382F"/>
           </Pressable>
           <View style={{flex:1,gap:5}}>
             <Text numberOfLines={1} style={{fontSize:13,fontWeight:'700',color:'#FFF7E8'}}>
-              {status.playing?'Ezan okunuyor':duration&&position>=duration-.4?'Yeniden dinle':'Dinlemeye başla'}
+              {playing?'Ezan okunuyor':duration&&position>=duration-.4?'Yeniden dinle':'Dinlemeye başla'}
             </Text>
-            <Text style={{fontSize:10,color:'#C8DBDA'}}>Tek dokunuşla çal / duraklat</Text>
+            <Text style={{fontSize:10,color:'#C8DBDA'}}>Arka planda ve kilit ekranında dinle</Text>
           </View>
         </View>
         <Pressable accessible accessibilityRole="adjustable"
@@ -136,10 +105,9 @@ export function AdhanExperience(){
             </Pressable>
           </View>
         </View>
-        {error||status.error
-          ?<Text accessibilityRole="alert" style={{color:'#FFD4CB',fontSize:10}}>
-            {error||'Ses kaydı açılamadı.'}
-          </Text>:null}
+        {error?<Text accessibilityRole="alert" style={{color:'#FFD4CB',fontSize:10}}>
+          {error}
+        </Text>:null}
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel="Ezan duasını aç"
         accessibilityHint="Duayı Arapça, Türkçe okunuş ve anlamıyla büyüterek gösterir"
