@@ -22,6 +22,8 @@ jobs:
         run: node scripts/verify-widget3-contracts.mjs
       - name: Verify exact owner-supplied brand icon is unchanged
         run: node scripts/verify-brand-symbol.mjs
+      - name: Verify all 27 gallery originals, full-frame preview and row alignment
+        run: npm run verify:gallery-assets
       - name: Verify home, gallery and kerahat visual regression contracts
         run: node scripts/verify-home-visual-contracts.mjs
       - name: Parse Windows APK build script
