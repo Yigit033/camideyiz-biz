@@ -19,6 +19,7 @@ import {useAnnouncementSubscription,type AnnouncementState}
   from './useAnnouncementSubscription';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
 import {ensureWidgetBackgroundRefresh,syncForegroundWidgetCalendar,
+  fetchAndPublishVerifiedWidgetCalendar,
   readLastWidgetTransfer,readWidgetBackgroundReport,
   type LastWidgetTransfer,type WidgetBackgroundReport}
   from '@/features/widgets/widgetBackground';
@@ -318,6 +319,11 @@ export function CompanionProvider({children}:PropsWithChildren){
       try{
         result=await syncForegroundWidgetCalendar(
           place,selectedSource,days,publishedAt,Date.now());
+        if(!result.updated){
+          // A user-requested repair must work even if the React hook never
+          // supplied hours; fetch the selected district's verified calendar.
+          result=await fetchAndPublishVerifiedWidgetCalendar(place,selectedSource);
+        }
         setWidget(result);
         const latest=await readLastWidgetTransfer();
         setLastWidgetTransfer(latest?.cityId===place?.id?latest:null);
