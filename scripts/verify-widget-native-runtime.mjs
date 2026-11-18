@@ -35,4 +35,12 @@ assert.match(background,/const enabled=\(\)=>Platform\.OS==='android'&&hasAndroi
 assert.doesNotMatch(background,/isExpoGoRuntime/,
   'background TaskManager registration must use the same native capability');
 assert.match(publisher,/await selectAndroidWidgetDistrict\(cityId\)/);
+const adhan=read('apps/mobile/src/features/companion/nativeAdhan.ts');
+const notification=read('apps/mobile/src/features/companion/notificationService.ts');
+assert.match(adhan,/NativeModules\.CamideyizAdhanBridge/);
+assert.doesNotMatch(adhan,/isExpoGoRuntime/,
+  'a native APK must not lose exact ezan alarms due to false Expo Go markers');
+assert.match(notification,/isExpoGoRuntime\(\)\&\&!hasAndroidNativeWidgetBridge\(\)/,
+  'compiled native APK must keep Android notification channel options');
+
 console.log('Widget 3.2: real native bridge detection succeeds for APK; unsupported Expo Go and old APK fail closed');
