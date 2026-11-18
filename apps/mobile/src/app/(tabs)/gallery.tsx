@@ -20,37 +20,34 @@ const CATEGORY_NAME:Record<GalleryCategory,string>={
   bayram:'Bayram',gunaydin:'Günlük',genel:'Diğer',
 };
 
-/** The gallery uses the original photograph instead of its separate thumbnail.
- * A pre-cropped thumbnail cannot be repaired by applying contain. Native
- * downsampling keeps the full source frame within a compact card.
+/** Every photo window uses the SAME portrait frame for a true aligned grid.
+ * Android WebP images must receive explicit pixel dimensions; using
+ * absoluteFill + resizeMethod=resize led to top-left enlargement on devices.
+ * "contain" preserves every original pixel's composition without cropping.
  */
-function previewAspectRatio(slot:GallerySlot):number{
-  const image=galleryPhoto(slot.id);
-  if(!image)return 2/3;
-  const metadata=Image.resolveAssetSource(image);
-  if(!metadata||typeof metadata.width!=='number'||typeof metadata.height!=='number'
-    ||!Number.isFinite(metadata.width)||!Number.isFinite(metadata.height)
-    ||metadata.width<=0||metadata.height<=0)return 2/3;
-  return metadata.width/metadata.height;
-}
+const TILE_PHOTO_RATIO=2/3;
+const TILE_META_HEIGHT=63;
+const TILE_SPACING=12;
 
 function GalleryTile({item,width}:{
   item:GallerySlot;width:number;
 }){
   const {colors}=useAppTheme();
   const photo=galleryPhoto(item.id);
-  const aspectRatio=previewAspectRatio(item);
+  const imageHeight=Math.round((width-2)/TILE_PHOTO_RATIO);
   return <Pressable accessibilityRole="button"
     accessibilityLabel={item.title+' tasarımını aç'+(!photo?' (fotoğraf henüz eklenmedi)':'')}
     onPress={()=>router.push({pathname:'/gallery-editor',params:{slot:item.id}})}
     style={[styles.tile,{width,backgroundColor:colors.surface,borderColor:colors.border}]}>
     <View style={[styles.thumb,{
-      backgroundColor:colors.isDark?'#143A54':'#E8EEF2',
-      aspectRatio,
+      height:imageHeight,
+      backgroundColor:colors.isDark?'#183346':'#EEECE7',
     }]}>
-      {photo?<Image source={photo} resizeMode="contain"
-        resizeMethod="resize" fadeDuration={0}
-        style={StyleSheet.absoluteFill}/>:<View style={styles.placeholder}>
+      {photo?<Image source={photo}
+        accessibilityLabel={item.title+' fotoğrafının tamamı'}
+        resizeMode="contain" fadeDuration={0}
+        style={{width:width-2,height:imageHeight}}
+        />:<View style={styles.placeholder}>
         <MaterialCommunityIcons name="image-filter-hdr" color={item.accent} size={43}/>
         <View style={{height:1,width:42,backgroundColor:item.accent,opacity:.7}}/>
         <Text style={{fontSize:9,fontWeight:'800',letterSpacing:1.5,
@@ -58,7 +55,8 @@ function GalleryTile({item,width}:{
         <Text style={{fontSize:9,color:'#A4BEB7'}}>Yakında eklenecek</Text>
       </View>}
     </View>
-    <View style={{paddingHorizontal:9,paddingVertical:8,gap:5}}>
+    <View style={{height:TILE_META_HEIGHT,paddingHorizontal:9,paddingVertical:8,
+      gap:5,justifyContent:'center'}}>
       <Text numberOfLines={1} style={{fontSize:12.5,fontWeight:'800',color:colors.text}}>
         {item.title}
       </Text>
@@ -95,19 +93,9 @@ export default function Gallery(){
         .some(value=>value.toLocaleLowerCase('tr-TR').includes(text)))
     );
   },[category,query]);
-  const tileWidth=Math.max(118,Math.min(154,(width-44-26)/2));
-  // Two balanced columns instead of flexWrap rows with dead gaps under tall
-  // natural-aspect photos. The original catalog order stays deterministic.
-  const columns=useMemo(()=>{
-    const result:[GallerySlot[],GallerySlot[]]=[[],[]];
-    const heights=[0,0];
-    for(const slot of tiles){
-      const column=heights[0]<=heights[1]?0:1;
-      result[column].push(slot);
-      heights[column]+=tileWidth/previewAspectRatio(slot)+66+12;
-    }
-    return result;
-  },[tiles,tileWidth]);
+  // Page supplies 22px horizontal padding on both edges.
+  // Reserve one inter-card gap. All rows align at their tops and bottoms.
+  const tileWidth=Math.min(224,Math.max(110,(width-44-TILE_SPACING)/2));
   return <Page title="Paylaşım Galerisi"
     subtitle="Bir fotoğraf seç, kendi mesajını tasarla ve WhatsApp'ta paylaş.">
     <View style={[styles.intro,{
@@ -165,11 +153,9 @@ export default function Gallery(){
       <Text style={{fontSize:11,color:colors.muted}}>{tiles.length} şablon</Text>
     </View>
     <View style={styles.grid}>
-      {tiles.length>0?columns.map((column,index)=>
-        <View key={'col-'+index} style={{width:tileWidth,gap:12}}>
-          {column.map(slot=><GalleryTile key={slot.id} item={slot} width={tileWidth}/>)}
-        </View>)
-      :<View style={{paddingVertical:30,width:'100%',alignItems:'center',gap:7}}>
+      {tiles.length>0?tiles.map(slot=>
+        <GalleryTile key={slot.id} item={slot} width={tileWidth}/>
+      ):<View style={{paddingVertical:30,width:'100%',alignItems:'center',gap:7}}>
         <Feather name="search" size={25} color={colors.gold}/>
         <Text style={{color:colors.muted,fontSize:12}}>Bu aramada tasarım bulunamadı.</Text>
       </View>}
@@ -191,9 +177,10 @@ const styles=StyleSheet.create({
     flexDirection:'row',alignItems:'center',gap:10,paddingHorizontal:13},
   categories:{gap:8,paddingVertical:2},
   chip:{borderWidth:1,paddingHorizontal:14,paddingVertical:10,borderRadius:22},
-  grid:{flexDirection:'row',justifyContent:'center',alignItems:'flex-start',gap:12},
+  grid:{flexDirection:'row',flexWrap:'wrap',justifyContent:'center',
+    alignItems:'flex-start',columnGap:TILE_SPACING,rowGap:TILE_SPACING},
   tile:{borderRadius:17,overflow:'hidden',borderWidth:1},
-  thumb:{width:'100%',overflow:'hidden',position:'relative'},
+  thumb:{width:'100%',overflow:'hidden',alignItems:'center',justifyContent:'center'},
   placeholder:{flex:1,justifyContent:'center',alignItems:'center',gap:8},
   formatBadge:{paddingHorizontal:7,paddingVertical:4,borderRadius:9,
     flexDirection:'row',alignItems:'center',gap:4},
