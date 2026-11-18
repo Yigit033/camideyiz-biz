@@ -9,7 +9,7 @@ export const ALERT_MAX_EVENTS=60; // iOS only retains up to 64 pending local not
 export const ALERT_MAX_DAYS=7;
 export const ALERT_LEADS=[0,5,10,15,30,45,60] as const;
 export type AlertLead=typeof ALERT_LEADS[number];
-export type AlertSound='default'|'silent';
+export type AlertSound='default'|'silent'|'adhan';
 export type PrayerAlertRule={
   enabled:boolean;
   atTime:boolean;
@@ -38,7 +38,7 @@ export function validateAlertSettings(value:unknown):PrayerAlertSettings{
   if(!value||typeof value!=='object'||Array.isArray(value))
     throw new RangeError('Invalid notification settings');
   const input=value as Partial<PrayerAlertSettings>;
-  if(typeof input.enabled!=='boolean'||(input.sound!=='default'&&input.sound!=='silent')||
+  if(typeof input.enabled!=='boolean'||(input.sound!=='default'&&input.sound!=='silent'&&input.sound!=='adhan')||
      !input.rules||typeof input.rules!=='object')
     throw new RangeError('Invalid global notification settings');
   const rules={} as Record<PrayerKey,PrayerAlertRule>;
