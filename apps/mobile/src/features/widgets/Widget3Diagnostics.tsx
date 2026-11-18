@@ -112,8 +112,8 @@ export function Widget3Diagnostics(){
       }
       await query();
     }catch(e){
-      setError(e instanceof Error?e.message:'Widget onarma isteği başarısız');
       await query();
+      setError(e instanceof Error?e.message:'Widget onarma isteği başarısız');
     }finally{setBusy(false);}
   };
   const share=async()=>{
