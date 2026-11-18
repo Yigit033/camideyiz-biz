@@ -118,6 +118,25 @@ jobs:
           grep -F 'NextPrayerWidgetProvider' "$app/AndroidManifest.xml"
           grep -F 'PrayerDayWidgetProvider' "$app/AndroidManifest.xml"
           echo 'Native RemoteViews widget layouts, tappable providers and rollover bridge present'
+      - name: Verify native full ezan service, special alarm permission and local MP3
+        run: |
+          set -euo pipefail
+          app=apps/mobile/android/app/src/main
+          test -s "$app/java/biz/camideyiz/app/adhan/AdhanAlarmScheduler.java"
+          test -s "$app/java/biz/camideyiz/app/adhan/AdhanAlarmReceiver.java"
+          test -s "$app/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
+          test -s "$app/java/biz/camideyiz/app/adhan/CamideyizAdhanBridge.java"
+          test -s "$app/res/raw/camideyiz_adhan.mp3"
+          test "$(wc -c < "$app/res/raw/camideyiz_adhan.mp3")" -gt 200000
+          grep -F 'CamideyizAdhanPackage()' "$app/java/biz/camideyiz/app/MainApplication.kt"
+          grep -F 'SCHEDULE_EXACT_ALARM' "$app/AndroidManifest.xml"
+          grep -F 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' "$app/AndroidManifest.xml"
+          grep -F 'AdhanAlarmReceiver' "$app/AndroidManifest.xml"
+          grep -F 'AdhanPlaybackService' "$app/AndroidManifest.xml"
+          grep -F 'mediaPlayback' "$app/AndroidManifest.xml"
+          grep -F 'setExactAndAllowWhileIdle' "$app/java/biz/camideyiz/app/adhan/AdhanAlarmScheduler.java"
+          grep -F 'startForeground' "$app/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
+          echo 'Native adhan alarm, media service and bundled MP3 verified'
       - name: Verify release WorkManager R8 keep rules
         run: |
           grep -F 'androidx.room.RoomDatabase { <init>(); }' apps/mobile/android/app/proguard-rules.pro
