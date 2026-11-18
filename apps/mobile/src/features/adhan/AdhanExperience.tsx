@@ -8,7 +8,7 @@ import {useAppTheme} from '@/theme/ThemeProvider';
 import {ArabesqueCorner} from '@/components/LuxuryArtwork';
 
 // Source URL is offered for users to listen/download themselves; never copied into the APK.
-const USSAK_SOURCE='https://konyacami.com/cami-musikisi';
+const USSAK_SOURCE='https://konyacami.com/ses_dosya/Ogle_ezani.mp3';
 const DUA={
   arabic:'اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ الْمَقَامَ الْمَحْمُودَ الَّذِي وَعَدْتَهُ',
   reading:'Allâhümme rabbe hâzihi’d-da‘veti’t-tâmmeti ve’s-salâti’l-kâimeti, âti Muhammedeni’l-vesîlete ve’l-fazîlete, ve’b‘ashü makâmen mahmûdeni’llezî veadteh.',
