@@ -28,6 +28,7 @@ on:
       - apps/mobile/src/features/gallery/**
       - apps/mobile/assets/gallery/**
       - scripts/verify-gallery-assets.mjs
+      - scripts/verify-home-visual-contracts.mjs
 
 permissions:
   contents: read
