@@ -91,19 +91,84 @@ public final class WidgetBoundaryScheduler {
     return root;
   }
 
+  /**
+   * Changes to district identity are a separate explicit operation.
+   * A source timeout or a pending JS fetch must NEVER erase an already
+   * confirmed timetable for the same district.
+   */
+  public static synchronized JSONObject selectDistrict(Context context,int cityId)
+      throws JSONException {
+    if(cityId<0||cityId>1_000_000)throw new JSONException("invalid selected district");
+    Context app=context.getApplicationContext();
+    SharedPreferences local=prefs(app);
+    int existing=local.getInt("activeCityId",0);
+    int calendarCity=0;
+    try {
+      String raw=local.getString(CALENDAR,null);
+      if(raw!=null)calendarCity=new JSONObject(raw).optInt("cityId",0);
+    }catch(JSONException ignored){}
+    if(existing!=cityId || (calendarCity!=0&&calendarCity!=cityId)){
+      SharedPreferences.Editor editor=local.edit().putInt("activeCityId",cityId)
+          .putString("lastTransferStage","awaiting-published-data")
+          .putString("lastTransferDetail","İlçe seçildi; doğrulanmış takvim bekleniyor.")
+          .putString("lastTransferError","");
+      if(calendarCity!=0&&calendarCity!=cityId || cityId==0)editor.remove(CALENDAR);
+      if(!editor.commit())throw new JSONException("cannot persist selected district");
+      refresh(app,"district:selected");
+    }else if(existing==0 && cityId>0){
+      if(!local.edit().putInt("activeCityId",cityId).commit())
+        throw new JSONException("cannot persist selected district");
+    }
+    return status(app);
+  }
+
+  /** Durable diagnostic, not overwritten by routine launcher refresh calls. */
+  public static synchronized JSONObject transferStage(Context context,int cityId,
+      String stage,String detail) throws JSONException{
+    if(cityId<0||cityId>1_000_000||
+       !("waiting".equals(stage)||"failed".equals(stage)))
+      throw new JSONException("invalid transfer diagnostic");
+    Context app=context.getApplicationContext();
+    SharedPreferences local=prefs(app);
+    int selected=local.getInt("activeCityId",0);
+    if(cityId!=selected)return status(app); // outdated network request
+    String safe=(detail==null?"":detail).replace('\n',' ').replace('\r',' ');
+    if(safe.length()>280)safe=safe.substring(0,280);
+    if(!local.edit().putLong("lastTransferAttemptAt",System.currentTimeMillis())
+        .putString("lastTransferStage",stage)
+        .putString("lastTransferDetail",safe)
+        .putString("lastTransferError","failed".equals(stage)?safe:"")
+        .commit())throw new JSONException("cannot persist transfer diagnostic");
+    return status(app);
+  }
+
   public static synchronized JSONObject publish(Context context, String raw)
       throws JSONException {
     Context app = context.getApplicationContext();
     long now = System.currentTimeMillis();
-    SharedPreferences.Editor editor=prefs(app).edit().putLong("lastSyncAt",now);
-    if (raw == null || raw.isEmpty()) {
-      editor.remove(CALENDAR);
-    } else {
-      editor.putString(CALENDAR,parseAndValidate(raw,now).toString());
-    }
-    if (!editor.commit()) throw new JSONException("cannot persist calendar");
-    refresh(app,raw == null || raw.isEmpty() ? "calendar:cleared" : "calendar:published");
-    return status(app);
+    if(raw==null||raw.isEmpty())
+      throw new JSONException("empty calendar rejected: use selectDistrict instead");
+    JSONObject incoming=parseAndValidate(raw,now);
+    SharedPreferences local=prefs(app);
+    int active=local.getInt("activeCityId",0);
+    int incomingCity=incoming.getInt("cityId");
+    if(active!=0&&active!=incomingCity)
+      throw new JSONException("calendar district differs from selected district");
+    if(!local.edit().putInt("activeCityId",incomingCity)
+        .putLong("lastSyncAt",now)
+        .putLong("lastTransferAttemptAt",now)
+        .putString("lastTransferStage","native-committed")
+        .putString("lastTransferDetail","Doğrulanmış namaz vakitleri kaydedildi.")
+        .putString("lastTransferError","")
+        .putString(CALENDAR,incoming.toString())
+        .commit())
+      throw new JSONException("cannot persist calendar");
+    refresh(app,"calendar:published");
+    JSONObject result=status(app);
+    if(!result.optBoolean("lastReady",false)||!result.optBoolean("hasTimeline",false)
+        ||!result.optString("lastError","").isEmpty())
+      throw new JSONException("native calendar persisted but launcher update failed");
+    return result;
   }
 
   /**
@@ -352,12 +417,19 @@ public final class WidgetBoundaryScheduler {
       }catch(JSONException ignored){}
     }
     result.put("nativeCityId",nativeCityId);
+    result.put("activeCityId",local.getInt("activeCityId",0));
+    result.put("lastTransferAttemptAt",local.getLong("lastTransferAttemptAt",0));
+    result.put("lastTransferStage",local.getString("lastTransferStage","never-attempted"));
+    result.put("lastTransferDetail",local.getString("lastTransferDetail",""));
+    result.put("lastTransferError",local.getString("lastTransferError",""));
     long sourceAge=local.getLong("calendarSourceAt",0);
     boolean ready=local.getBoolean("lastReady",false);
     String error=local.getString("lastError","");
     int count=installedCount(context,NAMES[0])+installedCount(context,NAMES[1]);
-    String state=!error.isEmpty()?"native-error":count==0?"not-installed":
-        !hasTimeline?"no-published-calendar":!ready?"not-ready":"native-dispatched";
+    String stage=local.getString("lastTransferStage","never-attempted");
+    String state=!error.isEmpty()||"failed".equals(stage)?"native-error":
+        count==0?"not-installed":!hasTimeline?"no-published-calendar":
+        !ready?"not-ready":"native-dispatched";
     result.put("state",state);
     result.put("sourceAgeHours",sourceAge>0?Math.max(0,
         (System.currentTimeMillis()-sourceAge)/(60L*60L*1000L)):-1);
