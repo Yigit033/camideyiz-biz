@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import {Platform} from 'react-native';
 import {isExpoGoRuntime} from '../native/nativeRuntime';
+import {clearNativeAdhan,nativeAdhanStatus,scheduleNativeAdhan} from './nativeAdhan';
 import {
   createPrayerAlertPlan,
   type PrayerAlertEvent,type PrayerAlertSettings,type PrayerSchedule,
@@ -92,20 +93,47 @@ export async function reconcilePrayerNotifications(
     const all=await Notifications.getAllScheduledNotificationsAsync();
     const ours=all.filter(r=>owned(r));
     const enabled=settings.enabled&&permission==='granted';
-    // Do not create native channels at startup while reminders are OFF.
-    // Channels are needed only before scheduling an enabled reminder.
     if(enabled)await setPrayerChannels();
     const desired=enabled?createPrayerAlertPlan(days,settings,nowMs):[];
+
+    // Full ezan is Android-only native playback, never a notification sound.
+    // A silent OS alert is retained as a fallback if special alarm permission
+    // was not granted or native scheduling failed. No hidden fake playback.
+    let nativeReady=false;
+    let nativeCount=0;
+    let nativeError:string|null=null;
+    if(enabled&&settings.sound==='adhan'&&Platform.OS==='android'){
+      try{
+        const status=await nativeAdhanStatus();
+        if(!status.supported)throw Error('Bu APK yerel ezan alarmlarını desteklemiyor.');
+        if(!status.exactPermission)
+          throw Error('Ezan için Android kesin alarm iznini vermen gerekiyor.');
+        const scheduled=await scheduleNativeAdhan(desired);
+        nativeReady=true;
+        nativeCount=scheduled.scheduled;
+      }catch(error){
+        nativeError=error instanceof Error?error.message:'Ezan alarmı kurulamadı';
+        await clearNativeAdhan().catch(()=>undefined);
+      }
+    }else{
+      await clearNativeAdhan().catch(()=>undefined);
+    }
+
+    const notifications=desired.filter(event=>
+      !(nativeReady && event.kind==='atTime' && event.prayer!=='gunes'));
+    const effectiveSound=(event:PrayerAlertEvent):'default'|'silent'=>
+      settings.sound==='silent' || (settings.sound==='adhan' && event.kind==='atTime')
+        ?'silent':'default';
     const existingByKey=new Map(ours.map(r=>[String(r.content.data?.eventKey),r]));
-    const wanted=new Set(desired.map(e=>e.key));
-    // Reconcile ONLY Camideyiz prayer requests; never cancel unrelated app alerts.
+    const wanted=new Set(notifications.map(e=>e.key));
+    // Reconcile ONLY our own pending prayer requests. Announcements untouched.
     for(const old of ours){
       const key=String(old.content.data?.eventKey);
-      const next=desired.find(e=>e.key===key);
-      const expected=next?alertContent(next,cityId,settings.sound):null;
+      const next=notifications.find(e=>e.key===key);
+      const expected=next?alertContent(next,cityId,effectiveSound(next)):null;
       const correct=Boolean(next&&expected&&
         old.content.data?.cityId===cityId &&
-        old.content.data?.soundMode===settings.sound &&
+        old.content.data?.soundMode===effectiveSound(next!) &&
         old.content.data?.localTime===next.localTime &&
         old.content.title===expected.title &&
         old.content.body===expected.body);
@@ -114,15 +142,16 @@ export async function reconcilePrayerNotifications(
         existingByKey.delete(key);
       }
     }
-    for(const event of desired){
+    for(const event of notifications){
       if(existingByKey.has(event.key))continue;
+      const mode=effectiveSound(event);
       await Notifications.scheduleNotificationAsync({
-        content:alertContent(event,cityId,settings.sound),
+        content:alertContent(event,cityId,mode),
         trigger:{
           type:Notifications.SchedulableTriggerInputTypes.DATE,
           date:new Date(event.fireAt),
           ...(isExpoGoRuntime()?{}:{
-            channelId:settings.sound==='silent'?CHANNEL_SILENT:CHANNEL_AUDIBLE,
+            channelId:mode==='silent'?CHANNEL_SILENT:CHANNEL_AUDIBLE,
           }),
           delivery:'bestEffort',
         },
@@ -130,8 +159,8 @@ export async function reconcilePrayerNotifications(
     }
     const actual=await Notifications.getAllScheduledNotificationsAsync();
     return {
-      permission,scheduled:actual.filter(r=>owned(r)).length,
-      nextAt:desired.length?desired[0].fireAt:null,error:null,
+      permission,scheduled:actual.filter(r=>owned(r)).length+nativeCount,
+      nextAt:desired.length?desired[0].fireAt:null,error:nativeError,
     };
   }catch(error){
     return {permission:'unknown',scheduled:0,nextAt:null,
