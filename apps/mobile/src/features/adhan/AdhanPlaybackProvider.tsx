@@ -3,6 +3,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 import {setAudioModeAsync,useAudioPlayer,useAudioPlayerStatus} from 'expo-audio';
+import {markStartup} from '@/features/performance/startupMetrics';
 
 // User-approved offline MP3, checked byte-for-byte by the build pipeline.
 const LOCAL_ADHAN=require('../../../assets/audio/camideyiz-biz-ezan.mp3');
@@ -78,6 +79,7 @@ export function AdhanPlaybackProvider({children}:PropsWithChildren){
   const toggle=useCallback(async()=>{
     if(playing||starting){pause();return;}
     const version=++request.current;
+    markStartup('audio-first-tap');
     setError(null);
     setStarting(true); // immediate user feedback before any native IO
     ensureSource();
@@ -125,7 +127,11 @@ export function AdhanPlaybackProvider({children}:PropsWithChildren){
   },[starting]);
 
   useEffect(()=>{
-    if(playing){wasPlaying.current=true;return;}
+    if(playing){
+      markStartup('audio-first-playing');
+      wasPlaying.current=true;
+      return;
+    }
     if(wasPlaying.current&&!starting){
       wasPlaying.current=false;
       try{player.setActiveForLockScreen(false);}catch{/* optional */}
