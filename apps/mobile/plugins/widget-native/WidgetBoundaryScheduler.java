@@ -345,6 +345,13 @@ public final class WidgetBoundaryScheduler {
     result.put("persisted",persisted);
     boolean hasTimeline=local.contains(CALENDAR);
     result.put("hasTimeline",hasTimeline);
+    int nativeCityId=0;
+    if(hasTimeline) {
+      try {
+        nativeCityId=new JSONObject(local.getString(CALENDAR,"")).optInt("cityId",0);
+      }catch(JSONException ignored){}
+    }
+    result.put("nativeCityId",nativeCityId);
     long sourceAge=local.getLong("calendarSourceAt",0);
     boolean ready=local.getBoolean("lastReady",false);
     String error=local.getString("lastError","");
