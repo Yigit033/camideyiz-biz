@@ -10,7 +10,7 @@ import {
 import {getMirrorPrayerTriplet,getPrayerTriplet,
   type PrayerPlaceSelection} from '../prayer/prayerApi';
 import {configuredPrayerApi} from '../prayer/prayerApi';
-import {isExpoGoRuntime} from '../native/nativeRuntime';
+import {hasAndroidNativeWidgetBridge} from '../native/nativeRuntime';
 import {prepareWidgetDistrict,recordWidgetTransferIssue,
   recoverPrayerWidgets,syncPrayerWidgets} from './widgetSync';
 import {
@@ -68,7 +68,7 @@ async function noteNativeTransfer(
     times:snapshot.times,
   } satisfies LastWidgetTransfer));
 }
-const enabled=()=>Platform.OS==='android'&&!isExpoGoRuntime();
+const enabled=()=>Platform.OS==='android'&&hasAndroidNativeWidgetBridge();
 const sourceKind=():WidgetCalendarCache['source']=>configuredPrayerApi()
   ?'diyanet-awqat-salah':'idamedya-diyanet-republished';
 
