@@ -74,3 +74,31 @@ test('REGRESSION: only one published day or stale data never becomes a native wi
     now-WIDGET_CACHE_MAX_AGE_MS-1000);
   assert.equal(parseWidgetCalendarCache(stale,now,9551),null);
 });
+
+test('Widget 3.0: a verified ten-day published calendar survives six days offline',()=>{
+  const days=Array.from({length:10},(_,offset)=>({
+    ...today,dateISO:new Date(Date.UTC(2026,10,10+offset)).toISOString().slice(0,10),
+    locationName:'Tuzla',
+  }));
+  const nowMs=prayerInstant('2026-11-16','08:00');
+  const oldSource=prayerInstant('2026-11-10','09:00');
+  const original=makeWidgetCalendarCache(9551,'Tuzla',
+    'idamedya-diyanet-republished',days,oldSource);
+  const restored=parseWidgetCalendarCache(original,nowMs,9551);
+  assert.ok(restored,'fetch age alone must not erase published Nov 16/17 times');
+  const current=buildPrayerWidgetSnapshot(restored.days,nowMs);
+  assert.equal(current.status,'ready');
+  assert.equal(current.city,'Tuzla');
+  assert.equal(current.dateISO,'2026-11-16');
+  assert.equal(current.times.length,6);
+  assert.equal(parseWidgetCalendarCache(original,nowMs,9541),null,
+    'published timetable may never leak to a different district');
+});
+
+test('Widget 3.0: old data must expire even if it carries future-looking dates',()=>{
+  const nowMs=prayerInstant('2026-11-16','08:00');
+  const tooOld=makeWidgetCalendarCache(9551,'Tuzla','idamedya-diyanet-republished',
+    [{...today,locationName:'Tuzla'},{...tomorrow,locationName:'Tuzla'}],
+    nowMs-WIDGET_CACHE_MAX_AGE_MS-1000);
+  assert.equal(parseWidgetCalendarCache(tooOld,nowMs,9551),null);
+});
