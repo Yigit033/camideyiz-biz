@@ -9,6 +9,6 @@ import biz.camideyiz.app.widget.WidgetBoundaryScheduler;
 public final class PrayerDayWidgetProvider extends AppWidgetProvider {
   @Override
   public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
-    WidgetBoundaryScheduler.refresh(context.getApplicationContext());
+    WidgetBoundaryScheduler.refresh(context.getApplicationContext(),"launcher:update:daily");
   }
 }
