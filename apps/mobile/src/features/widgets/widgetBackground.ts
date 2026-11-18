@@ -11,7 +11,8 @@ import {getMirrorPrayerTriplet,getPrayerTriplet,
   type PrayerPlaceSelection} from '../prayer/prayerApi';
 import {configuredPrayerApi} from '../prayer/prayerApi';
 import {isExpoGoRuntime} from '../native/nativeRuntime';
-import {recoverPrayerWidgets,syncPrayerWidgets} from './widgetSync';
+import {prepareWidgetDistrict,recordWidgetTransferIssue,
+  recoverPrayerWidgets,syncPrayerWidgets} from './widgetSync';
 import {
   reconcilePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
 } from '../companion/notificationService';
@@ -30,6 +31,7 @@ export type WidgetBackgroundReport={
   lastAttempt:number;lastSuccess:number|null;lastNetwork:number|null;
   status:'updated'|'waiting-data'|'error';
   detail:string;
+  registrationStatus?:string;registrationError?:string;registered?:boolean;
 };
 export type LastWidgetTransfer={
   cityId:number;city:string;dateISO:string;sentAt:number;
@@ -107,6 +109,9 @@ async function report(status:WidgetBackgroundReport['status'],detail:string,
   await AsyncStorage.setItem(STATUS_KEY,JSON.stringify({
     lastAttempt:Date.now(),lastSuccess:success?Date.now():previous?.lastSuccess??null,
     lastNetwork:lastNetwork??previous?.lastNetwork??null,status,detail,
+    registrationStatus:previous?.registrationStatus,
+    registrationError:previous?.registrationError,
+    registered:previous?.registered,
   } satisfies WidgetBackgroundReport));
 }
 
@@ -165,8 +170,12 @@ export async function syncForegroundWidgetCalendar(
   now=Date.now(),
 ):Promise<import('./widgetSyncShared').WidgetSyncResult>{
   if(!enabled())return syncPrayerWidgets(days,now);
+  // Native selection is atomic and independent of provider availability.
+  // Only a *different district* may clear a previous district's widget.
+  await prepareWidgetDistrict(place?.id??0);
   await setWidgetActivePlace(place,source);
-  if(!place)return syncPrayerWidgets([],now,0);
+  if(!place)return {available:true,updated:false,
+    detail:'İlçe henüz seçilmedi; native takvime boş veri gönderilmedi.'};
   // Validate the current foreground result directly. Native widget updates
   // must not depend on an AsyncStorage read/write round-trip succeeding.
   // Storage is still used for offline/headless WorkManager refreshes.
@@ -194,15 +203,22 @@ export async function syncForegroundWidgetCalendar(
   // its already validated persisted timeline first; city switches still
   // clear because nativeCityId must match the currently selected place.
   const recovered=selected.length===0?await recoverPrayerWidgets(place.id):null;
-  const result=recovered??await syncPrayerWidgets(selected,now,place.id,
-    verifiedCache?.fetchedAt??now);
+  let result:import('./widgetSyncShared').WidgetSyncResult;
+  if(selected.length>0){
+    result=await syncPrayerWidgets(selected,now,place.id,
+      verifiedCache?.fetchedAt??now);
+  }else{
+    const reason=days.length>=2
+      ?'Yayımlanmış takvim doğrulanamadı: tarih, ilçe ve kaynak zamanı kontrol edilmeli.'
+      :'Uygulama henüz seçilen ilçe için güncel yayımlanmış vakit almadı.';
+    await recordWidgetTransferIssue(place.id,'waiting',reason).catch(()=>undefined);
+    result=recovered??{available:true,updated:false,detail:reason};
+  }
   // Diagnostic distinction: an app preview may have valid hours while the
   // defensive native cache cannot accept the payload. Never mislabel that
   // as an Android launcher or notification-permission problem.
-  if(!selected.length&&days.length>=2&&snapshot.status!=='ready'&&result.updated){
-    result.detail='Seçilen ilçe için widget takvimi doğrulanamadı. '+
-      'Bugün ve ertesi günün altı namaz vakti kontrol edilmeli.';
-  }
+  // "Native çizildi" is not equivalent to "new data delivered".
+  // Never claim a blank placeholder is an updated prayer calendar.
   if(result.updated&&selected.length){
     await noteNativeTransfer(active,selected,now).catch(()=>undefined);
   }else if(result.updated&&!selected.length){
@@ -255,10 +271,18 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
   const snapshot=usable?buildPrayerWidgetSnapshot(usable.days,Date.now()):null;
   const selected= snapshot?.status==='ready'?usable!.days:[];
   const recovered=selected.length===0?await recoverPrayerWidgets(place.id):null;
-  const result=recovered??await syncPrayerWidgets(selected,
-    Date.now(),place.id,usable?.fetchedAt??Date.now());
+  let result:import('./widgetSyncShared').WidgetSyncResult;
+  if(selected.length){
+    result=await syncPrayerWidgets(selected,Date.now(),place.id,usable?.fetchedAt??Date.now());
+  }else{
+    const reason=fetchError
+      ?'Yayımlanmış takvim alınamadı: '+fetchError
+      :'Seçilen ilçe için doğrulanmış güncel takvim henüz bulunmuyor.';
+    await recordWidgetTransferIssue(place.id,'waiting',reason).catch(()=>undefined);
+    result=recovered??{available:true,updated:false,detail:reason};
+  }
   if(!result.updated){
-    await report('error',result.detail,networkAt,false);
+    await report(selected.length?'error':'waiting-data',result.detail,networkAt,false);
     return false;
   }
   const hasCalendar=snapshot?.status==='ready';
@@ -313,15 +337,39 @@ if(enabled()){
   });
 }
 
-/** Optional best-effort refresh never requests notification/location permissions. */
+/** The OS can restrict WorkManager; log why registration failed. This is
+ * auxiliary only: a foreground app with verified hours MUST publish directly. */
 export async function ensureWidgetBackgroundRefresh():Promise<boolean>{
   if(!enabled())return false;
-  const status=await BackgroundTask.getStatusAsync();
-  if(status!==BackgroundTask.BackgroundTaskStatus.Available)return false;
-  if(!await TaskManager.isTaskRegisteredAsync(WIDGET_BACKGROUND_TASK)){
-    await BackgroundTask.registerTaskAsync(WIDGET_BACKGROUND_TASK,{
-      minimumInterval:WIDGET_BACKGROUND_INTERVAL_MINUTES,
-    });
+  let statusName='unavailable';
+  let registered=false;
+  let error='';
+  try{
+    const status=await BackgroundTask.getStatusAsync();
+    statusName=status===BackgroundTask.BackgroundTaskStatus.Available
+      ?'available':'restricted:'+String(status);
+    if(status===BackgroundTask.BackgroundTaskStatus.Available){
+      if(!await TaskManager.isTaskRegisteredAsync(WIDGET_BACKGROUND_TASK)){
+        await BackgroundTask.registerTaskAsync(WIDGET_BACKGROUND_TASK,{
+          minimumInterval:WIDGET_BACKGROUND_INTERVAL_MINUTES,
+        });
+      }
+      registered=await TaskManager.isTaskRegisteredAsync(WIDGET_BACKGROUND_TASK);
+      if(!registered)error='Görev kayıt çağrısından sonra TaskManager kaydı doğrulanamadı';
+    }else error='Android arka plan görevi kısıtlı: '+statusName;
+  }catch(cause){
+    error=cause instanceof Error?cause.message:'Bilinmeyen arka plan kayıt hatası';
   }
-  return true;
+  try{
+    const previous=await readWidgetBackgroundReport();
+    await AsyncStorage.setItem(STATUS_KEY,JSON.stringify({
+      lastAttempt:previous?.lastAttempt??Date.now(),
+      lastSuccess:previous?.lastSuccess??null,
+      lastNetwork:previous?.lastNetwork??null,
+      status:previous?.status??'waiting-data',
+      detail:previous?.detail??'Arka plan görev durumu kontrol edildi',
+      registrationStatus:statusName,registrationError:error,registered,
+    } satisfies WidgetBackgroundReport));
+  }catch{/* native widget foreground publish remains independent */}
+  return registered;
 }
