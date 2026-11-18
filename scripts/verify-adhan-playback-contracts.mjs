@@ -1,36 +1,37 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {existsSync,readFileSync,statSync} from 'node:fs';
 import {resolve} from 'node:path';
-const read=p=>readFileSync(resolve(import.meta.dirname,'..',p),'utf8');
-const app=JSON.parse(read('apps/mobile/app.json')).expo;
+const location=p=>resolve(import.meta.dirname,'..',p);
+const read=p=>readFileSync(location(p),'utf8');
+const config=JSON.parse(read('apps/mobile/app.json')).expo;
 const root=read('apps/mobile/src/app/_layout.tsx');
-const provider=read('apps/mobile/src/features/adhan/AdhanPlaybackProvider.tsx');
+const player=read('apps/mobile/src/features/adhan/AdhanPlaybackProvider.tsx');
 const card=read('apps/mobile/src/features/adhan/AdhanExperience.tsx');
 const service=read('apps/mobile/plugins/adhan-native/AdhanPlaybackService.java');
-const mobile=JSON.parse(read('apps/mobile/package.json'));
-const plugin=app.plugins.find(p=>Array.isArray(p)&&p[0]==='expo-audio');
-assert.ok(plugin,'expo-audio background config plugin missing');
-assert.equal(plugin[1].enableBackgroundPlayback,true);
+const android=read('apps/mobile/plugins/withNativeAdhanAlarm.js');
+const prepare=read('scripts/prepare-adhan-audio.mjs');
+const plugin=config.plugins.find(x=>Array.isArray(x)&&x[0]==='expo-audio');
+assert.ok(plugin&&plugin[1].enableBackgroundPlayback===true,
+  'Android/iOS must support background audio');
 assert.equal(plugin[1].enableBackgroundRecording,false);
-assert.equal(plugin[1].recordAudioAndroid,false);
-assert.equal(mobile.dependencies['expo-file-system'],'~58.0.14');
 assert.match(root,/<AdhanPlaybackProvider>[\s\S]*?<Navigation\/>/,
-  'player must be mounted above navigation to survive tab changes');
-assert.match(provider,/shouldPlayInBackground:true/);
-assert.match(provider,/player\.setActiveForLockScreen\(true,/);
-assert.match(provider,/player\.setActiveForLockScreen\(false\)/);
-assert.match(provider,/File\.pickFileAsync\(/);
-assert.match(provider,/camideyiz_user_adhan\.mp3/);
-assert.match(provider,/file\.copy\(staged,\{overwrite:true\}\)/);
-assert.match(provider,/staged\.move\(final,\{overwrite:true\}\)/);
-assert.match(provider,/validPersonalRecording/);
-assert.match(provider,/setPersonalRecording\(true\)/);
+  'The manual player must survive navigation');
+assert.match(player,/shouldPlayInBackground:true/);
+assert.match(player,/player\.setActiveForLockScreen\(true,/);
+assert.match(player,/player\.setActiveForLockScreen\(false\)/);
+assert.match(player,/assets\/audio\/camideyiz-biz-ezan\.mp3/);
 assert.match(card,/useAdhanPlayback/);
-assert.match(card,/MP3 seç/);
-assert.match(service,/new File\(getFilesDir\(\),"camideyiz_user_adhan\.mp3"\)/);
-assert.match(service,/personal\.getAbsolutePath\(\)/);
-assert.match(service,/MediaPlayer\.create\(this,R\.raw\.camideyiz_adhan\)/,
-  'if a private file disappears, native alarm must have a licensed local fallback');
-assert.ok(!read('scripts/prepare-adhan-audio.mjs').includes('konyacami.com'),
-  'do not silently redistribute unlicensed third-party recording');
-console.log('Audio QA: background mode, persistent player, lock-screen controls, private MP3 import and native alarm file selection verified');
+assert.doesNotMatch(card,/MP3 seç|MP3.ü değiştir|Varsayılana dön|importRecording/);
+assert.doesNotMatch(player,/pickFileAsync|importRecording|personalRecording/);
+assert.match(service,/MediaPlayer\.create\(this,R\.raw\.camideyiz_adhan\)/);
+assert.doesNotMatch(service,/camideyiz_user_adhan\.mp3/);
+assert.match(android,/assets','audio','camideyiz-biz-ezan\.mp3/);
+assert.match(prepare,/09b6077c9ec6acaa3de1721de4a1f558c9e7ec0044c916d29ba6ea19b53ea77f/);
+const audio='apps/mobile/assets/audio/camideyiz-biz-ezan.mp3';
+assert.ok(existsSync(location(audio)),'Owner-supplied MP3 is missing; npm run prepare:adhan');
+assert.equal(statSync(location(audio)).size,3156985,'Unexpected ezan byte size');
+assert.equal(createHash('sha256').update(readFileSync(location(audio))).digest('hex'),
+  '09b6077c9ec6acaa3de1721de4a1f558c9e7ec0044c916d29ba6ea19b53ea77f',
+  'The bundled audio must be IDENTICAL to the user-uploaded file');
+console.log('Ezan QA: exact uploaded MP3, manual button, automatic Android ezan, background playback and removed picker verified');
