@@ -7,6 +7,7 @@ import {useAppTheme} from '@/theme/ThemeProvider';
 import {useCompanion} from '@/features/companion/CompanionProvider';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {hasAndroidNativeWidgetBridge} from '@/features/native/nativeRuntime';
+import {readStartupDiagnostics} from '@/features/performance/startupMetrics';
 
 type NativeWidgetHealth={
   supported:true;nativeCityId:number;activeCityId:number;
@@ -150,6 +151,7 @@ export function Widget3Diagnostics(){
           widgetSync:companion.widget,
           backgroundRegistered:companion.backgroundRegistered,
           backgroundReport:companion.backgroundReport,
+          startupPerformance:readStartupDiagnostics(),
           error,
         },null,2)});
     }catch{/* user dismissed OS sharing or it failed */}
