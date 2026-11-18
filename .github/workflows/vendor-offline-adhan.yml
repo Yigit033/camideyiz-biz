@@ -1,0 +1,41 @@
+name: Vendor offline CC0 adhan MP3
+on:
+  push:
+    branches:
+      - feat/widgets-and-prayer-alerts-2
+    paths:
+      - scripts/prepare-adhan-audio.mjs
+      - .github/workflows/vendor-offline-adhan.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  vendor-adhan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - name: Fetch verified source and create local MP3
+        run: node scripts/prepare-adhan-audio.mjs
+      - name: Assert valid offline asset exists
+        run: |
+          test -s apps/mobile/assets/audio/beautiful-adhan.mp3
+          file apps/mobile/assets/audio/beautiful-adhan.mp3
+          du -h apps/mobile/assets/audio/beautiful-adhan.mp3
+      - name: Commit binary into source branch so installation works fully offline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f apps/mobile/assets/audio/beautiful-adhan.mp3
+          if git diff --cached --quiet; then
+            echo "Offline MP3 is already tracked and up to date."
+          else
+            git commit -m "assets(audio): vendor CC0 ezan MP3 for offline mobile playback"
+            git push origin HEAD:feat/widgets-and-prayer-alerts-2
+          fi
