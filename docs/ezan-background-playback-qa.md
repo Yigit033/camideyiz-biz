@@ -1,44 +1,37 @@
-# Ezan çalma, arka plan modu ve kişisel MP3 — QA
+# Camideyiz Biz · Ezan Arka Plan / Manuel ve Otomatik QA
 
-## Kaynaklar ve dağıtım
+## Tek ses dosyası
 
-- APK ile birlikte gelen varsayılan ses: Wikimedia Commons CC0 lisanslı mevcut `beautiful-adhan.mp3`.
-- Kullanıcının seçtiği MP3 sistem dosya seçicisiyle alınır; telefonun uygulamaya özel `Paths.document/camideyiz_user_adhan.mp3` alanına taşınır. Sunucuya veya Github'a gönderilmez.
-- Tercih edilen Uşşak/Öğle kaydı: https://konyacami.com/ses_dosya/Ogle_ezani.mp3 . Bağlantı dinlemek ve kullanıcı tarafından kaydedilmek içindir. Sesin uygulama ile toplu yeniden dağıtım izni doğrulanmadı; otomatik indirme ve APK içine katma YOK.
-- Kaydı sunucuya gömmek veya uygulamanın varsayılan paketi olarak dağıtmak için kayıt sahibinden lisans/izin gereklidir.
+- Kullanıcının yüklediği **Camideyiz_Biz_Ezan.mp3**; 197,3 saniye (3:17), 128 kbps, MP3.
+- **SHA-256:** `09b6077c9ec6acaa3de1721de4a1f558c9e7ec0044c916d29ba6ea19b53ea77f`
+- Yerel yol: `apps/mobile/assets/audio/camideyiz-biz-ezan.mp3` (`.gitignore` içinde).
+- `npm run prepare:adhan`, dosya varsa yalnızca doğrular; yoksa kayıt sahibinin açık bağlantısından **derleme sırasında** indirir ve tam SHA-256 eşleşmesini zorunlu tutar. Eski sesle sessiz geri dönüş YOK.
+- Manuel oynatıcı ve native otomatik ezan servisi bu aynı dosyayı kullanır; uygulama **çalışma zamanında ağdan ses çekmez**.
+- Kullanıcıdan MP3 dosyası seçmesi istenmez; **Ezanı Dinle** butonu anında çalar.
 
-## Kullanım
+## Arka planda dinleme
 
-1. Telefonunda kaydı bir MP3 dosyası olarak indir; sahip olduğun kullanma haklarına uygun hareket et.
-2. Camideyiz Biz → Ana Sayfa → Ezanı Dinle → **MP3 seç** üzerinden bu dosyayı seç.
-3. Uygulama dosyayı çevrimdışı ve özel depoya kopyalar. Manuel dinlemedeki ses ve **Android native vakit alarmında** çalınacak ses aynı dosya olur.
-4. İstersen **Varsayılana dön** ile CC0 lisanslı başlangıç kaydını geri yükle.
+- `expo-audio` background playback etkin. Medya oynatıcı `AdhanPlaybackProvider` içinde, Expo Router Stack'inden üstte.
+- Android'in sistem medya bildirimi ve iOS Now Playing erişimi açık; oynatma başka sekmeye geçince veya ekran kilitlenince devam edecek şekilde yapılandırılmıştır.
+- Kullanıcı uygulamayı sistem ayarlarından **zorla durdurursa** veya işletim sistemi uygulamayı sonlandırırsa devam etme garantisi yoktur.
+- **Vakit geldiğinde otomatik ezan** Android'de ayrı native `AlarmManager` + `AdhanPlaybackService` üzerinden çalışır; kullanıcı kesin alarm izni vermelidir. Cihaz pil kısıtlamaları saat hassasiyetini etkileyebilir.
 
-## Kullanıcı testi
+## Fiziksel cihaz kabul testi
 
-- [ ] MP3 seçimi geçersiz/çok büyük dosyaları (>12 MB) ve .mp3 dışındaki uzantıları reddediyor.
-- [ ] MP3 seçimi gerçekten seçili dosyayı oynatıyor; başta ve sonda kesik çalma yok.
-- [ ] Ezanı başlat, ana ekrana dön: ses devam etmeli.
-- [ ] Uygulamanın başka sekmesine gir: ses devam etmeli.
-- [ ] Telefon ekranını kilitle: ses devam etmeli. Android kilit ekranı ve bildirim kontrolünden duraklat/oynat.
-- [ ] Ezan tamamen bittikten sonra sürekli çalışan medya servisi kalmamalı.
-- [ ] Gelen arama/başka müzik sesi, ses odağı kurallarına göre oynatımı durdurabiliyor.
-- [ ] Uygulamayı normal açıp kapatıp tekrar aç: seçilen MP3 özel dosyadan geri yüklenmeli.
-- [ ] Android özel alarm izni ve tam ezan seçeneği açıkken **Ezanı test et**: kendi MP3 dosyasından tam çalma başlamalı.
-- [ ] Aynı MP3 seçiliyken telefon internetsiz ve kilitli: tam ezan sesi yerelden çalmalı.
-- [ ] Varsayılan kayıt geri yüklendiğinde hem manuel hem otomatik ezan varsayılan CC0 kaydına dönmeli.
-- [ ] OEM pil optimizasyonu/Doze, Android 14–16, iOS arka plan ses denetimini ayrıca gerçek cihazda test et.
-- [ ] Android'in uygulamayı zorla durdurma (force-stop) veya kullanıcı tarafından kaldırma davranışı için garanti verme.
+- [ ] Ana ekranda tek tuşla, kullanıcı tarafından yüklenen 3:17 ezan çalıyor; MP3 seçici görünmüyor.
+- [ ] Aynı ses, uygulama arka plandayken ve kilit ekranındayken devam ediyor.
+- [ ] Kilit ekranı medya kontrollerinden duraklatma ve devam ettirme yapılabiliyor.
+- [ ] Kayıt bittiğinde servis ve oynatıcı düzgün kapanıyor.
+- [ ] Android **Tam ezan** modu ve kesin alarm izni açıkken kilitli telefonda 10 saniyelik test çalışıyor.
+- [ ] Gerçek namaz vakti testinde de **aynı** ses dosyası kullanılıyor.
+- [ ] İki ses dosyası eşzamanlı başlatılırsa ses odağı politikaları inceleniyor.
+- [ ] Birden fazla Android sürümünde ve iOS'ta gerçek cihaz testi yapılıyor.
 
-## Mimari
+## Telif / lisans notu
 
-- `AdhanPlaybackProvider` `_layout` içinde, navigasyon ağacının üzerinde kalır; `expo-audio` SDK 58 `enableBackgroundPlayback`, `shouldPlayInBackground` ve `setActiveForLockScreen(true)` kullanır.
-- Android native `AdhanPlaybackService` Android `Context.getFilesDir()/camideyiz_user_adhan.mp3` dosyasını görürse onu açar; yoksa lisanslı APK içi `R.raw.camideyiz_adhan` dosyasını kullanır.
-- iOS'ta manuel arka plan oynatma mümkündür, ancak uygulama çalışmıyorken namaz vakti geldiğinde Android'deki tam sesli native alarm davranışını garanti eden iOS çözümü yoktur.
+Kaydı kullanıcı bizzat sağladı. MP3'ün GitHub kaynak deposunda tutulmaması, dağıtılan APK/IPA'nın kaydı içerdiği gerçeğini değiştirmez. Ticari ve kamuya açık yeniden dağıtım izni ayrıca değerlendirilmelidir.
 
-## Kaynak/derleme
+## Doğrulama
 
-- https://docs.expo.dev/versions/v58.0.0/sdk/audio/
-- https://docs.expo.dev/versions/v58.0.0/sdk/filesystem/
-- https://konyacami.com/cami-musikisi
-- `node scripts/verify-adhan-playback-contracts.mjs`, `npm test`, `npm run typecheck` ve Android QA APK.
+`npm run prepare:adhan`, `node scripts/verify-adhan-playback-contracts.mjs`,
+`npm run typecheck` ve Android QA APK derlemesi.
