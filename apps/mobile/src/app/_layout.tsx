@@ -7,6 +7,7 @@ import {ThemeProvider,useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerSourceProvider} from '@/features/prayer/PrayerSourceProvider';
 import {KerahatSettingsProvider} from '@/features/prayer/KerahatSettingsProvider';
 import {CompanionProvider} from '@/features/companion/CompanionProvider';
+import {AdhanPlaybackProvider} from '@/features/adhan/AdhanPlaybackProvider';
 
 function Navigation() {
   const {colors}=useAppTheme();
@@ -27,7 +28,9 @@ export default function RootLayout(){
       <ThemeProvider>
         <PrayerSourceProvider>
           <KerahatSettingsProvider>
-            <CompanionProvider><Navigation/></CompanionProvider>
+            <AdhanPlaybackProvider>
+              <CompanionProvider><Navigation/></CompanionProvider>
+            </AdhanPlaybackProvider>
           </KerahatSettingsProvider>
         </PrayerSourceProvider>
       </ThemeProvider>
