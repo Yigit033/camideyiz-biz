@@ -88,7 +88,7 @@ function withAdhanResources(config){
       await fs.copyFile(path.join(__dirname,'adhan-native',name),path.join(target,name));
     const rawDir=path.join(root,'res','raw');
     await fs.mkdir(rawDir,{recursive:true});
-    const audio=path.resolve(__dirname,'..','assets','audio','beautiful-adhan.mp3');
+    const audio=path.resolve(__dirname,'..','assets','audio','camideyiz-biz-ezan.mp3');
     const stat=await fs.stat(audio);
     if(stat.size<200_000||stat.size>6_000_000)
       throw Error('Bundled ezan MP3 is missing or corrupt; run npm run prepare:adhan');
