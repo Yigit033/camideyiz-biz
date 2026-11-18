@@ -1,3 +1,4 @@
+import '@/features/performance/startupMetrics'; // JS boot timing starts before other app imports.
 import '@/features/widgets/widgetTaskRegistration'; // Lightweight synchronous headless task registration.
 import {Stack} from 'expo-router';
 import {StatusBar} from 'expo-status-bar';
