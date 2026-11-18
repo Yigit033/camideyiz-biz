@@ -34,7 +34,7 @@
 - **Kaynak:** Yalnızca uygulama tarafından doğrulanmış yayımlanmış ilçe namaz vakitleri.
 - **Plan:** En fazla 7 günlük, yalnızca atTime/imsak, öğle, ikindi, akşam, yatsı.
 - **Alarm:** Android \`setExactAndAllowWhileIdle\`; Android 12+ için kullanıcı onaylı \`SCHEDULE_EXACT_ALARM\`.
-- **Ses:** Android foreground media playback servisi, uygulamaya gömülü CC0 MP3.
+- **Ses:** Android foreground media playback servisi, uygulamaya gömülü user-supplied SHA-verified MP3.
 - **Denetim:** Android, çalma esnasında durdurma aksiyonu olan bir servis bildirimi göstermek zorundadır. Bu olağan bildirim zili değildir.
 - **İzin yoksa:** Tam sesli alarm kurulmaz; hatırlatma normal sistem sesi olan OS bildirimi olarak kalır, kullanıcıya açık eksiklik gösterilir.
 - **İleri hatırlatmalar:** 5–60 dk erken bildirimler mevcut sistemle çalışır; tam ezan yalnızca vakit girişinde başlar.
