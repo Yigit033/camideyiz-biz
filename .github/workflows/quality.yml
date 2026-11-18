@@ -16,6 +16,8 @@ jobs:
       - name: Bundle offline CC0 ezan MP3 for Metro/Android
         run: npm run prepare:adhan
       - run: npm run typecheck
+      - name: Verify background ezan playback and private recording source contracts
+        run: node scripts/verify-adhan-playback-contracts.mjs
       - name: Verify Widget 3.0 offline/native recovery contracts
         run: node scripts/verify-widget3-contracts.mjs
       - name: Verify exact owner-supplied brand icon is unchanged
@@ -135,6 +137,7 @@ jobs:
           grep -F 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' "$app/AndroidManifest.xml"
           grep -F 'AdhanAlarmReceiver' "$app/AndroidManifest.xml"
           grep -F 'AdhanPlaybackService' "$app/AndroidManifest.xml"
+          grep -F 'expo.modules.audio.service.AudioControlsService' "$app/AndroidManifest.xml"
           grep -F 'mediaPlayback' "$app/AndroidManifest.xml"
           grep -F 'setExactAndAllowWhileIdle' "$app/java/biz/camideyiz/app/adhan/AdhanAlarmScheduler.java"
           grep -F 'startForeground' "$app/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
