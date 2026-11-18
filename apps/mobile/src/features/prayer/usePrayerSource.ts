@@ -10,6 +10,7 @@ import {
   type PrayerPlaceSelection,
 } from './prayerApi';
 import {useDevicePrayerLocation} from './useDevicePrayerLocation';
+import {markStartup} from '@/features/performance/startupMetrics';
 
 const OFFICIAL_PLACE_KEY='@camideyiz/official-place/v1';
 const MIRROR_PLACE_KEY='@camideyiz/mirror-place/v1';
@@ -169,12 +170,14 @@ export function usePrayerSource(now:Date){
       }catch{/* any corrupted, cross-district or expired cache is ignored */}
       if(!live)return;
       if(cached){
+        markStartup('published-cache-ready');
         setData(cached);
         setStatus(officialConfigured?'offline':'mirror-cached');
         // A public cached mirror response can be reused for ~45 minutes.
         // Refresh before 55m expiry, without hitting the upstream on every view.
         if(!officialConfigured&&Date.now()-Date.parse(cached.today.fetchedAt)<45*60*1000)return;
       }else if(olderVerified){
+        markStartup('published-cache-ready');
         // Critical cold-start fix: show already verified, same-date published
         // hours immediately. The mirror network can otherwise take 5–10 sec.
         // Home checks the 24-hour offline validity independently.
@@ -186,6 +189,7 @@ export function usePrayerSource(now:Date){
           ?await getPrayerTriplet(place.id,dateISO)
           :await getMirrorPrayerTriplet(place,dateISO);
         if(!live)return;
+        markStartup('published-network-ready');
         setData(next);
         setStatus(officialConfigured?'verified':'mirror');
         setFailureReason(null);
