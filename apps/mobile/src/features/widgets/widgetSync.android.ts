@@ -1,5 +1,5 @@
 import type {PrayerSchedule} from '@camideyiz/core';
-import {isExpoGoRuntime} from '../native/nativeRuntime';
+import {hasAndroidNativeWidgetBridge} from '../native/nativeRuntime';
 import type {WidgetSyncResult} from './widgetSyncShared';
 import {publishAndroidWidgetTimeline,repairPersistedAndroidWidget,
   selectAndroidWidgetDistrict,reportAndroidWidgetTransfer}
@@ -14,7 +14,7 @@ import {publishAndroidWidgetTimeline,repairPersistedAndroidWidget,
 /** District switch is the only path that can clear an old-city timeline.
  * A same-city network failure is never a cache invalidation signal. */
 export async function prepareWidgetDistrict(cityId:number):Promise<void>{
-  if(isExpoGoRuntime())return;
+  if(!hasAndroidNativeWidgetBridge())throw new Error('Android widget köprüsü bulunamadı; APK güncel mi?');
   const status=await selectAndroidWidgetDistrict(cityId);
   if(!status)throw new Error('Android widget köprüsü bulunamadı');
   if(status.activeCityId!==cityId)
@@ -23,16 +23,16 @@ export async function prepareWidgetDistrict(cityId:number):Promise<void>{
 export async function recordWidgetTransferIssue(
   cityId:number,stage:'waiting'|'failed',detail:string,
 ):Promise<void>{
-  if(isExpoGoRuntime()||cityId<=0)return;
+  if(!hasAndroidNativeWidgetBridge()||cityId<=0)return;
   await reportAndroidWidgetTransfer(cityId,stage,detail);
 }
 
 export async function syncPrayerWidgets(
   days:readonly PrayerSchedule[],nowMs:number,cityId=0,sourceAt=nowMs,
 ):Promise<WidgetSyncResult>{
-  if(isExpoGoRuntime())return {
+  if(!hasAndroidNativeWidgetBridge())return {
     available:false,updated:false,
-    detail:'Expo Go: Ana ekran widget testleri için native APK gerekir.',
+    detail:'Bu sürümde Android widget köprüsü bulunamadı. Native APK'yı güncelle.',
   };
   if(!days.length||cityId<=0)return {
     available:true,updated:false,
@@ -71,7 +71,7 @@ export async function syncPrayerWidgets(
 /** Recover persisted current-district calendar even while the upstream
  * provider / AsyncStorage is temporarily unavailable. Never reuse another city. */
 export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResult|null>{
-  if(isExpoGoRuntime())return null;
+  if(!hasAndroidNativeWidgetBridge())return null;
   try{
     const status=await repairPersistedAndroidWidget(cityId);
     if(!status)return null;
