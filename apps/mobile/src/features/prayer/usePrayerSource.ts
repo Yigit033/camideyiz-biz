@@ -130,15 +130,22 @@ export function usePrayerSource(now:Date){
     if(!place){setData(null);setStatus('choose-location');return;}
     let live=true;
     const key=(officialConfigured?OFFICIAL_CACHE_PREFIX:MIRROR_CACHE_PREFIX)+place.id+'/'+dateISO;
-    // Keep a still-valid schedule on screen during periodic revalidation.
-    // A different district/date/provider or expired mirror data cannot leak through.
-    setData(previous=>{
-      if(!previous||previous.city.id!==place.id||previous.dateISO!==dateISO||
-        previous.source!==(officialConfigured?'diyanet-awqat-salah':'idamedya-diyanet-republished'))return null;
-      if(!officialConfigured&&Date.now()-Date.parse(previous.today.fetchedAt)>55*60*1000)return null;
-      return previous;
-    });
-    setStatus('loading');
+    // Stale-while-revalidate: previously PUBLISHED hours for this exact
+    // district/day stay visible while network requests proceed. Never invent
+    // or recalculate times from a phone clock. Up to 24h of validated offline
+    // coverage is already enforced by the core mirror cache validator.
+    let carried:PrayerSourceTriplet|null=null;
+    if(data&&data.city.id===place.id&&data.dateISO===dateISO&&
+       data.source===(officialConfigured?'diyanet-awqat-salah':'idamedya-diyanet-republished')){
+      try{
+        carried=officialConfigured
+          ?validateTriplet(data,place.id,dateISO)
+          :validateCachedMirrorTriplet(data,place.id,dateISO,
+            Date.now(),MIRROR_OFFLINE_CACHE_MS);
+      }catch{/* A different date, district or expired data is never reused. */}
+    }
+    setData(carried);
+    setStatus(carried?(officialConfigured?'offline':'mirror-cached'):'loading');
     setFailureReason(null);
     (async()=>{
       let cached:PrayerSourceTriplet|null=null;
@@ -167,6 +174,12 @@ export function usePrayerSource(now:Date){
         // A public cached mirror response can be reused for ~45 minutes.
         // Refresh before 55m expiry, without hitting the upstream on every view.
         if(!officialConfigured&&Date.now()-Date.parse(cached.today.fetchedAt)<45*60*1000)return;
+      }else if(olderVerified){
+        // Critical cold-start fix: show already verified, same-date published
+        // hours immediately. The mirror network can otherwise take 5–10 sec.
+        // Home checks the 24-hour offline validity independently.
+        setData(olderVerified);
+        setStatus('mirror-cached');
       }
       try{
         const next=officialConfigured
