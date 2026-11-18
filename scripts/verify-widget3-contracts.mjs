@@ -47,7 +47,7 @@ assert.match(sync,/repairPersistedAndroidWidget\(cityId\)/,
   'Android sync must use the guarded native recovery helper');
 assert.match(service,/recoverPrayerWidgets\(place\.id\)/,
   'temporary JS/network failure must not erase valid native calendar');
-assert.match(panel,/Tanıla ve yeniden çizdir/);
+assert.match(panel,/Takvimi eşitle ve çizdir/);
 assert.match(panel,/Raporu paylaş/);
 assert.match(panel,/Native kayıt ve güncelleme istekleri gerçek ana ekran piksellerinin doğrulanması değildir/);
 assert.match(screen,/<Widget3Diagnostics\/>/);
@@ -56,4 +56,25 @@ for(const file of ['widget_next_prayer_info.xml','widget_prayer_day_info.xml']){
   assert.match(source,/android:updatePeriodMillis="1800000"/,
     'Android widget host periodic fallback must remain enabled: '+file);
 }
-console.log('Widget 3.0: verified offline cache horizon, native rollover, same-city recovery, 30m host fallback, diagnostic UX');
+
+// Widget 3.1: provider loading must never mean calendar deletion.
+// Only an explicit district selection may invalidate a previous district.
+assert.match(native,/public static synchronized JSONObject selectDistrict\(/);
+assert.match(native,/empty calendar rejected: use selectDistrict instead/);
+assert.match(native,/lastTransferError/);
+assert.match(native,/activeCityId/);
+assert.match(native,/calendar district differs from selected district/);
+assert.match(bridge,/public void selectDistrict\(int cityId, Promise promise\)/);
+assert.match(bridge,/public void reportTransfer\(int cityId,String stage,String detail,Promise promise\)/);
+assert.match(nativeBridge,/selectAndroidWidgetDistrict\(cityId:number\)/);
+assert.match(nativeBridge,/if\(!days\.length\|\|cityId<=0\)/);
+assert.doesNotMatch(nativeBridge,/publishCalendar\(''\)/);
+assert.match(sync,/if\(!days\.length\|\|cityId<=0\)return/);
+assert.match(service,/await prepareWidgetDistrict\(place\?\.id\?\?0\)/);
+assert.match(service,/recordWidgetTransferIssue\(place\.id,'waiting'/);
+assert.doesNotMatch(service,/syncPrayerWidgets\(selected,now,place\.id,[\s\S]*?\[\]/);
+assert.match(panel,/lastTransferError/);
+assert.match(panel,/source\.failureReason/);
+assert.match(panel,/companion\.widget\.detail/);
+assert.match(panel,/registrationError/);
+console.log('Widget 3.1: no blank cache writes, persistent diagnostics, verified offline horizon, native rollover, same-city recovery, 30m host fallback, diagnostic UX');
