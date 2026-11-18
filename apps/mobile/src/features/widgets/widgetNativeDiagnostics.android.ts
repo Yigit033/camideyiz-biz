@@ -8,6 +8,8 @@ type NativeBridge={
   publishCalendar:(json:string)=>Promise<string>;
   getStatus:()=>Promise<string>;
   refreshNow:()=>Promise<string>;
+  selectDistrict:(cityId:number)=>Promise<string>;
+  reportTransfer:(cityId:number,stage:'waiting'|'failed',detail:string)=>Promise<string>;
 };
 
 export type AndroidWidgetNativeStatus={
@@ -16,7 +18,9 @@ export type AndroidWidgetNativeStatus={
   lastError:string;lastNextName:string;lastNextTime:string;
   lastCity:string;lastDateISO:string;lastReady:boolean;
   persisted:boolean;hasTimeline:boolean;launcherConfirmed:false;
-  nativeCityId:number;state:string;
+  nativeCityId:number;activeCityId:number;state:string;
+  lastTransferAttemptAt:number;lastTransferStage:string;
+  lastTransferDetail:string;lastTransferError:string;
   lastAttemptAt:number;lastRefreshReason:string;lastHostDispatchAt:number;
   lastInstanceCount:number;calendarSourceAt:number;calendarEndsAt:number;
   sourceAgeHours:number;osRecoveryMinutes:number;
@@ -37,7 +41,10 @@ function parseStatus(raw:string):AndroidWidgetNativeStatus{
     typeof v.lastAppliedAt!=='number'||typeof v.nextAlarmAt!=='number'||
     typeof v.lastReady!=='boolean'||typeof v.lastError!=='string'||
     typeof v.lastNextName!=='string'||typeof v.lastDateISO!=='string'||
-    typeof v.nativeCityId!=='number'||typeof v.state!=='string'||
+    typeof v.nativeCityId!=='number'||typeof v.activeCityId!=='number'||
+    typeof v.lastTransferStage!=='string'||typeof v.lastTransferError!=='string'||
+    typeof v.lastTransferDetail!=='string'||typeof v.lastTransferAttemptAt!=='number'||
+    typeof v.state!=='string'||
     typeof v.calendarEndsAt!=='number'||typeof v.lastHostDispatchAt!=='number')
     throw new Error('Malformed native widget status');
   // Native module intentionally cannot report actual launcher pixels.
@@ -53,6 +60,24 @@ Promise<AndroidWidgetNativeStatus|null>{
   const native=bridge();
   if(!native)return null;
   return parseStatus(await native.getStatus());
+}
+
+/** Native calendar identity is NOT inferred from the presence of a
+ * timeline. A district can be selected before published hours are ready.
+ * Only this call may discard a different district's previous timeline. */
+export async function selectAndroidWidgetDistrict(cityId:number):
+Promise<AndroidWidgetNativeStatus|null>{
+  const native=bridge();
+  if(!native)return null;
+  if(!native.selectDistrict)throw Error('Widget native bridge is outdated');
+  return parseStatus(await native.selectDistrict(cityId));
+}
+export async function reportAndroidWidgetTransfer(
+  cityId:number,stage:'waiting'|'failed',detail:string,
+):Promise<void>{
+  const native=bridge();
+  if(!native?.reportTransfer)return;
+  await native.reportTransfer(cityId,stage,detail);
 }
 
 /** Native resync from already verified persisted data when the JS provider
@@ -78,9 +103,8 @@ export async function publishAndroidWidgetTimeline(
   if(!native)throw new Error(
     'Widget native köprüsü bulunamadı. CNG ile yeni release APK üret.',
   );
-  if(!days.length||cityId<=0){
-    return parseStatus(await native.publishCalendar(''));
-  }
+  if(!days.length||cityId<=0)
+    throw new Error('Boş takvim native belleğe gönderilemez.');
   if(!Number.isFinite(sourceAt)||sourceAt<=0||sourceAt>now+60_000||
      now-sourceAt>16*24*60*60_000)
     throw new Error('Kaynak takvimin yayın doğrulaması eskimiş');
@@ -97,7 +121,9 @@ export async function publishAndroidWidgetTimeline(
   };
   const status=parseStatus(await native.publishCalendar(JSON.stringify(calendar)));
   if(status.lastError)throw new Error('Native widget: '+status.lastError);
-  if(!status.persisted||!status.lastReady)
+  if(status.nativeCityId!==cityId||status.activeCityId!==cityId)
+    throw new Error('Native ilçe kimliği uyuşmuyor; takvim kaydedilmedi');
+  if(!status.hasTimeline||!status.persisted||!status.lastReady)
     throw new Error('Widget verileri native belleğe yazılamadı');
   return status;
 }
