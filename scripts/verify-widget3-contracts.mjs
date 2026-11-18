@@ -72,7 +72,10 @@ assert.doesNotMatch(nativeBridge,/publishCalendar\(''\)/);
 assert.match(sync,/if\(!days\.length\|\|cityId<=0\)return/);
 assert.match(service,/await prepareWidgetDistrict\(place\?\.id\?\?0\)/);
 assert.match(service,/recordWidgetTransferIssue\(place\.id,'waiting'/);
-assert.doesNotMatch(service,/syncPrayerWidgets\(selected,now,place\.id,[\s\S]*?\[\]/);
+assert.match(service,/if\(selected\.length>0\)\{/,
+  'Only validated days may reach native calendar publisher');
+assert.match(service,/result=recovered\?\?\{available:true,updated:false,detail:reason\}/,
+  'Waiting source must never report a freshly delivered native calendar');
 assert.match(panel,/lastTransferError/);
 assert.match(panel,/source\.failureReason/);
 assert.match(panel,/companion\.widget\.detail/);
