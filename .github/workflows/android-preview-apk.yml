@@ -11,6 +11,10 @@ on:
       - apps/mobile/src/features/adhan/**
       - apps/mobile/plugins/adhan-native/**
       - apps/mobile/plugins/withNativeAdhanAlarm.js
+      - apps/mobile/plugins/widget-native/**
+      - apps/mobile/src/features/widgets/**
+      - packages/core/src/widgetCalendarCache*
+      - scripts/verify-widget3-contracts.mjs
       - apps/mobile/src/features/companion/**
       - apps/mobile/src/app/companion.tsx
       - packages/core/src/prayerCompanion.ts
@@ -46,6 +50,7 @@ jobs:
         run: |
           npm test
           npm run typecheck
+          node scripts/verify-widget3-contracts.mjs
           node scripts/verify-brand-symbol.mjs
           node scripts/verify-home-visual-contracts.mjs
           echo "Home visual and source-photo QA gates verified before native APK build"
@@ -72,6 +77,10 @@ jobs:
           test -s "$root/java/biz/camideyiz/app/widget/CamideyizWidgetPackage.java"
           grep -F 'CamideyizWidgetPackage()' "$root/java/biz/camideyiz/app/MainApplication.kt"
           grep -F 'WidgetBoundaryReceiver' "$root/AndroidManifest.xml"
+          grep -F 'android:updatePeriodMillis="1800000"' "$root/res/xml/widget_next_prayer_info.xml"
+          grep -F 'android:updatePeriodMillis="1800000"' "$root/res/xml/widget_prayer_day_info.xml"
+          grep -F 'refreshNow' "$root/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
+          grep -F 'nativeCityId' "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
           grep -F 'RECEIVE_BOOT_COMPLETED' "$root/AndroidManifest.xml"
           test -s "$root/java/biz/camideyiz/app/NextPrayerWidgetProvider.java"
           test -s "$root/java/biz/camideyiz/app/PrayerDayWidgetProvider.java"
