@@ -39,3 +39,9 @@ export async function syncPrayerWidgets(
         (e instanceof Error?e.message:'bilinmeyen hata')};
   }
 }
+
+/** WidgetKit retains its own published timeline; never erase it just because
+ * a foreground API request temporarily failed. */
+export async function recoverPrayerWidgets(_cityId:number):Promise<WidgetSyncResult|null>{
+  return null;
+}
