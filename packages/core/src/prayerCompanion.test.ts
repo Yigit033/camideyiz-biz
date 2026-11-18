@@ -16,9 +16,19 @@ test('Turkey published local prayer clock converted to correct UTC instant',()=>
 test('notification opt-in disabled by default; invalid controls fail closed',()=>{
  assert.deepEqual(createPrayerAlertPlan([base,next],DEFAULT_ALERT_SETTINGS,
    prayerInstant('2026-11-14','00:00')),[]);
- assert.throws(()=>validateAlertSettings({...DEFAULT_ALERT_SETTINGS,sound:'adhan'}));
+ assert.equal(validateAlertSettings({...DEFAULT_ALERT_SETTINGS,sound:'adhan'}).sound,'adhan');
+ assert.equal(DEFAULT_ALERT_SETTINGS.sound,'default',
+   'existing users retain their original safe default');
+ assert.throws(()=>validateAlertSettings({...DEFAULT_ALERT_SETTINGS,sound:'unknown'}));
  assert.throws(()=>validateAlertSettings({...DEFAULT_ALERT_SETTINGS,
    rules:{...DEFAULT_ALERT_SETTINGS.rules,ogle:{enabled:true,atTime:true,minutesBefore:999}}}));
+});
+test('full adhan uses identical validated prayer times; sunrise is never an ezan',()=>{
+ const config=validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true,sound:'adhan'});
+ const events=createPrayerAlertPlan([base,next],config,prayerInstant('2026-11-14','00:00'));
+ assert.ok(events.some(e=>e.prayer==='ogle'&&e.kind==='atTime'));
+ assert.ok(events.every(e=>e.prayer!=='gunes'));
+ assert.ok(events.every(e=>e.kind==='atTime'||e.kind==='before'));
 });
 test('one exact reminder and one early reminder on each chosen prayer',()=>{
  const config=validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true,rules:{
