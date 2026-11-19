@@ -7,6 +7,20 @@ import {AppState} from 'react-native';
 
 const bootAt=Date.now();
 const marks:Record<string,number>={};
+export type StartupOperation=
+  'widget-health-check'|'widget-native-publish'|'widget-background-registration'|
+  'notification-reconcile'|'published-network-fetch'|'audio-source-load';
+type OperationTotals={count:number;maxMs:number;lastMs:number;totalMs:number};
+const operations:Partial<Record<StartupOperation,OperationTotals>>={};
+export function recordStartupOperation(name:StartupOperation,startedAt:number):void{
+  const elapsed=Date.now()-startedAt;
+  if(!Number.isFinite(elapsed)||elapsed<0)return;
+  const last=operations[name]??{count:0,maxMs:0,lastMs:0,totalMs:0};
+  operations[name]={
+    count:last.count+1,lastMs:elapsed,
+    maxMs:Math.max(elapsed,last.maxMs),totalMs:last.totalMs+elapsed,
+  };
+}
 export type StartupMark=
   'home-first-frame'|'configured-home-frame'|'loading-home-frame'|
   'published-cache-ready'|'published-network-ready'|
@@ -79,6 +93,7 @@ export function readStartupDiagnostics(){
     origin:'JS process entry, not Android first rendered pixel',
     elapsedAtReportMs:Math.max(0,Date.now()-bootAt),
     marksMs:{...marks},
+    operationsMs:{...operations},
     firstAudioTapToPlayingMs:delta,
     monitor:{
       currentAppState:monitorState,
