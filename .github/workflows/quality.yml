@@ -22,6 +22,8 @@ jobs:
         run: node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
       - name: Verify nonblocking cold-start cache, audio and native maintenance architecture
         run: node scripts/verify-startup-performance.mjs
+      - name: Test already-ready Android widget foreground fast-path and recovery
+        run: node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
       - name: Verify Widget 3.0 offline/native recovery contracts
         run: node scripts/verify-widget3-contracts.mjs
       - name: Verify exact owner-supplied brand icon is unchanged
