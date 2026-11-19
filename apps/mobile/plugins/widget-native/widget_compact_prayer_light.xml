@@ -7,6 +7,7 @@
 <TextView android:id="@+id/widget_compact_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textSize="17sp" android:textColor="#A88A5C" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:gravity="center" android:textStyle="bold" android:layout_marginTop="1dp" />
 
 <LinearLayout android:id="@+id/widget_compact_remaining_row" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginTop="3dp">
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Kalan " android:textColor="#65736C" android:textSize="8sp" android:includeFontPadding="false" />
 <Chronometer android:id="@+id/widget_compact_countdown" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152821" android:textSize="10sp" android:textStyle="bold" android:fontFamily="sans-serif" android:includeFontPadding="false" android:singleLine="true" />
 </LinearLayout>
 </LinearLayout>

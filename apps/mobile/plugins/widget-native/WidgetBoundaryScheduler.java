@@ -44,7 +44,8 @@ public final class WidgetBoundaryScheduler {
   private static final String CALENDAR = "timeline";
   private static final String ACTION = "biz.camideyiz.app.WIDGET_BOUNDARY";
   private static final String[] NAMES = {
-    "NextPrayerWidget","PrayerDayWidget","CompactPrayerWidget","PrayerFocusWidget"
+    "NextPrayerWidget","PrayerDayWidget","CompactPrayerWidget",
+    "PrayerFocusWidget","PrayerStripWidget"
   };
   // Published days may remain valid offline up to their 16-day coverage.
   // Do not erase a still-valid published timetable after only 72 hours.
@@ -318,6 +319,12 @@ public final class WidgetBoundaryScheduler {
     return props;
   }
 
+  private static String isoDate(long timeMs) {
+    SimpleDateFormat fmt=new SimpleDateFormat("yyyy-MM-dd",Locale.US);
+    fmt.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
+    return fmt.format(new Date(timeMs));
+  }
+
   private static String clock(long now) {
     SimpleDateFormat fmt=new SimpleDateFormat("HH:mm",Locale.forLanguageTag("tr-TR"));
     fmt.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
@@ -365,6 +372,10 @@ public final class WidgetBoundaryScheduler {
     String next=props.optString("nextName","");
     String time=props.optString("nextTime","");
     long nextAt=ready?props.optLong("nextAt",0):0;
+    // After Yatsı, the next İmsak belongs to TOMORROW. Never highlight
+    // today's already-passed İmsak in the six-row/daily strip layouts.
+    boolean nextInCurrentDay=ready&&
+        props.optString("dateISO","").equals(isoDate(nextAt));
     long now=System.currentTimeMillis();
     boolean light=lightTheme(context);
     int count=0;
@@ -411,7 +422,7 @@ public final class WidgetBoundaryScheduler {
         JSONObject value=i<times.length()?times.getJSONObject(i):null;
         String label=value==null?"—":value.optString("label","—");
         String clock=value==null?"--:--":value.optString("time","--:--");
-        boolean selected=ready && label.equals(next);
+        boolean selected=nextInCurrentDay && label.equals(next);
         card.setTextViewText(icons[i],symbols[i]);
         card.setTextViewText(labels[i],label);
         card.setTextViewText(clocks[i],clock);
@@ -428,13 +439,16 @@ public final class WidgetBoundaryScheduler {
       count+=day.length;
     }
 
-    // 1×1: intentionally no countdown, to protect readability at 1 cell.
+    // 1×1: compact, native system countdown without waking React.
     int[] compact=manager.getAppWidgetIds(component(context,NAMES[2]));
     if(compact.length>0){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_compact_prayer_light:R.layout.widget_compact_prayer);
       card.setTextViewText(R.id.widget_compact_name,ready?next:"Takvim");
       card.setTextViewText(R.id.widget_compact_time,ready?time:"--:--");
+      setCountdown(card,R.id.widget_compact_countdown,nextAt,now);
+      card.setViewVisibility(R.id.widget_compact_remaining_row,
+          ready?View.VISIBLE:View.GONE);
       card.setOnClickPendingIntent(R.id.widget_compact_root,launchAction(context,41020));
       manager.updateAppWidget(compact,card);
       count+=compact.length;
@@ -462,6 +476,48 @@ public final class WidgetBoundaryScheduler {
       manager.updateAppWidget(focus,card);
       count+=focus.length;
     }
+    // Responsive six-prayer strip: six published clocks and a single native
+    // countdown (also usable on four-column launchers where 6×2 is impossible).
+    int[] strip=manager.getAppWidgetIds(component(context,NAMES[4]));
+    if(strip.length>0){
+      RemoteViews card=new RemoteViews(context.getPackageName(),
+          light?R.layout.widget_prayer_strip_light:R.layout.widget_prayer_strip);
+      int[] cells={R.id.widget_strip_cell_0,R.id.widget_strip_cell_1,
+        R.id.widget_strip_cell_2,R.id.widget_strip_cell_3,
+        R.id.widget_strip_cell_4,R.id.widget_strip_cell_5};
+      int[] labels={R.id.widget_strip_label_0,R.id.widget_strip_label_1,
+        R.id.widget_strip_label_2,R.id.widget_strip_label_3,
+        R.id.widget_strip_label_4,R.id.widget_strip_label_5};
+      int[] clocks={R.id.widget_strip_time_0,R.id.widget_strip_time_1,
+        R.id.widget_strip_time_2,R.id.widget_strip_time_3,
+        R.id.widget_strip_time_4,R.id.widget_strip_time_5};
+      int ordinary=Color.parseColor(light?"#152821":"#F2F7FB");
+      int subdued=Color.parseColor(light?"#65736C":"#B2C6D6");
+      int prominent=Color.parseColor(light?"#A88A5C":"#D8BF8D");
+      for(int i=0;i<6;i++){
+        JSONObject value=i<times.length()?times.getJSONObject(i):null;
+        String label=value==null?"—":value.optString("label","—");
+        String hour=value==null?"--:--":value.optString("time","--:--");
+        // Do not match the next-day İmsak to today's expired İmsak.
+        boolean selected=nextInCurrentDay && label.equals(next);
+        card.setTextViewText(labels[i],label);
+        card.setTextViewText(clocks[i],hour);
+        card.setTextColor(labels[i],selected?prominent:subdued);
+        card.setTextColor(clocks[i],selected?prominent:ordinary);
+        card.setInt(cells[i],"setBackgroundResource",selected?
+          (light?R.drawable.widget_active_light:R.drawable.widget_active_dark):
+          R.drawable.widget_row_clear);
+      }
+      card.setTextViewText(R.id.widget_strip_next,
+          ready?next+" vaktine kalan":"Takvim bekleniyor");
+      card.setViewVisibility(R.id.widget_strip_remaining_row,
+          ready?View.VISIBLE:View.GONE);
+      setCountdown(card,R.id.widget_strip_countdown,nextAt,now);
+      card.setOnClickPendingIntent(R.id.widget_strip_root,launchAction(context,41022));
+      manager.updateAppWidget(strip,card);
+      count+=strip.length;
+    }
+
     return count;
   }
 
@@ -499,6 +555,7 @@ public final class WidgetBoundaryScheduler {
     result.put("installedDay",installedCount(context,NAMES[1]));
     result.put("installedCompact",installedCount(context,NAMES[2]));
     result.put("installedFocus",installedCount(context,NAMES[3]));
+    result.put("installedStrip",installedCount(context,NAMES[4]));
     result.put("widgetTheme",lightTheme(context)?"light":"dark");
     long last=local.getLong("lastAppliedAt",0);
     result.put("lastAppliedAt",last);

@@ -25,6 +25,8 @@ const PROVIDERS=[
     info:'widget_compact_prayer_info'},
   {name:'PrayerFocusWidgetProvider',title:'Vakit Odağı',
     info:'widget_prayer_focus_info'},
+  {name:'PrayerStripWidgetProvider',title:'Altı Vakit Şeridi',
+    info:'widget_prayer_strip_info'},
 ];
 const RESOURCES={
   layout:[
@@ -32,6 +34,7 @@ const RESOURCES={
     'widget_prayer_day.xml','widget_prayer_day_light.xml',
     'widget_compact_prayer.xml','widget_compact_prayer_light.xml',
     'widget_prayer_focus.xml','widget_prayer_focus_light.xml',
+    'widget_prayer_strip.xml','widget_prayer_strip_light.xml',
   ],
   drawable:[
     'widget_bg.xml','widget_bg_light.xml',
@@ -42,6 +45,7 @@ const RESOURCES={
   xml:[
     'widget_next_prayer_info.xml','widget_prayer_day_info.xml',
     'widget_compact_prayer_info.xml','widget_prayer_focus_info.xml',
+    'widget_prayer_strip_info.xml',
   ],
 };
 
@@ -135,6 +139,14 @@ function withSources(config){
       await fs.copyFile(path.join(__dirname,'widget-native',file),
         path.join(javaRoot,file));
     }
+    // Retain the EXACT supplied dimensional PNG, byte-for-byte.
+    // Android drawable-nodpi avoids launcher density scaling artifacts.
+    const logoTarget=path.join(srcRoot,'res','drawable-nodpi');
+    await fs.mkdir(logoTarget,{recursive:true});
+    await fs.copyFile(
+      path.join(__dirname,'..','assets','camideyiz-original-symbol.png'),
+      path.join(logoTarget,'widget_brand_symbol.png'),
+    );
     for(const [dir,files] of Object.entries(RESOURCES)){
       const targetDir=path.join(srcRoot,'res',dir);
       await fs.mkdir(targetDir,{recursive:true});
