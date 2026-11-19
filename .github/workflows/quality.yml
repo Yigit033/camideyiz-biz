@@ -26,6 +26,8 @@ jobs:
         run: node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
       - name: Verify Widget 3.0 offline/native recovery contracts
         run: node scripts/verify-widget3-contracts.mjs
+      - name: Verify five premium widget layouts, original 3D brand and native countdowns
+        run: node scripts/verify-widget-designs.mjs
       - name: Verify exact owner-supplied brand icon is unchanged
         run: node scripts/verify-brand-symbol.mjs
       - name: Verify all 27 gallery originals, full-frame preview and row alignment
@@ -127,6 +129,17 @@ jobs:
           test -s "$app/res/layout/widget_prayer_day.xml"
           test -s "$app/res/xml/widget_next_prayer_info.xml"
           test -s "$app/res/xml/widget_prayer_day_info.xml"
+          test -s "$app/res/drawable-nodpi/widget_brand_symbol.png"
+          cmp apps/mobile/assets/camideyiz-original-symbol.png "$app/res/drawable-nodpi/widget_brand_symbol.png"
+          for name in CompactPrayer PrayerFocus PrayerStrip; do
+            test -s "$app/java/biz/camideyiz/app/${name}WidgetProvider.java"
+            grep -F "${name}WidgetProvider" "$app/AndroidManifest.xml"
+          done
+          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip; do
+            test -s "$app/res/layout/${resource}.xml"
+            test -s "$app/res/layout/${resource}_light.xml"
+            test -s "$app/res/xml/${resource}_info.xml"
+          done
           grep -F 'NextPrayerWidgetProvider' "$app/AndroidManifest.xml"
           grep -F 'PrayerDayWidgetProvider' "$app/AndroidManifest.xml"
           echo 'Native RemoteViews widget layouts, tappable providers and rollover bridge present'

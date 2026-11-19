@@ -66,6 +66,7 @@ jobs:
           npm test
           npm run typecheck
           node scripts/verify-widget3-contracts.mjs
+          node scripts/verify-widget-designs.mjs
           node scripts/verify-startup-performance.mjs
           node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
           node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
@@ -108,7 +109,21 @@ jobs:
           grep -F 'widget_root' "$root/res/layout/widget_next_prayer.xml"
           grep -F 'widget_day_root' "$root/res/layout/widget_prayer_day.xml"
           grep -F 'widget_day_time_5' "$root/res/layout/widget_prayer_day.xml"
-          grep -F 'android:padding="11dp"' "$root/res/layout/widget_next_prayer.xml"
+          # The premium next-prayer layout now has responsive 9dp padding.
+          grep -F 'android:padding="9dp"' "$root/res/layout/widget_next_prayer.xml"
+          test -s "$root/res/drawable-nodpi/widget_brand_symbol.png"
+          cmp apps/mobile/assets/camideyiz-original-symbol.png \
+              "$root/res/drawable-nodpi/widget_brand_symbol.png"
+          for name in CompactPrayer PrayerFocus PrayerStrip; do
+            test -s "$root/java/biz/camideyiz/app/${name}WidgetProvider.java"
+            grep -F "${name}WidgetProvider" "$root/AndroidManifest.xml"
+          done
+          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip; do
+            test -s "$root/res/layout/${resource}.xml"
+            test -s "$root/res/layout/${resource}_light.xml"
+            test -s "$root/res/xml/${resource}_info.xml"
+          done
+          grep -F 'setChronometerCountDown' "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
           test -s "$root/res/xml/widget_next_prayer_info.xml"
           test -s "$root/res/xml/widget_prayer_day_info.xml"
           grep -F 'NextPrayerWidgetProvider' "$root/AndroidManifest.xml"
