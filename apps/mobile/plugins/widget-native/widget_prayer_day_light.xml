@@ -6,7 +6,7 @@
 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="▦  Bugün" android:textSize="11sp" android:textColor="#A17C3F"/>
 </LinearLayout>
 <TextView android:id="@+id/widget_day_city" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Pendik · İstanbul" android:textSize="10sp" android:textColor="#5F766D" android:maxLines="1" android:ellipsize="end" android:layout_marginTop="1dp"/>
-<View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="3dp" android:layout_marginBottom="3dp" android:background="#B69D6E"/>
+<TextView android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="3dp" android:layout_marginBottom="3dp" android:background="#B69D6E" android:text="" android:textSize="1sp" android:includeFontPadding="false" />
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:baselineAligned="false">
 <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
 <LinearLayout android:id="@+id/widget_day_row_0" android:layout_width="match_parent" android:layout_height="20dp" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="3dp" android:paddingEnd="3dp" android:background="@drawable/widget_row_clear">
@@ -25,7 +25,7 @@
 <TextView android:id="@+id/widget_day_time_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="2dp" android:text="06:17" android:textStyle="bold" android:textSize="11sp" android:includeFontPadding="false" android:textColor="#123D34"/>
 </LinearLayout>
 </LinearLayout>
-<View android:layout_width="1dp" android:layout_height="54dp" android:layout_gravity="center_vertical" android:layout_marginHorizontal="3dp" android:background="#B69D6E"/>
+<TextView android:layout_width="1dp" android:layout_height="54dp" android:layout_gravity="center_vertical" android:layout_marginHorizontal="3dp" android:background="#B69D6E" android:text="" android:textSize="1sp" android:includeFontPadding="false" />
 <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
 <LinearLayout android:id="@+id/widget_day_row_3" android:layout_width="match_parent" android:layout_height="20dp" android:gravity="center_vertical" android:orientation="horizontal" android:paddingStart="3dp" android:paddingEnd="3dp" android:background="@drawable/widget_row_clear">
 <TextView android:id="@+id/widget_day_icon_3" android:layout_width="17dp" android:layout_height="wrap_content" android:gravity="center" android:text="☼" android:textSize="12sp" android:includeFontPadding="false" android:textColor="#A17C3F"/>
