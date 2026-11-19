@@ -39,3 +39,12 @@ Kullanıcı raporundan doğrudan doğrulananlar:
   `operationsMs.widget-health-check`, `widget-native-publish`, `widget-background-registration`, `notification-reconcile`, `published-network-fetch`, `audio-source-load`.
 
 **Sınır:** CI, Metro, TypeScript ve Android Gradle doğrulaması fiziksel cihazın render performansını veya sesli ezan dinleme deneyimini tek başına kanıtlamaz. Release cihazına ait olay döngüsü ve Android Perfetto/JankStats ölçümüyle yeniden doğrulanmalıdır.
+
+## Android native widget broadcast / UI-thread separation (19 Nov P0 follow-up)
+
+- `WidgetBoundaryReceiver`, `NextPrayerWidgetProvider`, and `PrayerDayWidgetProvider` now call `goAsync()` and hand calendar parsing, SharedPreferences commits, RemoteViews updates, and AlarmManager changes to a dedicated serialized background Java executor. The UI/broadcast main thread returns without waiting for the native work. All paths call `PendingResult.finish()`, including task rejection and update failure.
+- Removing the last instance of either widget type triggers a native refresh. If **neither type is pinned**, the native boundary alarm is canceled; adding a widget invokes `onUpdate()` and restores the alarm from the persisted published timetable. This does not alter the separate ezan notification alarms.
+- The executor is intentionally **not** for network requests or long background jobs: Android broadcast timeouts still apply. WorkManager continues to handle longer network refreshes.
+- The update preserves both existing provider class names and validated native calendar data. Rebuild the **release APK**: changes to Java/Expo prebuild cannot be activated by JS hot reload or OTA update.
+- `node scripts/verify-widget-native-runtime.mjs` verifies that no broadcast entrypoint calls synchronous refresh and that plugin source-copying includes the worker. This is a static regression check, **not** proof of on-device latency or ANR absence.
+- Physical release QA: repeat 3–5 launches with 1+1 widgets installed, 3–5 with widgets removed, resume/background, midnight boundary, reboot, and manual location change. Use Perfetto to confirm there is no widget refresh stack blocking Android main while monitoring `startupPerformance.monitor` and `operationsMs`. Treat 18s as unresolved until measured again.

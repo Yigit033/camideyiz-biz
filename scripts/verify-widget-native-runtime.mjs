@@ -43,4 +43,28 @@ assert.doesNotMatch(adhan,/isExpoGoRuntime/,
 assert.match(notification,/isExpoGoRuntime\(\)\&\&!hasAndroidNativeWidgetBridge\(\)/,
   'compiled native APK must keep Android notification channel options');
 
-console.log('Widget 3.2: real native bridge detection succeeds for APK; unsupported Expo Go and old APK fail closed');
+// Android app-widget broadcasts must never do JSON/disk/RemoteViews work on
+// Android's UI thread. Registration must include the new async source.
+const receiver=read('apps/mobile/plugins/widget-native/WidgetBoundaryReceiver.java');
+const nextProvider=read('apps/mobile/plugins/widget-native/NextPrayerWidgetProvider.java');
+const dayProvider=read('apps/mobile/plugins/widget-native/PrayerDayWidgetProvider.java');
+const asyncRefresh=read('apps/mobile/plugins/widget-native/WidgetBoundaryAsyncRefresh.java');
+const configPlugin=read('apps/mobile/plugins/withWidgetBoundaryBridge.js');
+const nativeScheduler=read('apps/mobile/plugins/widget-native/WidgetBoundaryScheduler.java');
+assert.match(configPlugin,/'WidgetBoundaryAsyncRefresh.java'/);
+for(const component of [receiver,nextProvider,dayProvider]){
+  assert.match(component,/WidgetBoundaryAsyncRefresh\.dispatch\(context,goAsync\(\),/,
+    'every native widget broadcast must goAsync before doing calendar IO');
+  assert.doesNotMatch(component,/WidgetBoundaryScheduler\.refresh\(/,
+    'no synchronous native refresh on Android main thread');
+}
+assert.match(nextProvider,/void onDisabled\(Context context\)/);
+assert.match(dayProvider,/void onDisabled\(Context context\)/);
+assert.match(asyncRefresh,/Executors\.newSingleThreadExecutor\(/);
+assert.match(asyncRefresh,/finally\s*\{[\s\S]*?pending\.finish\(\)/,
+  'goAsync pending result must finish even if native update fails');
+assert.match(asyncRefresh,/catch \(RejectedExecutionException error\) \{\s*pending\.finish\(\)/);
+assert.match(nativeScheduler,/scheduleNext\(app,installed>0\?nextBoundary:0,now\)/,
+  'no pinned widget must mean no unnecessary Android wakeup alarm');
+
+console.log('Widget 3.3: bridge detection, async native receivers, completion and zero-widget alarm gating verified');

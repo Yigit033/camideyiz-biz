@@ -3,7 +3,6 @@ package biz.camideyiz.app.widget;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
 /**
  * Receives inexact prayer-boundary alarms and system changes. No network
@@ -11,8 +10,6 @@ import android.util.Log;
  * from a previously published district calendar may be presented.
  */
 public final class WidgetBoundaryReceiver extends BroadcastReceiver {
-  private static final String TAG = "CamideyizWidgetP0";
-
   @Override
   public void onReceive(Context context, Intent intent) {
     if (intent == null || intent.getAction() == null) return;
@@ -22,10 +19,6 @@ public final class WidgetBoundaryReceiver extends BroadcastReceiver {
         !action.equals(Intent.ACTION_TIME_CHANGED) &&
         !action.equals(Intent.ACTION_TIMEZONE_CHANGED) &&
         !action.equals(Intent.ACTION_MY_PACKAGE_REPLACED)) return;
-    try {
-      WidgetBoundaryScheduler.refresh(context.getApplicationContext(),"receiver:"+action);
-    } catch (Exception error) {
-      Log.e(TAG, "Cannot handle widget boundary/system event", error);
-    }
+    WidgetBoundaryAsyncRefresh.dispatch(context,goAsync(),"receiver:"+action);
   }
 }

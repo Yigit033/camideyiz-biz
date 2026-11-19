@@ -11,6 +11,7 @@ const RECEIVER=PACKAGE+'.WidgetBoundaryReceiver';
 const PERMISSION='android.permission.RECEIVE_BOOT_COMPLETED';
 const FILES=[
   'WidgetBoundaryScheduler.java',
+  'WidgetBoundaryAsyncRefresh.java',
   'WidgetBoundaryReceiver.java',
   'CamideyizWidgetBridge.java',
   'CamideyizWidgetPackage.java',

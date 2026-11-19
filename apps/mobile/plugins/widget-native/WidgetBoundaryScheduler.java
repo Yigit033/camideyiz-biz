@@ -191,6 +191,7 @@ public final class WidgetBoundaryScheduler {
     SharedPreferences local=prefs(app);
     long now=System.currentTimeMillis();
     long nextBoundary=0;
+    int installed=0;
     local.edit().putLong("lastAttemptAt",now)
         .putString("lastRefreshReason",reason).apply();
     try {
@@ -236,16 +237,18 @@ public final class WidgetBoundaryScheduler {
           .remove("lastError").commit())
         throw new IllegalStateException("native snapshot commit failed");
 
-      int count=renderWidgets(app,selection);
-      local.edit().putInt("lastInstanceCount",count)
-          .putLong("lastHostDispatchAt",count>0?now:0).apply();
+      installed=renderWidgets(app,selection);
+      local.edit().putInt("lastInstanceCount",installed)
+          .putLong("lastHostDispatchAt",installed>0?now:0).apply();
     }catch(Exception error){
       Log.e(TAG,"Native launcher widget update failed",error);
       local.edit().putString("lastError",
           error.getClass().getSimpleName()+": "+error.getMessage()).apply();
       nextBoundary=0;
     }
-    scheduleNext(app,nextBoundary,now);
+    // No pinned widgets: do not keep waking the process for prayer boundaries.
+    // AppWidgetProvider.onUpdate() will restart the alarm when a widget is added.
+    scheduleNext(app,installed>0?nextBoundary:0,now);
   }
 
   private static JSONObject emptyProps(long now) throws JSONException {
