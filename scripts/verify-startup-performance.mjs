@@ -85,6 +85,15 @@ assert.match(metrics,/gapsOver2000Ms/,
   'event-loop lag must be measurable independently of source timeouts');
 assert.match(metrics,/foregroundResumesObserved/,
   'report must distinguish initial JS process from later foreground session');
+assert.match(metrics,/operationsMs:/);
+assert.match(companion,/recordStartupOperation\('widget-health-check'/);
+assert.match(companion,/recordStartupOperation\('widget-native-publish'/);
+assert.match(companion,/recordStartupOperation\('widget-background-registration'/);
+assert.match(companion,/recordStartupOperation\('notification-reconcile'/);
+assert.match(source,/recordStartupOperation\('published-network-fetch'/);
+assert.match(audio,/recordStartupOperation\('audio-source-load'/);
+assert.match(home,/configured-home-frame/);
+
 assert.match(companion,/if\(!ready\|\|!maintenanceReady\)return;/,
   'notification scheduling must not compete with first interactive paint');
 console.log('Startup QA: stale-while-revalidate verified hours, lazy widget engine, deduped maintenance, responsive queued offline adhan and render memoization');
