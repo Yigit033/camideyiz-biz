@@ -10,7 +10,7 @@ import {
   type PrayerPlaceSelection,
 } from './prayerApi';
 import {useDevicePrayerLocation} from './useDevicePrayerLocation';
-import {markStartup} from '@/features/performance/startupMetrics';
+import {markStartup,recordStartupOperation} from '@/features/performance/startupMetrics';
 
 const OFFICIAL_PLACE_KEY='@camideyiz/official-place/v1';
 const MIRROR_PLACE_KEY='@camideyiz/mirror-place/v1';
@@ -184,6 +184,7 @@ export function usePrayerSource(now:Date){
         setData(olderVerified);
         setStatus('mirror-cached');
       }
+      const networkStartedAt=Date.now();
       try{
         const next=officialConfigured
           ?await getPrayerTriplet(place.id,dateISO)
@@ -204,6 +205,8 @@ export function usePrayerSource(now:Date){
         }else if(!cached){
           setData(null);setStatus('unavailable');
         }
+      }finally{
+        recordStartupOperation('published-network-fetch',networkStartedAt);
       }
     })();
     return ()=>{live=false;};
