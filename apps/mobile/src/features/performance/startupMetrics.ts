@@ -8,7 +8,8 @@ import {AppState} from 'react-native';
 const bootAt=Date.now();
 const marks:Record<string,number>={};
 export type StartupMark=
-  'home-first-frame'|'published-cache-ready'|'published-network-ready'|
+  'home-first-frame'|'configured-home-frame'|'loading-home-frame'|
+  'published-cache-ready'|'published-network-ready'|
   'native-maintenance-start'|'widget-healthy-skip'|'widget-publish-needed'|
   'audio-source-request'|'audio-source-ready'|
   'audio-first-tap'|'audio-first-playing';
