@@ -27,6 +27,11 @@ public final class AdhanAlarmScheduler {
   static final String EVENTS = "events";
   private static final int MAX_EVENTS = 40;
   private static final long MAX_AHEAD = 8L * 24L * 60L * 60L * 1000L;
+  // Process-local, NOT persisted. Android removes alarms after Force Stop;
+  // a subsequent fresh process must rebuild even if SharedPreferences still
+  // contains the same plan and timestamp.
+  private static String lastPlanThisProcess = null;
+  private static long lastPlanAtThisProcess = 0;
 
   private AdhanAlarmScheduler() {}
 
@@ -92,14 +97,12 @@ public final class AdhanAlarmScheduler {
       throw new SecurityException("Kesin alarm izni verilmedi");
     SharedPreferences local=prefs(app);
     String normalized=input.toString();
-    long lastRebuilt=local.getLong("lastPlanWrittenAt",0);
-    // Native exact alarms can be expensive to cancel/recreate in bulk. The
-    // foreground JS calendar may revalidate several times in one session.
-    // A matching, recently applied plan must be a NO-OP rather than 40
-    // cancelPending + setExactAndAllowWhileIdle system calls.
-    // Periodically rebuild (30 min) in case OEMs silently removed OS alarms.
-    if (normalized.equals(local.getString(EVENTS,null)) && lastRebuilt>0 &&
-        now-lastRebuilt>=0 && now-lastRebuilt<30L*60L*1000L)
+    // Repeated foreground updates in the SAME live process need no OS write.
+    // Always rebuild after a process restart: persisted "events" alone never
+    // proves PendingIntent alarms survived Force Stop / OS cleanup.
+    if (normalized.equals(lastPlanThisProcess) &&
+        lastPlanAtThisProcess>0 && now-lastPlanAtThisProcess>=0 &&
+        now-lastPlanAtThisProcess<30L*60L*1000L)
       return status(app);
     // Only a genuinely changed or aging plan is atomically replaced.
     clearPending(app);
@@ -107,12 +110,16 @@ public final class AdhanAlarmScheduler {
         .putLong("lastPlanWrittenAt",now).commit())
       throw new JSONException("Ezan planı kalıcı olarak kaydedilemedi");
     schedulePending(app, input);
+    lastPlanThisProcess=normalized;
+    lastPlanAtThisProcess=now;
     return status(app);
   }
 
   static synchronized void clear(Context context) {
     clearPending(context);
     prefs(context).edit().remove(EVENTS).commit();
+    lastPlanThisProcess=null;
+    lastPlanAtThisProcess=0;
     AlarmManager mgr=manager(context);
     if(mgr!=null)mgr.cancel(testAlarm(context));
   }
