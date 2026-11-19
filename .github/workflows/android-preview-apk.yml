@@ -29,6 +29,7 @@ on:
       - apps/mobile/src/features/prayer/**
       - apps/mobile/src/features/wisdom/**
       - scripts/verify-startup-performance.mjs
+      - scripts/verify-widget-foreground-gate.mjs
       - apps/mobile/src/app/(tabs)/gallery.tsx
       - apps/mobile/src/features/gallery/**
       - apps/mobile/assets/gallery/**
@@ -66,6 +67,7 @@ jobs:
           npm run typecheck
           node scripts/verify-widget3-contracts.mjs
           node scripts/verify-startup-performance.mjs
+          node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
           node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
           node scripts/verify-adhan-playback-contracts.mjs
           node scripts/verify-brand-symbol.mjs
