@@ -11,7 +11,8 @@ const plugin=read('apps/mobile/plugins/withWidgetBoundaryBridge.js');
 const scheduler=read(p+'WidgetBoundaryScheduler.java');
 const bridge=read(p+'CamideyizWidgetBridge.java');
 const appearance=read('apps/mobile/src/theme/ThemeProvider.tsx');
-const variants=['widget_compact_prayer','widget_next_prayer','widget_prayer_day','widget_prayer_focus'];
+const variants=['widget_compact_prayer','widget_next_prayer','widget_prayer_day',
+  'widget_prayer_focus','widget_prayer_strip'];
 for(const base of variants){
   const info=read(p+base+'_info.xml');
   assert.match(info,/updatePeriodMillis="1800000"/);
@@ -32,7 +33,10 @@ assert.match(read(p+'widget_compact_prayer_info.xml'),/targetCellWidth="1"/);
 assert.match(read(p+'widget_compact_prayer_info.xml'),/targetCellHeight="1"/);
 assert.match(read(p+'widget_next_prayer_info.xml'),/targetCellWidth="2"/);
 assert.match(read(p+'widget_prayer_focus_info.xml'),/targetCellWidth="4"/);
-for(const layout of ['widget_next_prayer','widget_prayer_focus']){
+assert.match(read(p+'widget_prayer_strip_info.xml'),/targetCellHeight="2"/);
+assert.match(read(p+'widget_prayer_strip_info.xml'),/resizeMode="horizontal\|vertical"/);
+for(const layout of ['widget_compact_prayer','widget_next_prayer',
+  'widget_prayer_focus','widget_prayer_strip']){
   assert.match(read(p+layout+'.xml'),/<Chronometer /,
     'live counter must be Android Chronometer not text refreshed by JS');
 }
@@ -41,11 +45,27 @@ assert.match(scheduler,/SystemClock\.elapsedRealtime\(\)\+remaining/);
 assert.match(scheduler,/nextAt-now/);
 assert.match(scheduler,/installedCompact/);
 assert.match(scheduler,/installedFocus/);
+assert.match(scheduler,/installedStrip/);
+assert.match(scheduler,/nextInCurrentDay && label\.equals\(next\)/,
+  'never highlight yesterday Imask while counting to tomorrow');
 assert.match(scheduler,/R\.layout\.widget_compact_prayer_light/);
 assert.match(scheduler,/R\.layout\.widget_prayer_focus_light/);
 assert.match(scheduler,/times\.getJSONObject\(\(nextIndex\+5\)%6\)/);
 assert.match(bridge,/void setAppearance\(String mode,String resolved,Promise promise\)/);
 assert.match(appearance,/native\.setAppearance\(mode,resolved\)/);
+assert.match(plugin,/drawable-nodpi/);
+assert.match(plugin,/camideyiz-original-symbol\.png/);
+assert.match(plugin,/widget_brand_symbol\.png/);
+for(const base of variants){
+  const xml=read(p+base+'.xml');
+  assert.match(xml,/@drawable\/widget_brand_symbol/,
+    'all native widgets must use exact supplied 3D brand asset');
+}
+const tokens=read('apps/mobile/src/theme/tokens.ts');
+assert.match(tokens,/#071725/);
+const widgetBackground=read(p+'widget_bg.xml');
+assert.match(widgetBackground,/#071725/);
+assert.match(widgetBackground,/#102B40/);
 assert.doesNotMatch(scheduler,/getMirrorPrayerTriplet|fetch\(|new Thread\(/,
  'native layout must never load a network/JS prayer engine');
 console.log('Widget Design 4.0: four native variants, 1x1 metadata, two system countdowns, theme bridge and validated timeline verified');

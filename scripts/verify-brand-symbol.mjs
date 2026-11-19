@@ -24,4 +24,9 @@ assert.match(component,/source=\{BRAND_SYMBOL\}/);
 assert.match(header,/<CamideyizBrandLogo compact=\{compact\} horizontal\/>/);
 assert.doesNotMatch(component,/SYMBOL_PATH|camideyizIconBlue/,
   'Do not redraw supplied symbol as a different vector');
-console.log('Original owner-supplied symbol: exact asset hash, dimensions and header wiring OK');
+const plugin=readFileSync(
+  new URL('../apps/mobile/plugins/withWidgetBoundaryBridge.js',import.meta.url),'utf8');
+assert.match(plugin,/camideyiz-original-symbol\.png/);
+assert.match(plugin,/widget_brand_symbol\.png/);
+assert.match(plugin,/drawable-nodpi/);
+console.log('Original owner-supplied symbol: exact asset hash, dimensions and home/widget wiring OK');

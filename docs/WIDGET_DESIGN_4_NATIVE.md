@@ -1,29 +1,39 @@
-# Camideyiz Biz — Widget Tasarım 4.0 (Android native)
+# Camideyiz Biz — Widget Tasarım 5.0 (Android native)
 
-The four variants now use Android `RemoteViews`, not an Expo headless JS widget renderer:
-- **Tekli Vakit (1×1):** only next name and fixed published prayer clock, 68×68dp minimum, no unreadable sub-minute text.
-- **Sıradaki Vakit (2×2):** fixed prayer time plus system-driven `Chronometer` countdown.
-- **Günlük Namaz Vakitleri (4×2):** six current-day *published* prayer times, next prayer highlighted.
-- **Vakit Odağı (4×2):** current interval deduced from the strictly ordered published six daily entries, next prayer and Android `Chronometer` countdown, fixed next time beneath it.
+## Aynı orijinal marka, ürünle aynı palet
 
-Both **dark teal/gold** and **light ivory/green** native XML layouts exist. The native appearance preference is synchronized from the app's own selected/system theme after AsyncStorage hydration and persisted across Android widget-only processes; an unchanged preference is a no-op. Changes trigger the already-off-main-thread native update queue.
+- Uygulamanın kendi `apps/mobile/assets/camideyiz-original-symbol.png` markası `drawable-nodpi/widget_brand_symbol.png` olarak **byte-for-byte** kopyalanır. Yapay SVG cami çizimleri widgetlarda kullanılmaz; kaynak SHA-256 testi korunur.
+- Koyu renkler `src/theme/tokens.ts` içindeki gece mavisi `#071725` (canvas), `#102B40` (surface), `#173D58`, `#2B536B`, `#D8BF8D` (gold) ile aynıdır. Açık tema fildişi ve açık yüzeyleri korur.
+- Widget için ayrı RN / React / network engine yoktur: Android `RemoteViews`, `AlarmManager`, doğrulanmış yayımlanmış takvim, `Chronometer` çalışır. JS her saniye güncelleme yapmaz.
 
-All four providers have distinct stable package class names and are registered by `withWidgetBoundaryBridge`. The original two provider names remain unchanged so existing pins survive APK upgrades. Android `Chronometer` uses `SystemClock.elapsedRealtime()`; never schedule one update per second, wake React, generate astronomical hours, or fetch from the widget process. The existing inexact Android boundary alarm is retained. Under Doze, rollover can be delayed by the OS; count-down may temporarily reach 00:00/negative until the system wakes the receiver, so it must be checked on physical devices. No promise of exact boundary seconds.
+## Beş widget
 
-The design board is a *visual reference*, not a pixel-exact contract across different launcher grids or accessibility font scales. The compact 1×1 has intentionally fewer decorations because some launcher cells are smaller than 110dp. All text is backed by validated same-district data; when data are unavailable, placeholders are used instead.
+1. **Tekli Vakit 1×1** — orijinal 3D logo, Camideyiz Biz başlığı, sıradaki vaktin adı, yayımlanmış saat ve Android native küçük geri sayım (`Kalan`). Küçük telefonda 1×1 hücre çok dar olabilir; font ölçeği/launcher QA zorunludur.
+2. **Sıradaki Vakit 2×2** — marka, ilçe, vakit adı, sabit saat ve canlı geri sayım.
+3. **Günlük Namaz Vakitleri 4×2** — yayımlanmış altı saat, sıradaki gün-içi vakit altın vurgulu; ertesi günün imsakına sayarken bugünkü geçmiş imsak satırı vurgulanmaz.
+4. **Vakit Odağı 4×2** — mevcut aralık adı ve sıradaki vakte kalan sistem geri sayımı.
+5. **Altı Vakit Şeridi (6-sütunlu)** — 6 vakit yan yana, geçerli sıradaki vakit vurgulu ve alt satırda native geri sayım. Android'in standart 4 sütunlu telefon ana ekranına 6×2 *gerçek ızgara ölçüsü* sığmaz. `targetCellWidth=4` ile yüklenebilir ve `resizeMode=horizontal|vertical` ile altı sütun destekleyen launcher/tablet üzerinde 6×2'ye genişletilebilir. Bu bir tasarım 6'lısıdır; fiziksel altı launcher hücresi her cihazda mümkün değildir.
 
-## QA and APK
+## Sınırlamalar ve test
+
+- Android Doze/Güç tasarrufu vaktin bitişi sınırında `inexact` native alarmı geciktirebilir; `Chronometer` işletim sistemi tarafından yürütülür, ama yeni vakte geçiş her cihazda tam saniyesinde garanti edilmez. Yanlış güven vermek için saat tahmini / astronomik hesaplama kullanılmaz.
+- Uygulama değişmediğinde widget kendi verisini hafif native bellekte tutar. Her saniye alarm, servis veya network isteği yoktur.
+- Logo veya widget Java/XML değiştiği için **yeni native Release APK** şarttır; Expo OTA/Metro hot reload yeterli değildir.
+
+### Yerel release kontrolleri
 
 ```powershell
 git fetch origin
 git switch feat/widgets-and-prayer-alerts-2
 git pull --ff-only origin feat/widgets-and-prayer-alerts-2
+node scripts/verify-brand-symbol.mjs
 node scripts/verify-widget-designs.mjs
 node scripts/verify-widget-native-runtime.mjs
 node scripts/verify-widget3-contracts.mjs
 node scripts/verify-startup-performance.mjs
+npm test
 npm run typecheck
 powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1
 ```
 
-Check all four widgets with both themes, narrow 1×1 on the launcher, 2×2 countdown after 60s, 4×2 next-row highlight at the boundary, after-midnight Yatsı/İmsak transition, data-unavailable placeholders, district changes, background/offline, reboot, and widget-free app launch performance. CI/static assertions cannot verify that Android launcher rendered the pixels; release APK physical device acceptance is required.
+**Fiziksel test:** Beş widgetı yükle, iki temada kontrol et; 1×1 taşma, düşük çözünürlük, büyük font ve 6-vakit şerit; gece yarısı İmsak geçişi, sayaç 00:00 ve Doze; verisiz/bozuk ilçe; widgetlar kurulu/kurulu değilken cold start. Kaynak kod testleri launcher ekran piksel doğrulaması değildir.

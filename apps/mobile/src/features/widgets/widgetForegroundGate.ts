@@ -14,7 +14,7 @@ export type NativeWidgetSummary={
   lastError:string;lastTransferError:string;
   lastAppliedAt:number;nextAlarmAt:number;
   installedNext:number;installedDay:number;
-  installedCompact?:number;installedFocus?:number;
+  installedCompact?:number;installedFocus?:number;installedStrip?:number;
 };
 
 export function widgetNeedsForegroundPublish(
