@@ -74,13 +74,13 @@ for(const base of variants){
 const nativeRing=read(p+'PrayerRingBitmapRenderer.java');
 assert.match(nativeRing,/Bitmap\.createBitmap\(size,size,Bitmap\.Config\.ARGB_8888\)/);
 assert.match(nativeRing,/new LruCache<String,Bitmap>\(2\*1024\*1024\)/);
-assert.match(nativeRing,/sector\(canvas,pen,arc,0,boundaries\[0\],COLORS\[5\]/);
+assert.match(nativeRing,/sector\(canvas,pen,ring,0,boundaries\[0\],COLORS\[5\]/);
 assert.match(nativeRing,/for\(int i=0;i<5;i\+\+\)/);
-assert.doesNotMatch(nativeRing,/canvas\.drawText\(clock,px,py/,
-  'painted clock labels must not overlap the ring center or edge');
-assert.match(nativeRing,/pen\.setStrokeWidth\(size\*\.071f\)/);
-assert.match(nativeRing,/canvas\.drawCircle\(cx,cy,size\*\.012f,pen\)/);
-assert.match(nativeRing,/sector\(canvas,pen,arc,boundaries\[5\],1440,COLORS\[5\]/);
+assert.match(nativeRing,/sector\(canvas,pen,ring,boundaries\[5\],1440,COLORS\[5\]/);
+assert.match(nativeRing,/pen\.setStrokeWidth\(size\*\.045f\)/);
+assert.match(nativeRing,/Paint\.Cap\.ROUND/);
+assert.doesNotMatch(nativeRing,/canvas\.drawText\(clock,px,py|canvas\.drawCircle\(cx,cy/,
+  'do not paint colliding labels or a static position marker onto the ring');
 assert.doesNotMatch(nativeRing,/fetch\(|HttpURLConnection|setInterval|WebView/);
 assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,false,224\)/);
 assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,false,432\)/);
@@ -93,30 +93,37 @@ assert.match(scheduler,/nextInCurrentDay && label\.equals\(next\)/,
   'never highlight yesterday Imask while counting to tomorrow');
 assert.match(scheduler,/R\.layout\.widget_compact_prayer_light/);
 assert.match(scheduler,/R\.layout\.widget_prayer_focus_light/);
-/** Four physical launcher columns contain six equal-width prayer slots.
- * The reference has a distinct blue top panel, a high-contrast selected tile,
- * and a bright footer with the live countdown. Verify both theme layouts.
+/** Six prayer cells share a physical 4×2 grid; compact header and footer
+ * are always visible without an empty half-card or faux white lower panel.
  */
 for(const suffix of ['', '_light']){
   const strip=read(p+'widget_prayer_strip'+suffix+'.xml');
-  const theme=suffix?'light':'dark';
-  assert.match(strip,new RegExp('@drawable/widget_strip_header_'+theme));
-  assert.match(strip,new RegExp('@drawable/widget_strip_footer_'+theme));
-  assert.match(strip,/android:layout_height="0dp"\s+android:layout_weight="1"/,
-    'six prayers should get the flexible upper band in a 4x2 tile');
+  assert.match(strip,/android:layout_height="23dp"/);
+  assert.match(strip,/android:id="@\+id\/widget_strip_city"/);
+  assert.match(strip,/android:layout_height="42dp"/);
+  assert.match(strip,/android:layout_height="0dp"\s+android:layout_weight="1"/);
+  assert.match(strip,new RegExp('@drawable/widget_chip_'+(suffix?'light':'dark')));
   for(let i=0;i<6;i++){
     assert.match(strip,new RegExp('android:id="@\\+id/widget_strip_cell_'+i+'"'));
     assert.match(strip,new RegExp('android:id="@\\+id/widget_strip_label_'+i+'"'));
     assert.match(strip,new RegExp('android:id="@\\+id/widget_strip_time_'+i+'"'));
   }
-  assert.equal((strip.match(/android:layout_weight="1"/g)||[]).length,8,
-    'one weighted header, six equal prayer cells and one flex footer content region');
   assert.match(strip,/android:id="@\+id\/widget_strip_next"/);
   assert.match(strip,/<Chronometer[\s\S]*?widget_strip_countdown/);
   assert.match(strip,/@drawable\/widget_brand_symbol/);
-  assert.doesNotMatch(strip,/Kerahat vaktine kalan/,
-    'kerahat estimate is user-configurable and must not be shown as official');
+  assert.doesNotMatch(strip,/widget_strip_header_|widget_strip_footer_|Kerahat vaktine kalan/,
+    'old empty-panel composition or unverified kerahat must not return');
 }
+for(const suffix of ['', '_light']){
+  const slim=read(p+'widget_slim_prayer'+suffix+'.xml');
+  assert.match(slim,/android:text="Kalan"/);
+  assert.match(slim,/widget_slim_time"[\s\S]*?android:textSize="16sp"/);
+  assert.match(slim,/widget_slim_countdown[\s\S]*?android:textSize="11sp"/);
+  assert.doesNotMatch(slim,/KALAN SÜRE|widget_slim_city|android:textSize="21sp"|android:textSize="24sp"/,
+    'narrow 1×2 clock or countdown must not be abbreviated or cut off');
+}
+assert.match(scheduler,/R\.id\.widget_strip_city/);
+assert.match(scheduler,/nextInCurrentDay\?label\.equals\(next\):i==5/);
 for(const theme of ['dark','light']){
   for(const part of ['header','footer','selected']){
     const resource='widget_strip_'+part+'_'+theme+'.xml';
@@ -160,4 +167,4 @@ for(const suffix of ['', '_light']){
   assert.match(premium,/widget_ring_premium_cell_5/);
   assert.match(premium,/widget_brand_symbol/);
 }
-console.log('Widget Design 6.1: eight native variants, restrained rings, six-clock footer, 1x1 overflow guard, 1x2 slim, removed crescents, keyguard and native countdown verified');
+console.log('Widget Design 6.2: eight native variants, clean 1x2, compact six-time strip, premium radial clock and validated daily times');
