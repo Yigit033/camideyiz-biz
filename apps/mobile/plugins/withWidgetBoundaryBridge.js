@@ -41,6 +41,9 @@ const RESOURCES={
     'widget_chip_dark.xml','widget_chip_light.xml',
     'widget_active_dark.xml','widget_active_light.xml',
     'widget_row_clear.xml','widget_mark_dark.xml','widget_mark_light.xml',
+    'widget_strip_header_dark.xml','widget_strip_header_light.xml',
+    'widget_strip_footer_dark.xml','widget_strip_footer_light.xml',
+    'widget_strip_selected_dark.xml','widget_strip_selected_light.xml',
   ],
   xml:[
     'widget_next_prayer_info.xml','widget_prayer_day_info.xml',

@@ -37,3 +37,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1
 ```
 
 **Fiziksel test:** Beş widgetı yükle, iki temada kontrol et; 1×1 taşma, düşük çözünürlük, büyük font ve 6-vakit şerit; gece yarısı İmsak geçişi, sayaç 00:00 ve Doze; verisiz/bozuk ilçe; widgetlar kurulu/kurulu değilken cold start. Kaynak kod testleri launcher ekran piksel doğrulaması değildir.
+
+## 5.1 — Altı Vakit Şeridi: referans düzeni (4×2)
+
+- Android launcher üzerinde fiziksel **4×2** hücre kaplar; içindeki **6 bağımsız eşit genişlikli** vakit hücresi tek yatay satırda gösterilir. Altı vakit olması altı launcher sütunu gerektirmez.
+- Üst panel koyu modda ürünün gece mavisi, açık modda açık mavi yüzeydir. Sıradaki aynı güne ait vakit **beyaz/fildişi yuvarlatılmış kart** ve koyu okunaklı yazı ile vurgulanır. Yatsı sonrası ertesi günün İmsak vaktine kalan süre gösterilirken bugünkü İmsak yanlışlıkla işaretlenmez.
+- Alttaki ayrı beyaz/fildişi panelde **“Akşam vaktine kalan süre”** gibi gerçek sıradaki vakit adı ve Android'in saniyelik çalışan `Chronometer` değeri iki satırda gösterilir. Panelin sağındaki 3D amblem özgün marka PNG dosyasından gelir.
+- Referansta ayrıca bir **kerahat geri sayımı** bulunmaktadır. Bu alanı kesin bir takvim saati gibi eklemedik: uygulamanın kerahat aralıkları kullanıcı tarafından değiştirilebilen yaklaşık dini uyarılardır; mevcut Android widget verisine güvenle aktarılmıyor. Yanlış bir kesinlik ima etmektense yalnız yayımlanmış namaz vakti geri sayımını sunuyoruz.
+- Vakitler **ilk kurulumda tahmini/örnek sayılarla doldurulmaz**. Günlük doğrulanmış kaynak takvimden yayınlanır. Tamamı native `RemoteViews` layout'tur, arka planda JS interval veya saniyelik alarm yoktur.
+- Açık/koyu XML dosyaları ile altı yeni `drawable` kaynağı Expo CNG eklentisinin `RESOURCES.drawable` listesinde kayıtlıdır. Eklenti yeni logo oluşturmaz.
+- Test: 4 sütun Android launcher, altı uzun Türkçe isim, font scale 1.0/1.3, Android 12–16, tema değişimi, kalan sürenin saniyelik akışı, imsakın ertesi güne geçişi, boş takvim, widget yokken açılış performansı. Kullanıcı cihazında piksel yerleşimi ayrıca doğrulanmalıdır.

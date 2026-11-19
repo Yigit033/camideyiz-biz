@@ -50,6 +50,42 @@ assert.match(scheduler,/nextInCurrentDay && label\.equals\(next\)/,
   'never highlight yesterday Imask while counting to tomorrow');
 assert.match(scheduler,/R\.layout\.widget_compact_prayer_light/);
 assert.match(scheduler,/R\.layout\.widget_prayer_focus_light/);
+/** Four physical launcher columns contain six equal-width prayer slots.
+ * The reference has a distinct blue top panel, a high-contrast selected tile,
+ * and a bright footer with the live countdown. Verify both theme layouts.
+ */
+for(const suffix of ['', '_light']){
+  const strip=read(p+'widget_prayer_strip'+suffix+'.xml');
+  const theme=suffix?'light':'dark';
+  assert.match(strip,new RegExp('@drawable/widget_strip_header_'+theme));
+  assert.match(strip,new RegExp('@drawable/widget_strip_footer_'+theme));
+  assert.match(strip,/android:layout_height="0dp"\s+android:layout_weight="1"/,
+    'six prayers should get the flexible upper band in a 4x2 tile');
+  for(let i=0;i<6;i++){
+    assert.match(strip,new RegExp('android:id="@\\+id/widget_strip_cell_'+i+'"'));
+    assert.match(strip,new RegExp('android:id="@\\+id/widget_strip_label_'+i+'"'));
+    assert.match(strip,new RegExp('android:id="@\\+id/widget_strip_time_'+i+'"'));
+  }
+  assert.equal((strip.match(/android:layout_weight="1"/g)||[]).length,7,
+    'six equal prayer cells plus one flex footer content region');
+  assert.match(strip,/android:id="@\+id\/widget_strip_next"/);
+  assert.match(strip,/<Chronometer[\s\S]*?widget_strip_countdown/);
+  assert.match(strip,/@drawable\/widget_brand_symbol/);
+  assert.doesNotMatch(strip,/Kerahat vaktine kalan/,
+    'kerahat estimate is user-configurable and must not be shown as official');
+}
+for(const theme of ['dark','light']){
+  for(const part of ['header','footer','selected']){
+    const resource='widget_strip_'+part+'_'+theme+'.xml';
+    assert.ok(plugin.includes("'"+resource+"'"),resource+' not copied by CNG');
+    assert.match(read(p+resource),/<shape /);
+  }
+}
+assert.match(scheduler,/R\.drawable\.widget_strip_selected_dark/);
+assert.match(scheduler,/R\.drawable\.widget_strip_selected_light/);
+assert.match(scheduler,/selected\?selectedInk:ordinary/);
+assert.match(scheduler,/nextInCurrentDay && label\.equals\(next\)/);
+
 assert.match(scheduler,/times\.getJSONObject\(\(nextIndex\+5\)%6\)/);
 assert.match(bridge,/void setAppearance\(String mode,String resolved,Promise promise\)/);
 assert.match(appearance,/native\.setAppearance\(mode,resolved\)/);
@@ -68,4 +104,4 @@ assert.match(widgetBackground,/#071725/);
 assert.match(widgetBackground,/#102B40/);
 assert.doesNotMatch(scheduler,/getMirrorPrayerTriplet|fetch\(|new Thread\(/,
  'native layout must never load a network/JS prayer engine');
-console.log('Widget Design 4.0: four native variants, 1x1 metadata, two system countdowns, theme bridge and validated timeline verified');
+console.log('Widget Design 5.1: five native variants, 4-cell six-prayer strip, premium header/footer, 3D brand, native countdown and theme regression verified');
