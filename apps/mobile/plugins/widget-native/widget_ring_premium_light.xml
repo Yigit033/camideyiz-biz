@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widget_ring_premium_root"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@drawable/widget_bg_light">
+  <ImageView
+    android:id="@+id/widget_ring_premium_art"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"
+    android:padding="10dp"
+    android:scaleType="fitCenter"
+    android:contentDescription="Yayımlanmış namaz vakitlerinin süreleriyle orantılı renkli vakit halkası"/>
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:paddingHorizontal="44dp"
+    android:gravity="center"
+    android:orientation="vertical">
+    <ImageView android:layout_width="45dp" android:layout_height="29dp"
+      android:src="@drawable/widget_brand_symbol" android:scaleType="fitCenter"
+      android:contentDescription="Camideyiz Biz logosu"/>
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+      android:text="Camideyiz Biz" android:textSize="12sp"
+      android:textColor="#365C78" android:includeFontPadding="false"
+      android:textStyle="bold" android:maxLines="1" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:gravity="center" android:text="SIRADAKİ"
+      android:textSize="10sp" android:letterSpacing=".10"
+      android:textColor="#65736C"
+      android:includeFontPadding="false" android:maxLines="1" />
+    <TextView android:id="@+id/widget_ring_premium_next" android:layout_width="match_parent"
+      android:layout_height="wrap_content" android:gravity="center"
+      android:text="Takvim" android:textSize="20sp"
+      android:textColor="#152821"
+      android:textStyle="bold" android:includeFontPadding="false"
+      android:maxLines="1" android:ellipsize="end"/>
+    <Chronometer android:id="@+id/widget_ring_premium_countdown"
+      android:layout_width="wrap_content" android:layout_height="wrap_content"
+      android:layout_marginTop="6dp"
+      android:text="--:--" android:textSize="25sp"
+      android:textStyle="bold" android:fontFamily="sans-serif"
+      android:textColor="#152821"
+      android:singleLine="true" android:includeFontPadding="false"/>
+    <TextView android:id="@+id/widget_ring_premium_time"
+      android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:gravity="center" android:text="--:--"
+      android:layout_marginTop="5dp"
+      android:textSize="12sp" android:maxLines="1"
+      android:textColor="#365C78"
+      android:includeFontPadding="false" />
+    <TextView android:id="@+id/widget_ring_premium_city"
+      android:layout_width="match_parent" android:layout_height="wrap_content"
+      android:gravity="center" android:text="Konum seçilmedi"
+      android:layout_marginTop="5dp" android:textSize="11sp"
+      android:textColor="#365C78"
+      android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"/>
+  </LinearLayout>
+</FrameLayout>
