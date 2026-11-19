@@ -108,6 +108,7 @@ export function CompanionProvider({children}:PropsWithChildren){
   const [sequence,setSequence]=useState(0);
   const [permission,setPermission]=useState<'granted'|'denied'|'unknown'>('unknown');
   const lastForegroundSync=useRef(0);
+  const returnedFromBackground=useRef(false);
   const syncVersion=useRef(0);
   const widgetVersion=useRef(0);
   const widgetQueue=useRef<Promise<void>>(Promise.resolve());
@@ -170,10 +171,16 @@ export function CompanionProvider({children}:PropsWithChildren){
         });
       }).catch(()=>undefined);
     };
-    collect();
     const appState=AppState.addEventListener('change',state=>{
-      if(state!=='active')return;
+      if(state==='background'||state==='inactive'){
+        returnedFromBackground.current=true;
+        return;
+      }
+      if(state!=='active'||!returnedFromBackground.current)return;
+      returnedFromBackground.current=false;
       collect();
+      // Cold-start already fetches the source once. Don't invoke another
+      // revalidation merely because React Native emitted its first active event.
       if(Date.now()-lastForegroundSync.current>60_000){
         lastForegroundSync.current=Date.now();
         setSequence(n=>n+1);
@@ -181,6 +188,19 @@ export function CompanionProvider({children}:PropsWithChildren){
       }
       getPrayerPermission().then(setPermission).catch(()=>undefined);
     });
+    return ()=>{received.remove();response.remove();appState.remove();};
+  },[source.retry]);
+  useEffect(()=>{
+    if(!maintenanceReady)return;
+    // Inbox reconciliation and router notification recovery are secondary
+    // to the first screen and manual Play interaction.
+    Notifications.getPresentedNotificationsAsync().then(items=>{
+      setInbox(prev=>{
+        let next=prev;
+        for(const item of items)next=appendUnique(next,toInboxEvent(item),deletedIds.current);
+        return next;
+      });
+    }).catch(()=>undefined);
     const last=Notifications.getLastNotificationResponse();
     if(last){
       const found=toInboxEvent(last.notification);
@@ -191,8 +211,7 @@ export function CompanionProvider({children}:PropsWithChildren){
       }
       Notifications.clearLastNotificationResponse();
     }
-    return ()=>{received.remove();response.remove();appState.remove();};
-  },[source.retry]);
+  },[maintenanceReady]);
 
   const days=useMemo(():readonly PrayerSchedule[]=>{
     const result=source.days;
