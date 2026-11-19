@@ -46,7 +46,7 @@ public final class WidgetBoundaryScheduler {
   private static final String[] NAMES = {
     "NextPrayerWidget","PrayerDayWidget","CompactPrayerWidget",
     "PrayerFocusWidget","PrayerStripWidget",
-    "MiniPrayerRingWidget","PremiumPrayerRingWidget"
+    "MiniPrayerRingWidget","PremiumPrayerRingWidget","SlimPrayerWidget"
   };
   // Published days may remain valid offline up to their 16-day coverage.
   // Do not erase a still-valid published timetable after only 72 hours.
@@ -529,7 +529,7 @@ public final class WidgetBoundaryScheduler {
         RemoteViews card=new RemoteViews(context.getPackageName(),
             light?R.layout.widget_ring_mini_light:R.layout.widget_ring_mini);
         card.setImageViewBitmap(R.id.widget_ring_mini_art,
-            PrayerRingBitmapRenderer.render(times,now,light,224));
+            PrayerRingBitmapRenderer.render(times,now,false,224));
         card.setTextViewText(R.id.widget_ring_mini_next,ready?next:"Takvim");
         card.setTextViewText(R.id.widget_ring_mini_time,ready?time:"--:--");
         setCountdown(card,R.id.widget_ring_mini_countdown,nextAt,now);
@@ -541,15 +541,44 @@ public final class WidgetBoundaryScheduler {
         RemoteViews card=new RemoteViews(context.getPackageName(),
             light?R.layout.widget_ring_premium_light:R.layout.widget_ring_premium);
         card.setImageViewBitmap(R.id.widget_ring_premium_art,
-            PrayerRingBitmapRenderer.render(times,now,light,432));
+            PrayerRingBitmapRenderer.render(times,now,false,432));
         card.setTextViewText(R.id.widget_ring_premium_next,ready?next:"Takvim");
         card.setTextViewText(R.id.widget_ring_premium_time,ready?"Saat "+time:"--:--");
         card.setTextViewText(R.id.widget_ring_premium_city,ready?city:"Takvim bekleniyor");
+        // All six verified daily hours move to a dedicated quiet footer,
+        // never floating over the ring or colliding with the live counter.
+        int[] hourLabels={R.id.widget_ring_premium_label_0,R.id.widget_ring_premium_label_1,
+          R.id.widget_ring_premium_label_2,R.id.widget_ring_premium_label_3,
+          R.id.widget_ring_premium_label_4,R.id.widget_ring_premium_label_5};
+        int[] hourClocks={R.id.widget_ring_premium_clock_0,R.id.widget_ring_premium_clock_1,
+          R.id.widget_ring_premium_clock_2,R.id.widget_ring_premium_clock_3,
+          R.id.widget_ring_premium_clock_4,R.id.widget_ring_premium_clock_5};
+        for(int i=0;i<6;i++){
+          JSONObject value=i<times.length()?times.getJSONObject(i):null;
+          card.setTextViewText(hourLabels[i],value==null?"—":value.optString("label","—"));
+          card.setTextViewText(hourClocks[i],value==null?"--:--":value.optString("time","--:--"));
+        }
         setCountdown(card,R.id.widget_ring_premium_countdown,nextAt,now);
         card.setOnClickPendingIntent(R.id.widget_ring_premium_root,launchAction(context,41024));
         manager.updateAppWidget(premiumRing,card);
         count+=premiumRing.length;
       }
+    }
+
+
+    // Dedicated narrow 1×2 widget: larger type and no compression of the
+    // countdown into the 1×1 minimum launcher footprint.
+    int[] slim=manager.getAppWidgetIds(component(context,NAMES[7]));
+    if(slim.length>0){
+      RemoteViews card=new RemoteViews(context.getPackageName(),
+        light?R.layout.widget_slim_prayer_light:R.layout.widget_slim_prayer);
+      card.setTextViewText(R.id.widget_slim_name,ready?next:"Takvim");
+      card.setTextViewText(R.id.widget_slim_time,ready?time:"--:--");
+      card.setTextViewText(R.id.widget_slim_city,ready?city:"Takvim bekleniyor");
+      setCountdown(card,R.id.widget_slim_countdown,nextAt,now);
+      card.setOnClickPendingIntent(R.id.widget_slim_root,launchAction(context,41025));
+      manager.updateAppWidget(slim,card);
+      count+=slim.length;
     }
 
     return count;
@@ -592,6 +621,7 @@ public final class WidgetBoundaryScheduler {
     result.put("installedStrip",installedCount(context,NAMES[4]));
     result.put("installedMiniRing",installedCount(context,NAMES[5]));
     result.put("installedPremiumRing",installedCount(context,NAMES[6]));
+    result.put("installedSlim",installedCount(context,NAMES[7]));
     result.put("widgetTheme",lightTheme(context)?"light":"dark");
     long last=local.getLong("lastAppliedAt",0);
     result.put("lastAppliedAt",last);

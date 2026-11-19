@@ -7,7 +7,7 @@
  <ImageView android:layout_width="28dp" android:layout_height="20dp"
  android:src="@drawable/widget_brand_symbol" android:scaleType="fitCenter"
  android:contentDescription="Camideyiz Biz logosu" />
- <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="CAMİDEYİZ BİZ" android:textColor="#152821" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="4dp" android:textStyle="bold"/>
+ <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Camideyiz Biz" android:textColor="#152821" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="4dp" android:textStyle="bold"/>
 
  <TextView android:layout_width="match_parent" android:layout_height="1dp"
   android:layout_marginTop="10dp" android:layout_marginBottom="10dp"

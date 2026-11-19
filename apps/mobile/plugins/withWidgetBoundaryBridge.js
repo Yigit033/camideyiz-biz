@@ -32,6 +32,8 @@ const PROVIDERS=[
     info:'widget_ring_mini_info'},
   {name:'PremiumPrayerRingWidgetProvider',title:'Vakit Çemberi Premium',
     info:'widget_ring_premium_info'},
+  {name:'SlimPrayerWidgetProvider',title:'Dikey Vakit 1×2',
+    info:'widget_slim_prayer_info'},
 ];
 const RESOURCES={
   layout:[
@@ -42,6 +44,7 @@ const RESOURCES={
     'widget_prayer_strip.xml','widget_prayer_strip_light.xml',
     'widget_ring_mini.xml','widget_ring_mini_light.xml',
     'widget_ring_premium.xml','widget_ring_premium_light.xml',
+    'widget_slim_prayer.xml','widget_slim_prayer_light.xml',
   ],
   drawable:[
     'widget_bg.xml','widget_bg_light.xml',
@@ -57,6 +60,7 @@ const RESOURCES={
     'widget_compact_prayer_info.xml','widget_prayer_focus_info.xml',
     'widget_prayer_strip_info.xml',
     'widget_ring_mini_info.xml','widget_ring_premium_info.xml',
+    'widget_slim_prayer_info.xml',
   ],
 };
 
