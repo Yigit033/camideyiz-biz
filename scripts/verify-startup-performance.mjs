@@ -35,7 +35,10 @@ assert.match(wisdom,/DailyWisdomSection=memo\(function/);
 assert.match(audioCard,/AdhanExperience=memo\(function/);
 assert.match(audio,/useAudioPlayer\(null,\{updateInterval:1000\}\)/,
   '3 MB offline audio must not start decoding before first paint');
-assert.match(audio,/PRELOAD_AFTER_PAINT_MS=700/);
+assert.doesNotMatch(audio,/setTimeout\(ensureSource|PRELOAD_AFTER_PAINT_MS/,
+  'offline MP3 must not auto-decode during startup, only when user taps');
+assert.match(audio,/setStarting\(true\);[\s\S]*?ensureSource\(\)/,
+  'Play must load the local MP3 on explicit user intent');
 assert.match(audio,/setStarting\(true\)/,
   'first press must show immediate feedback while the player loads');
 assert.match(audio,/if\(!starting\|\|!modeReady\|\|!loaded\)return/,
@@ -57,8 +60,16 @@ assert.match(companion,/const loadWidgetEngine=\(\)=>import\('@\/features\/widge
 assert.match(companion,/setTimeout\(\(\)=>\{[\s\S]*?setMaintenanceReady\(true\);[\s\S]*?\},1600\)/,
   'initial native maintenance must yield first paint');
 assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!source\.place\)return/);
-assert.match(companion,/lastWidgetFingerprint\.current===fingerprint/,
-  'same calendar must not be republished on every AppState/status change');
+assert.match(companion,/widgetNeedsForegroundPublish\(native,place\.id,Date\.now\(\)\)/,
+  'native-ready widget must bypass full JS calendar writer on startup');
+assert.match(companion,/const native=await getNativeWidgetSummary\(\)/,
+  'lightweight status must be read before heavy widget engine import');
+assert.match(companion,/returnedFromBackground\.current/,
+  'cold-start AppState active event must not trigger duplicate provider fetch');
+assert.match(audio,/markStartup\('audio-source-request'\)/);
+const metrics=read('apps/mobile/src/features/performance/startupMetrics.ts');
+assert.match(metrics,/worstEventLoopLagMs/);
+assert.match(metrics,/currentAppState/);
 assert.match(companion,/if\(!ready\|\|!maintenanceReady\)return;/,
   'notification scheduling must not compete with first interactive paint');
 console.log('Startup QA: stale-while-revalidate verified hours, lazy widget engine, deduped maintenance, responsive queued offline adhan and render memoization');
