@@ -3,7 +3,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 import {setAudioModeAsync,useAudioPlayer,useAudioPlayerStatus} from 'expo-audio';
-import {markStartup} from '@/features/performance/startupMetrics';
+import {markStartup,recordStartupOperation} from '@/features/performance/startupMetrics';
 
 // User-approved offline MP3, checked byte-for-byte by the build pipeline.
 const LOCAL_ADHAN=require('../../../assets/audio/camideyiz-biz-ezan.mp3');
@@ -45,11 +45,17 @@ export function AdhanPlaybackProvider({children}:PropsWithChildren){
   const [error,setError]=useState<string|null>(null);
   const request=useRef(0);
   const sourceRequested=useRef(false);
+  const sourceLoadAt=useRef<number|null>(null);
   const wasPlaying=useRef(false);
 
   const loaded=Boolean(status.isLoaded);
   useEffect(()=>{
-    if(loaded)markStartup('audio-source-ready');
+    if(!loaded)return;
+    markStartup('audio-source-ready');
+    if(sourceLoadAt.current!==null){
+      recordStartupOperation('audio-source-load',sourceLoadAt.current);
+      sourceLoadAt.current=null;
+    }
   },[loaded]);
   const playing=Boolean(status.playing);
   const duration=Number.isFinite(status.duration)?Math.max(0,status.duration):0;
@@ -59,9 +65,14 @@ export function AdhanPlaybackProvider({children}:PropsWithChildren){
   const ensureSource=useCallback(()=>{
     if(sourceRequested.current)return;
     sourceRequested.current=true;
+    sourceLoadAt.current=Date.now();
     markStartup('audio-source-request');
     try{player.replace(LOCAL_ADHAN);}
     catch{
+      if(sourceLoadAt.current!==null){
+        recordStartupOperation('audio-source-load',sourceLoadAt.current);
+        sourceLoadAt.current=null;
+      }
       sourceRequested.current=false;
       setError('Ezan dosyası yüklenemedi. Uygulamayı yeniden açmayı deneyin.');
       setStarting(false);
