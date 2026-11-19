@@ -17,6 +17,7 @@ const companion=read('apps/mobile/src/features/companion/CompanionProvider.tsx')
 const layout=read('apps/mobile/src/app/_layout.tsx');
 const task=read('apps/mobile/src/features/widgets/widgetTaskRegistration.ts');
 const widgets=read('apps/mobile/src/features/widgets/widgetBackground.ts');
+const registration=read('apps/mobile/src/features/widgets/widgetBackgroundRegistration.ts');
 
 assert.match(source,/validateCachedMirrorTriplet\(data,place\.id,dateISO,/,
   'previously published hours must remain visible during revalidation');
@@ -61,6 +62,12 @@ assert.match(task,/await import\('\.\/widgetBackground'\)/,
 assert.doesNotMatch(widgets,/TaskManager\.defineTask\(/,
   'two task registrations can corrupt headless scheduling');
 assert.match(companion,/const loadWidgetEngine=\(\)=>import\('@\/features\/widgets\/widgetBackground'\)/);
+assert.match(companion,/await ensureWidgetBackgroundRefresh\(\)/);
+assert.match(registration,/TaskManager\.isTaskRegisteredAsync\(WIDGET_BACKGROUND_TASK\)/);
+assert.doesNotMatch(registration,/prayerApi|notificationService|getMirrorPrayerTriplet|buildPrayerWidgetTimeline/,
+  'work-manager registration must never eagerly import prayer providers and native widget timeline');
+assert.match(widgets,/export \{readWidgetBackgroundReport,ensureWidgetBackgroundRefresh,/,
+  'preserve public widget engine registration API for existing callers');
 assert.match(companion,/setTimeout\(\(\)=>\{[\s\S]*?setMaintenanceReady\(true\);[\s\S]*?\},1600\)/,
   'initial native maintenance must yield first paint');
 assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!source\.place\)return/);
