@@ -2,7 +2,6 @@ package biz.camideyiz.app.widget;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.LruCache;
@@ -17,127 +16,105 @@ import java.util.Locale;
 import java.util.TimeZone;
 
 /**
- * Native launcher-only prayer ring. Does not start React, load network data,
- * calculate astronomical times or animate in the app process. Android's
- * Chronometer owns the independently live central countdown.
- *
- * Daily published boundaries cover the 24-hour clock. The Yatsi segment
- * wraps at midnight (the previous Yatsi until today's Imsak); no next-day
- * prayer time is invented and no "live rotating needle" is implied.
+ * Product-consistent, cached native circular prayer clock for RemoteViews.
+ * Six true-length sectors come exclusively from published clock boundaries.
+ * No astronomical calculation, JS timer, network or animated rendering.
  */
 public final class PrayerRingBitmapRenderer {
   private static final int[] COLORS={
-    0xFF3593B5,0xFFD69E44,0xFF1EAFB0,0xFF10B981,0xFFDA7049,0xFF7162BB
+      0xFF3D9DBB,0xFFD7A657,0xFF3AACB6,0xFF2AA38A,0xFFC47E64,0xFF887CC5
   };
-  // A 224px mini is ~196KB; a 432px premium is ~729KB. Keep cache bounded.
-  private static final LruCache<String,Bitmap> CACHE=
-      new LruCache<String,Bitmap>(2*1024*1024){
-        @Override protected int sizeOf(String key,Bitmap bitmap){
-          return bitmap.getByteCount();
-        }
-      };
-
+  private static final LruCache<String,Bitmap> CACHE=new LruCache<String,Bitmap>(2*1024*1024){
+    @Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getByteCount();}
+  };
   private PrayerRingBitmapRenderer(){}
 
   private static int minutesOfDay(String clock)throws JSONException{
     if(clock==null||!clock.matches("([01]\\d|2[0-3]):[0-5]\\d"))
-      throw new JSONException("Invalid published ring boundary");
+      throw new JSONException("Invalid published prayer boundary");
     return Integer.parseInt(clock.substring(0,2))*60+
         Integer.parseInt(clock.substring(3,5));
   }
-
-  private static int localMinute(long nowMs){
+  private static int localMinute(long millis){
     SimpleDateFormat f=new SimpleDateFormat("HH:mm",Locale.US);
     f.setTimeZone(TimeZone.getTimeZone("Europe/Istanbul"));
-    String clock=f.format(new Date(nowMs));
-    return Integer.parseInt(clock.substring(0,2))*60+
-        Integer.parseInt(clock.substring(3,5));
+    String t=f.format(new Date(millis));
+    return Integer.parseInt(t.substring(0,2))*60+Integer.parseInt(t.substring(3,5));
   }
-
-  private static int withAlpha(int base,int alpha){
-    return (base&0x00FFFFFF)|(alpha<<24);
-  }
-
-  private static void sector(Canvas canvas,Paint pen,RectF bounds,
-      int from,int to,int color,boolean current,float size){
+  private static int alpha(int color,int a){return (color&0x00FFFFFF)|(a<<24);}
+  private static void sector(Canvas canvas,Paint pen,RectF ring,int from,int to,
+      int color,boolean active,float size){
     if(to<=from)return;
     float start=-90f+from*.25f;
     float sweep=(to-from)*.25f;
-    // Small, consistent breathing gap between real-duration sectors.
-    float gap=Math.min(1.35f,sweep*.10f);
+    float gap=Math.min(1.65f,sweep*.12f);
+    float begin=start+gap*.5f;
+    float span=Math.max(.1f,sweep-gap);
     pen.setStyle(Paint.Style.STROKE);
-    pen.setStrokeCap(Paint.Cap.BUTT);
-    pen.setColor(withAlpha(color,current?235:135));
-    pen.setStrokeWidth(size*.071f);
-    canvas.drawArc(bounds,start+gap*.5f,Math.max(.15f,sweep-gap),false,pen);
+    pen.setStrokeCap(Paint.Cap.ROUND);
+    // Deep, restrained corona rather than a heavy filled annulus.
+    if(active){
+      pen.setColor(alpha(color,56));
+      pen.setStrokeWidth(size*.069f);
+      canvas.drawArc(ring,begin,span,false,pen);
+    }
+    pen.setStrokeWidth(size*.045f);
+    pen.setColor(alpha(color,active?255:180));
+    canvas.drawArc(ring,begin,span,false,pen);
+    if(active){
+      pen.setStrokeWidth(size*.007f);
+      pen.setColor(0xCCD8C08B);
+      canvas.drawArc(ring,begin+.25f,Math.max(.1f,span-.5f),false,pen);
+    }
   }
 
-  /**
-   * Renders only after an actual widget host instance exists. Cache key includes
-   * the six verified times, active segment, theme and bounded bitmap size.
-   * Full updateAppWidget is used (never an accumulating partial bitmap update).
-   */
-  public static synchronized Bitmap render(JSONArray times,long nowMs,
-      boolean light,int size) throws JSONException {
+  /** A single 224px / 432px bitmap is sent to each installed widget host. */
+  public static synchronized Bitmap render(JSONArray times,long nowMs,boolean light,int size)
+      throws JSONException{
     if(size!=224&&size!=432)throw new IllegalArgumentException("Invalid ring size");
     int[] boundaries=new int[6];
     boolean ready=times!=null&&times.length()==6;
     if(ready){
-      int last=-1;
+      int previous=-1;
       for(int i=0;i<6;i++){
-        JSONObject entry=times.getJSONObject(i);
-        int minute=minutesOfDay(entry.getString("time"));
-        if(minute<=last)throw new JSONException("Unordered published ring boundaries");
+        JSONObject row=times.getJSONObject(i);
+        int minute=minutesOfDay(row.getString("time"));
+        if(minute<=previous)throw new JSONException("Unordered published prayer boundaries");
         boundaries[i]=minute;
-        last=minute;
+        previous=minute;
       }
     }
-    int current=5;
-    int minuteNow=localMinute(nowMs);
+    int minuteNow=localMinute(nowMs),current=5;
     if(ready){
-      for(int i=0;i<6;i++){
-        if(minuteNow>=boundaries[i])current=i;
-      }
+      for(int i=0;i<6;i++)if(minuteNow>=boundaries[i])current=i;
     }
-    String key=size+"|"+light+"|"+ready+"|"+current+"|"+
-        Arrays.toString(boundaries);
+    String key=size+"|"+light+"|"+ready+"|"+current+"|"+Arrays.toString(boundaries);
     Bitmap cached=CACHE.get(key);
     if(cached!=null&&!cached.isRecycled())return cached;
-
     Bitmap bitmap=Bitmap.createBitmap(size,size,Bitmap.Config.ARGB_8888);
     Canvas canvas=new Canvas(bitmap);
-    float mid=size/2f;
-    float ringR=size*.326f;
+    float mid=size*.5f,radius=size*.322f;
+    RectF ring=new RectF(mid-radius,mid-radius,mid+radius,mid+radius);
     Paint pen=new Paint(Paint.ANTI_ALIAS_FLAG);
     pen.setStyle(Paint.Style.STROKE);
-    pen.setStrokeCap(Paint.Cap.BUTT);
-    RectF arc=new RectF(mid-ringR,mid-ringR,mid+ringR,mid+ringR);
-
-    // One quiet, elegant ring. No triple borders, no large overlaid labels.
-    pen.setStrokeWidth(size*.074f);
-    pen.setColor(0xFF233D53);
-    canvas.drawCircle(mid,mid,ringR,pen);
+    pen.setStrokeCap(Paint.Cap.ROUND);
+    pen.setColor(light?0x443A6078:0xFF284658);
+    pen.setStrokeWidth(size*.051f);
+    canvas.drawCircle(mid,mid,radius,pen);
     if(ready){
-      // Astronomical times are never calculated here: only the published clock
-      // boundaries provided by the validated calendar are used.
-      sector(canvas,pen,arc,0,boundaries[0],COLORS[5],current==5,size);
+      // Night splits across the date boundary; this is two portions of Yatsı.
+      sector(canvas,pen,ring,0,boundaries[0],COLORS[5],current==5,size);
       for(int i=0;i<5;i++)
-        sector(canvas,pen,arc,boundaries[i],boundaries[i+1],
-            COLORS[i],current==i,size);
-      sector(canvas,pen,arc,boundaries[5],1440,COLORS[5],current==5,size);
-
-      // Small gilded position marker on the active prayer sector, NOT a
-      // continuously rotating clock needle. Drawing is still event-driven.
-      int start=current==5?boundaries[5]:boundaries[current];
-      int end=current==5?1440:boundaries[current+1];
-      float markerAngle=(start+(end-start)*.5f)*.25f;
-      double theta=Math.toRadians(markerAngle);
-      float cx=mid+(float)Math.sin(theta)*ringR;
-      float cy=mid-(float)Math.cos(theta)*ringR;
-      pen.setStyle(Paint.Style.FILL);
-      pen.setColor(0xFFD8BF8D);
-      canvas.drawCircle(cx,cy,size*.012f,pen);
+        sector(canvas,pen,ring,boundaries[i],boundaries[i+1],COLORS[i],current==i,size);
+      sector(canvas,pen,ring,boundaries[5],1440,COLORS[5],current==5,size);
     }
+    // Subtle inner watch dial and outer rim; no crowded time labels or dots.
+    pen.setStyle(Paint.Style.STROKE);
+    pen.setColor(light?0x333A6478:0x663E6076);
+    pen.setStrokeWidth(size*.0027f);
+    canvas.drawCircle(mid,mid,size*.267f,pen);
+    pen.setColor(light?0x333A6478:0x442F536B);
+    canvas.drawCircle(mid,mid,size*.368f,pen);
     CACHE.put(key,bitmap);
     return bitmap;
   }
