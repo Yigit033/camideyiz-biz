@@ -19,7 +19,7 @@ for(const base of variants){
     const layout=read(p+base+suffix+'.xml');
     assert.match(layout,/xmlns:android=/);
     assert.match(layout,/widget_bg/);
-    assert.doesNotMatch(layout,/<View\\b/,
+    assert.doesNotMatch(layout,/<View\b/,
       'android.view.View is not an allowed RemoteViews XML child; use TextView dividers');
     assert.ok(layout.includes('Camideyiz Biz')||layout.includes('widget_compact_mark'));
     assert.ok(plugin.includes("'"+base+suffix+".xml'"),base+suffix+' missing from CNG');
