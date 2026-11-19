@@ -5,7 +5,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.util.LruCache;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -60,22 +59,17 @@ public final class PrayerRingBitmapRenderer {
   }
 
   private static void sector(Canvas canvas,Paint pen,RectF bounds,
-      int from,int to,int color,boolean current,float radiusPixels){
+      int from,int to,int color,boolean current,float size){
     if(to<=from)return;
     float start=-90f+from*.25f;
     float sweep=(to-from)*.25f;
-    float gap=Math.min(.85f,Math.max(0f,sweep/8f));
-    pen.setColor(withAlpha(color,current?255:198));
-    pen.setStrokeWidth(radiusPixels*.235f);
-    canvas.drawArc(bounds,start+gap/2f,sweep-gap,false,pen);
-    if(current){
-      pen.setColor(withAlpha(color,205));
-      pen.setStrokeWidth(radiusPixels*.05f);
-      RectF glow=new RectF(bounds.left-radiusPixels*.155f,
-          bounds.top-radiusPixels*.155f,
-          bounds.right+radiusPixels*.155f,bounds.bottom+radiusPixels*.155f);
-      canvas.drawArc(glow,start+gap/2f,sweep-gap,false,pen);
-    }
+    // Small, consistent breathing gap between real-duration sectors.
+    float gap=Math.min(1.35f,sweep*.10f);
+    pen.setStyle(Paint.Style.STROKE);
+    pen.setStrokeCap(Paint.Cap.BUTT);
+    pen.setColor(withAlpha(color,current?235:135));
+    pen.setStrokeWidth(size*.071f);
+    canvas.drawArc(bounds,start+gap*.5f,Math.max(.15f,sweep-gap),false,pen);
   }
 
   /**
@@ -113,51 +107,37 @@ public final class PrayerRingBitmapRenderer {
     Bitmap bitmap=Bitmap.createBitmap(size,size,Bitmap.Config.ARGB_8888);
     Canvas canvas=new Canvas(bitmap);
     float mid=size/2f;
-    float outer=size*.398f;
-    float ringR=size*.319f;
+    float ringR=size*.326f;
     Paint pen=new Paint(Paint.ANTI_ALIAS_FLAG);
     pen.setStyle(Paint.Style.STROKE);
     pen.setStrokeCap(Paint.Cap.BUTT);
     RectF arc=new RectF(mid-ringR,mid-ringR,mid+ringR,mid+ringR);
 
-    // Subtle midnight-blue track, visible before a verified calendar exists.
-    pen.setStrokeWidth(size*.092f);
-    pen.setColor(light?0xFFDCE5E8:0xFF25465B);
+    // One quiet, elegant ring. No triple borders, no large overlaid labels.
+    pen.setStrokeWidth(size*.074f);
+    pen.setColor(0xFF233D53);
     canvas.drawCircle(mid,mid,ringR,pen);
     if(ready){
-      // 00:00 -> today's Imsak is the continuing previous Yatsi period.
+      // Astronomical times are never calculated here: only the published clock
+      // boundaries provided by the validated calendar are used.
       sector(canvas,pen,arc,0,boundaries[0],COLORS[5],current==5,size);
       for(int i=0;i<5;i++)
         sector(canvas,pen,arc,boundaries[i],boundaries[i+1],
             COLORS[i],current==i,size);
-      sector(canvas,pen,arc,boundaries[5],1440,COLORS[5],
-          current==5,size);
-      // Premium-only six published clock labels. Labels sit at each exact
-      // boundary angle, not evenly spaced or invented from astronomy.
-      // The smaller 2×2 ring intentionally omits them for legibility.
-      if(size==432){
-        Paint labelPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
-        labelPaint.setStyle(Paint.Style.FILL);
-        labelPaint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
-        labelPaint.setTextAlign(Paint.Align.CENTER);
-        labelPaint.setTextSize(size*.038f);
-        labelPaint.setColor(light?0xFF1B415B:0xFFF2F7FB);
-        float labelRadius=size*.443f;
-        for(int i=0;i<6;i++){
-          double theta=Math.toRadians(boundaries[i]*.25d);
-          float px=mid+(float)Math.sin(theta)*labelRadius;
-          float py=mid-(float)Math.cos(theta)*labelRadius;
-          String clock=times.getJSONObject(i).getString("time");
-          canvas.drawText(clock,px,py+size*.012f,labelPaint);
-        }
-      }
+      sector(canvas,pen,arc,boundaries[5],1440,COLORS[5],current==5,size);
+
+      // Small gilded position marker on the active prayer sector, NOT a
+      // continuously rotating clock needle. Drawing is still event-driven.
+      int start=current==5?boundaries[5]:boundaries[current];
+      int end=current==5?1440:boundaries[current+1];
+      float markerAngle=(start+(end-start)*.5f)*.25f;
+      double theta=Math.toRadians(markerAngle);
+      float cx=mid+(float)Math.sin(theta)*ringR;
+      float cy=mid-(float)Math.cos(theta)*ringR;
+      pen.setStyle(Paint.Style.FILL);
+      pen.setColor(0xFFD8BF8D);
+      canvas.drawCircle(cx,cy,size*.012f,pen);
     }
-    pen.setColor(light?0xFFCBDBE1:0xFF416077);
-    pen.setStrokeWidth(size*.0045f);
-    canvas.drawCircle(mid,mid,outer,pen);
-    pen.setColor(light?0xFFB5C9D4:0xFF34526B);
-    pen.setStrokeWidth(size*.004f);
-    canvas.drawCircle(mid,mid,size*.246f,pen);
     CACHE.put(key,bitmap);
     return bitmap;
   }
