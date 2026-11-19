@@ -37,7 +37,7 @@ assert.match(read(p+'widget_prayer_strip_info.xml'),/targetCellHeight="2"/);
 assert.match(read(p+'widget_prayer_strip_info.xml'),/resizeMode="horizontal\|vertical"/);
 for(const layout of ['widget_compact_prayer','widget_next_prayer',
   'widget_prayer_focus','widget_prayer_strip']){
-  assert.match(read(p+layout+'.xml'),/<Chronometer /,
+  assert.match(read(p+layout+'.xml'),/<Chronometer\b/,
     'live counter must be Android Chronometer not text refreshed by JS');
 }
 assert.match(scheduler,/setChronometerCountDown\(viewId,true\)/);
