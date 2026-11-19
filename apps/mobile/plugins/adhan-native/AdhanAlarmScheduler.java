@@ -90,9 +90,21 @@ public final class AdhanAlarmScheduler {
     }
     if (input.length() > 0 && !canExact(app))
       throw new SecurityException("Kesin alarm izni verilmedi");
-    // Cancel previous PendingIntents even if the previous calendar was changed.
+    SharedPreferences local=prefs(app);
+    String normalized=input.toString();
+    long lastRebuilt=local.getLong("lastPlanWrittenAt",0);
+    // Native exact alarms can be expensive to cancel/recreate in bulk. The
+    // foreground JS calendar may revalidate several times in one session.
+    // A matching, recently applied plan must be a NO-OP rather than 40
+    // cancelPending + setExactAndAllowWhileIdle system calls.
+    // Periodically rebuild (30 min) in case OEMs silently removed OS alarms.
+    if (normalized.equals(local.getString(EVENTS,null)) && lastRebuilt>0 &&
+        now-lastRebuilt>=0 && now-lastRebuilt<30L*60L*1000L)
+      return status(app);
+    // Only a genuinely changed or aging plan is atomically replaced.
     clearPending(app);
-    if (!prefs(app).edit().putString(EVENTS, input.toString()).commit())
+    if (!local.edit().putString(EVENTS,normalized)
+        .putLong("lastPlanWrittenAt",now).commit())
       throw new JSONException("Ezan planı kalıcı olarak kaydedilemedi");
     schedulePending(app, input);
     return status(app);
