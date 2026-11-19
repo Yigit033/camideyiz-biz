@@ -43,7 +43,8 @@ export async function syncPrayerWidgets(
     const total=native.installedNext+native.installedDay+
       (native.installedCompact??0)+(native.installedFocus??0)+
       (native.installedStrip??0)+
-      (native.installedMiniRing??0)+(native.installedPremiumRing??0);
+      (native.installedMiniRing??0)+(native.installedPremiumRing??0)+
+      (native.installedSlim??0);
     const result:WidgetSyncResult={
       available:true,
       updated:native.persisted&&native.lastReady&&
@@ -57,6 +58,7 @@ export async function syncPrayerWidgets(
       installedCompact:native.installedCompact,installedFocus:native.installedFocus,
       installedStrip:native.installedStrip,
       installedMiniRing:native.installedMiniRing,installedPremiumRing:native.installedPremiumRing,
+      installedSlim:native.installedSlim,
       lastNativeWriteAt:native.lastAppliedAt,
       nextNativeAlarmAt:native.nextAlarmAt,
       nativePersisted:native.persisted,
@@ -84,7 +86,8 @@ export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResu
     const count=status.installedNext+status.installedDay+
       (status.installedCompact??0)+(status.installedFocus??0)+
       (status.installedStrip??0)+
-      (status.installedMiniRing??0)+(status.installedPremiumRing??0);
+      (status.installedMiniRing??0)+(status.installedPremiumRing??0)+
+      (status.installedSlim??0);
     return {
       available:true,updated:status.persisted&&status.lastReady&&!status.lastError,
       detail:status.lastError
@@ -96,6 +99,7 @@ export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResu
       installedCompact:status.installedCompact,installedFocus:status.installedFocus,
       installedStrip:status.installedStrip,
       installedMiniRing:status.installedMiniRing,installedPremiumRing:status.installedPremiumRing,
+      installedSlim:status.installedSlim,
       lastNativeWriteAt:status.lastAppliedAt,nextNativeAlarmAt:status.nextAlarmAt,
       nativePersisted:status.persisted,launcherConfirmed:false,
     };

@@ -12,7 +12,8 @@ const scheduler=read(p+'WidgetBoundaryScheduler.java');
 const bridge=read(p+'CamideyizWidgetBridge.java');
 const appearance=read('apps/mobile/src/theme/ThemeProvider.tsx');
 const variants=['widget_compact_prayer','widget_next_prayer','widget_prayer_day',
-  'widget_prayer_focus','widget_prayer_strip','widget_ring_mini','widget_ring_premium'];
+  'widget_prayer_focus','widget_prayer_strip','widget_ring_mini','widget_ring_premium',
+  'widget_slim_prayer'];
 for(const base of variants){
   const info=read(p+base+'_info.xml');
   assert.match(info,/updatePeriodMillis="1800000"/);
@@ -39,7 +40,7 @@ assert.match(read(p+'widget_prayer_strip_info.xml'),/targetCellHeight="2"/);
 assert.match(read(p+'widget_prayer_strip_info.xml'),/resizeMode="horizontal\|vertical"/);
 for(const layout of ['widget_compact_prayer','widget_next_prayer',
   'widget_prayer_focus','widget_prayer_strip','widget_ring_mini',
-  'widget_ring_premium']){
+  'widget_ring_premium','widget_slim_prayer']){
   assert.match(read(p+layout+'.xml'),/<Chronometer\b/,
     'live counter must be Android Chronometer not text refreshed by JS');
 }
@@ -51,6 +52,18 @@ assert.match(scheduler,/installedFocus/);
 assert.match(scheduler,/installedStrip/);
 assert.match(scheduler,/installedMiniRing/);
 assert.match(scheduler,/installedPremiumRing/);
+assert.match(scheduler,/installedSlim/);
+assert.match(read(p+'widget_slim_prayer_info.xml'),/targetCellWidth="1"/);
+assert.match(read(p+'widget_slim_prayer_info.xml'),/targetCellHeight="2"/);
+assert.match(read(p+'widget_compact_prayer.xml'),/android:textSize="15sp"/);
+assert.doesNotMatch(read(p+'widget_compact_prayer.xml'),/android:text="Kalan "/,
+  '1×1 must never horizontally overflow with both label and HH:MM:SS ticker');
+for(const name of ['widget_next_prayer','widget_prayer_focus']){
+  for(const suffix of ['', '_light']){
+    assert.doesNotMatch(read(p+name+suffix+'.xml'),/android:text="☾"/,
+      'right-edge decorative crescent has no meaning and must be removed');
+  }
+}
 assert.match(read(p+'widget_ring_mini_info.xml'),/targetCellWidth="2"/);
 assert.match(read(p+'widget_ring_premium_info.xml'),/targetCellWidth="4"/);
 assert.match(read(p+'widget_ring_premium_info.xml'),/targetCellHeight="4"/);
@@ -63,13 +76,17 @@ assert.match(nativeRing,/Bitmap\.createBitmap\(size,size,Bitmap\.Config\.ARGB_88
 assert.match(nativeRing,/new LruCache<String,Bitmap>\(2\*1024\*1024\)/);
 assert.match(nativeRing,/sector\(canvas,pen,arc,0,boundaries\[0\],COLORS\[5\]/);
 assert.match(nativeRing,/for\(int i=0;i<5;i\+\+\)/);
-assert.match(nativeRing,/if\(size==432\)/);
-assert.match(nativeRing,/canvas\.drawText\(clock,px,py\+size\*\.012f,labelPaint\)/);
-assert.match(nativeRing,/boundaries\[i\]\*\.25d/);
+assert.doesNotMatch(nativeRing,/canvas\.drawText\(clock,px,py/,
+  'painted clock labels must not overlap the ring center or edge');
+assert.match(nativeRing,/pen\.setStrokeWidth\(size\*\.071f\)/);
+assert.match(nativeRing,/canvas\.drawCircle\(cx,cy,size\*\.012f,pen\)/);
 assert.match(nativeRing,/sector\(canvas,pen,arc,boundaries\[5\],1440,COLORS\[5\]/);
 assert.doesNotMatch(nativeRing,/fetch\(|HttpURLConnection|setInterval|WebView/);
-assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,light,224\)/);
-assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,light,432\)/);
+assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,false,224\)/);
+assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,false,432\)/);
+assert.match(scheduler,/R\.id\.widget_ring_premium_label_0/);
+assert.match(scheduler,/R\.id\.widget_ring_premium_clock_5/);
+assert.match(scheduler,/manager\.updateAppWidget\(slim,card\)/);
 assert.match(scheduler,/manager\.updateAppWidget\(miniRing,card\)/);
 assert.match(scheduler,/manager\.updateAppWidget\(premiumRing,card\)/);
 assert.match(scheduler,/nextInCurrentDay && label\.equals\(next\)/,
@@ -130,4 +147,17 @@ assert.match(widgetBackground,/#071725/);
 assert.match(widgetBackground,/#102B40/);
 assert.doesNotMatch(scheduler,/getMirrorPrayerTriplet|fetch\(|new Thread\(/,
  'native layout must never load a network/JS prayer engine');
-console.log('Widget Design 6.0: seven native variants, six-sector 2x2/4x4 rings, seven keyguard declarations, 3D brand and native countdown contracts verified');
+// The ring must stay visually legible; its label/clock footer cannot be
+// painted over the circular art and no light-mode white canvas is permitted.
+for(const suffix of ['', '_light']){
+  const mini=read(p+'widget_ring_mini'+suffix+'.xml');
+  const premium=read(p+'widget_ring_premium'+suffix+'.xml');
+  assert.match(mini,/android:background="@drawable\/widget_bg"/);
+  assert.match(premium,/android:background="@drawable\/widget_bg"/);
+  assert.match(mini,/widget_ring_mini_art/);
+  assert.match(mini,/widget_ring_mini_countdown/);
+  assert.match(premium,/widget_ring_premium_cell_0/);
+  assert.match(premium,/widget_ring_premium_cell_5/);
+  assert.match(premium,/widget_brand_symbol/);
+}
+console.log('Widget Design 6.1: eight native variants, restrained rings, six-clock footer, 1x1 overflow guard, 1x2 slim, removed crescents, keyguard and native countdown verified');

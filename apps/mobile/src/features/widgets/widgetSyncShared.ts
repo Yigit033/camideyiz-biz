@@ -6,7 +6,7 @@ export type WidgetSyncResult={
   /** Native storage and installed-host diagnostics, never visual proof. */
   installedNext?:number;installedDay?:number;
   installedCompact?:number;installedFocus?:number;installedStrip?:number;
-  installedMiniRing?:number;installedPremiumRing?:number;
+  installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;
   lastNativeWriteAt?:number;nextNativeAlarmAt?:number;
   nativePersisted?:boolean;launcherConfirmed?:false;
 };

@@ -132,11 +132,11 @@ jobs:
           test -s "$app/java/biz/camideyiz/app/widget/PrayerRingBitmapRenderer.java"
           test -s "$app/res/drawable-nodpi/widget_brand_symbol.png"
           cmp apps/mobile/assets/camideyiz-original-symbol.png "$app/res/drawable-nodpi/widget_brand_symbol.png"
-          for name in CompactPrayer PrayerFocus PrayerStrip MiniPrayerRing PremiumPrayerRing; do
+          for name in CompactPrayer PrayerFocus PrayerStrip MiniPrayerRing PremiumPrayerRing SlimPrayer; do
             test -s "$app/java/biz/camideyiz/app/${name}WidgetProvider.java"
             grep -F "${name}WidgetProvider" "$app/AndroidManifest.xml"
           done
-          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip widget_ring_mini widget_ring_premium; do
+          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip widget_ring_mini widget_ring_premium widget_slim_prayer; do
             test -s "$app/res/layout/${resource}.xml"
             test -s "$app/res/layout/${resource}_light.xml"
             test -s "$app/res/xml/${resource}_info.xml"

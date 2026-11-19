@@ -15,7 +15,7 @@ type NativeBridge={
 export type AndroidWidgetNativeStatus={
   supported:boolean;installedNext:number;installedDay:number;
   installedCompact?:number;installedFocus?:number;installedStrip?:number;
-  installedMiniRing?:number;installedPremiumRing?:number;widgetTheme?:string;
+  installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;widgetTheme?:string;
   lastAppliedAt:number;nextAlarmAt:number;lastSyncAt:number;
   lastError:string;lastNextName:string;lastNextTime:string;
   lastCity:string;lastDateISO:string;lastReady:boolean;

@@ -56,8 +56,9 @@ const compactProvider=read('apps/mobile/plugins/widget-native/CompactPrayerWidge
 const focusProvider=read('apps/mobile/plugins/widget-native/PrayerFocusWidgetProvider.java');
 const miniRingProvider=read('apps/mobile/plugins/widget-native/MiniPrayerRingWidgetProvider.java');
 const premiumRingProvider=read('apps/mobile/plugins/widget-native/PremiumPrayerRingWidgetProvider.java');
+const slimProvider=read('apps/mobile/plugins/widget-native/SlimPrayerWidgetProvider.java');
 for(const component of [receiver,nextProvider,dayProvider,compactProvider,focusProvider,
-  miniRingProvider,premiumRingProvider]){
+  miniRingProvider,premiumRingProvider,slimProvider]){
   assert.match(component,/WidgetBoundaryAsyncRefresh\.dispatch\(context,goAsync\(\),/,
     'every native widget broadcast must goAsync before doing calendar IO');
   assert.doesNotMatch(component,/WidgetBoundaryScheduler\.refresh\(/,
@@ -69,6 +70,8 @@ assert.match(compactProvider,/void onDisabled\(Context context\)/);
 assert.match(focusProvider,/void onDisabled\(Context context\)/);
 assert.match(miniRingProvider,/void onDisabled\(Context context\)/);
 assert.match(premiumRingProvider,/void onDisabled\(Context context\)/);
+assert.match(slimProvider,/void onDisabled\(Context context\)/);
+assert.match(configPlugin,/'SlimPrayerWidgetProvider'/);
 assert.match(configPlugin,/'PrayerRingBitmapRenderer.java'/);
 assert.match(configPlugin,/'MiniPrayerRingWidgetProvider'/);
 assert.match(configPlugin,/'PremiumPrayerRingWidgetProvider'/);
