@@ -143,6 +143,22 @@ if (Test-Path -LiteralPath $sourceAudio -PathType Leaf) {
 Push-Location $CheckoutPath
 try {
   Invoke-Checked 'Install workspace dependencies' { & npm.cmd install --package-lock=false --no-audit --no-fund }
+  # Fail locally before expensive native compilation if widget or brand
+  # contracts are incomplete. These checks are offline and fast.
+  if ($Configuration -eq 'Release') {
+    Invoke-Checked 'Verify all five native widget layouts, metadata and live countdowns' {
+      & node scripts/verify-widget-designs.mjs
+    }
+    Invoke-Checked 'Verify exact original 3D brand symbol and native CNG copy rule' {
+      & node scripts/verify-brand-symbol.mjs
+    }
+    Invoke-Checked 'Verify safe native widget bridge and broadcast worker' {
+      & node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
+    }
+    Invoke-Checked 'Verify verified native widget recovery contracts' {
+      & node scripts/verify-widget3-contracts.mjs
+    }
+  }
   # Prevent Release APKs with placeholder images or modified source pixels.
   if ($Configuration -eq 'Release') {
     Invoke-Checked 'Verify original-source lossless WebP posters' {
