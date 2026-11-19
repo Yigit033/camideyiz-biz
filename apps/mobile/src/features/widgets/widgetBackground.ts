@@ -1,4 +1,4 @@
-import {Platform} from 'react-native';
+import {AppState,Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
@@ -274,6 +274,7 @@ export async function fetchAndPublishVerifiedWidgetCalendar(
  * When offline, only already validated real provider data may be displayed. */
 export async function runWidgetBackgroundRefresh():Promise<boolean>{
   if(!enabled())return false;
+  if(AppState.currentState==='active')return true; // user-facing UI has priority
   const now=Date.now();
   const place=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
   if(!place){await report('waiting-data','İlçe henüz seçilmedi',null,false);return true;}
@@ -307,6 +308,7 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
       fetchError=error instanceof Error?error.message:'Kaynak erişim hatası';
     }
   }
+  if(AppState.currentState==='active')return true;
   const latest=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
   if(!latest||latest.id!==place.id||latest.source!==place.source)return true;
   const usable=cached&&parseWidgetCalendarCache(cached,Date.now(),place.id);
