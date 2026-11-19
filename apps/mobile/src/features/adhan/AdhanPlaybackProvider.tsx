@@ -17,7 +17,7 @@ const BACKGROUND_AUDIO_MODE={
   shouldPlayInBackground:true,
   interruptionMode:'doNotMix' as const,
 };
-const PRELOAD_AFTER_PAINT_MS=700;
+
 const LOAD_TIMEOUT_MS=15_000;
 type AdhanPlayback={
   playing:boolean;starting:boolean;loaded:boolean;
@@ -48,6 +48,9 @@ export function AdhanPlaybackProvider({children}:PropsWithChildren){
   const wasPlaying=useRef(false);
 
   const loaded=Boolean(status.isLoaded);
+  useEffect(()=>{
+    if(loaded)markStartup('audio-source-ready');
+  },[loaded]);
   const playing=Boolean(status.playing);
   const duration=Number.isFinite(status.duration)?Math.max(0,status.duration):0;
   const currentTime=Math.max(0,Math.min(duration,
@@ -56,6 +59,7 @@ export function AdhanPlaybackProvider({children}:PropsWithChildren){
   const ensureSource=useCallback(()=>{
     if(sourceRequested.current)return;
     sourceRequested.current=true;
+    markStartup('audio-source-request');
     try{player.replace(LOCAL_ADHAN);}
     catch{
       sourceRequested.current=false;
@@ -64,10 +68,9 @@ export function AdhanPlaybackProvider({children}:PropsWithChildren){
     }
   },[player]);
 
-  useEffect(()=>{
-    const timer=setTimeout(ensureSource,PRELOAD_AFTER_PAINT_MS);
-    return ()=>clearTimeout(timer);
-  },[ensureSource]);
+  // Avoid decoding a multi-megabyte MP3 while first-screen SVGs and native
+  // widget receivers initialize. The user’s first tap loads locally on demand;
+  // 'starting' remains visible and playback starts when isLoaded becomes true.
 
   const pause=useCallback(()=>{
     request.current++;
