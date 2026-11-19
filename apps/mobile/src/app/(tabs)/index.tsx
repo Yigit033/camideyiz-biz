@@ -20,7 +20,7 @@ import {AdhanExperience} from '@/features/adhan/AdhanExperience';
 import {usePrayerSource} from '@/features/prayer/usePrayerSource';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {LocationPicker} from '@/features/prayer/LocationPicker';
-import {markStartup} from '@/features/performance/startupMetrics';
+import {markStartup,startStartupPerformanceMonitor} from '@/features/performance/startupMetrics';
 
 const ICONS={
   imsak:'moon-waning-crescent',
@@ -493,6 +493,7 @@ function CalendarLoadingHome({official,now}:{
 }
 export default function HomeScreen(){
   const [now,setNow]=useState(()=>new Date());
+  useEffect(()=>startStartupPerformanceMonitor(),[]);
   useEffect(()=>{
     // A JS frame callback is a reproducible release-QA milestone; unlike a
     // native frame capture it does not claim pixels were drawn by the launcher.
