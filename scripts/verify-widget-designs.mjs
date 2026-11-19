@@ -24,7 +24,9 @@ for(const base of variants){
       'native initialLayout may never display invented prayer time/location samples');
     assert.doesNotMatch(layout,/<View\b/,
       'android.view.View is not an allowed RemoteViews XML child; use TextView dividers');
-    assert.ok(layout.includes('Camideyiz Biz')||layout.includes('widget_compact_mark'));
+    assert.ok(base==='widget_ring_mini'||
+      layout.includes('Camideyiz Biz')||layout.includes('widget_compact_mark'),
+      'the 2×2 ring intentionally reserves center for the countdown');
     assert.ok(plugin.includes("'"+base+suffix+".xml'"),base+suffix+' missing from CNG');
   }
   assert.ok(plugin.includes("'"+base+"_info.xml'"),base+' missing from manifest');
@@ -113,10 +115,10 @@ assert.match(appearance,/native\.setAppearance\(mode,resolved\)/);
 assert.match(plugin,/drawable-nodpi/);
 assert.match(plugin,/camideyiz-original-symbol\.png/);
 assert.match(plugin,/widget_brand_symbol\.png/);
-for(const base of variants){
+for(const base of variants.filter(x=>x!=='widget_ring_mini')){
   const xml=read(p+base+'.xml');
   assert.match(xml,/@drawable\/widget_brand_symbol/,
-    'all native widgets must use exact supplied 3D brand asset');
+    'branded widgets must use exact supplied 3D mark; mini ring favors readability');
 }
 const tokens=read('apps/mobile/src/theme/tokens.ts');
 assert.match(tokens,/#071725/);
