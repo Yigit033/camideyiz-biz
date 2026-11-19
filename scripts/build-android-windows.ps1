@@ -173,7 +173,7 @@ try {
   # Fail locally before expensive native compilation if widget or brand
   # contracts are incomplete. These checks are offline and fast.
   if ($Configuration -eq 'Release') {
-    Invoke-Checked 'Verify all five native widget layouts, metadata and live countdowns' {
+    Invoke-Checked 'Verify all eight native widget layouts, metadata and live countdowns' {
       & node scripts/verify-widget-designs.mjs
     }
     Invoke-Checked 'Verify exact original 3D brand symbol and native CNG copy rule' {
