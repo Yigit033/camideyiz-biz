@@ -494,13 +494,14 @@ public final class WidgetBoundaryScheduler {
         R.id.widget_strip_time_4,R.id.widget_strip_time_5};
       int ordinary=Color.parseColor(light?"#1B415B":"#F2F7FB");
       int subdued=Color.parseColor(light?"#365C78":"#B2C6D6");
-      int selectedInk=Color.parseColor(light?"#152821":"#102B40");
+      int selectedInk=Color.parseColor(light?"#152821":"#E5C88C");
       for(int i=0;i<6;i++){
         JSONObject value=i<times.length()?times.getJSONObject(i):null;
         String label=value==null?"—":value.optString("label","—");
         String hour=value==null?"--:--":value.optString("time","--:--");
-        // Do not match the next-day İmsak to today's expired İmsak.
-        boolean selected=nextInCurrentDay && label.equals(next);
+        // The next-day İmsak should not be highlighted in today's list;
+        // visually emphasize the currently running Yatsı interval instead.
+        boolean selected=ready && (nextInCurrentDay?label.equals(next):i==5);
         card.setTextViewText(labels[i],label);
         card.setTextViewText(clocks[i],hour);
         card.setTextColor(labels[i],selected?selectedInk:subdued);
@@ -509,8 +510,9 @@ public final class WidgetBoundaryScheduler {
           (light?R.drawable.widget_strip_selected_light:R.drawable.widget_strip_selected_dark):
           R.drawable.widget_row_clear);
       }
+      card.setTextViewText(R.id.widget_strip_city,ready?city:"");
       card.setTextViewText(R.id.widget_strip_next,
-          ready?next+" vaktine kalan süre":"Takvim bekleniyor");
+          ready?next+" vaktine kalan":"Takvim bekleniyor");
       // Keep the footer visible even before the validated calendar arrives:
       // show "Takvim bekleniyor" and a neutral dash rather than an empty area.
       setCountdown(card,R.id.widget_strip_countdown,nextAt,now);
