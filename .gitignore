@@ -20,3 +20,8 @@ GoogleService-Info.plist
 
 # Owner-supplied/offline ezan MP3s stay outside public source control
 apps/mobile/assets/audio/*.mp3
+
+# Exact user-approved application launcher PNGs are installed locally.
+# Do not accidentally commit a different icon or generated sample.
+apps/mobile/assets/app-icon.png
+apps/mobile/assets/adaptive-icon.png

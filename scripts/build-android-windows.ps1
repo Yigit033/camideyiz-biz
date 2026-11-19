@@ -123,6 +123,28 @@ if (-not (Test-Path -LiteralPath $CheckoutPath)) {
   Invoke-Checked 'Fast-forward isolated checkout' { & git -C $CheckoutPath pull --ff-only origin $Branch }
 }
 
+# Transfer the explicitly approved launcher icon to the isolated C:\\cb
+# checkout before Expo prebuild. Missing or mismatched art is fatal in Release.
+if ($Configuration -eq 'Release') {
+  $sourceAssets = Join-Path (Split-Path -Parent $PSScriptRoot) 'apps\\mobile\\assets'
+  $targetAssets = Join-Path $CheckoutPath 'apps\\mobile\\assets'
+  New-Item -ItemType Directory -Path $targetAssets -Force | Out-Null
+  $icons = @(
+    @{ Name='app-icon.png'; SHA='54f731ab37e8a205dcba9c5b7c602d140a8fadbfc69851533482fe9935580f29' },
+    @{ Name='adaptive-icon.png'; SHA='b5d7097d0fdbc10319d9f9ae96acd57553e2364e1fd27f9a74e74efc5351c8b2' }
+  )
+  foreach ($icon in $icons) {
+    $from = Join-Path $sourceAssets $icon.Name
+    if (-not (Test-Path -LiteralPath $from -PathType Leaf)) {
+      throw "Approved icon missing: $from. Extract camideyiz-icon-assets.zip into apps\\mobile\\assets first."
+    }
+    $digest = (Get-FileHash -LiteralPath $from -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($digest -ne $icon.SHA) { throw "Approved icon checksum mismatch: $($icon.Name)" }
+    Copy-Item -LiteralPath $from -Destination (Join-Path $targetAssets $icon.Name) -Force
+  }
+  $env:CAMIDEYIZ_BRANDED_RELEASE = '1'
+}
+
 # The build happens in C:\cb, not in the developer's main checkout.
 # Copy the exact user-uploaded MP3 across this isolation boundary BEFORE npm
 # postinstall. .gitignore excludes it from git clone, not from an APK.
@@ -143,6 +165,11 @@ if (Test-Path -LiteralPath $sourceAudio -PathType Leaf) {
 Push-Location $CheckoutPath
 try {
   Invoke-Checked 'Install workspace dependencies' { & npm.cmd install --package-lock=false --no-audit --no-fund }
+  if ($Configuration -eq 'Release') {
+    Invoke-Checked 'Verify exact user-approved launcher icon and adaptive foreground' {
+      & node scripts/verify-app-icon.mjs
+    }
+  }
   # Fail locally before expensive native compilation if widget or brand
   # contracts are incomplete. These checks are offline and fast.
   if ($Configuration -eq 'Release') {
