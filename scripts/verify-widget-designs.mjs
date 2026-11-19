@@ -19,6 +19,8 @@ for(const base of variants){
     const layout=read(p+base+suffix+'.xml');
     assert.match(layout,/xmlns:android=/);
     assert.match(layout,/widget_bg/);
+    assert.doesNotMatch(layout,/Pendik|17:51|06:17/,
+      'native initialLayout may never display invented prayer time/location samples');
     assert.doesNotMatch(layout,/<View\b/,
       'android.view.View is not an allowed RemoteViews XML child; use TextView dividers');
     assert.ok(layout.includes('Camideyiz Biz')||layout.includes('widget_compact_mark'));

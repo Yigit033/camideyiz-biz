@@ -5,18 +5,18 @@
 <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="5dp" android:text="Camideyiz Biz" android:textStyle="bold" android:textSize="12sp" android:textColor="#F8F4E9" android:maxLines="1"/>
 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="☾" android:textSize="11sp" android:textColor="#F0CB8B"/>
 </LinearLayout>
-<TextView android:id="@+id/widget_focus_city" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Pendik · İstanbul" android:textSize="10sp" android:textColor="#C3D4CD" android:maxLines="1" android:ellipsize="end" android:layout_marginTop="1dp"/>
+<TextView android:id="@+id/widget_focus_city" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim bekleniyor" android:textSize="10sp" android:textColor="#C3D4CD" android:maxLines="1" android:ellipsize="end" android:layout_marginTop="1dp"/>
 <TextView android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="3dp" android:layout_marginBottom="3dp" android:background="#A58D61" android:text="" android:textSize="1sp" android:includeFontPadding="false" />
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="2dp" android:baselineAligned="false">
 <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="vertical">
 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="ŞU AN" android:textColor="#C3D4CD" android:textSize="10sp"/>
-<TextView android:id="@+id/widget_focus_current" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="İkindi" android:textColor="#F8F4E9" android:textSize="22sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"/>
+<TextView android:id="@+id/widget_focus_current" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="—" android:textColor="#F8F4E9" android:textSize="22sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end"/>
 </LinearLayout>
 <TextView android:layout_width="1dp" android:layout_height="60dp" android:layout_marginStart="8dp" android:layout_marginEnd="8dp" android:background="#A58D61" android:text="" android:textSize="1sp" android:includeFontPadding="false" />
 <LinearLayout android:layout_width="0dp" android:layout_weight="1.15" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center_vertical">
-<TextView android:id="@+id/widget_focus_next" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SIRADAKİ · Akşam" android:textColor="#F0CB8B" android:textStyle="bold" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
+<TextView android:id="@+id/widget_focus_next" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SIRADAKİ VAKİT" android:textColor="#F0CB8B" android:textStyle="bold" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
 <Chronometer android:id="@+id/widget_focus_countdown" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="--:--" android:textColor="#F8F4E9" android:textSize="23sp" android:textStyle="bold" android:includeFontPadding="false"/>
-<TextView android:id="@+id/widget_focus_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Saat 17:51" android:textColor="#C3D4CD" android:textSize="10sp" android:maxLines="1"/>
+<TextView android:id="@+id/widget_focus_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim bekleniyor" android:textColor="#C3D4CD" android:textSize="10sp" android:maxLines="1"/>
 </LinearLayout>
 </LinearLayout>
 </LinearLayout>
