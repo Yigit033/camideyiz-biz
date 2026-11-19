@@ -1,7 +1,5 @@
 import {AppState,Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as BackgroundTask from 'expo-background-task';
-import * as TaskManager from 'expo-task-manager';
 import {
   buildPrayerWidgetSnapshot,makeWidgetCalendarCache,parseWidgetCalendarCache,
   WIDGET_NETWORK_REFRESH_MS,zonedClock,
@@ -17,21 +15,18 @@ import {
   reconcilePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
 } from '../companion/notificationService';
 
-import {WIDGET_BACKGROUND_TASK} from './widgetTaskRegistration';
+import {WIDGET_BACKGROUND_STATUS_KEY as STATUS_KEY,
+  readWidgetBackgroundReport,type WidgetBackgroundReport}
+  from './widgetBackgroundRegistration';
+export {readWidgetBackgroundReport,ensureWidgetBackgroundRefresh,
+  WIDGET_BACKGROUND_INTERVAL_MINUTES} from './widgetBackgroundRegistration';
+export type {WidgetBackgroundReport} from './widgetBackgroundRegistration';
 const ACTIVE_PLACE_KEY='@camideyiz/widget-active-place/v3';
 const CACHE_KEY='@camideyiz/widget-published-calendar/v3';
-const STATUS_KEY='@camideyiz/widget-background-status/v3';
 const LAST_TRANSFER_KEY='@camideyiz/widget-native-transfer/v1';
-export const WIDGET_BACKGROUND_INTERVAL_MINUTES=15;
 
 type ActivePlace=PrayerPlaceSelection&{
   source:WidgetCalendarCache['source'];
-};
-export type WidgetBackgroundReport={
-  lastAttempt:number;lastSuccess:number|null;lastNetwork:number|null;
-  status:'updated'|'waiting-data'|'error';
-  detail:string;
-  registrationStatus?:string;registrationError?:string;registered?:boolean;
 };
 export type LastWidgetTransfer={
   cityId:number;city:string;dateISO:string;sentAt:number;
@@ -92,17 +87,6 @@ async function readCache(now:number,cityId:number):Promise<WidgetCalendarCache|n
   }catch{return null;}
 }
 
-export async function readWidgetBackgroundReport():Promise<WidgetBackgroundReport|null>{
-  try{
-    const raw=await AsyncStorage.getItem(STATUS_KEY);
-    if(!raw)return null;
-    const s:unknown=JSON.parse(raw);
-    if(!s||typeof s!=='object')return null;
-    const v=s as WidgetBackgroundReport;
-    return typeof v.lastAttempt==='number'&&
-      (v.status==='updated'||v.status==='waiting-data'||v.status==='error')?v:null;
-  }catch{return null;}
-}
 async function report(status:WidgetBackgroundReport['status'],detail:string,
   lastNetwork:number|null,success:boolean):Promise<void>{
   const previous=await readWidgetBackgroundReport();
@@ -365,39 +349,3 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
   return true;
 }
 
-/** The OS can restrict WorkManager; log why registration failed. This is
- * auxiliary only: a foreground app with verified hours MUST publish directly. */
-export async function ensureWidgetBackgroundRefresh():Promise<boolean>{
-  if(!enabled())return false;
-  let statusName='unavailable';
-  let registered=false;
-  let error='';
-  try{
-    const status=await BackgroundTask.getStatusAsync();
-    statusName=status===BackgroundTask.BackgroundTaskStatus.Available
-      ?'available':'restricted:'+String(status);
-    if(status===BackgroundTask.BackgroundTaskStatus.Available){
-      if(!await TaskManager.isTaskRegisteredAsync(WIDGET_BACKGROUND_TASK)){
-        await BackgroundTask.registerTaskAsync(WIDGET_BACKGROUND_TASK,{
-          minimumInterval:WIDGET_BACKGROUND_INTERVAL_MINUTES,
-        });
-      }
-      registered=await TaskManager.isTaskRegisteredAsync(WIDGET_BACKGROUND_TASK);
-      if(!registered)error='Görev kayıt çağrısından sonra TaskManager kaydı doğrulanamadı';
-    }else error='Android arka plan görevi kısıtlı: '+statusName;
-  }catch(cause){
-    error=cause instanceof Error?cause.message:'Bilinmeyen arka plan kayıt hatası';
-  }
-  try{
-    const previous=await readWidgetBackgroundReport();
-    await AsyncStorage.setItem(STATUS_KEY,JSON.stringify({
-      lastAttempt:previous?.lastAttempt??Date.now(),
-      lastSuccess:previous?.lastSuccess??null,
-      lastNetwork:previous?.lastNetwork??null,
-      status:previous?.status??'waiting-data',
-      detail:previous?.detail??'Arka plan görev durumu kontrol edildi',
-      registrationStatus:statusName,registrationError:error,registered,
-    } satisfies WidgetBackgroundReport));
-  }catch{/* native widget foreground publish remains independent */}
-  return registered;
-}
