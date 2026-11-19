@@ -272,6 +272,8 @@ export function CompanionProvider({children}:PropsWithChildren){
             detail:'Android widget takvimi zaten güncel. Gereksiz tekrar yayın atlandı.',
             installedNext:native?.installedNext,
             installedDay:native?.installedDay,
+            installedCompact:native?.installedCompact,
+            installedFocus:native?.installedFocus,
             lastNativeWriteAt:native?.lastAppliedAt,
             nextNativeAlarmAt:native?.nextAlarmAt,
             nativePersisted:true,launcherConfirmed:false,

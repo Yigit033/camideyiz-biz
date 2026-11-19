@@ -27,6 +27,19 @@ public final class WidgetBoundaryAsyncRefresh {
 
   private WidgetBoundaryAsyncRefresh() {}
 
+  /** Explicit app theme changes have no pending broadcast result. */
+  public static void dispatchAppEvent(Context context,String reason){
+    final Context app=context.getApplicationContext();
+    try {
+      WORKER.execute(()->{
+        try{WidgetBoundaryScheduler.refresh(app,reason);}
+        catch(Exception error){Log.e(TAG,"App widget refresh failed: "+reason,error);}
+      });
+    }catch(RejectedExecutionException error){
+      Log.e(TAG,"App widget refresh queue unavailable",error);
+    }
+  }
+
   public static void dispatch(Context context,
       BroadcastReceiver.PendingResult pending,String reason) {
     final Context app=context.getApplicationContext();

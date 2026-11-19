@@ -52,7 +52,9 @@ const asyncRefresh=read('apps/mobile/plugins/widget-native/WidgetBoundaryAsyncRe
 const configPlugin=read('apps/mobile/plugins/withWidgetBoundaryBridge.js');
 const nativeScheduler=read('apps/mobile/plugins/widget-native/WidgetBoundaryScheduler.java');
 assert.match(configPlugin,/'WidgetBoundaryAsyncRefresh.java'/);
-for(const component of [receiver,nextProvider,dayProvider]){
+const compactProvider=read('apps/mobile/plugins/widget-native/CompactPrayerWidgetProvider.java');
+const focusProvider=read('apps/mobile/plugins/widget-native/PrayerFocusWidgetProvider.java');
+for(const component of [receiver,nextProvider,dayProvider,compactProvider,focusProvider]){
   assert.match(component,/WidgetBoundaryAsyncRefresh\.dispatch\(context,goAsync\(\),/,
     'every native widget broadcast must goAsync before doing calendar IO');
   assert.doesNotMatch(component,/WidgetBoundaryScheduler\.refresh\(/,
@@ -60,6 +62,8 @@ for(const component of [receiver,nextProvider,dayProvider]){
 }
 assert.match(nextProvider,/void onDisabled\(Context context\)/);
 assert.match(dayProvider,/void onDisabled\(Context context\)/);
+assert.match(compactProvider,/void onDisabled\(Context context\)/);
+assert.match(focusProvider,/void onDisabled\(Context context\)/);
 assert.match(asyncRefresh,/Executors\.newSingleThreadExecutor\(/);
 assert.match(asyncRefresh,/finally\s*\{[\s\S]*?pending\.finish\(\)/,
   'goAsync pending result must finish even if native update fails');

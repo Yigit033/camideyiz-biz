@@ -7,9 +7,13 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
+import android.os.Build;
+import android.os.SystemClock;
 import android.util.Log;
-import android.util.TypedValue;
+import android.graphics.Color;
 import android.widget.RemoteViews;
+import android.view.View;
 
 import biz.camideyiz.app.R;
 
@@ -39,7 +43,9 @@ public final class WidgetBoundaryScheduler {
   private static final String PREFS = "camideyiz.widget.boundaries.v1";
   private static final String CALENDAR = "timeline";
   private static final String ACTION = "biz.camideyiz.app.WIDGET_BOUNDARY";
-  private static final String[] NAMES = {"NextPrayerWidget", "PrayerDayWidget"};
+  private static final String[] NAMES = {
+    "NextPrayerWidget","PrayerDayWidget","CompactPrayerWidget","PrayerFocusWidget"
+  };
   // Published days may remain valid offline up to their 16-day coverage.
   // Do not erase a still-valid published timetable after only 72 hours.
   private static final long MAX_AGE = 16L * 24 * 60 * 60 * 1000;
@@ -50,6 +56,52 @@ public final class WidgetBoundaryScheduler {
   private static SharedPreferences prefs(Context context) {
     return context.getApplicationContext()
         .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+  }
+
+  /**
+   * Visual mode belongs to the user's app preference. Keep a tiny native copy
+   * so Android can render a consistent theme without waking React.
+   */
+  public static synchronized boolean setAppearance(
+      Context context,String mode,String resolved){
+    if(!("system".equals(mode)||"light".equals(mode)||"dark".equals(mode))||
+       !("light".equals(resolved)||"dark".equals(resolved)))
+      throw new IllegalArgumentException("Unsupported widget theme");
+    SharedPreferences local=prefs(context);
+    if(mode.equals(local.getString("appearance","system")) &&
+        resolved.equals(local.getString("resolvedAppearance","unknown")))return false;
+    local.edit().putString("appearance",mode)
+        .putString("resolvedAppearance",resolved).apply();
+    return true;
+  }
+
+  private static boolean lightTheme(Context context){
+    String mode=prefs(context).getString("appearance","system");
+    if("light".equals(mode))return true;
+    if("dark".equals(mode))return false;
+    return (context.getResources().getConfiguration().uiMode &
+        Configuration.UI_MODE_NIGHT_MASK)!=Configuration.UI_MODE_NIGHT_YES;
+  }
+
+  /**
+   * A native Chronometer counts down in the LAUNCHER without per-second
+   * JS/network/WorkManager wakeups. Use elapsedRealtime, not wall-clock time.
+   * The next boundary alarm refreshes the snapshot; Doze may delay rollover.
+   */
+  private static void setCountdown(RemoteViews card,int viewId,long nextAt,long now){
+    if(nextAt<=now){
+      card.setChronometer(viewId,SystemClock.elapsedRealtime(),null,false);
+      card.setTextViewText(viewId,"—");
+      return;
+    }
+    long remaining=nextAt-now;
+    if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.N){
+      card.setChronometer(viewId,SystemClock.elapsedRealtime()+remaining,null,true);
+      card.setChronometerCountDown(viewId,true);
+    }else{
+      card.setChronometer(viewId,SystemClock.elapsedRealtime(),null,false);
+      card.setTextViewText(viewId,((remaining+59_999)/60_000)+" dk");
+    }
   }
 
   private static JSONObject parseAndValidate(String raw, long now) throws JSONException {
@@ -312,50 +364,103 @@ public final class WidgetBoundaryScheduler {
     String city=props.optString("city","Konum seçilmedi");
     String next=props.optString("nextName","");
     String time=props.optString("nextTime","");
+    long nextAt=ready?props.optLong("nextAt",0):0;
+    long now=System.currentTimeMillis();
+    boolean light=lightTheme(context);
     int count=0;
 
+    // 2×2: published prayer clock and a native, launcher-driven countdown.
     int[] small=manager.getAppWidgetIds(component(context,NAMES[0]));
     if(small.length>0){
-      RemoteViews card=new RemoteViews(context.getPackageName(),R.layout.widget_next_prayer);
-      card.setTextViewText(R.id.widget_city,ready?city:"Takvim henüz yüklenmedi");
-      card.setTextViewText(R.id.widget_next_label,ready?"Sıradaki vakit · "+next
-          :"Uygulama takvimini aç");
-      card.setTextViewText(R.id.widget_next_time,ready?time:"Vakitleri yükle");
-      card.setTextViewTextSize(R.id.widget_next_time,TypedValue.COMPLEX_UNIT_SP,
-          ready?28:17);
-      card.setTextViewText(R.id.widget_hint,ready
-          ?"Güncelleme "+props.optString("updatedClock","")
-          :"Takvimi açmak için dokun");
+      RemoteViews card=new RemoteViews(context.getPackageName(),
+          light?R.layout.widget_next_prayer_light:R.layout.widget_next_prayer);
+      card.setTextViewText(R.id.widget_city,ready?city:"Takvim bekleniyor");
+      card.setTextViewText(R.id.widget_next_label,ready?"SIRADAKİ VAKİT":"TAKVİM BEKLENİYOR");
+      card.setTextViewText(R.id.widget_next_name,ready?next:"—");
+      card.setTextViewText(R.id.widget_next_time,ready?time:"--:--");
+      setCountdown(card,R.id.widget_next_countdown,nextAt,now);
+      card.setViewVisibility(R.id.widget_next_countdown_row,ready?View.VISIBLE:View.GONE);
       card.setOnClickPendingIntent(R.id.widget_root,launchAction(context,41018));
       manager.updateAppWidget(small,card);
       count+=small.length;
     }
 
+    // 4×2: six PUBLISHED hours, highlight the actual upcoming prayer.
     int[] day=manager.getAppWidgetIds(component(context,NAMES[1]));
+    JSONArray times=ready?props.getJSONArray("times"):new JSONArray();
     if(day.length>0){
-      RemoteViews card=new RemoteViews(context.getPackageName(),R.layout.widget_prayer_day);
-      card.setTextViewText(R.id.widget_day_city,
-          ready?city+" · Bugünün vakitleri":"Takvim henüz yüklenmedi");
-      JSONArray times=ready?props.getJSONArray("times"):new JSONArray();
-      int[] cells={
-        R.id.widget_day_time_0,R.id.widget_day_time_1,R.id.widget_day_time_2,
-        R.id.widget_day_time_3,R.id.widget_day_time_4,R.id.widget_day_time_5
-      };
-      for(int i=0;i<cells.length;i++){
-        if(i<times.length()){
-          JSONObject row=times.getJSONObject(i);
-          card.setTextViewText(cells[i],
-              row.optString("label","")+"  "+row.optString("time",""));
-        }else{
-          card.setTextViewText(cells[i],i==0?"Vakitleri yükle":"—");
-        }
+      RemoteViews card=new RemoteViews(context.getPackageName(),
+          light?R.layout.widget_prayer_day_light:R.layout.widget_prayer_day);
+      card.setTextViewText(R.id.widget_day_city,ready?city:"Takvim bekleniyor");
+      int[] rows={R.id.widget_day_row_0,R.id.widget_day_row_1,
+          R.id.widget_day_row_2,R.id.widget_day_row_3,
+          R.id.widget_day_row_4,R.id.widget_day_row_5};
+      int[] icons={R.id.widget_day_icon_0,R.id.widget_day_icon_1,
+          R.id.widget_day_icon_2,R.id.widget_day_icon_3,
+          R.id.widget_day_icon_4,R.id.widget_day_icon_5};
+      int[] labels={R.id.widget_day_label_0,R.id.widget_day_label_1,
+          R.id.widget_day_label_2,R.id.widget_day_label_3,
+          R.id.widget_day_label_4,R.id.widget_day_label_5};
+      int[] clocks={R.id.widget_day_time_0,R.id.widget_day_time_1,
+          R.id.widget_day_time_2,R.id.widget_day_time_3,
+          R.id.widget_day_time_4,R.id.widget_day_time_5};
+      String[] symbols={"◒","☀","☼","☀","◓","☾"};
+      int normal=Color.parseColor(light?"#123D34":"#F8F4E9");
+      int highlight=Color.parseColor(light?"#976B2F":"#F0CB8B");
+      for(int i=0;i<6;i++){
+        JSONObject value=i<times.length()?times.getJSONObject(i):null;
+        String label=value==null?"—":value.optString("label","—");
+        String clock=value==null?"--:--":value.optString("time","--:--");
+        boolean selected=ready && label.equals(next);
+        card.setTextViewText(icons[i],symbols[i]);
+        card.setTextViewText(labels[i],label);
+        card.setTextViewText(clocks[i],clock);
+        card.setTextColor(labels[i],selected?highlight:normal);
+        card.setTextColor(clocks[i],selected?highlight:normal);
+        card.setInt(rows[i],"setBackgroundResource",selected?
+          (light?R.drawable.widget_active_light:R.drawable.widget_active_dark):
+          R.drawable.widget_row_clear);
       }
-      card.setTextViewText(R.id.widget_day_footer,
-          ready?"Sıradaki · "+next+" "+time
-            :"Uygulamayı açmak için widget'a dokun");
+      card.setTextViewText(R.id.widget_day_footer,ready
+          ?"Sıradaki · "+next+"  "+time:"Takvimi açıp eşitle");
       card.setOnClickPendingIntent(R.id.widget_day_root,launchAction(context,41019));
       manager.updateAppWidget(day,card);
       count+=day.length;
+    }
+
+    // 1×1: intentionally no countdown, to protect readability at 1 cell.
+    int[] compact=manager.getAppWidgetIds(component(context,NAMES[2]));
+    if(compact.length>0){
+      RemoteViews card=new RemoteViews(context.getPackageName(),
+          light?R.layout.widget_compact_prayer_light:R.layout.widget_compact_prayer);
+      card.setTextViewText(R.id.widget_compact_name,ready?next:"Takvim");
+      card.setTextViewText(R.id.widget_compact_time,ready?time:"--:--");
+      card.setOnClickPendingIntent(R.id.widget_compact_root,launchAction(context,41020));
+      manager.updateAppWidget(compact,card);
+      count+=compact.length;
+    }
+
+    // 4×2: focus on the current interval and the remaining time to next.
+    int[] focus=manager.getAppWidgetIds(component(context,NAMES[3]));
+    if(focus.length>0){
+      RemoteViews card=new RemoteViews(context.getPackageName(),
+          light?R.layout.widget_prayer_focus_light:R.layout.widget_prayer_focus);
+      int nextIndex=-1;
+      for(int i=0;i<times.length();i++){
+        if(next.equals(times.getJSONObject(i).optString("label",""))){
+          nextIndex=i;break;
+        }
+      }
+      String current=nextIndex<0?"—":
+          times.getJSONObject((nextIndex+5)%6).optString("label","—");
+      card.setTextViewText(R.id.widget_focus_city,ready?city:"Takvim bekleniyor");
+      card.setTextViewText(R.id.widget_focus_current,ready?current:"—");
+      card.setTextViewText(R.id.widget_focus_next,ready?"SIRADAKİ · "+next:"SIRADAKİ VAKİT");
+      card.setTextViewText(R.id.widget_focus_time,ready?"Saat "+time:"Takvimi açıp eşitle");
+      setCountdown(card,R.id.widget_focus_countdown,nextAt,now);
+      card.setOnClickPendingIntent(R.id.widget_focus_root,launchAction(context,41021));
+      manager.updateAppWidget(focus,card);
+      count+=focus.length;
     }
     return count;
   }
@@ -392,6 +497,9 @@ public final class WidgetBoundaryScheduler {
     result.put("supported",true);
     result.put("installedNext",installedCount(context,NAMES[0]));
     result.put("installedDay",installedCount(context,NAMES[1]));
+    result.put("installedCompact",installedCount(context,NAMES[2]));
+    result.put("installedFocus",installedCount(context,NAMES[3]));
+    result.put("widgetTheme",lightTheme(context)?"light":"dark");
     long last=local.getLong("lastAppliedAt",0);
     result.put("lastAppliedAt",last);
     result.put("nextAlarmAt",local.getLong("nextAlarmAt",0));
@@ -432,7 +540,8 @@ public final class WidgetBoundaryScheduler {
     long sourceAge=local.getLong("calendarSourceAt",0);
     boolean ready=local.getBoolean("lastReady",false);
     String error=local.getString("lastError","");
-    int count=installedCount(context,NAMES[0])+installedCount(context,NAMES[1]);
+    int count=0;
+    for(String name:NAMES)count+=installedCount(context,name);
     String stage=local.getString("lastTransferStage","never-attempted");
     String transferError=local.getString("lastTransferError","");
     String state=!error.isEmpty()||!transferError.isEmpty()||

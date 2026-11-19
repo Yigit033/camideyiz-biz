@@ -12,6 +12,7 @@ import {readStartupDiagnostics} from '@/features/performance/startupMetrics';
 type NativeWidgetHealth={
   supported:true;nativeCityId:number;activeCityId:number;
   installedNext:number;installedDay:number;
+  installedCompact?:number;installedFocus?:number;widgetTheme?:string;
   lastTransferAttemptAt:number;lastTransferStage:string;
   lastTransferDetail:string;lastTransferError:string;
   lastReady:boolean;persisted:boolean;hasTimeline:boolean;state:string;
@@ -57,9 +58,10 @@ function displayState(status:NativeWidgetHealth|null,cityId:number|null){
   if(!status)return {title:'Widget motoruna erişilemiyor',
     description:'Bu APK eski olabilir veya native modüle bağlanılamıyor.',
     icon:'alert-triangle' as const};
-  if(status.installedNext+status.installedDay===0)return {
+  if(status.installedNext+status.installedDay+
+      (status.installedCompact??0)+(status.installedFocus??0)===0)return {
     title:'Ana ekranda kurulu widget yok',
-    description:'Telefonun widget menüsünden iki Camideyiz Biz widgetını ekle.',
+    description:'Telefonun widget menüsünden dört Camideyiz Biz tasarımından birini ekle.',
     icon:'smartphone' as const};
   if(cityId!==null && status.activeCityId!==cityId)return {
     title:status.activeCityId===0?'İlçe native belleğe henüz aktarılmadı':
@@ -117,7 +119,8 @@ export function Widget3Diagnostics(){
   },[query,companion.widget.lastNativeWriteAt]);
   const description=useMemo(()=>displayState(health,cityId),[health,cityId]);
   const selected=health!==null&&cityId!==null&&health.nativeCityId===cityId;
-  const installed=(health?.installedNext??0)+(health?.installedDay??0);
+  const installed=(health?.installedNext??0)+(health?.installedDay??0)+
+    (health?.installedCompact??0)+(health?.installedFocus??0);
   const repair=async()=>{
     if(busy)return;
     setBusy(true);
@@ -199,7 +202,10 @@ export function Widget3Diagnostics(){
         ['Son eşitleme sonucu',companion.widget.detail],
         ['Android native bağlantısı',
           hasAndroidNativeWidgetBridge()?'Hazır — gerçek APK köprüsü':'Eksik — APK desteği yok'],
-        ['Kurulu widgetlar',String(health?.installedNext??0)+' / '+String(health?.installedDay??0)],
+        ['Kurulu widgetlar (1×1 / 2×2 / Günlük / Odak)',
+          [health?.installedCompact??0,health?.installedNext??0,
+            health?.installedDay??0,health?.installedFocus??0].join(' / ')],
+        ['Widget teması',health?.widgetTheme??'Sistem'],
         ['Native takvim',health?.hasTimeline?'Kayıtlı':'Yok'],
         ['Son yayın',clock(health?.calendarSourceAt??0)],
         ['Takvim kapsamı',clock(health?.calendarEndsAt??0)],

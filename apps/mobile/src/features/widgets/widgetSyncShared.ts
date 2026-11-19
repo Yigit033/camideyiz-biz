@@ -5,6 +5,7 @@ export type WidgetSyncResult={
   available:boolean;updated:boolean;detail:string;
   /** Native storage and installed-host diagnostics, never visual proof. */
   installedNext?:number;installedDay?:number;
+  installedCompact?:number;installedFocus?:number;
   lastNativeWriteAt?:number;nextNativeAlarmAt?:number;
   nativePersisted?:boolean;launcherConfirmed?:false;
 };

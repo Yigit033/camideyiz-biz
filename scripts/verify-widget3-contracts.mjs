@@ -41,7 +41,7 @@ assert.match(native,/result\.put\("launcherConfirmed",false\)/,
   'app must not claim OS launcher pixel acknowledgement');
 assert.match(bridge,/public void refreshNow\(Promise promise\)/,
   'one-tap repair bridge required');
-assert.match(receiver,/WidgetBoundaryScheduler\.refresh\(context\.getApplicationContext\(\),"receiver:"\+action\)/);
+assert.match(receiver,/WidgetBoundaryAsyncRefresh\.dispatch\(context,goAsync\(\),"receiver:"\+action\)/);
 assert.match(nativeBridge,/before\.nativeCityId!==cityId/,
   'must never recover a different district');
 assert.match(sync,/repairPersistedAndroidWidget\(cityId\)/,
@@ -52,7 +52,8 @@ assert.match(panel,/Takvimi eşitle ve çizdir/);
 assert.match(panel,/Raporu paylaş/);
 assert.match(panel,/Native kayıt ve güncelleme istekleri gerçek ana ekran piksellerinin doğrulanması değildir/);
 assert.match(screen,/<Widget3Diagnostics\/>/);
-for(const file of ['widget_next_prayer_info.xml','widget_prayer_day_info.xml']){
+for(const file of ['widget_next_prayer_info.xml','widget_prayer_day_info.xml',
+  'widget_compact_prayer_info.xml','widget_prayer_focus_info.xml']){
   const source=read('apps/mobile/plugins/widget-native/'+file);
   assert.match(source,/android:updatePeriodMillis="1800000"/,
     'Android widget host periodic fallback must remain enabled: '+file);

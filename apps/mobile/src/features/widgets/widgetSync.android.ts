@@ -40,7 +40,8 @@ export async function syncPrayerWidgets(
   };
   try{
     const native=await publishAndroidWidgetTimeline(days,nowMs,cityId,sourceAt);
-    const total=native.installedNext+native.installedDay;
+    const total=native.installedNext+native.installedDay+
+      (native.installedCompact??0)+(native.installedFocus??0);
     const result:WidgetSyncResult={
       available:true,
       updated:native.persisted&&native.lastReady&&
@@ -51,6 +52,7 @@ export async function syncPrayerWidgets(
           +'Ekranı cihaz üzerinde karşılaştır.',
       installedNext:native.installedNext,
       installedDay:native.installedDay,
+      installedCompact:native.installedCompact,installedFocus:native.installedFocus,
       lastNativeWriteAt:native.lastAppliedAt,
       nextNativeAlarmAt:native.nextAlarmAt,
       nativePersisted:native.persisted,
@@ -75,7 +77,8 @@ export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResu
   try{
     const status=await repairPersistedAndroidWidget(cityId);
     if(!status)return null;
-    const count=status.installedNext+status.installedDay;
+    const count=status.installedNext+status.installedDay+
+      (status.installedCompact??0)+(status.installedFocus??0);
     return {
       available:true,updated:status.persisted&&status.lastReady&&!status.lastError,
       detail:status.lastError
@@ -84,6 +87,7 @@ export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResu
           ?'Seçilen ilçenin kayıtlı yayımlanmış takvimi tekrar çizdirildi. '+count+' widget isteği gönderildi.'
           :'Kayıtlı takvimin geçerli günü kalmadı; güncel yayın bekleniyor.',
       installedNext:status.installedNext,installedDay:status.installedDay,
+      installedCompact:status.installedCompact,installedFocus:status.installedFocus,
       lastNativeWriteAt:status.lastAppliedAt,nextNativeAlarmAt:status.nextAlarmAt,
       nativePersisted:status.persisted,launcherConfirmed:false,
     };

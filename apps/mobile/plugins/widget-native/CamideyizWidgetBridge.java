@@ -71,6 +71,16 @@ public final class CamideyizWidgetBridge extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
+  public void setAppearance(String mode,String resolved,Promise promise){
+    try {
+      ReactApplicationContext app=getReactApplicationContext();
+      boolean changed=WidgetBoundaryScheduler.setAppearance(app,mode,resolved);
+      if(changed)WidgetBoundaryAsyncRefresh.dispatchAppEvent(app,"theme:changed");
+      promise.resolve(changed);
+    }catch(Exception error){promise.reject("WIDGET_APPEARANCE",error);}
+  }
+
+  @ReactMethod
   public void getStatus(Promise promise) {
     try {
       promise.resolve(WidgetBoundaryScheduler.status(

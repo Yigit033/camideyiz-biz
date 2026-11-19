@@ -21,11 +21,28 @@ const PROVIDERS=[
     info:'widget_next_prayer_info'},
   {name:'PrayerDayWidgetProvider',title:'Günlük Namaz Vakitleri',
     info:'widget_prayer_day_info'},
+  {name:'CompactPrayerWidgetProvider',title:'Tekli Vakit',
+    info:'widget_compact_prayer_info'},
+  {name:'PrayerFocusWidgetProvider',title:'Vakit Odağı',
+    info:'widget_prayer_focus_info'},
 ];
 const RESOURCES={
-  layout:['widget_next_prayer.xml','widget_prayer_day.xml'],
-  drawable:['widget_bg.xml'],
-  xml:['widget_next_prayer_info.xml','widget_prayer_day_info.xml'],
+  layout:[
+    'widget_next_prayer.xml','widget_next_prayer_light.xml',
+    'widget_prayer_day.xml','widget_prayer_day_light.xml',
+    'widget_compact_prayer.xml','widget_compact_prayer_light.xml',
+    'widget_prayer_focus.xml','widget_prayer_focus_light.xml',
+  ],
+  drawable:[
+    'widget_bg.xml','widget_bg_light.xml',
+    'widget_chip_dark.xml','widget_chip_light.xml',
+    'widget_active_dark.xml','widget_active_light.xml',
+    'widget_row_clear.xml','widget_mark_dark.xml','widget_mark_light.xml',
+  ],
+  xml:[
+    'widget_next_prayer_info.xml','widget_prayer_day_info.xml',
+    'widget_compact_prayer_info.xml','widget_prayer_focus_info.xml',
+  ],
 };
 
 function withReceiver(config){
