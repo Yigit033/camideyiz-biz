@@ -235,6 +235,10 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
   const selectedIndex=manualIndex??currentIndex;
   const selectedPrayer=SCHEDULE.times[selectedIndex];
   const compact=height<730;
+  useEffect(()=>{
+    const frame=requestAnimationFrame(()=>markStartup('configured-home-frame'));
+    return ()=>cancelAnimationFrame(frame);
+  },[]);
 
   return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:colors.canvas}}>
     <Atmosphere dark={dark}/>
@@ -401,6 +405,10 @@ function CalendarLoadingHome({official,now}:{
     :official.status==='choose-location'
       ?'İl ve ilçeni seçerek vakitleri görüntüleyebilirsin.'
       :'Takvim verisi henüz doğrulanamadı. Bağlantını kontrol edebilir veya tekrar deneyebilirsin.';
+  useEffect(()=>{
+    const frame=requestAnimationFrame(()=>markStartup('loading-home-frame'));
+    return ()=>cancelAnimationFrame(frame);
+  },[]);
   return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:colors.canvas}}>
     <Atmosphere dark={dark}/>
     <ScrollView showsVerticalScrollIndicator={false}
