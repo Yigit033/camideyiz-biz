@@ -18,7 +18,7 @@ import {clearNativeAdhan} from './nativeAdhan';
 import {useAnnouncementSubscription,type AnnouncementState}
   from './useAnnouncementSubscription';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
-import {markStartup} from '@/features/performance/startupMetrics';
+import {markStartup,recordStartupOperation} from '@/features/performance/startupMetrics';
 import {widgetNeedsForegroundPublish,type NativeWidgetSummary} from '@/features/widgets/widgetForegroundGate';
 import type {LastWidgetTransfer} from '@/features/widgets/widgetBackground';
 import {ensureWidgetBackgroundRefresh,readWidgetBackgroundReport,
@@ -229,10 +229,12 @@ export function CompanionProvider({children}:PropsWithChildren){
     if(!ready||!maintenanceReady)return;
     let live=true;
     (async()=>{
+      const registeredAt=Date.now();
       try{
         const registered=await ensureWidgetBackgroundRefresh();
         if(live)setBackgroundRegistered(registered);
       }catch{if(live)setBackgroundRegistered(false);}
+      finally{recordStartupOperation('widget-background-registration',registeredAt);}
       const report=await readWidgetBackgroundReport();
       if(live)setBackgroundReport(report);
     })().catch(()=>undefined);
@@ -258,7 +260,9 @@ export function CompanionProvider({children}:PropsWithChildren){
     const publishedAt=source.days?Date.parse(source.days.today.fetchedAt):null;
     const update=async()=>{
       try{
+        const checkedAt=Date.now();
         const native=await getNativeWidgetSummary();
+        recordStartupOperation('widget-health-check',checkedAt);
         if(!active||version!==widgetVersion.current)return;
         if(Platform.OS==='android'&&
            !widgetNeedsForegroundPublish(native,place.id,Date.now())){
@@ -275,15 +279,21 @@ export function CompanionProvider({children}:PropsWithChildren){
           return;
         }
         if(Platform.OS==='android')markStartup('widget-publish-needed');
-        const engine=await loadWidgetEngine();
-        if(!active||version!==widgetVersion.current)return;
-        const result=await engine.syncForegroundWidgetCalendar(
-          place,sourceKind,days,publishedAt,Date.now());
-        if(active&&version===widgetVersion.current){
-          setWidget(result);
-          const record=await engine.readLastWidgetTransfer();
-          if(active&&version===widgetVersion.current)
-            setLastWidgetTransfer(record?.cityId===place?.id?record:null);
+        const publishAt=Date.now();
+        let result:WidgetSyncResult;
+        try{
+          const engine=await loadWidgetEngine();
+          if(!active||version!==widgetVersion.current)return;
+          result=await engine.syncForegroundWidgetCalendar(
+            place,sourceKind,days,publishedAt,Date.now());
+          if(active&&version===widgetVersion.current){
+            setWidget(result);
+            const record=await engine.readLastWidgetTransfer();
+            if(active&&version===widgetVersion.current)
+              setLastWidgetTransfer(record?.cityId===place?.id?record:null);
+          }
+        }finally{
+          recordStartupOperation('widget-native-publish',publishAt);
         }
       }catch(error){
         if(active&&version===widgetVersion.current)setWidget({
@@ -303,6 +313,7 @@ export function CompanionProvider({children}:PropsWithChildren){
     const id=++syncVersion.current;
     let active=true;
     const reconcile=async()=>{
+      const reconcileAt=Date.now();
       setSyncing(true);
       try{
         // If the upstream is temporarily offline, do not erase a user's
@@ -323,6 +334,7 @@ export function CompanionProvider({children}:PropsWithChildren){
           setSync(report);setPermission(report.permission);
         }
       }finally{
+        recordStartupOperation('notification-reconcile',reconcileAt);
         if(active&&id===syncVersion.current)setSyncing(false);
       }
     };
