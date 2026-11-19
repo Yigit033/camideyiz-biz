@@ -1,33 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_slim_root" android:layout_width="match_parent"
- android:layout_height="match_parent" android:background="@drawable/widget_bg"
- android:orientation="vertical" android:gravity="center"
- android:padding="6dp">
- <ImageView android:layout_width="28dp" android:layout_height="20dp"
- android:src="@drawable/widget_brand_symbol" android:scaleType="fitCenter"
- android:contentDescription="Camideyiz Biz logosu" />
- <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Camideyiz Biz" android:textColor="#F2F7FB" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="4dp" android:textStyle="bold"/>
+ android:layout_height="match_parent" android:orientation="vertical"
+ android:gravity="center" android:padding="5dp"
+ android:background="@drawable/widget_bg">
+ <ImageView android:layout_width="25dp" android:layout_height="17dp"
+  android:src="@drawable/widget_brand_symbol" android:scaleType="fitCenter"
+  android:contentDescription="Camideyiz Biz"/>
+ <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Camideyiz Biz" android:textColor="#F2F7FB" android:textSize="8sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold" android:layout_marginTop="2dp" />
 
  <TextView android:layout_width="match_parent" android:layout_height="1dp"
-  android:layout_marginTop="10dp" android:layout_marginBottom="10dp"
-  android:background="#2B536B" android:text=""/>
- <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SIRADAKİ" android:textColor="#B2C6D6" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:letterSpacing=".05"/>
+  android:text="" android:layout_marginTop="6dp" android:layout_marginBottom="6dp"
+  android:background="#2B536B"/>
+ <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SIRADAKİ" android:textColor="#B2C6D6" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  />
 
- <TextView android:id="@+id/widget_slim_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim" android:textColor="#F2F7FB" android:textSize="15sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
+ <TextView android:id="@+id/widget_slim_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim" android:textColor="#F2F7FB" android:textSize="14sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold" android:layout_marginTop="3dp" />
 
- <TextView android:id="@+id/widget_slim_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#D8BF8D" android:textSize="24sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="2dp" android:textStyle="bold"/>
+ <TextView android:id="@+id/widget_slim_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#D8BF8D" android:textSize="21sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold" android:layout_marginTop="1dp" />
 
- <LinearLayout android:layout_width="match_parent" android:layout_height="1dp"
-  android:layout_marginTop="12dp" android:layout_marginBottom="11dp"
-  android:background="#2B536B" android:orientation="vertical"/>
- <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="KALAN SÜRE" android:textColor="#B2C6D6" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+ <TextView android:layout_width="match_parent" android:layout_height="1dp"
+  android:text="" android:layout_marginTop="6dp" android:layout_marginBottom="6dp"
+  android:background="#2B536B"/>
+ <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="KALAN SÜRE" android:textColor="#B2C6D6" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  />
 
  <Chronometer android:id="@+id/widget_slim_countdown"
   android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:layout_marginTop="5dp" android:gravity="center" android:text="--:--"
-  android:textColor="#F2F7FB" android:textSize="17sp" android:textStyle="bold"
+  android:layout_marginTop="3dp" android:text="--:--"
+  android:textColor="#F2F7FB" android:textSize="15sp" android:textStyle="bold"
   android:singleLine="true" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_slim_city" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textColor="#B2C6D6" android:textSize="10sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="10dp"/>
-
 </LinearLayout>

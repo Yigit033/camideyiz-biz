@@ -574,7 +574,6 @@ public final class WidgetBoundaryScheduler {
         light?R.layout.widget_slim_prayer_light:R.layout.widget_slim_prayer);
       card.setTextViewText(R.id.widget_slim_name,ready?next:"Takvim");
       card.setTextViewText(R.id.widget_slim_time,ready?time:"--:--");
-      card.setTextViewText(R.id.widget_slim_city,ready?city:"Takvim bekleniyor");
       setCountdown(card,R.id.widget_slim_countdown,nextAt,now);
       card.setOnClickPendingIntent(R.id.widget_slim_root,launchAction(context,41025));
       manager.updateAppWidget(slim,card);

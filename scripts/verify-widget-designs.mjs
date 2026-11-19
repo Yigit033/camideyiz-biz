@@ -55,7 +55,7 @@ assert.match(scheduler,/installedPremiumRing/);
 assert.match(scheduler,/installedSlim/);
 assert.match(read(p+'widget_slim_prayer_info.xml'),/targetCellWidth="1"/);
 assert.match(read(p+'widget_slim_prayer_info.xml'),/targetCellHeight="2"/);
-assert.match(read(p+'widget_compact_prayer.xml'),/android:textSize="15sp"/);
+assert.match(read(p+'widget_compact_prayer.xml'),/android:textSize="14sp"/);
 assert.doesNotMatch(read(p+'widget_compact_prayer.xml'),/android:text="Kalan "/,
   '1×1 must never horizontally overflow with both label and HH:MM:SS ticker');
 for(const name of ['widget_next_prayer','widget_prayer_focus']){
