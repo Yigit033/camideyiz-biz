@@ -52,6 +52,10 @@ assert.match(layout,/import '@\/features\/widgets\/widgetTaskRegistration'/);
 assert.doesNotMatch(layout,/import '@\/features\/widgets\/widgetBackground'/,
   'global app must not eagerly load remote calendar and notification maintenance');
 assert.match(task,/TaskManager\.defineTask\(WIDGET_BACKGROUND_TASK,async\(\)=>/);
+assert.match(task,/if\(AppState\.currentState==='active'\)/,
+  'headless WorkManager must yield when the real app is foreground');
+assert.match(widgets,/if\(AppState\.currentState==='active'\)return true/,
+  'in-flight background calendar fetch must not compete with UI on resume');
 assert.match(task,/await import\('\.\/widgetBackground'\)/,
   'headless task executor must import heavier backend only on execution');
 assert.doesNotMatch(widgets,/TaskManager\.defineTask\(/,
@@ -70,6 +74,10 @@ assert.match(audio,/markStartup\('audio-source-request'\)/);
 const metrics=read('apps/mobile/src/features/performance/startupMetrics.ts');
 assert.match(metrics,/worstEventLoopLagMs/);
 assert.match(metrics,/currentAppState/);
+assert.match(metrics,/gapsOver2000Ms/,
+  'event-loop lag must be measurable independently of source timeouts');
+assert.match(metrics,/foregroundResumesObserved/,
+  'report must distinguish initial JS process from later foreground session');
 assert.match(companion,/if\(!ready\|\|!maintenanceReady\)return;/,
   'notification scheduling must not compete with first interactive paint');
 console.log('Startup QA: stale-while-revalidate verified hours, lazy widget engine, deduped maintenance, responsive queued offline adhan and render memoization');
