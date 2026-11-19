@@ -510,8 +510,8 @@ public final class WidgetBoundaryScheduler {
       }
       card.setTextViewText(R.id.widget_strip_next,
           ready?next+" vaktine kalan süre":"Takvim bekleniyor");
-      card.setViewVisibility(R.id.widget_strip_remaining_row,
-          ready?View.VISIBLE:View.GONE);
+      // Keep the footer visible even before the validated calendar arrives:
+      // show "Takvim bekleniyor" and a neutral dash rather than an empty area.
       setCountdown(card,R.id.widget_strip_countdown,nextAt,now);
       card.setOnClickPendingIntent(R.id.widget_strip_root,launchAction(context,41022));
       manager.updateAppWidget(strip,card);

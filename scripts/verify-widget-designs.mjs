@@ -66,8 +66,8 @@ for(const suffix of ['', '_light']){
     assert.match(strip,new RegExp('android:id="@\\+id/widget_strip_label_'+i+'"'));
     assert.match(strip,new RegExp('android:id="@\\+id/widget_strip_time_'+i+'"'));
   }
-  assert.equal((strip.match(/android:layout_weight="1"/g)||[]).length,7,
-    'six equal prayer cells plus one flex footer content region');
+  assert.equal((strip.match(/android:layout_weight="1"/g)||[]).length,8,
+    'one weighted header, six equal prayer cells and one flex footer content region');
   assert.match(strip,/android:id="@\+id\/widget_strip_next"/);
   assert.match(strip,/<Chronometer[\s\S]*?widget_strip_countdown/);
   assert.match(strip,/@drawable\/widget_brand_symbol/);
