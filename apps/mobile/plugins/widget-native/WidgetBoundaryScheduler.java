@@ -555,10 +555,23 @@ public final class WidgetBoundaryScheduler {
         int[] hourClocks={R.id.widget_ring_premium_clock_0,R.id.widget_ring_premium_clock_1,
           R.id.widget_ring_premium_clock_2,R.id.widget_ring_premium_clock_3,
           R.id.widget_ring_premium_clock_4,R.id.widget_ring_premium_clock_5};
+        int[] hourCells={R.id.widget_ring_premium_cell_0,R.id.widget_ring_premium_cell_1,
+          R.id.widget_ring_premium_cell_2,R.id.widget_ring_premium_cell_3,
+          R.id.widget_ring_premium_cell_4,R.id.widget_ring_premium_cell_5};
+        int mainText=Color.parseColor("#F2F7FB");
+        int secondaryText=Color.parseColor("#B2C6D6");
+        int activeText=Color.parseColor("#E5C88C");
         for(int i=0;i<6;i++){
           JSONObject value=i<times.length()?times.getJSONObject(i):null;
-          card.setTextViewText(hourLabels[i],value==null?"—":value.optString("label","—"));
+          String prayer=value==null?"—":value.optString("label","—");
+          boolean highlighted=ready &&
+              (nextInCurrentDay?prayer.equals(next):i==5);
+          card.setTextViewText(hourLabels[i],prayer);
           card.setTextViewText(hourClocks[i],value==null?"--:--":value.optString("time","--:--"));
+          card.setTextColor(hourLabels[i],highlighted?activeText:secondaryText);
+          card.setTextColor(hourClocks[i],highlighted?activeText:mainText);
+          card.setInt(hourCells[i],"setBackgroundResource",highlighted?
+              R.drawable.widget_strip_selected_dark:R.drawable.widget_row_clear);
         }
         setCountdown(card,R.id.widget_ring_premium_countdown,nextAt,now);
         card.setOnClickPendingIntent(R.id.widget_ring_premium_root,launchAction(context,41024));
