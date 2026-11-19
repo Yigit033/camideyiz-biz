@@ -20,8 +20,9 @@ import {useAnnouncementSubscription,type AnnouncementState}
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
 import {markStartup} from '@/features/performance/startupMetrics';
 import {widgetNeedsForegroundPublish,type NativeWidgetSummary} from '@/features/widgets/widgetForegroundGate';
-import type {LastWidgetTransfer,WidgetBackgroundReport}
-  from '@/features/widgets/widgetBackground';
+import type {LastWidgetTransfer} from '@/features/widgets/widgetBackground';
+import {ensureWidgetBackgroundRefresh,readWidgetBackgroundReport,
+  type WidgetBackgroundReport} from '@/features/widgets/widgetBackgroundRegistration';
 const loadWidgetEngine=()=>import('@/features/widgets/widgetBackground');
 /** A cheap status read before importing the entire foreground widget engine.
  * An already-published calendar is advanced by Android AlarmManager,
@@ -229,13 +230,10 @@ export function CompanionProvider({children}:PropsWithChildren){
     let live=true;
     (async()=>{
       try{
-        const engine=await loadWidgetEngine();
-        if(!live)return;
-        const registered=await engine.ensureWidgetBackgroundRefresh();
+        const registered=await ensureWidgetBackgroundRefresh();
         if(live)setBackgroundRegistered(registered);
       }catch{if(live)setBackgroundRegistered(false);}
-      const engine=await loadWidgetEngine();
-      const report=await engine.readWidgetBackgroundReport();
+      const report=await readWidgetBackgroundReport();
       if(live)setBackgroundReport(report);
     })().catch(()=>undefined);
     return ()=>{live=false;};
