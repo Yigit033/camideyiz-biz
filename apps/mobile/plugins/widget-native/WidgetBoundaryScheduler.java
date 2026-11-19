@@ -45,7 +45,8 @@ public final class WidgetBoundaryScheduler {
   private static final String ACTION = "biz.camideyiz.app.WIDGET_BOUNDARY";
   private static final String[] NAMES = {
     "NextPrayerWidget","PrayerDayWidget","CompactPrayerWidget",
-    "PrayerFocusWidget","PrayerStripWidget"
+    "PrayerFocusWidget","PrayerStripWidget",
+    "MiniPrayerRingWidget","PremiumPrayerRingWidget"
   };
   // Published days may remain valid offline up to their 16-day coverage.
   // Do not erase a still-valid published timetable after only 72 hours.
@@ -518,6 +519,39 @@ public final class WidgetBoundaryScheduler {
       count+=strip.length;
     }
 
+
+    // Arc bitmap generation is bounded, cached, and off the UI thread.
+    // Only create bitmaps for actual installed ring widgets; no per-second JS.
+    int[] miniRing=manager.getAppWidgetIds(component(context,NAMES[5]));
+    int[] premiumRing=manager.getAppWidgetIds(component(context,NAMES[6]));
+    if(miniRing.length>0||premiumRing.length>0){
+      if(miniRing.length>0){
+        RemoteViews card=new RemoteViews(context.getPackageName(),
+            light?R.layout.widget_ring_mini_light:R.layout.widget_ring_mini);
+        card.setImageViewBitmap(R.id.widget_ring_mini_art,
+            PrayerRingBitmapRenderer.render(times,now,light,224));
+        card.setTextViewText(R.id.widget_ring_mini_next,ready?next:"Takvim");
+        card.setTextViewText(R.id.widget_ring_mini_time,ready?time:"--:--");
+        setCountdown(card,R.id.widget_ring_mini_countdown,nextAt,now);
+        card.setOnClickPendingIntent(R.id.widget_ring_mini_root,launchAction(context,41023));
+        manager.updateAppWidget(miniRing,card);
+        count+=miniRing.length;
+      }
+      if(premiumRing.length>0){
+        RemoteViews card=new RemoteViews(context.getPackageName(),
+            light?R.layout.widget_ring_premium_light:R.layout.widget_ring_premium);
+        card.setImageViewBitmap(R.id.widget_ring_premium_art,
+            PrayerRingBitmapRenderer.render(times,now,light,432));
+        card.setTextViewText(R.id.widget_ring_premium_next,ready?next:"Takvim");
+        card.setTextViewText(R.id.widget_ring_premium_time,ready?"Saat "+time:"--:--");
+        card.setTextViewText(R.id.widget_ring_premium_city,ready?city:"Takvim bekleniyor");
+        setCountdown(card,R.id.widget_ring_premium_countdown,nextAt,now);
+        card.setOnClickPendingIntent(R.id.widget_ring_premium_root,launchAction(context,41024));
+        manager.updateAppWidget(premiumRing,card);
+        count+=premiumRing.length;
+      }
+    }
+
     return count;
   }
 
@@ -556,6 +590,8 @@ public final class WidgetBoundaryScheduler {
     result.put("installedCompact",installedCount(context,NAMES[2]));
     result.put("installedFocus",installedCount(context,NAMES[3]));
     result.put("installedStrip",installedCount(context,NAMES[4]));
+    result.put("installedMiniRing",installedCount(context,NAMES[5]));
+    result.put("installedPremiumRing",installedCount(context,NAMES[6]));
     result.put("widgetTheme",lightTheme(context)?"light":"dark");
     long last=local.getLong("lastAppliedAt",0);
     result.put("lastAppliedAt",last);
