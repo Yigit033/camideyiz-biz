@@ -63,6 +63,9 @@ assert.match(nativeRing,/Bitmap\.createBitmap\(size,size,Bitmap\.Config\.ARGB_88
 assert.match(nativeRing,/new LruCache<String,Bitmap>\(2\*1024\*1024\)/);
 assert.match(nativeRing,/sector\(canvas,pen,arc,0,boundaries\[0\],COLORS\[5\]/);
 assert.match(nativeRing,/for\(int i=0;i<5;i\+\+\)/);
+assert.match(nativeRing,/if\(size==432\)/);
+assert.match(nativeRing,/canvas\.drawText\(clock,px,py\+size\*\.012f,labelPaint\)/);
+assert.match(nativeRing,/boundaries\[i\]\*\.25d/);
 assert.match(nativeRing,/sector\(canvas,pen,arc,boundaries\[5\],1440,COLORS\[5\]/);
 assert.doesNotMatch(nativeRing,/fetch\(|HttpURLConnection|setInterval|WebView/);
 assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,light,224\)/);

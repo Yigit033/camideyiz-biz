@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.graphics.Typeface;
 import android.util.LruCache;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -131,6 +132,25 @@ public final class PrayerRingBitmapRenderer {
             COLORS[i],current==i,size);
       sector(canvas,pen,arc,boundaries[5],1440,COLORS[5],
           current==5,size);
+      // Premium-only six published clock labels. Labels sit at each exact
+      // boundary angle, not evenly spaced or invented from astronomy.
+      // The smaller 2×2 ring intentionally omits them for legibility.
+      if(size==432){
+        Paint labelPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
+        labelPaint.setStyle(Paint.Style.FILL);
+        labelPaint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));
+        labelPaint.setTextAlign(Paint.Align.CENTER);
+        labelPaint.setTextSize(size*.038f);
+        labelPaint.setColor(light?0xFF1B415B:0xFFF2F7FB);
+        float labelRadius=size*.443f;
+        for(int i=0;i<6;i++){
+          double theta=Math.toRadians(boundaries[i]*.25d);
+          float px=mid+(float)Math.sin(theta)*labelRadius;
+          float py=mid-(float)Math.cos(theta)*labelRadius;
+          String clock=times.getJSONObject(i).getString("time");
+          canvas.drawText(clock,px,py+size*.012f,labelPaint);
+        }
+      }
     }
     pen.setColor(light?0xFFCBDBE1:0xFF416077);
     pen.setStrokeWidth(size*.0045f);
