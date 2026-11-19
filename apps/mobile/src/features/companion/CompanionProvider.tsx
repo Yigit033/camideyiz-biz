@@ -2,7 +2,7 @@ import {
   createContext,useCallback,useContext,useEffect,useMemo,useRef,useState,
   type PropsWithChildren,
 } from 'react';
-import {AppState} from 'react-native';
+import {AppState,NativeModules,Platform} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import {router} from 'expo-router';
@@ -19,9 +19,33 @@ import {useAnnouncementSubscription,type AnnouncementState}
   from './useAnnouncementSubscription';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
 import {markStartup} from '@/features/performance/startupMetrics';
+import {widgetNeedsForegroundPublish,type NativeWidgetSummary} from '@/features/widgets/widgetForegroundGate';
 import type {LastWidgetTransfer,WidgetBackgroundReport}
   from '@/features/widgets/widgetBackground';
 const loadWidgetEngine=()=>import('@/features/widgets/widgetBackground');
+/** A cheap status read before importing the entire foreground widget engine.
+ * An already-published calendar is advanced by Android AlarmManager,
+ * independently of any React lifecycle or Internet connection.
+ */
+async function getNativeWidgetSummary():Promise<NativeWidgetSummary|null>{
+  if(Platform.OS!=='android')return null;
+  const native=NativeModules.CamideyizWidgetBridge as
+    {getStatus?:()=>Promise<string>}|undefined;
+  if(typeof native?.getStatus!=='function')return null;
+  try{
+    const value:unknown=JSON.parse(await native.getStatus());
+    if(!value||typeof value!=='object'||Array.isArray(value))return null;
+    const s=value as Partial<NativeWidgetSummary>;
+    if(typeof s.supported!=='boolean'||typeof s.nativeCityId!=='number'||
+       typeof s.activeCityId!=='number'||typeof s.hasTimeline!=='boolean'||
+       typeof s.lastReady!=='boolean'||typeof s.persisted!=='boolean'||
+       typeof s.lastSyncAt!=='number'||typeof s.calendarEndsAt!=='number'||
+       typeof s.calendarSourceAt!=='number'||typeof s.lastError!=='string'||
+       typeof s.lastTransferError!=='string')return null;
+    return s as NativeWidgetSummary;
+  }catch{return null;}
+}
+
 
 const PREFS=PRAYER_ALERT_PREFERENCES_KEY;
 const INBOX='@camideyiz/observed-reminders/v2';
@@ -86,7 +110,6 @@ export function CompanionProvider({children}:PropsWithChildren){
   const lastForegroundSync=useRef(0);
   const syncVersion=useRef(0);
   const widgetVersion=useRef(0);
-  const lastWidgetFingerprint=useRef<string|null>(null);
   const widgetQueue=useRef<Promise<void>>(Promise.resolve());
   const syncQueue=useRef<Promise<void>>(Promise.resolve());
   const deletedIds=useRef<Set<string>>(new Set());
@@ -207,15 +230,8 @@ export function CompanionProvider({children}:PropsWithChildren){
     // GPS start-up may temporarily have no place. Do not erase the already
     // verified native widget just because location is still resolving.
     if(!ready||!maintenanceReady||!source.place)return;
-    // Status-only changes and AppState foreground checks must not republish
-    // identical calendars through the native UI pipeline.
-    const fingerprint=[
-      source.place.id,source.officialConfigured?'official':'mirror',
-      source.days?.today.fetchedAt??'no-calendar',
-      ...days.map(d=>d.dateISO),
-    ].join('|');
-    if(lastWidgetFingerprint.current===fingerprint)return;
-    lastWidgetFingerprint.current=fingerprint;
+    // Avoid the full widget JS engine unless Android reports missing,
+    // invalid, wrong-district or stale native calendar data.
     const version=++widgetVersion.current;
     let active=true;
     const place=source.place;
@@ -225,6 +241,23 @@ export function CompanionProvider({children}:PropsWithChildren){
     const publishedAt=source.days?Date.parse(source.days.today.fetchedAt):null;
     const update=async()=>{
       try{
+        const native=await getNativeWidgetSummary();
+        if(!active||version!==widgetVersion.current)return;
+        if(Platform.OS==='android'&&
+           !widgetNeedsForegroundPublish(native,place.id,Date.now())){
+          markStartup('widget-healthy-skip');
+          setWidget({
+            available:true,updated:false,
+            detail:'Android widget takvimi zaten güncel. Gereksiz tekrar yayın atlandı.',
+            installedNext:native?.installedNext,
+            installedDay:native?.installedDay,
+            lastNativeWriteAt:native?.lastAppliedAt,
+            nextNativeAlarmAt:native?.nextAlarmAt,
+            nativePersisted:true,launcherConfirmed:false,
+          });
+          return;
+        }
+        if(Platform.OS==='android')markStartup('widget-publish-needed');
         const engine=await loadWidgetEngine();
         if(!active||version!==widgetVersion.current)return;
         const result=await engine.syncForegroundWidgetCalendar(
