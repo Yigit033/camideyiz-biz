@@ -275,6 +275,8 @@ export function CompanionProvider({children}:PropsWithChildren){
             installedCompact:native?.installedCompact,
             installedFocus:native?.installedFocus,
             installedStrip:native?.installedStrip,
+            installedMiniRing:native?.installedMiniRing,
+            installedPremiumRing:native?.installedPremiumRing,
             lastNativeWriteAt:native?.lastAppliedAt,
             nextNativeAlarmAt:native?.nextAlarmAt,
             nativePersisted:true,launcherConfirmed:false,

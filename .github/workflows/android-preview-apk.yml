@@ -114,15 +114,16 @@ jobs:
           test -s "$root/res/drawable-nodpi/widget_brand_symbol.png"
           cmp apps/mobile/assets/camideyiz-original-symbol.png \
               "$root/res/drawable-nodpi/widget_brand_symbol.png"
-          for name in CompactPrayer PrayerFocus PrayerStrip; do
+          for name in CompactPrayer PrayerFocus PrayerStrip MiniPrayerRing PremiumPrayerRing; do
             test -s "$root/java/biz/camideyiz/app/${name}WidgetProvider.java"
             grep -F "${name}WidgetProvider" "$root/AndroidManifest.xml"
           done
-          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip; do
+          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip widget_ring_mini widget_ring_premium; do
             test -s "$root/res/layout/${resource}.xml"
             test -s "$root/res/layout/${resource}_light.xml"
             test -s "$root/res/xml/${resource}_info.xml"
           done
+          test -s "$root/java/biz/camideyiz/app/widget/PrayerRingBitmapRenderer.java"
           grep -F 'setChronometerCountDown' "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
           test -s "$root/res/xml/widget_next_prayer_info.xml"
           test -s "$root/res/xml/widget_prayer_day_info.xml"

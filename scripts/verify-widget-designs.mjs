@@ -12,7 +12,7 @@ const scheduler=read(p+'WidgetBoundaryScheduler.java');
 const bridge=read(p+'CamideyizWidgetBridge.java');
 const appearance=read('apps/mobile/src/theme/ThemeProvider.tsx');
 const variants=['widget_compact_prayer','widget_next_prayer','widget_prayer_day',
-  'widget_prayer_focus','widget_prayer_strip'];
+  'widget_prayer_focus','widget_prayer_strip','widget_ring_mini','widget_ring_premium'];
 for(const base of variants){
   const info=read(p+base+'_info.xml');
   assert.match(info,/updatePeriodMillis="1800000"/);
@@ -36,7 +36,8 @@ assert.match(read(p+'widget_prayer_focus_info.xml'),/targetCellWidth="4"/);
 assert.match(read(p+'widget_prayer_strip_info.xml'),/targetCellHeight="2"/);
 assert.match(read(p+'widget_prayer_strip_info.xml'),/resizeMode="horizontal\|vertical"/);
 for(const layout of ['widget_compact_prayer','widget_next_prayer',
-  'widget_prayer_focus','widget_prayer_strip']){
+  'widget_prayer_focus','widget_prayer_strip','widget_ring_mini',
+  'widget_ring_premium']){
   assert.match(read(p+layout+'.xml'),/<Chronometer\b/,
     'live counter must be Android Chronometer not text refreshed by JS');
 }
@@ -46,6 +47,26 @@ assert.match(scheduler,/nextAt-now/);
 assert.match(scheduler,/installedCompact/);
 assert.match(scheduler,/installedFocus/);
 assert.match(scheduler,/installedStrip/);
+assert.match(scheduler,/installedMiniRing/);
+assert.match(scheduler,/installedPremiumRing/);
+assert.match(read(p+'widget_ring_mini_info.xml'),/targetCellWidth="2"/);
+assert.match(read(p+'widget_ring_premium_info.xml'),/targetCellWidth="4"/);
+assert.match(read(p+'widget_ring_premium_info.xml'),/targetCellHeight="4"/);
+for(const base of variants){
+  assert.match(read(p+base+'_info.xml'),/widgetCategory="home_screen\|keyguard"/,
+    'all widgets must opt into compatible keyguard hosts');
+}
+const nativeRing=read(p+'PrayerRingBitmapRenderer.java');
+assert.match(nativeRing,/Bitmap\.createBitmap\(size,size,Bitmap\.Config\.ARGB_8888\)/);
+assert.match(nativeRing,/new LruCache<String,Bitmap>\(2\*1024\*1024\)/);
+assert.match(nativeRing,/sector\(canvas,pen,arc,0,boundaries\[0\],COLORS\[5\]/);
+assert.match(nativeRing,/for\(int i=0;i<5;i\+\+\)/);
+assert.match(nativeRing,/sector\(canvas,pen,arc,boundaries\[5\],1440,COLORS\[5\]/);
+assert.doesNotMatch(nativeRing,/fetch\(|HttpURLConnection|setInterval|WebView/);
+assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,light,224\)/);
+assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,light,432\)/);
+assert.match(scheduler,/manager\.updateAppWidget\(miniRing,card\)/);
+assert.match(scheduler,/manager\.updateAppWidget\(premiumRing,card\)/);
 assert.match(scheduler,/nextInCurrentDay && label\.equals\(next\)/,
   'never highlight yesterday Imask while counting to tomorrow');
 assert.match(scheduler,/R\.layout\.widget_compact_prayer_light/);
@@ -104,4 +125,4 @@ assert.match(widgetBackground,/#071725/);
 assert.match(widgetBackground,/#102B40/);
 assert.doesNotMatch(scheduler,/getMirrorPrayerTriplet|fetch\(|new Thread\(/,
  'native layout must never load a network/JS prayer engine');
-console.log('Widget Design 5.1: five native variants, 4-cell six-prayer strip, premium header/footer, 3D brand, native countdown and theme regression verified');
+console.log('Widget Design 6.0: seven native variants, six-sector 2x2/4x4 rings, seven keyguard declarations, 3D brand and native countdown contracts verified');

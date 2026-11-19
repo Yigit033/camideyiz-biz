@@ -42,7 +42,8 @@ export async function syncPrayerWidgets(
     const native=await publishAndroidWidgetTimeline(days,nowMs,cityId,sourceAt);
     const total=native.installedNext+native.installedDay+
       (native.installedCompact??0)+(native.installedFocus??0)+
-      (native.installedStrip??0);
+      (native.installedStrip??0)+
+      (native.installedMiniRing??0)+(native.installedPremiumRing??0);
     const result:WidgetSyncResult={
       available:true,
       updated:native.persisted&&native.lastReady&&
@@ -55,6 +56,7 @@ export async function syncPrayerWidgets(
       installedDay:native.installedDay,
       installedCompact:native.installedCompact,installedFocus:native.installedFocus,
       installedStrip:native.installedStrip,
+      installedMiniRing:native.installedMiniRing,installedPremiumRing:native.installedPremiumRing,
       lastNativeWriteAt:native.lastAppliedAt,
       nextNativeAlarmAt:native.nextAlarmAt,
       nativePersisted:native.persisted,
@@ -81,7 +83,8 @@ export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResu
     if(!status)return null;
     const count=status.installedNext+status.installedDay+
       (status.installedCompact??0)+(status.installedFocus??0)+
-      (status.installedStrip??0);
+      (status.installedStrip??0)+
+      (status.installedMiniRing??0)+(status.installedPremiumRing??0);
     return {
       available:true,updated:status.persisted&&status.lastReady&&!status.lastError,
       detail:status.lastError
@@ -92,6 +95,7 @@ export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResu
       installedNext:status.installedNext,installedDay:status.installedDay,
       installedCompact:status.installedCompact,installedFocus:status.installedFocus,
       installedStrip:status.installedStrip,
+      installedMiniRing:status.installedMiniRing,installedPremiumRing:status.installedPremiumRing,
       lastNativeWriteAt:status.lastAppliedAt,nextNativeAlarmAt:status.nextAlarmAt,
       nativePersisted:status.persisted,launcherConfirmed:false,
     };
