@@ -491,9 +491,9 @@ public final class WidgetBoundaryScheduler {
       int[] clocks={R.id.widget_strip_time_0,R.id.widget_strip_time_1,
         R.id.widget_strip_time_2,R.id.widget_strip_time_3,
         R.id.widget_strip_time_4,R.id.widget_strip_time_5};
-      int ordinary=Color.parseColor(light?"#152821":"#F2F7FB");
-      int subdued=Color.parseColor(light?"#65736C":"#B2C6D6");
-      int prominent=Color.parseColor(light?"#A88A5C":"#D8BF8D");
+      int ordinary=Color.parseColor(light?"#1B415B":"#F2F7FB");
+      int subdued=Color.parseColor(light?"#365C78":"#B2C6D6");
+      int selectedInk=Color.parseColor(light?"#152821":"#102B40");
       for(int i=0;i<6;i++){
         JSONObject value=i<times.length()?times.getJSONObject(i):null;
         String label=value==null?"—":value.optString("label","—");
@@ -502,14 +502,14 @@ public final class WidgetBoundaryScheduler {
         boolean selected=nextInCurrentDay && label.equals(next);
         card.setTextViewText(labels[i],label);
         card.setTextViewText(clocks[i],hour);
-        card.setTextColor(labels[i],selected?prominent:subdued);
-        card.setTextColor(clocks[i],selected?prominent:ordinary);
+        card.setTextColor(labels[i],selected?selectedInk:subdued);
+        card.setTextColor(clocks[i],selected?selectedInk:ordinary);
         card.setInt(cells[i],"setBackgroundResource",selected?
-          (light?R.drawable.widget_active_light:R.drawable.widget_active_dark):
+          (light?R.drawable.widget_strip_selected_light:R.drawable.widget_strip_selected_dark):
           R.drawable.widget_row_clear);
       }
       card.setTextViewText(R.id.widget_strip_next,
-          ready?next+" vaktine kalan":"Takvim bekleniyor");
+          ready?next+" vaktine kalan süre":"Takvim bekleniyor");
       card.setViewVisibility(R.id.widget_strip_remaining_row,
           ready?View.VISIBLE:View.GONE);
       setCountdown(card,R.id.widget_strip_countdown,nextAt,now);
