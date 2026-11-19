@@ -123,11 +123,11 @@ if (-not (Test-Path -LiteralPath $CheckoutPath)) {
   Invoke-Checked 'Fast-forward isolated checkout' { & git -C $CheckoutPath pull --ff-only origin $Branch }
 }
 
-# Transfer the explicitly approved launcher icon to the isolated C:\\cb
+# Transfer the explicitly approved launcher icon to the isolated C:\cb
 # checkout before Expo prebuild. Missing or mismatched art is fatal in Release.
 if ($Configuration -eq 'Release') {
-  $sourceAssets = Join-Path (Split-Path -Parent $PSScriptRoot) 'apps\\mobile\\assets'
-  $targetAssets = Join-Path $CheckoutPath 'apps\\mobile\\assets'
+  $sourceAssets = Join-Path (Split-Path -Parent $PSScriptRoot) 'apps\mobile\assets'
+  $targetAssets = Join-Path $CheckoutPath 'apps\mobile\assets'
   New-Item -ItemType Directory -Path $targetAssets -Force | Out-Null
   $icons = @(
     @{ Name='app-icon.png'; SHA='54f731ab37e8a205dcba9c5b7c602d140a8fadbfc69851533482fe9935580f29' },
@@ -136,7 +136,7 @@ if ($Configuration -eq 'Release') {
   foreach ($icon in $icons) {
     $from = Join-Path $sourceAssets $icon.Name
     if (-not (Test-Path -LiteralPath $from -PathType Leaf)) {
-      throw "Approved icon missing: $from. Extract camideyiz-icon-assets.zip into apps\\mobile\\assets first."
+      throw "Approved icon missing: $from. Extract camideyiz-icon-assets.zip into apps\mobile\assets first."
     }
     $digest = (Get-FileHash -LiteralPath $from -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($digest -ne $icon.SHA) { throw "Approved icon checksum mismatch: $($icon.Name)" }

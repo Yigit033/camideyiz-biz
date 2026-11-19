@@ -22,8 +22,7 @@ and intentionally ignored by git. Install them exactly once:
 
 ```powershell
 # From the repository root, after downloading the supplied ZIP:
-Expand-Archive -LiteralPath "$env:USERPROFILE\Downloads\camideyiz-icon-assets.zip" \
-  -DestinationPath ".\apps\mobile\assets" -Force
+Expand-Archive -LiteralPath "$env:USERPROFILE\Downloads\camideyiz-icon-assets.zip" -DestinationPath ".\apps\mobile\assets" -Force
 node scripts/verify-app-icon.mjs
 powershell -ExecutionPolicy Bypass -File .\scripts\build-android-windows.ps1
 ```
