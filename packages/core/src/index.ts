@@ -16,3 +16,5 @@ export * from './shareGallery';
 export * from './notificationCampaign';
 export * from './prayerWheelPresentation';
 export * from './locationResolution';
+export * from './calendar30';
+export * from './religiousDays';
