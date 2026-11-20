@@ -38,7 +38,11 @@ export async function fetchCalendar30(place:PrayerPlaceSelection,dateISO:string,
     if(!value||value.cityId!==cityId||value.startISO!==dateISO||
       !Array.isArray(value.days)||value.days.length!==30)
       throw new Error('Official calendar identity mismatch');
-    const present=value.days.filter(Boolean);
+    const present=value.days.filter((v):v is NonNullable<typeof v>=>v!==null).map(day=>({
+      dateISO:day.dateISO,cityId:day.cityId,source:'diyanet-awqat-salah',
+      timezone:'Europe/Istanbul',times:day.times,hijriDate:day.hijriDate,
+    }));
+    if(!present.length)throw new Error('Official calendar has no published days');
     return parseCalendar30Source(present,'diyanet-awqat-salah',cityId,dateISO,
       typeof value.fetchedAt==='string'?value.fetchedAt:new Date().toISOString());
   }

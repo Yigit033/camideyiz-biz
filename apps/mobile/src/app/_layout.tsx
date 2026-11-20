@@ -19,6 +19,8 @@ function Navigation() {
       <Stack.Screen name="companion" options={{presentation:'card'}}/>
       <Stack.Screen name="kerahat-settings" options={{presentation:'card'}}/>
       <Stack.Screen name="kerahat-guide" options={{presentation:'card'}}/>
+      <Stack.Screen name="calendar30" options={{presentation:'card'}}/>
+      <Stack.Screen name="religious-days" options={{presentation:'card'}}/>
       <Stack.Screen name="gallery-editor" options={{presentation:'card'}}/>
     </Stack>
   </>;

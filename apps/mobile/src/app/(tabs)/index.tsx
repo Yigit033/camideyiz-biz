@@ -17,6 +17,7 @@ import {useKerahatSettings} from '@/features/prayer/KerahatSettingsProvider';
 import {KerahatPanel} from '@/features/prayer/KerahatPanel';
 import {DailyWisdomSection} from '@/features/wisdom/DailyWisdomSection';
 import {AdhanExperience} from '@/features/adhan/AdhanExperience';
+import {HomeCalendarSection} from '@/features/calendar/HomeCalendarSection';
 import {usePrayerSource} from '@/features/prayer/usePrayerSource';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {LocationPicker} from '@/features/prayer/LocationPicker';
@@ -369,6 +370,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           İkindi farzı kılındıktan sonra nafile namazlar konusunda ayrıca kısıtlamalar vardır.
         </Text>
         :null}
+      <HomeCalendarSection dateISO={zoned.dateISO}
+        today={SCHEDULE} placeName={official.place?.name??null}/>
       <View style={{height:7,marginBottom:4}}/>
     </ScrollView>
     <LocationPicker visible={pickerOpen} onClose={()=>setPickerOpen(false)}
@@ -491,6 +494,8 @@ function CalendarLoadingHome({official,now}:{
         <Feather name="map-pin" size={16} color={colors.gold}/>
         <Text style={{fontSize:13,color:colors.text,fontWeight:'700'}}>Başka il veya ilçe seç</Text>
       </Pressable>
+      <HomeCalendarSection dateISO={zonedClock(now,'Europe/Istanbul').dateISO}
+        today={null} placeName={official.place?.name??null}/>
     </ScrollView>
     <LocationPicker visible={pickerOpen} onClose={()=>setPickerOpen(false)}
       onSelect={async place=>{
