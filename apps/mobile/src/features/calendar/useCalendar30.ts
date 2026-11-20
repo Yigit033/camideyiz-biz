@@ -19,12 +19,15 @@ export function useCalendar30(dateISO:string){
     if(!place||!id){setSnapshot(null);setLoading(false);return;}
     const controller=new AbortController();
     let active=true;
-    setSnapshot(null);setError(null);setLoading(true);
+    // Explicit refresh must not blank the last validated snapshot.
+    // A different district/date always resets to prevent mixed locations.
+    if(revision===0)setSnapshot(null);
+    setError(null);setLoading(true);
     const key=PREFIX+id+'/'+dateISO;
     (async()=>{
       // Use exact-district, exact-start cache only, not previous location.
       let cached:Calendar30Snapshot|null=null;
-      try{
+      if(revision===0)try{
         const raw=await AsyncStorage.getItem(key);
         if(raw)cached=validateCalendar30Cache(JSON.parse(raw),id,dateISO,Date.now());
       }catch{/* an expired/corrupt cache is never published */}

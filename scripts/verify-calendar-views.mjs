@@ -22,5 +22,10 @@ assert.match(days,/Diyanet kaynağını aç/);
 assert.match(route,/<Stack\.Screen name="calendar30"/);
 assert.match(route,/<Stack\.Screen name="religious-days"/);
 assert.match(provider,/mergeCalendar30\(snapshots\)/);
+const hook=r('apps/mobile/src/features/calendar/useCalendar30.ts');
+assert.match(hook,/if\(revision===0\)try/,
+  'manual refresh must bypass cached published days');
+assert.match(hook,/controller\.abort\(\)/,
+  'unmount or district switch must cancel pending requests');
 assert.match(api,/officialCalendar30\(cityId,date\)/);
 console.log('Calendar 1.0: lazy verified prayer days, two bottom home cards, routed screens and Diyanet annual events OK');
