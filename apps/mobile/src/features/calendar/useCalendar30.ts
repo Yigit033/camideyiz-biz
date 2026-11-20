@@ -21,7 +21,8 @@ export function useCalendar30(dateISO:string){
     let active=true;
     // Explicit refresh must not blank the last validated snapshot.
     // A different district/date always resets to prevent mixed locations.
-    if(revision===0)setSnapshot(null);
+    setSnapshot(current=>current?.cityId===id&&current.startISO===dateISO&&revision>0
+      ?current:null);
     setError(null);setLoading(true);
     const key=PREFIX+id+'/'+dateISO;
     (async()=>{
