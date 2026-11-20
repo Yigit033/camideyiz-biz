@@ -24,6 +24,8 @@ jobs:
         run: node scripts/verify-startup-performance.mjs
       - name: Test already-ready Android widget foreground fast-path and recovery
         run: node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
+      - name: Verify premium calendar views and lazy 30-day loading
+        run: node scripts/verify-calendar-views.mjs
       - name: Verify Widget 3.0 offline/native recovery contracts
         run: node scripts/verify-widget3-contracts.mjs
       - name: Verify five premium widget layouts, original 3D brand and native countdowns
