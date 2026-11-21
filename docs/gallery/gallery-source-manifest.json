@@ -1,0 +1,628 @@
+{
+  "input": "Mosques.zip",
+  "source_images": 27,
+  "duplicate_files_removed": 27,
+  "assets": [
+    {
+      "slot": "cuma-01",
+      "source": "Mosques/m0.imageset/1035-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 192176,
+      "thumb_bytes": 23132,
+      "full_sha256": "b6a0dd5f093a7c65b9147d8d864cb441368ffd517acb847fff631af3112b3b90",
+      "thumb_sha256": "b8649914c1f42f53b0c00cfbba56c7c5d937ac06d5daaaa86f76c7e0b8ce9361",
+      "category": "cuma",
+      "title": "Cami Huzuru",
+      "default_text": "Hayırlı Cumalar"
+    },
+    {
+      "slot": "kandil-01",
+      "source": "Mosques/m1.imageset/1036-1.jpg",
+      "original_size": [
+        1431,
+        2147
+      ],
+      "output_size": [
+        1431,
+        2147
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 104096,
+      "thumb_bytes": 15808,
+      "full_sha256": "9a232a67efd74bb71bb95b3bbc32ac7731dcb68426c19eb431b8e2a9c68f63e1",
+      "thumb_sha256": "64506761c6f643a24230b098181e4476e04700d311ad40a780d37c267851db26",
+      "category": "kandil",
+      "title": "Kandil Işıkları",
+      "default_text": "Kandiliniz mübarek olsun."
+    },
+    {
+      "slot": "gunaydin-01",
+      "source": "Mosques/m2.imageset/1037-1.jpg",
+      "original_size": [
+        1668,
+        2967
+      ],
+      "output_size": [
+        1349,
+        2400
+      ],
+      "thumb_size": [
+        371,
+        660
+      ],
+      "full_bytes": 547968,
+      "thumb_bytes": 58640,
+      "full_sha256": "e7f9996b1a18a888a93fef66f0e72f375bd7912a34cc9f8933fdb79a6b2b9164",
+      "thumb_sha256": "efc2db54edded325a418c13ad79fbb4bee1a12debe4d02ffa62f9627b8e6988c",
+      "category": "gunaydin",
+      "title": "Bahar Sabahı",
+      "default_text": "Hayırlı Sabahlar"
+    },
+    {
+      "slot": "cuma-02",
+      "source": "Mosques/m3.imageset/1038-1.jpg",
+      "original_size": [
+        1378,
+        2048
+      ],
+      "output_size": [
+        1378,
+        2048
+      ],
+      "thumb_size": [
+        440,
+        654
+      ],
+      "full_bytes": 331254,
+      "thumb_bytes": 31634,
+      "full_sha256": "16e16181ab4455d03ae73ae408221576b78296b911714784a66ad161d61ace1d",
+      "thumb_sha256": "144fb3e0425f6c86018a94e8bd92fbdfc838cdbfee716b738df17b0f5d6b40e3",
+      "category": "cuma",
+      "title": "Kubbe Bereketi",
+      "default_text": "Cumanız mübarek olsun."
+    },
+    {
+      "slot": "dua-01",
+      "source": "Mosques/m4.imageset/1039-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 98908,
+      "thumb_bytes": 13644,
+      "full_sha256": "7a42de2153261ad5a38791a1b52d69b63212a1aaccb10f90e155cc69495a4a70",
+      "thumb_sha256": "012d572898b7284734dccf32678c11869303217f326c40e28ed5410828113277",
+      "category": "dua",
+      "title": "Gönülden Dua",
+      "default_text": "Rabbim dualarınızı kabul etsin."
+    },
+    {
+      "slot": "kandil-02",
+      "source": "Mosques/m5.imageset/1040-1.jpg",
+      "original_size": [
+        682,
+        1024
+      ],
+      "output_size": [
+        682,
+        1024
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 22984,
+      "thumb_bytes": 9346,
+      "full_sha256": "9b1e968e953a17a0d043c92d5f7b9f45650795c0646636e805d2fc70e5579122",
+      "thumb_sha256": "a4f9d2ff8902d600d3407f38421c91e475b9e109607295e2377b77be46231f0a",
+      "category": "kandil",
+      "title": "Gecenin Nuru",
+      "default_text": "Bu mübarek gecenin hayırlara vesile olmasını dilerim."
+    },
+    {
+      "slot": "kandil-03",
+      "source": "Mosques/m6.imageset/1041-1.png",
+      "original_size": [
+        1242,
+        1518
+      ],
+      "output_size": [
+        1242,
+        1518
+      ],
+      "thumb_size": [
+        440,
+        538
+      ],
+      "full_bytes": 123586,
+      "thumb_bytes": 22330,
+      "full_sha256": "8aec05488abcd32fe58dd8173de52e310a791c8fd0163c0847a3211a5ebfc16e",
+      "thumb_sha256": "e798833c0bb441d87083722b89bb1ffbc5e498c4d7c673b391c202ba111a61ee",
+      "category": "kandil",
+      "title": "Hat Sanatı",
+      "default_text": "Kandiliniz mübarek olsun."
+    },
+    {
+      "slot": "ramazan-01",
+      "source": "Mosques/m7.imageset/1042-1.jpg",
+      "original_size": [
+        1359,
+        2039
+      ],
+      "output_size": [
+        1359,
+        2039
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 247542,
+      "thumb_bytes": 11954,
+      "full_sha256": "c041b716ec29af8d05c111521a2e408e150b696b8947212f251aa307f9ff7d84",
+      "thumb_sha256": "8ad239a370bbbc6adc3bcac20ea44c3d5e197ea75e3e5cc47ddc6ce6d123c804",
+      "category": "ramazan",
+      "title": "Kur’an Işığı",
+      "default_text": "Hayırlı Ramazanlar"
+    },
+    {
+      "slot": "cuma-03",
+      "source": "Mosques/m8.imageset/1043-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 186606,
+      "thumb_bytes": 20968,
+      "full_sha256": "b5c53b63114fcf2c6814fd0391e6f7f35f7dd9f5bed6bec4d344c8b79a2a144e",
+      "thumb_sha256": "5c64c053d281f9df69ae8fffbec03aa79a97948cdc2f47953bda9d81f2f12173",
+      "category": "cuma",
+      "title": "Safların Huzuru",
+      "default_text": "Hayırlı Cumalar"
+    },
+    {
+      "slot": "bayram-01",
+      "source": "Mosques/m9.imageset/1055-1.jpg",
+      "original_size": [
+        1277,
+        1899
+      ],
+      "output_size": [
+        1277,
+        1899
+      ],
+      "thumb_size": [
+        440,
+        654
+      ],
+      "full_bytes": 119866,
+      "thumb_bytes": 21594,
+      "full_sha256": "3093a84af112cb331abdca288c25d1a14af2dafed7de0c445f55936968d4439d",
+      "thumb_sha256": "dbe195a02a9e6eaa91c799b65c1e7f3e589e48fd125ff5b3331c48927d7f33ca",
+      "category": "bayram",
+      "title": "Bayram Neşesi",
+      "default_text": "Bayramınız mübarek olsun."
+    },
+    {
+      "slot": "cuma-04",
+      "source": "Mosques/m10.imageset/1056-1.jpg",
+      "original_size": [
+        2268,
+        4032
+      ],
+      "output_size": [
+        1350,
+        2400
+      ],
+      "thumb_size": [
+        371,
+        660
+      ],
+      "full_bytes": 342204,
+      "thumb_bytes": 28600,
+      "full_sha256": "dbcb213a43fc616f09f78cdb9430d9088b58213af0484657e5a5e13402ebc051",
+      "thumb_sha256": "4fc05c82406012546e49c7b318be03f9512600beec2adab54c4faf174799125e",
+      "category": "cuma",
+      "title": "Cami Manzarası",
+      "default_text": "Rabbim cumamızı hayırlara vesile kılsın."
+    },
+    {
+      "slot": "cuma-05",
+      "source": "Mosques/m11.imageset/1057-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 509016,
+      "thumb_bytes": 46964,
+      "full_sha256": "00a8cb006e560b797ace8a847855f995a8ee78729249d59f3be99e7ee7125f0b",
+      "thumb_sha256": "13ec1aaf732b62e7faed36f21f6c4b61faf8e05f0454a2f2d7741df741fde7c6",
+      "category": "cuma",
+      "title": "Mimaride Huzur",
+      "default_text": "Cumanız mübarek olsun."
+    },
+    {
+      "slot": "ramazan-02",
+      "source": "Mosques/m12.imageset/1058-1.jpg",
+      "original_size": [
+        1530,
+        2265
+      ],
+      "output_size": [
+        1530,
+        2265
+      ],
+      "thumb_size": [
+        440,
+        651
+      ],
+      "full_bytes": 334292,
+      "thumb_bytes": 35386,
+      "full_sha256": "1fa82819084c900558c25d2074b644267bf86354d6058dd468c6125fb01125c3",
+      "thumb_sha256": "0ddc8e564177ab2066ce6033f7fecc6eaf2d65dc8a313ed4f34f6b86370b8ccd",
+      "category": "ramazan",
+      "title": "Mescidin Huzuru",
+      "default_text": "Ramazan ayınız bereketli olsun."
+    },
+    {
+      "slot": "bayram-02",
+      "source": "Mosques/m13.imageset/1059-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 202580,
+      "thumb_bytes": 26920,
+      "full_sha256": "9787501f5265cf64cbc2f4adaea6a7bd1d679d786d0ca9749feff0b322455827",
+      "thumb_sha256": "e56d17641a6b52f027df8c498d61bd222c36b0f2f864a44f6cff8f55f51eccaa",
+      "category": "bayram",
+      "title": "Sevdiklerinle Bayram",
+      "default_text": "Sevdiklerinizle huzurlu bir bayram dilerim."
+    },
+    {
+      "slot": "ramazan-03",
+      "source": "Mosques/m14.imageset/1060-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 303042,
+      "thumb_bytes": 30368,
+      "full_sha256": "c4941d06571186e7e22a9951715af76d78819cbf3d9bb72ace57b03947096d91",
+      "thumb_sha256": "469f9028fafb3ad0e5d93e5b5cc7c1c7fa15480cb045a9f4f84ff0e29ff25258",
+      "category": "ramazan",
+      "title": "Ramazan Kandili",
+      "default_text": "Hayırlı İftarlar"
+    },
+    {
+      "slot": "dua-02",
+      "source": "Mosques/m15.imageset/1061-1.jpg",
+      "original_size": [
+        600,
+        918
+      ],
+      "output_size": [
+        600,
+        918
+      ],
+      "thumb_size": [
+        431,
+        660
+      ],
+      "full_bytes": 90734,
+      "thumb_bytes": 36730,
+      "full_sha256": "e1a8241cea5ed1b333d86bb72c4ebd663ebb5ebbbfdae52098d0ea9fb42e153e",
+      "thumb_sha256": "527aa85afb51596f5541e117cc80dc9cf1516eb9fe058df22d56034771f2a3db",
+      "category": "dua",
+      "title": "Sükûnet",
+      "default_text": "Huzur ve bereket sizinle olsun."
+    },
+    {
+      "slot": "ramazan-04",
+      "source": "Mosques/m16.imageset/1062-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 270162,
+      "thumb_bytes": 17600,
+      "full_sha256": "087eddaeb7111d11233598a284889864cdf5a70d7fa9b53529f71763857cdf08",
+      "thumb_sha256": "27dd3a914229af5acc334a01f2494b7cdebe8718d1393b228f626b6495f8a54b",
+      "category": "ramazan",
+      "title": "Kur’an ile Huzur",
+      "default_text": "Hayırlı Sahurlar"
+    },
+    {
+      "slot": "gunaydin-02",
+      "source": "Mosques/m17.imageset/1066-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 57520,
+      "thumb_bytes": 5438,
+      "full_sha256": "b0aa268b6795ca306fdf5cc89034daff40509b1857225c906c5e1d85f23192d1",
+      "thumb_sha256": "6f4bf4e9f09114b789fee81b8d602bc19b0cc8a59421320f6e61dde453871ca5",
+      "category": "gunaydin",
+      "title": "Beyaz Lale",
+      "default_text": "Hayırlı Akşamlar"
+    },
+    {
+      "slot": "cuma-06",
+      "source": "Mosques/m18.imageset/1067-1.jpg",
+      "original_size": [
+        1459,
+        2189
+      ],
+      "output_size": [
+        1459,
+        2189
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 191284,
+      "thumb_bytes": 26814,
+      "full_sha256": "b5cc4b0d56cbd3983eb7184f4e9a6b024a0f10cc090d96d3de310769b44d632a",
+      "thumb_sha256": "8ce3e505d316ff8a3e8e19ee53d8936408d1023ece0be3d725dd296b5cd7693b",
+      "category": "cuma",
+      "title": "Minberin Sessizliği",
+      "default_text": "Dualarınız kabul, cumanız mübarek olsun."
+    },
+    {
+      "slot": "dua-03",
+      "source": "Mosques/m19.imageset/1068-1.jpg",
+      "original_size": [
+        1353,
+        2030
+      ],
+      "output_size": [
+        1353,
+        2030
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 83944,
+      "thumb_bytes": 14926,
+      "full_sha256": "01e969082b8e67907fd062dc665f804573a37900d6d06d9b8f4e94dcb7d5f443",
+      "thumb_sha256": "fdd2038aa3c8004086f785a0c91aafd3ea7be54d68d32963fcd85f7822237853",
+      "category": "dua",
+      "title": "Gül ve Dua",
+      "default_text": "Dualarınız hayırlara vesile olsun."
+    },
+    {
+      "slot": "dua-04",
+      "source": "Mosques/m20.imageset/1069-1.jpg",
+      "original_size": [
+        1468,
+        1905
+      ],
+      "output_size": [
+        1468,
+        1905
+      ],
+      "thumb_size": [
+        440,
+        571
+      ],
+      "full_bytes": 116544,
+      "thumb_bytes": 13798,
+      "full_sha256": "8769056980b2b2f14208eb83e3d50319ccafcc40e75eb092f4b83c1cf29ca122",
+      "thumb_sha256": "04b68e21d1cd67ef5cf4d29faf9bf6d668cb3f0d9bd365f77d03d8a91cf5aab1",
+      "category": "dua",
+      "title": "Kur’an-ı Kerim",
+      "default_text": "Rabbim gönlünüze huzur versin."
+    },
+    {
+      "slot": "genel-01",
+      "source": "Mosques/m21.imageset/1070-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 357200,
+      "thumb_bytes": 36464,
+      "full_sha256": "d57731424205a067f2500fe8e54686a41e95fd071f1739b2ced972eb1e5ce6f0",
+      "thumb_sha256": "cce466a590e94bfad2f0359124d3088e2c208b02e791c5ed2fb94335c90ebc25",
+      "category": "genel",
+      "title": "Ecdadın İzleri",
+      "default_text": "Huzur ve bereket sizinle olsun."
+    },
+    {
+      "slot": "genel-02",
+      "source": "Mosques/m22.imageset/1071-1.jpg",
+      "original_size": [
+        1534,
+        2267
+      ],
+      "output_size": [
+        1534,
+        2267
+      ],
+      "thumb_size": [
+        440,
+        650
+      ],
+      "full_bytes": 303474,
+      "thumb_bytes": 44292,
+      "full_sha256": "101b0a50df3e258df5878174dde5b912c93869aa0ca5416705bd547c6766e55e",
+      "thumb_sha256": "f73d4fc4852a2fa472c489b0776e4eb8c62003b20a636b47d69c6903efb91412",
+      "category": "genel",
+      "title": "Mescid Işığı",
+      "default_text": "Gönlünüz güzelliklerle dolsun."
+    },
+    {
+      "slot": "bayram-03",
+      "source": "Mosques/m23.imageset/1072-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 256824,
+      "thumb_bytes": 31358,
+      "full_sha256": "fa2737c2ec0f2a5a8e4499c947a0a8c12be5db28f2b6a679d549a30c261f9dec",
+      "thumb_sha256": "edcb1bfeba63ca0d8f4f1cd287450521e1221c5bed398dc5d2b1fa7e5bf7b6d4",
+      "category": "bayram",
+      "title": "Cami Buluşması",
+      "default_text": "Bayramınız mübarek olsun."
+    },
+    {
+      "slot": "dua-05",
+      "source": "Mosques/m24.imageset/1073-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 443432,
+      "thumb_bytes": 45458,
+      "full_sha256": "77e306da80797476e94dcf645418f69db9ff24bbed2a95d7c70f82d80563673a",
+      "thumb_sha256": "12c502b6ad42517a5654ddf28f3ea749e9f401897a6c1f7307716f26d8291a7c",
+      "category": "dua",
+      "title": "Manevi Işık",
+      "default_text": "Rabbim dualarınızı hayra çıkarsın."
+    },
+    {
+      "slot": "gunaydin-03",
+      "source": "Mosques/m25.imageset/1074-1.jpg",
+      "original_size": [
+        1600,
+        2400
+      ],
+      "output_size": [
+        1600,
+        2400
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 239034,
+      "thumb_bytes": 26872,
+      "full_sha256": "4f37ac34efc3a30f0eec2f5ba2d4c99651ef27cccd97fb7025dc3db2d94e3210",
+      "thumb_sha256": "505bf095f7a960e62aa7784ff6673daaddf8233ad1b6aef869b76b744bd8d2e5",
+      "category": "gunaydin",
+      "title": "Huzurlu Gün",
+      "default_text": "Hayırlı Günler"
+    },
+    {
+      "slot": "genel-03",
+      "source": "Mosques/m26.imageset/1075-1.jpg",
+      "original_size": [
+        640,
+        960
+      ],
+      "output_size": [
+        640,
+        960
+      ],
+      "thumb_size": [
+        440,
+        660
+      ],
+      "full_bytes": 116904,
+      "thumb_bytes": 52298,
+      "full_sha256": "4afb6f5655e5b4e0d0bfa1818d1daa3fe2155d12bd8165c7b2703dc68017d18c",
+      "thumb_sha256": "fe2b3c8da1a5ed5adae5ab4f7098b907af90755bf792506da8cf6f5cc8497557",
+      "category": "genel",
+      "title": "Tarihi Mescit",
+      "default_text": "Güzellikler ve hayırlar sizinle olsun."
+    }
+  ]
+}
