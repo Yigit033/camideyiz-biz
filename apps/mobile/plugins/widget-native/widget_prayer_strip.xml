@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widget_strip_root" android:layout_width="match_parent"
+ android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical"
+ android:background="@drawable/widget_bg" android:padding="8dp">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="29dp"
+  android:orientation="horizontal" android:gravity="center_vertical">
+  <ImageView android:layout_width="28dp" android:layout_height="28dp"
+   android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter"
+   android:contentDescription="Camideyiz Biz logosu"/>
+<TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="1dp" android:text=""/>
+  
+  <TextView android:id="@+id/widget_strip_city" android:layout_width="wrap_content"
+   android:layout_height="wrap_content" android:layout_marginStart="4dp" android:text="—"
+   android:textColor="#AFC5D4" android:textSize="10sp" android:singleLine="true"
+   android:ellipsize="end" android:includeFontPadding="false"/>
+ </LinearLayout>
+ <TextView android:layout_width="match_parent" android:layout_height="1dp"
+  android:text="" android:background="#37586D" android:layout_marginTop="3dp"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
+  android:baselineAligned="false" android:layout_marginTop="2dp" android:layout_marginBottom="4dp">
+ <LinearLayout android:id="@+id/widget_strip_cell_0" android:layout_width="0dp"
+ android:layout_weight="1" android:layout_height="match_parent"
+ android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
+ android:gravity="center" android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textColor="#AFC5D4" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+
+ <TextView android:id="@+id/widget_strip_time_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F2F7FB" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
+
+ </LinearLayout>
+<LinearLayout android:id="@+id/widget_strip_cell_1" android:layout_width="0dp"
+ android:layout_weight="1" android:layout_height="match_parent"
+ android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
+ android:gravity="center" android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textColor="#AFC5D4" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+
+ <TextView android:id="@+id/widget_strip_time_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F2F7FB" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
+
+ </LinearLayout>
+<LinearLayout android:id="@+id/widget_strip_cell_2" android:layout_width="0dp"
+ android:layout_weight="1" android:layout_height="match_parent"
+ android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
+ android:gravity="center" android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textColor="#AFC5D4" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+
+ <TextView android:id="@+id/widget_strip_time_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F2F7FB" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
+
+ </LinearLayout>
+<LinearLayout android:id="@+id/widget_strip_cell_3" android:layout_width="0dp"
+ android:layout_weight="1" android:layout_height="match_parent"
+ android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
+ android:gravity="center" android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textColor="#AFC5D4" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+
+ <TextView android:id="@+id/widget_strip_time_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F2F7FB" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
+
+ </LinearLayout>
+<LinearLayout android:id="@+id/widget_strip_cell_4" android:layout_width="0dp"
+ android:layout_weight="1" android:layout_height="match_parent"
+ android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
+ android:gravity="center" android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textColor="#AFC5D4" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+
+ <TextView android:id="@+id/widget_strip_time_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F2F7FB" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
+
+ </LinearLayout>
+<LinearLayout android:id="@+id/widget_strip_cell_5" android:layout_width="0dp"
+ android:layout_weight="1" android:layout_height="match_parent"
+ android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
+ android:gravity="center" android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_5" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textColor="#AFC5D4" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+
+ <TextView android:id="@+id/widget_strip_time_5" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F2F7FB" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
+
+ </LinearLayout>
+ </LinearLayout>
+ <LinearLayout android:id="@+id/widget_strip_remaining_row"
+  android:layout_width="match_parent" android:layout_height="45dp"
+  android:background="@drawable/widget_chip_dark" android:orientation="horizontal"
+  android:paddingStart="12dp" android:paddingEnd="12dp" android:gravity="center_vertical">
+  <TextView android:id="@+id/widget_strip_next" android:layout_width="0dp"
+   android:layout_weight="1" android:layout_height="wrap_content"
+   android:text="Takvim bekleniyor" android:textColor="#AFC5D4"
+   android:textSize="11sp" android:singleLine="true" android:ellipsize="end"
+   android:includeFontPadding="false"/>
+  <Chronometer android:id="@+id/widget_strip_countdown"
+   android:layout_width="wrap_content" android:layout_height="wrap_content"
+   android:layout_marginStart="8dp" android:text="--:--" android:textColor="#F4D392"
+   android:textSize="24sp" android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:singleLine="true"
+   android:includeFontPadding="false"/>
+ </LinearLayout>
+</LinearLayout>

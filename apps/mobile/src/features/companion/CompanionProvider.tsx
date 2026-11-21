@@ -1,0 +1,464 @@
+import {
+  createContext,useCallback,useContext,useEffect,useMemo,useRef,useState,
+  type PropsWithChildren,
+} from 'react';
+import {AppState,NativeModules,Platform} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
+import {router} from 'expo-router';
+import {
+  DEFAULT_ALERT_SETTINGS,validateAlertSettings,
+  type AlertSound,type PrayerAlertSettings,type PrayerKey,type PrayerSchedule,
+} from '@camideyiz/core';
+import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
+import {getPrayerPermission,requestPrayerPermission,reconcilePrayerNotifications,
+  toInboxEvent,prunePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
+  type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
+import {clearNativeAdhan} from './nativeAdhan';
+import {useAnnouncementSubscription,type AnnouncementState}
+  from './useAnnouncementSubscription';
+import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
+import {markStartup,recordStartupOperation} from '@/features/performance/startupMetrics';
+import {widgetNeedsForegroundPublish,type NativeWidgetSummary} from '@/features/widgets/widgetForegroundGate';
+import type {LastWidgetTransfer} from '@/features/widgets/widgetBackground';
+import {ensureWidgetBackgroundRefresh,readWidgetBackgroundReport,
+  type WidgetBackgroundReport} from '@/features/widgets/widgetBackgroundRegistration';
+const loadWidgetEngine=()=>import('@/features/widgets/widgetBackground');
+/** A cheap status read before importing the entire foreground widget engine.
+ * An already-published calendar is advanced by Android AlarmManager,
+ * independently of any React lifecycle or Internet connection.
+ */
+async function getNativeWidgetSummary():Promise<NativeWidgetSummary|null>{
+  if(Platform.OS!=='android')return null;
+  const native=NativeModules.CamideyizWidgetBridge as
+    {getStatus?:()=>Promise<string>}|undefined;
+  if(typeof native?.getStatus!=='function')return null;
+  try{
+    const value:unknown=JSON.parse(await native.getStatus());
+    if(!value||typeof value!=='object'||Array.isArray(value))return null;
+    const s=value as Partial<NativeWidgetSummary>;
+    if(typeof s.supported!=='boolean'||typeof s.nativeCityId!=='number'||
+       typeof s.activeCityId!=='number'||typeof s.hasTimeline!=='boolean'||
+       typeof s.lastReady!=='boolean'||typeof s.persisted!=='boolean'||
+       typeof s.lastSyncAt!=='number'||typeof s.calendarEndsAt!=='number'||
+       typeof s.calendarSourceAt!=='number'||typeof s.lastError!=='string'||
+       typeof s.lastTransferError!=='string')return null;
+    return s as NativeWidgetSummary;
+  }catch{return null;}
+}
+
+
+const PREFS=PRAYER_ALERT_PREFERENCES_KEY;
+const INBOX='@camideyiz/observed-reminders/v2';
+const SUPPRESSED='@camideyiz/inbox-deleted/v2';
+const EMPTY_REPORT:NotificationSyncReport={
+  permission:'unknown',scheduled:0,nextAt:null,error:null,
+};
+const EMPTY_WIDGET:WidgetSyncResult={
+  available:false,updated:false,detail:'Widget henüz eşitlenmedi',
+};
+Notifications.setNotificationHandler({
+  handleNotification:async(notification)=>({
+    shouldShowBanner:true,shouldShowList:true,shouldSetBadge:false,
+    shouldPlaySound:notification.request.content.sound==='default',
+  }),
+});
+type CompanionContextValue={
+  settings:PrayerAlertSettings;ready:boolean;
+  permission:'granted'|'denied'|'unknown';sync:NotificationSyncReport;
+  widget:WidgetSyncResult;syncing:boolean;inbox:readonly NativePrayerEvent[];
+  backgroundRegistered:boolean;backgroundReport:WidgetBackgroundReport|null;
+  lastWidgetTransfer:LastWidgetTransfer|null;
+  announcement:AnnouncementState;
+  setEnabled:(next:boolean)=>Promise<boolean>;
+  setSound:(next:AlertSound)=>void;
+  setEzanAtTimeForAll:(next:boolean)=>void;
+  setRule:(key:PrayerKey,changes:Partial<PrayerAlertSettings['rules'][PrayerKey]>)=>void;
+  refresh:()=>void;refreshWidgets:()=>Promise<WidgetSyncResult>;
+  clearInbox:()=>void;deleteInbox:(id:string)=>void;
+};
+const Context=createContext<CompanionContextValue|null>(null);
+function appendUnique(history:readonly NativePrayerEvent[],
+  event:NativePrayerEvent|null,deleted:ReadonlySet<string>):NativePrayerEvent[]{
+  if(!event||deleted.has(event.id))return [...history];
+  return [event,...history.filter(x=>x.eventKey!==event.eventKey)]
+    .sort((a,b)=>b.receivedAt-a.receivedAt).slice(0,120);
+}
+function validInbox(value:unknown):NativePrayerEvent[]{
+  if(!Array.isArray(value))return [];
+  return value.filter((x):x is NativePrayerEvent=>x!==null&&typeof x==='object'&&
+    typeof x.id==='string'&&typeof x.eventKey==='string'&&typeof x.title==='string'&&
+    typeof x.body==='string'&&typeof x.receivedAt==='number'&&
+    Number.isFinite(x.receivedAt)).slice(0,120);
+}
+export function CompanionProvider({children}:PropsWithChildren){
+  const source=useSharedPrayerSource();
+  const announcement=useAnnouncementSubscription();
+  const [settings,setSettings]=useState<PrayerAlertSettings>(DEFAULT_ALERT_SETTINGS);
+  const [inbox,setInbox]=useState<NativePrayerEvent[]>([]);
+  const [ready,setReady]=useState(false);
+  // First paint and the user's Play button outrank optional native upkeep.
+  // Android alarms previously scheduled by the OS keep firing independently.
+  const [maintenanceReady,setMaintenanceReady]=useState(false);
+  const [sync,setSync]=useState<NotificationSyncReport>(EMPTY_REPORT);
+  const [widget,setWidget]=useState<WidgetSyncResult>(EMPTY_WIDGET);
+  const [backgroundRegistered,setBackgroundRegistered]=useState(false);
+  const [backgroundReport,setBackgroundReport]=useState<WidgetBackgroundReport|null>(null);
+  const [lastWidgetTransfer,setLastWidgetTransfer]=useState<LastWidgetTransfer|null>(null);
+  const [syncing,setSyncing]=useState(false);
+  const [sequence,setSequence]=useState(0);
+  const [permission,setPermission]=useState<'granted'|'denied'|'unknown'>('unknown');
+  const lastForegroundSync=useRef(0);
+  const returnedFromBackground=useRef(false);
+  const syncVersion=useRef(0);
+  const widgetVersion=useRef(0);
+  const widgetQueue=useRef<Promise<void>>(Promise.resolve());
+  const syncQueue=useRef<Promise<void>>(Promise.resolve());
+  const deletedIds=useRef<Set<string>>(new Set());
+
+  useEffect(()=>{
+    const id=setTimeout(()=>{
+      markStartup('native-maintenance-start');
+      setMaintenanceReady(true);
+    },1600);
+    return ()=>clearTimeout(id);
+  },[]);
+
+  useEffect(()=>{
+    let live=true;
+    Promise.all([AsyncStorage.getItem(PREFS),AsyncStorage.getItem(INBOX),
+      AsyncStorage.getItem(SUPPRESSED)])
+      .then(([prefs,history,suppressed])=>{
+        if(!live)return;
+        try{if(prefs)setSettings(validateAlertSettings(JSON.parse(prefs) as unknown));}
+        catch{/* corrupted settings revert to OFF; never enable without consent */}
+        try{
+          if(suppressed){
+            const parsed:unknown=JSON.parse(suppressed);
+            if(Array.isArray(parsed)&&parsed.every(id=>typeof id==='string'))
+              deletedIds.current=new Set((parsed as string[]).slice(-512));
+          }
+          if(history)setInbox(validInbox(JSON.parse(history) as unknown)
+            .filter(item=>!deletedIds.current.has(item.id)));
+        }catch{/* corrupt inbox/deletion history ignored */}
+      }).catch(()=>undefined).finally(()=>{if(live)setReady(true);});
+    getPrayerPermission().then(p=>{if(live)setPermission(p);}).catch(()=>undefined);
+    return ()=>{live=false;};
+  },[]);
+  useEffect(()=>{
+    if(ready)AsyncStorage.setItem(PREFS,JSON.stringify(settings)).catch(()=>undefined);
+  },[ready,settings]);
+  useEffect(()=>{
+    if(ready)AsyncStorage.setItem(INBOX,JSON.stringify(inbox)).catch(()=>undefined);
+  },[ready,inbox]);
+  useEffect(()=>{
+    const received=Notifications.addNotificationReceivedListener(notification=>{
+      setInbox(prev=>appendUnique(prev,toInboxEvent(notification),deletedIds.current));
+    });
+    const response=Notifications.addNotificationResponseReceivedListener(response=>{
+      const event=toInboxEvent(response.notification);
+      setInbox(prev=>appendUnique(prev,event,deletedIds.current));
+      if(event)router.replace(
+        event.eventKey.startsWith('announcement:')?'/companion':'/(tabs)',
+      );
+    });
+    // Recover any delivered items still present in the OS notification list.
+    const collect=()=>{
+      Notifications.getPresentedNotificationsAsync().then(items=>{
+        setInbox(prev=>{
+          let next=prev;
+          for(const item of items)next=appendUnique(next,toInboxEvent(item),deletedIds.current);
+          return next;
+        });
+      }).catch(()=>undefined);
+    };
+    const appState=AppState.addEventListener('change',state=>{
+      if(state==='background'||state==='inactive'){
+        returnedFromBackground.current=true;
+        return;
+      }
+      if(state!=='active'||!returnedFromBackground.current)return;
+      returnedFromBackground.current=false;
+      collect();
+      // Cold-start already fetches the source once. Don't invoke another
+      // revalidation merely because React Native emitted its first active event.
+      if(Date.now()-lastForegroundSync.current>60_000){
+        lastForegroundSync.current=Date.now();
+        setSequence(n=>n+1);
+        source.retry();
+      }
+      getPrayerPermission().then(setPermission).catch(()=>undefined);
+    });
+    return ()=>{received.remove();response.remove();appState.remove();};
+  },[source.retry]);
+  useEffect(()=>{
+    if(!maintenanceReady)return;
+    // Inbox reconciliation and router notification recovery are secondary
+    // to the first screen and manual Play interaction.
+    Notifications.getPresentedNotificationsAsync().then(items=>{
+      setInbox(prev=>{
+        let next=prev;
+        for(const item of items)next=appendUnique(next,toInboxEvent(item),deletedIds.current);
+        return next;
+      });
+    }).catch(()=>undefined);
+    const last=Notifications.getLastNotificationResponse();
+    if(last){
+      const found=toInboxEvent(last.notification);
+      if(found){
+        setInbox(prev=>appendUnique(prev,found,deletedIds.current));
+        router.replace(found.eventKey.startsWith('announcement:')
+          ?'/companion':'/(tabs)');
+      }
+      Notifications.clearLastNotificationResponse();
+    }
+  },[maintenanceReady]);
+
+  const days=useMemo(():readonly PrayerSchedule[]=>{
+    const result=source.days;
+    if(!result||!source.place||result.city.id!==source.place.id)return [];
+    return result.source==='idamedya-diyanet-republished'
+      ?result.upcoming:[result.today,result.next];
+  },[source.days,source.place?.id]);
+  const cityId=source.place?.id??0;
+
+  // Native widget registration remains independent from local prayer
+  // notification permissions. Do not retry background registration each time
+  // the published calendar refreshes.
+  useEffect(()=>{
+    if(!ready||!maintenanceReady)return;
+    let live=true;
+    (async()=>{
+      const registeredAt=Date.now();
+      try{
+        const registered=await ensureWidgetBackgroundRefresh();
+        if(live)setBackgroundRegistered(registered);
+      }catch{if(live)setBackgroundRegistered(false);}
+      finally{recordStartupOperation('widget-background-registration',registeredAt);}
+      const report=await readWidgetBackgroundReport();
+      if(live)setBackgroundReport(report);
+    })().catch(()=>undefined);
+    return ()=>{live=false;};
+  },[ready,maintenanceReady]);
+
+  // Exactly one foreground writer. Persist the selected district first;
+  // while the provider reloads we reuse ONLY a validated cache belonging to
+  // that same district, rather than overwriting the widget with no-data.
+  // Pending old-district writes are serialized and cancelled before execution.
+  useEffect(()=>{
+    // GPS start-up may temporarily have no place. Do not erase the already
+    // verified native widget just because location is still resolving.
+    if(!ready||!maintenanceReady||!source.place)return;
+    // Avoid the full widget JS engine unless Android reports missing,
+    // invalid, wrong-district or stale native calendar data.
+    const version=++widgetVersion.current;
+    let active=true;
+    const place=source.place;
+    const sourceKind=source.officialConfigured
+      ?'diyanet-awqat-salah' as const
+      :'idamedya-diyanet-republished' as const;
+    const publishedAt=source.days?Date.parse(source.days.today.fetchedAt):null;
+    const update=async()=>{
+      try{
+        const checkedAt=Date.now();
+        const native=await getNativeWidgetSummary();
+        recordStartupOperation('widget-health-check',checkedAt);
+        if(!active||version!==widgetVersion.current)return;
+        if(Platform.OS==='android'&&
+           !widgetNeedsForegroundPublish(native,place.id,Date.now())){
+          markStartup('widget-healthy-skip');
+          setWidget({
+            available:true,updated:false,
+            detail:'Android widget takvimi zaten güncel. Gereksiz tekrar yayın atlandı.',
+            installedNext:native?.installedNext,
+            installedDay:native?.installedDay,
+            installedCompact:native?.installedCompact,
+            installedFocus:native?.installedFocus,
+            installedStrip:native?.installedStrip,
+            installedMiniRing:native?.installedMiniRing,
+            installedPremiumRing:native?.installedPremiumRing,
+            installedSlim:native?.installedSlim,
+            lastNativeWriteAt:native?.lastAppliedAt,
+            nextNativeAlarmAt:native?.nextAlarmAt,
+            nativePersisted:true,launcherConfirmed:false,
+          });
+          return;
+        }
+        if(Platform.OS==='android')markStartup('widget-publish-needed');
+        const publishAt=Date.now();
+        let result:WidgetSyncResult;
+        try{
+          const engine=await loadWidgetEngine();
+          if(!active||version!==widgetVersion.current)return;
+          result=await engine.syncForegroundWidgetCalendar(
+            place,sourceKind,days,publishedAt,Date.now());
+          if(active&&version===widgetVersion.current){
+            setWidget(result);
+            const record=await engine.readLastWidgetTransfer();
+            if(active&&version===widgetVersion.current)
+              setLastWidgetTransfer(record?.cityId===place?.id?record:null);
+          }
+        }finally{
+          recordStartupOperation('widget-native-publish',publishAt);
+        }
+      }catch(error){
+        if(active&&version===widgetVersion.current)setWidget({
+          available:false,updated:false,
+          detail:'Widget eşitleme hatası: '+
+            (error instanceof Error?error.message:'Bilinmeyen hata'),
+        });
+      }
+    };
+    widgetQueue.current=widgetQueue.current.catch(()=>undefined)
+      .then(()=>active?update():Promise.resolve());
+    return ()=>{active=false;};
+  },[ready,maintenanceReady,days,cityId,source.officialConfigured]);
+
+  useEffect(()=>{
+    if(!ready||!maintenanceReady)return;
+    const id=++syncVersion.current;
+    let active=true;
+    const reconcile=async()=>{
+      const reconcileAt=Date.now();
+      setSyncing(true);
+      try{
+        // If the upstream is temporarily offline, do not erase a user's
+        // already scheduled valid reminders for the same district.
+        if(days.length===0&&settings.enabled){
+          // Never keep an old district's native ezan ringing while calendars reload.
+          if(settings.sound==='adhan')await clearNativeAdhan().catch(()=>undefined);
+          // Remove previous-city alerts while keeping still-valid reminders
+          // when only the data source is temporarily offline.
+          if(cityId>0){
+            try{await prunePrayerNotifications(cityId,settings);}
+            catch{/* retry on next source update */}
+          }
+          return;
+        }
+        const report=await reconcilePrayerNotifications(days,cityId,settings);
+        if(active&&id===syncVersion.current){
+          setSync(report);setPermission(report.permission);
+        }
+      }finally{
+        recordStartupOperation('notification-reconcile',reconcileAt);
+        if(active&&id===syncVersion.current)setSyncing(false);
+      }
+    };
+    // Serialize native scheduling. Rapid toggle/location changes must never
+    // let an older asynchronous run overwrite a newer set of 60 OS requests.
+    syncQueue.current=syncQueue.current.catch(()=>undefined)
+      .then(()=>active?reconcile():Promise.resolve())
+      .catch(error=>{
+        if(active&&id===syncVersion.current){
+          setSync(current=>({...current,error:
+            error instanceof Error?error.message:'Bildirim eşitleme hatası'}));
+          setSyncing(false);
+        }
+      });
+    return ()=>{active=false;};
+  },[ready,maintenanceReady,days,cityId,settings,sequence]);
+
+  const setEnabled=useCallback(async(next:boolean)=>{
+    if(next){
+      try{
+        const allowed=await requestPrayerPermission();
+        setPermission(allowed?'granted':'denied');
+        if(!allowed)return false;
+      }catch{
+        setPermission('denied');return false;
+      }
+    }
+    setSettings(old=>({...old,enabled:next}));
+    return true;
+  },[]);
+  const setSound=useCallback((next:AlertSound)=>
+    setSettings(old=>({...old,sound:next})),[]);
+  const setEzanAtTimeForAll=useCallback((next:boolean)=>{
+    setSettings(old=>{
+      const rules={...old.rules};
+      for(const key of ['imsak','ogle','ikindi','aksam','yatsi'] as const){
+        rules[key]={...rules[key],enabled:next?true:rules[key].enabled,atTime:next};
+      }
+      // Güneş doğuşu bir ezan vakti değildir. Bu kısayol ne açarken ne
+      // kapatırken kullanıcının bağımsız güneş doğuşu kuralına dokunmaz.
+      return validateAlertSettings({...old,rules});
+    });
+  },[]);
+  const setRule=useCallback((key:PrayerKey,
+    changes:Partial<PrayerAlertSettings['rules'][PrayerKey]>)=>{
+    setSettings(old=>validateAlertSettings({...old,rules:{
+      ...old.rules,[key]:{...old.rules[key],...changes},
+    }}));
+  },[]);
+  const refresh=useCallback(()=>{
+    source.retry();
+    setSequence(i=>i+1);
+  },[source.retry]);
+  // Manual widget refresh uses already validated district hours immediately.
+  // A network reload before writing could temporarily clear the launcher.
+  const refreshWidgets=useCallback(async()=>{
+    if(!ready)return {available:false,updated:false,
+      detail:'Widget ayarları henüz açılmadı'};
+    const place=source.place;
+    if(!place)return {available:true,updated:false,
+      detail:'Konum seçimi henüz tamamlanmadı'};
+    const selectedSource=source.officialConfigured
+      ?'diyanet-awqat-salah' as const
+      :'idamedya-diyanet-republished' as const;
+    const publishedAt=source.days?Date.parse(source.days.today.fetchedAt):null;
+    let result:WidgetSyncResult={available:true,updated:false,
+      detail:'Eşitleme başlamadı'};
+    const run=async()=>{
+      try{
+        const engine=await loadWidgetEngine();
+        result=await engine.syncForegroundWidgetCalendar(
+          place,selectedSource,days,publishedAt,Date.now());
+        if(!result.updated){
+          // A user-requested repair must work even if the React hook never
+          // supplied hours; fetch the selected district's verified calendar.
+          result=await engine.fetchAndPublishVerifiedWidgetCalendar(place,selectedSource);
+        }
+        setWidget(result);
+        const latest=await engine.readLastWidgetTransfer();
+        setLastWidgetTransfer(latest?.cityId===place?.id?latest:null);
+      }catch(error){
+        result={available:false,updated:false,
+          detail:'Widget aktarılamadı: '+
+            (error instanceof Error?error.message:'Beklenmeyen hata')};
+        setWidget(result);
+      }
+    };
+    widgetQueue.current=widgetQueue.current.catch(()=>undefined).then(run);
+    await widgetQueue.current;
+    // Do not report "repainted" when no calendar was actually transferred.
+    if(!result.updated)source.retry();
+    return result;
+  },[ready,source.place,source.days,source.officialConfigured,days,source.retry]);
+
+  const rememberDeletion=useCallback((ids:readonly string[])=>{
+    const next=[...new Set([...deletedIds.current,...ids])].slice(-512);
+    deletedIds.current=new Set(next);
+    AsyncStorage.setItem(SUPPRESSED,JSON.stringify(next)).catch(()=>undefined);
+  },[]);
+  const clearInbox=useCallback(()=>{
+    rememberDeletion(inbox.map(item=>item.id));
+    setInbox([]);
+  },[inbox,rememberDeletion]);
+  const deleteInbox=useCallback((id:string)=>{
+    rememberDeletion([id]);
+    setInbox(old=>old.filter(item=>item.id!==id));
+  },[rememberDeletion]);
+  const value=useMemo(()=>({
+    settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
+    lastWidgetTransfer,announcement,
+    setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox,
+  }),[settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
+       lastWidgetTransfer,announcement,
+      setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox]);
+  return <Context.Provider value={value}>{children}</Context.Provider>;
+}
+export function useCompanion():CompanionContextValue{
+  const value=useContext(Context);
+  if(!value)throw new Error('useCompanion must be under CompanionProvider');
+  return value;
+}

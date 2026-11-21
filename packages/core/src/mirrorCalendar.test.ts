@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  MIRROR_SOURCE,parseMirrorStates,parseMirrorCities,parseMirrorTriplet,
+  MIRROR_SOURCE,parseMirrorStates,parseMirrorCities,parseBackupDiyanetStates,parseBackupDiyanetCities,parseMirrorTriplet,parseEmushafTriplet,MIRROR_OFFLINE_CACHE_MS,
   validateCachedMirrorTriplet,DEFAULT_MIRROR_PLACE,MIRROR_CACHE_MS,calculateMirrorPhase,
 } from './mirrorCalendar.ts';
 const date='2026-11-14',city=9541,fetchTime='2026-11-14T08:00:00.000Z';
@@ -106,4 +106,155 @@ test('reject responses without tomorrow, wrong source, or corrupt cache fields',
   const fake={...t,today:{...t.today,times:[...t.today.times.slice(0,2),
     {...t.today.times[2],time:'23:59'},...t.today.times.slice(3)]}};
   assert.throws(()=>validateCachedMirrorTriplet(fake,9541,date,Date.parse(fetchTime)+1000));
+});
+
+
+test('forward published calendar is kept for up to 16 consecutive days',()=>{
+  const fixture={
+    ok:true,data:{ilce:9541,kaynak:'Diyanet İşleri Başkanlığı',
+      gunler:Array.from({length:15},(_,index)=>{
+        const date=new Date(Date.UTC(2026,10,14+index)).toISOString().slice(0,10);
+        return {...realProviderToday,tarih:date};
+      }),
+    },
+  };
+  const selection=parseMirrorTriplet(fixture,9541,'2026-11-14','İstanbul',fetchTime);
+  assert.equal(selection.upcoming.length,15);
+  assert.equal(selection.upcoming[14].dateISO,'2026-11-28');
+  assert.equal(validateCachedMirrorTriplet(selection,9541,'2026-11-14',
+    Date.parse(fetchTime)+5000).upcoming.length,15);
+});
+test('future cached prayer entries must be chronological and correctly attributed',()=>{
+  const triplet=parseMirrorTriplet(liveShape,9541,'2026-11-14','İstanbul',fetchTime);
+  const tampered={...triplet,upcoming:[triplet.upcoming[0],
+    {...triplet.upcoming[1],cityId:1111}]};
+  assert.throws(()=>validateCachedMirrorTriplet(tampered,9541,'2026-11-14',
+    Date.parse(fetchTime)+1000));
+});
+
+test('fallback district directory keeps authoritative district prayer codes',()=>{
+ const districts=parseBackupDiyanetCities([
+   {IlceAdi:'PENDİK',IlceID:'9545'},
+   {IlceAdi:'TUZLA',IlceID:'9551'},
+   {IlceAdi:'İSTANBUL',IlceID:'9541'},
+ ],539);
+ assert.equal(districts.find(d=>d.name==='PENDİK')?.id,9545);
+ assert.equal(districts.find(d=>d.name==='TUZLA')?.id,9551);
+ assert.ok(districts.every(d=>d.state_id===539));
+ assert.throws(()=>parseBackupDiyanetCities([
+   {IlceAdi:'PENDİK',IlceID:'9545'},
+   {IlceAdi:'PENDİK 2',IlceID:'9545'},
+ ],539));
+ assert.throws(()=>parseBackupDiyanetCities([{IlceAdi:'TEST',IlceID:'invalid'}],539));
+});
+
+/** Shape from https://ezanvakti.emushaf.net/vakitler/{districtId}.
+ * The clock values here are a parser fixture, not a published Tuzla forecast. */
+const emushafDay=(date:string)=>({
+  MiladiTarihKisa:date,HicriTarihUzun:'6 Cemaziyelahir 1448',
+  Imsak:'06:16',Gunes:'07:44',Ogle:'12:54',
+  Ikindi:'15:29',Aksam:'17:53',Yatsi:'19:16',
+});
+test('backup published Diyanet-coded feed yields a live schedule for SELECTED district',()=>{
+  const result=parseEmushafTriplet([
+    emushafDay('14.11.2026'),
+    emushafDay('15.11.2026'),
+    emushafDay('16.11.2026'),
+  ],9551,'2026-11-15','Tuzla',fetchTime);
+  assert.equal(result.city.id,9551);
+  assert.equal(result.provider,'emushaf');
+  assert.equal(result.today.cityId,9551);
+  assert.equal(result.today.dateISO,'2026-11-15');
+  assert.equal(result.today.locationName,'Tuzla');
+  assert.equal(result.today.isDemo,false);
+  assert.equal(result.next.dateISO,'2026-11-16');
+  assert.equal(result.upcoming.length,2);
+  assert.equal(result.today.times[0].time,'06:16');
+  assert.equal(validateCachedMirrorTriplet(result,9551,'2026-11-15',
+    Date.parse(fetchTime)+5000).today.provider,'emushaf');
+});
+test('backup feed NEVER relabels unknown or incomplete hours as selected day',()=>{
+  assert.throws(()=>parseEmushafTriplet([
+    emushafDay('14.11.2026'),emushafDay('16.11.2026'),
+  ],9551,'2026-11-15','Tuzla',fetchTime));
+  assert.throws(()=>parseEmushafTriplet([
+    emushafDay('15.11.2026'),{...emushafDay('16.11.2026'),Aksam:'10:00'},
+  ],9551,'2026-11-15','Tuzla',fetchTime));
+  assert.throws(()=>parseEmushafTriplet([
+    emushafDay('31.02.2026'),emushafDay('16.11.2026'),
+  ],9551,'2026-11-15','Tuzla',fetchTime));
+  assert.throws(()=>parseEmushafTriplet([
+    emushafDay('15.11.2026'),emushafDay('16.11.2026'),
+  ],9541,'2026-11-15','Tuzla',fetchTime)
+    &&validateCachedMirrorTriplet(
+      parseEmushafTriplet([emushafDay('15.11.2026'),emushafDay('16.11.2026')],
+        9541,'2026-11-15','Tuzla',fetchTime),
+      9551,'2026-11-15',Date.parse(fetchTime)+1));
+});
+test('published same-day offline cache lasts at most 24h, not across district/date',()=>{
+  const triplet=parseEmushafTriplet([
+    emushafDay('14.11.2026'),emushafDay('15.11.2026'),
+    emushafDay('16.11.2026'),
+  ],9551,'2026-11-15','Tuzla',fetchTime);
+  const now=Date.parse(fetchTime);
+  assert.throws(()=>validateCachedMirrorTriplet(triplet,9551,'2026-11-15',
+    now+MIRROR_CACHE_MS+5000));
+  assert.ok(validateCachedMirrorTriplet(triplet,9551,'2026-11-15',
+    now+MIRROR_CACHE_MS+5000,MIRROR_OFFLINE_CACHE_MS));
+  assert.throws(()=>validateCachedMirrorTriplet(triplet,9551,'2026-11-15',
+    now+MIRROR_OFFLINE_CACHE_MS+1,MIRROR_OFFLINE_CACHE_MS));
+  assert.throws(()=>validateCachedMirrorTriplet(triplet,9541,'2026-11-15',
+    now+1000,MIRROR_OFFLINE_CACHE_MS));
+  assert.throws(()=>validateCachedMirrorTriplet(triplet,9551,'2026-11-16',
+    now+1000,MIRROR_OFFLINE_CACHE_MS));
+});
+
+test('mtopal data uses the same published Diyanet schema but retains source attribution',()=>{
+  const t=parseEmushafTriplet([
+    emushafDay('14.11.2026'),
+    emushafDay('15.11.2026'),
+    emushafDay('16.11.2026'),
+  ],9740,'2026-11-15','Tarsus',fetchTime,'mtopal');
+  assert.equal(t.provider,'mtopal');
+  assert.equal(t.today.provider,'mtopal');
+  assert.equal(t.today.cityId,9740);
+  assert.equal(t.today.dateISO,'2026-11-15');
+  assert.equal(t.next.dateISO,'2026-11-16');
+  assert.equal(validateCachedMirrorTriplet(t,9740,'2026-11-15',
+    Date.parse(fetchTime)+6000).provider,'mtopal');
+});
+
+test('REGRESSION: verified backup through-year feed (>45 days) remains valid',()=>{
+  const longList=Array.from({length:50},(_,i)=>{
+    const d=new Date(Date.UTC(2026,10,13+i));
+    const date=String(d.getUTCDate()).padStart(2,'0')+'.'+
+      String(d.getUTCMonth()+1).padStart(2,'0')+'.'+d.getUTCFullYear();
+    return emushafDay(date);
+  });
+  const result=parseEmushafTriplet(longList,9551,'2026-11-15',
+    'Tuzla',fetchTime,'mtopal');
+  assert.equal(result.today.dateISO,'2026-11-15');
+  assert.equal(result.next.dateISO,'2026-11-16');
+  assert.equal(result.upcoming.length,16);
+  assert.equal(result.provider,'mtopal');
+  // An independent monthly provider still has its original strict limit.
+  assert.throws(()=>parseEmushafTriplet(longList,9551,'2026-11-15',
+    'Tuzla',fetchTime,'emushaf'));
+});
+
+test('primary province listing outage can fall back to exact Turkish Diyanet city codes',()=>{
+  const states=parseBackupDiyanetStates([
+    {SehirID:'539',SehirAdi:'İSTANBUL'},
+    {SehirID:'557',SehirAdi:'MERSİN'},
+  ]);
+  assert.equal(states.length,2);
+  assert.equal(states.find(x=>x.id===539)?.name,'İSTANBUL');
+  assert.equal(states.find(x=>x.id===557)?.country_id,2);
+  assert.throws(()=>parseBackupDiyanetStates([
+    {SehirID:'539',SehirAdi:'İSTANBUL'},
+    {SehirID:'539',SehirAdi:'FAKE'},
+  ]));
+  assert.throws(()=>parseBackupDiyanetStates([
+    {SehirID:'-1',SehirAdi:'FAKE'},
+  ]));
 });

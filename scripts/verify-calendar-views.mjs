@@ -1,0 +1,31 @@
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const r=(p)=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const home=r('apps/mobile/src/app/(tabs)/index.tsx');
+const cards=r('apps/mobile/src/features/calendar/HomeCalendarSection.tsx');
+const screen=r('apps/mobile/src/app/calendar30.tsx');
+const days=r('apps/mobile/src/app/religious-days.tsx');
+const route=r('apps/mobile/src/app/_layout.tsx');
+const provider=r('apps/mobile/src/features/calendar/calendar30Api.ts');
+const api=r('apps/api/src/app/api/v1/calendar30/route.ts');
+assert.match(home,/HomeCalendarSection dateISO=\{zoned\.dateISO\}/);
+assert.match(home,/HomeCalendarSection dateISO=\{zonedClock\(now,'Europe\/Istanbul'\)\.dateISO\}/);
+assert.match(cards,/router\.push\('\/calendar30'\)/);
+assert.match(cards,/router\.push\('\/religious-days'\)/);
+assert.match(cards,/upcomingReligiousDay\(dateISO\)/);
+assert.doesNotMatch(home,/fetchCalendar30/,'home must not start 30-day network calls');
+assert.match(screen,/FlatList/);
+assert.match(screen,/useCalendar30\(dateISO\)/);
+assert.match(screen,/Yayımlanmış veri bekleniyor/);
+assert.match(days,/religiousDaysFrom\(current\)/);
+assert.match(days,/Diyanet kaynağını aç/);
+assert.match(route,/<Stack\.Screen name="calendar30"/);
+assert.match(route,/<Stack\.Screen name="religious-days"/);
+assert.match(provider,/mergeCalendar30\(snapshots\)/);
+const hook=r('apps/mobile/src/features/calendar/useCalendar30.ts');
+assert.match(hook,/if\(revision===0\)try/,
+  'manual refresh must bypass cached published days');
+assert.match(hook,/controller\.abort\(\)/,
+  'unmount or district switch must cancel pending requests');
+assert.match(api,/officialCalendar30\(cityId,date\)/);
+console.log('Calendar 1.0: lazy verified prayer days, two bottom home cards, routed screens and Diyanet annual events OK');

@@ -34,3 +34,31 @@ test('tangential velocity is zero at the center and direction-aware',()=>{
   assert.ok(tangentialVelocity(100,0,0,-100)<0);
   assert.ok(tangentialVelocity(100,0,0,10000)<=260);
 });
+
+test('automatic self-centering reaches live wedge after repeated full turns',()=>{
+  const live={from:180,to:270};
+  const center=(live.from+live.to)/2;
+  for(const revolutions of [-6,-3,-1,0,1,3,6]){
+    for(const offset of [-176,-83,0,62,174]){
+      const start=revolutions*360+offset;
+      const destination=nearestCenterRotation(start,live);
+      assert.ok(Math.abs(destination-start)<=180,
+        'return must take shortest turn even after many revolutions');
+      assert.ok(Math.abs(normalizeDegrees(-destination)-center)<1e-8,
+        'return must finish with live prayer centered at needle');
+      assert.equal(sectorAtNeedle(destination,sectors),2);
+    }
+  }
+});
+test('steering can regrab during an unfinished return without losing angular continuity',()=>{
+  const live={from:270,to:360};
+  const initial=-5*360-105;
+  const planned=nearestCenterRotation(initial,live);
+  const halfway=initial+(planned-initial)*.38;
+  const fingerDelta=shortestAngularDelta(358,7);
+  assert.equal(fingerDelta,9);
+  const resumed=halfway+fingerDelta;
+  const final=nearestCenterRotation(resumed,live);
+  assert.ok(Math.abs(final-resumed)<=180);
+  assert.equal(sectorAtNeedle(final,sectors),3);
+});

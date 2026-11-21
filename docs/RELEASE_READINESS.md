@@ -11,7 +11,9 @@
 - [ ] Gerçek Android/iOS cihaz ve diğer il/ilçelerde veri/kullanım koşulları QA.
 - [x] Kerahat 2.0 yaklaşık üç aralık için çember vurgusu, konuma bağlı saat, kişisel gösterim ayarı.
 - [x] Günün Ayeti/Hadisi 2.0: 12+7 kaynaklı kısa alıntı, günlük döngü, yerel favori, paylaşım.
-- [ ] Haftalık görünüm, çoklu konum, ezan bildirimleri, widget ve Galeri ürün özellikleri.
+- [ ] Haftalık görünüm, çoklu konum ve Galeri ürün özellikleri.
+- [x] Widget ve bildirim altyapısı kodlandı (Expo SDK58 iOS/Android widget, 6 vakit, yerel plan, inbox).
+- [ ] Widget native Android/iOS build ve gerçek cihaz testleri; özel ezan sesleri lisans bekliyor.
 
 Ayrıntı: [FREE_CALENDAR.md](FREE_CALENDAR.md). Resmî Awqat Salah beklemeye devam ediyor.
 
@@ -77,3 +79,12 @@ Kaynaklar:
 - Günlük kartlar artık sabit değil; kaynaklı yerel 12 ayet / 7 hadis kataloğu vardır.
 - Uygulama ek DB/sunucu/API anahtarı gerektirmeden çevrimdışı günlük seçki ve favori yönetimi sunar.
 - Yayın engeli: dinî uzman incelemesi, alıntıların yayın izni, fiziksel Android/iOS QA; dokümantasyon [KERAHAT_AND_DAILY_WISDOM_2.md](KERAHAT_AND_DAILY_WISDOM_2.md).
+
+## 14 Kasım 2026 — Widget ve Bildirimler 2.0
+
+- Native expo-widgets: küçük sonraki vakit ve büyük altı vakit, iOS timeline; Android snapshot.
+- Yerel bildirimler: tüm vakitleri ayrı seçme, sistem sesi/sessiz, önceden uyarı, 7 gün/60 kayıt, izin açılınca isteme.
+- Yerel ve silinebilir uygulama bildirim geçmişi. Silme sonrası OS merkezinden otomatik yeniden aktarılmaz.
+- Başlangıçta widget için yeni native build gerekir. CI Android CNG prebuild; iOS Xcode fiziksel QA kalır.
+- Native QA, arka plan optimizasyonu, mağaza imzası ve bildirim sesi telifleri açık.
+- Kapsam ve kontrol: [WIDGETS_AND_NOTIFICATIONS_2.md](WIDGETS_AND_NOTIFICATIONS_2.md).

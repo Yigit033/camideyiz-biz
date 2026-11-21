@@ -11,13 +11,13 @@ export const DialLighting = memo(function DialLighting({size, dark}: {size:numbe
         <Circle cx={center} cy={center} r={center*.94}>
           <RadialGradient
             c={vec(center,center)} r={center*.94}
-            colors={dark ? ['rgba(30,161,139,0.14)','rgba(19,86,79,0.08)','rgba(0,0,0,0)']
+            colors={dark ? ['rgba(26,147,208,0.16)','rgba(19,80,116,0.09)','rgba(0,0,0,0)']
               : ['rgba(210,182,121,0.14)','rgba(109,178,157,0.07)','rgba(255,255,255,0)']}/>
           <BlurMask blur={14} style="normal"/>
         </Circle>
         <Circle cx={center*.75} cy={center*.64} r={center*.42}>
           <RadialGradient c={vec(center*.75,center*.64)} r={center*.42}
-            colors={dark ? ['rgba(207,177,111,0.14)','rgba(17,31,29,0)']
+            colors={dark ? ['rgba(207,177,111,0.14)','rgba(14,34,52,0)']
               : ['rgba(217,182,118,0.12)','rgba(255,255,255,0)']}/>
           <BlurMask blur={18} style="normal"/>
         </Circle>

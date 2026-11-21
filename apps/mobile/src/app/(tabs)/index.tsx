@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {memo,useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {
   Alert, Pressable, ScrollView, StyleSheet, Text,
   useWindowDimensions, View,
@@ -6,16 +6,22 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import Svg,{Path} from 'react-native-svg';
-import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,timeToMinutes,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,calculateMirrorPhase,getKerahatView,type PrayerTime} from '@camideyiz/core';
+import Animated,{Easing,interpolateColor,useAnimatedStyle,useReducedMotion,
+  useSharedValue,withTiming} from 'react-native-reanimated';
+import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,MIRROR_OFFLINE_CACHE_MS,calculateMirrorPhase,getKerahatView,prayerBadgeForeground,type PrayerTime} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {PrayerWheel,PRAYER_COLORS} from '@/features/prayer/PrayerWheel';
 import {Atmosphere} from '@/components/LuxuryArtwork';
-import {useKerahatSettings} from '@/features/prayer/useKerahatSettings';
+import {HomeBrandHeader} from '@/features/prayer/HomeBrandHeader';
+import {useKerahatSettings} from '@/features/prayer/KerahatSettingsProvider';
 import {KerahatPanel} from '@/features/prayer/KerahatPanel';
 import {DailyWisdomSection} from '@/features/wisdom/DailyWisdomSection';
+import {AdhanExperience} from '@/features/adhan/AdhanExperience';
+import {HomeCalendarSection} from '@/features/calendar/HomeCalendarSection';
 import {usePrayerSource} from '@/features/prayer/usePrayerSource';
+import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {LocationPicker} from '@/features/prayer/LocationPicker';
+import {markStartup,startStartupPerformanceMonitor} from '@/features/performance/startupMetrics';
 
 const ICONS={
   imsak:'moon-waning-crescent',
@@ -33,81 +39,152 @@ function formatHijri(now:Date){
     }).format(now);
   } catch {return null;}
 }
-function DateDivider({now,dark,timezone,hijriDate,officialSource=false}: {now:Date;dark:boolean;timezone:string;hijriDate:string|null;officialSource?:boolean}) {
-  const {colors}=useAppTheme();
-  const date=new Intl.DateTimeFormat('tr-TR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone}).format(now);
-  const hijri=hijriDate??formatHijri(now);
-  return <View style={styles.dateSection}>
-    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10}}>
-      <View style={[styles.dateLine,{backgroundColor:colors.gold}]}/>
-      <Feather name="calendar" size={13} color={colors.gold}/>
-      <Text style={[styles.dateText,{color:colors.text}]}>{date}</Text>
-      <View style={[styles.dateLine,{backgroundColor:colors.gold}]}/>
-    </View>
-    {hijri?<Text style={[styles.hijri,{color:dark?'#A6D8C3':'#4B806D'}]}>{hijri} · {hijriDate?(officialSource?'Hicrî · Diyanet API':'Hicrî · kaynak takvim'):'Hicrî (yaklaşık)'}</Text>:null}
-  </View>;
-}
-function Pill({title,active,icon,clock,accent,width,onPress,dark}:{
- title:string;active:boolean;icon:typeof ICONS[keyof typeof ICONS];clock:string;accent:string;width:number;onPress:()=>void;dark:boolean;
+function DateDivider({now,timezone,hijriDate}:{
+  now:Date;timezone:string;hijriDate:string|null;
 }){
   const {colors}=useAppTheme();
-  return <Pressable onPress={onPress} accessibilityRole="button"
-    accessibilityState={{selected:active}} accessibilityLabel={title+' '+clock}
-    style={[
-      styles.prayerChip,{
-        width,
-        borderColor:active?(dark?'#65E5BF':'#177D60'):(dark?'#48615A':'#DAD7CE'),
-        backgroundColor:active?(dark?'#076751':'#087351'):(dark?'rgba(6,30,31,.83)':'rgba(255,255,255,.81)'),
-        shadowColor:active?'#26BD90':'#776D5E',shadowOpacity:active?.26:.045,
-        shadowRadius:active?11:3,elevation:active?4:1,
-      }]}>
-      <MaterialCommunityIcons name={icon} color={active?'#F7E8C6':dark?'#E4BF7D':'#B78D3D'} size={17}/>
-      <Text numberOfLines={1} adjustsFontSizeToFit
-        style={[styles.chipLabel,{color:active?'#FAF7EB':colors.text}]}>{title}</Text>
-      <Text style={[styles.chipTime,{color:active?'#FDF6E5':colors.text}]}>{clock}</Text>
-    </Pressable>;
+  const date=new Intl.DateTimeFormat('tr-TR',{
+    weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone,
+  }).format(now);
+  const hijri=hijriDate??formatHijri(now);
+  // Equal flexible halves ensure the vertical rule is at the actual screen
+  // centre, independent of the very different lengths of Hijri/Gregorian dates.
+  return <View style={styles.dateSection}
+    accessible accessibilityLabel={hijri?hijri+'; '+date:date}>
+    {hijri?<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.67}
+      style={[styles.dateText,{color:colors.text}]}>{hijri}</Text>:null}
+    {hijri?<View pointerEvents="none" style={{
+      width:1,height:18,marginHorizontal:7,backgroundColor:colors.gold,opacity:.85,
+    }}/>:null}
+    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.67}
+      style={[styles.dateText,{color:colors.text}]}>{date}</Text>
+  </View>;
+}
+/** A card is coloured only for the current published prayer period.
+ * Temporary manual wheel exploration gets a subtle outline, not a false
+ * active-vakit fill. Contrast stays readable throughout the 300ms transition.
+ */
+const Pill=memo(function Pill({title,current,focused,icon,clock,accent,width,onSelect,index,dark}:{
+  title:string;current:boolean;focused:boolean;
+  icon:typeof ICONS[keyof typeof ICONS];clock:string;accent:string;
+  width:number;onSelect:(index:number)=>void;index:number;dark:boolean;
+}){
+  const {colors}=useAppTheme();
+  const reducedMotion=useReducedMotion();
+  const animatedActive=useSharedValue(current?1:0);
+  const idleBg=dark?'#0D263C':'#FCFDFC';
+  const idleBorder=dark?'#395975':'#DAD7CE';
+  const finalInk=prayerBadgeForeground(accent);
+  const inkPalette=useMemo(()=>cardInkTransition(idleBg,accent),[idleBg,accent]);
+
+  useEffect(()=>{
+    animatedActive.value=reducedMotion?(current?1:0):withTiming(current?1:0,{
+      duration:300,easing:Easing.inOut(Easing.cubic),
+    });
+  },[current,reducedMotion,animatedActive]);
+  const surface=useAnimatedStyle(()=>({
+    backgroundColor:interpolateColor(animatedActive.value,[0,1],[idleBg,accent]),
+    borderColor:interpolateColor(animatedActive.value,[0,1],
+      [focused?colors.gold:idleBorder,accent]),
+  }),[idleBg,idleBorder,focused,colors.gold,accent]);
+  const ink=useAnimatedStyle(()=>({
+    color:animatedActive.value>=.999?finalInk:
+      animatedActive.value<inkPalette.switchAt?
+        inkPalette.startInk:inkPalette.endInk,
+  }),[inkPalette,finalInk]);
+
+  return <Pressable accessibilityRole="button" onPress={()=>onSelect(index)}
+    accessibilityState={{selected:focused}}
+    accessibilityLabel={title+(clock?' '+clock:'')+(current?' · Şu anki vakit':'')}
+    style={{width,borderRadius:15,
+      shadowColor:current?accent:'#776D5E',
+      shadowOpacity:current?.22:.045,shadowRadius:current?10:3,
+      shadowOffset:{width:0,height:2},elevation:current?3:1}}>
+    <Animated.View pointerEvents="none" style={[styles.prayerChip,surface]}>
+      <MaterialCommunityIcons name={icon} size={17}
+        color={current?finalInk:(dark?'#E4BF7D':'#B78D3D')}/>
+      <Animated.Text numberOfLines={1} adjustsFontSizeToFit
+        style={[styles.chipLabel,ink]}>{title}</Animated.Text>
+      <Animated.Text style={[styles.chipTime,ink]}>{clock}</Animated.Text>
+    </Animated.View>
+  </Pressable>;
+});
+
+/** At the background's luminance midpoint, switch between white and black
+ * rather than fading through low-contrast grey during the colour animation.
+ */
+function cardInkTransition(from:string,to:string){
+  const luminance=(hex:string)=>{
+    const values=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255)
+      .map(x=>x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4));
+    return values[0]*.2126+values[1]*.7152+values[2]*.0722;
+  };
+  const cutoff=Math.sqrt(.05*1.05)-.05;
+  const fromLight=luminance(from)>=cutoff;
+  const toLight=luminance(to)>=cutoff;
+  let switchAt=1;
+  if(fromLight!==toLight){
+    // Binary search needs 12 luminance calculations instead of up to 1000
+    // for EACH badge during cold start. Identical visual cutoff (<0.03%).
+    let lo=0,hi=1;
+    for(let i=0;i<12;i++){
+      const p=(lo+hi)/2;
+      const middle='#'+[1,3,5].map(k=>Math.round(
+        parseInt(from.slice(k,k+2),16)*(1-p)+
+        parseInt(to.slice(k,k+2),16)*p).toString(16).padStart(2,'0')).join('');
+      if((luminance(middle)>=cutoff)!==fromLight)hi=p;
+      else lo=p;
+    }
+    switchAt=hi;
+  }
+  return {switchAt,startInk:fromLight?'#000000':'#FFFFFF',
+    endInk:toLight?'#000000':'#FFFFFF'};
 }
 function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSource>;now:Date}){
   const SCHEDULE=official.days!.today;
-  const isOfficial=official.days!.source==='diyanet-awqat-salah';
-  const {settings:kerahatSettings,update:updateKerahatSettings}=useKerahatSettings();
-  const {colors,mode,setMode}=useAppTheme();
+  const {settings:kerahatSettings}=useKerahatSettings();
+  const {colors}=useAppTheme();
   const {width,height}=useWindowDimensions();
   const dark=colors.isDark;
   const wheelSize=Math.min(width-10,366);
   const chipWidth=Math.max(49,(width-26-10)/6);
   const [pickerOpen,setPickerOpen]=useState(false);
-  const [timePreview,setTimePreview]=useState<{startSeconds:number;beganAt:number}|null>(null);
   const [manualIndex,setManualIndex]=useState<number|null>(null);
   const [focusRequest,setFocusRequest]=useState(0);
+  // Give a user time to explore the wheel, then gently self-center on the
+  // actual live prayer. Repeated gestures restart the idle countdown.
+  const liveReturnTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const cancelLiveReturn=useCallback(()=>{
+    if(liveReturnTimer.current!==null){
+      clearTimeout(liveReturnTimer.current);
+      liveReturnTimer.current=null;
+    }
+  },[]);
+  const scheduleLiveReturn=useCallback(()=>{
+    cancelLiveReturn();
+    liveReturnTimer.current=setTimeout(()=>{
+      liveReturnTimer.current=null;
+      setManualIndex(null);
+      setFocusRequest(value=>value+1);
+    },1800);
+  },[cancelLiveReturn]);
+  useEffect(()=>()=>cancelLiveReturn(),[cancelLiveReturn]);
   const handleWheelSelection=useCallback((index:number)=>{
     setManualIndex(index);
     Haptics.selectionAsync().catch(()=>undefined);
   },[]);
-  const focusIndex=(index:number|null)=>{
+  const focusIndex=useCallback((index:number)=>{
+    cancelLiveReturn();
     setManualIndex(index);
     setFocusRequest(value=>value+1);
-  };
-  useEffect(()=>{setManualIndex(null);setTimePreview(null);},[official.place?.id]);
-  const zoned=useMemo(()=>zonedClock(now,SCHEDULE.timezone),[now,SCHEDULE.timezone]);
-  // QA only. In demo preview the clock is accelerated; never exposed as an official time.
-  const previewSeconds=timePreview
-    ? (timePreview.startSeconds+Math.floor((now.getTime()-timePreview.beganAt)/1000)*20)%86400
-    : zoned.secondsOfDay;
-  const startPreview=(seconds:number)=>{
+    scheduleLiveReturn();
+  },[cancelLiveReturn,scheduleLiveReturn]);
+  useEffect(()=>{
+    cancelLiveReturn();
     setManualIndex(null);
-    setFocusRequest(n=>n+1);
-    setTimePreview({startSeconds:seconds,beganAt:Date.now()});
-  };
-  const showPreviewOptions=()=>{
-    const maghrib=timeToMinutes(SCHEDULE.times.find(x=>x.key==='aksam')!.time)*60;
-    Alert.alert('Geliştirici zaman önizlemesi',
-      'Zaman ×20 hızda ilerler. Gerçek ibadet saatleri yerine geçmez.',[
-      {text:'Normal saat',onPress:()=>setTimePreview(null)},
-      {text:'Akşama yaklaşım',onPress:()=>startPreview(maghrib-65*60)},
-      {text:'Kerahet örneği',onPress:()=>startPreview(maghrib-44*60)},
-    ]);
-  };
+  },[official.place?.id,cancelLiveReturn]);
+  const zoned=useMemo(()=>zonedClock(now,SCHEDULE.timezone),[now,SCHEDULE.timezone]);
+  const previewSeconds=zoned.secondsOfDay;
   const awareness=useMemo(
     ()=>calculateTimeAwareness(SCHEDULE,previewSeconds,zoned.dateISO,true),
     [previewSeconds,zoned.dateISO],
@@ -118,106 +195,87 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     [SCHEDULE,zoned.dateISO,previewSeconds,kerahatSettings]);
   const restriction=kerahat.active;
   const indicativeWindows=kerahat.windows;
-  const phase=official.days && !timePreview
+  const approachingKerahat=!restriction&&kerahat.next&&
+    kerahat.next.startSeconds-previewSeconds<=20*60
+      ?kerahat.next:null;
+  const kerahatMinutes=approachingKerahat
+    ?Math.ceil((approachingKerahat.startSeconds-previewSeconds)/60):0;
+  const phase=official.days
     ? official.days.source===MIRROR_SOURCE
       ? calculateMirrorPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
       : calculateVerifiedPhase(official.days.previous,official.days.today,official.days.next,previewSeconds)
     : awareness.phase;
-  const upcomingIndex=SCHEDULE.times.findIndex(item=>item.key===phase.next.key);
+  // Live prayer selection continues following the active period even though
+  // the decorative fixed top pin is gone. Centre countdown shows the next prayer.
+  const currentIndex=Math.max(0,SCHEDULE.times.findIndex(item=>item.key===phase.current.key));
   const remainingText=minutesToNextEvent(phase.secondsRemaining);
   const nafileOnly=phase.current.key==='imsak' && !restriction;
   const accented=restriction
     ? (dark?'#F49A94':'#B84448')
+    : approachingKerahat ? (dark?'#EBC487':'#A47539')
     : nafileOnly ? (dark?'#E9C484':'#A17B3C')
     : phase.urgency==='imminent'?'#F3AF58'
     : phase.urgency==='approaching'?'#EAC178'
     : colors.emerald;
   const stateTitle=restriction
-    ? 'KERAHET · TAHMİNÎ ARALIK'
+    ? 'KERAHAT · YAKLAŞIK ARALIK'
+    : approachingKerahat?'KERAHAT ARALIĞI YAKLAŞIYOR'
     : nafileOnly ? 'NAFİLE NAMAZ BİLGİSİ'
     : phase.urgency==='imminent' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ ÇOK YAKIN'
     : phase.urgency==='approaching' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ YAKLAŞIYOR'
     : 'VAKİT AKIŞI';
   const stateDescription=restriction
     ? restriction.description
+    : approachingKerahat
+      ? 'Yaklaşık '+kerahatMinutes+' dakika sonra bir kerahat zaman aralığı başlayacak. Ayrıntılar için Kerahat Vakitleri bölümüne bak.'
     : nafileOnly
     ? 'İmsak ile güneş arasında sabah namazının sünneti dışındaki nafile namazlarla ilgili kısıtlamalar vardır.'
     : phase.urgency!=='normal'
     ? phase.next.label+' vaktine '+remainingText+'. '
-    : phase.next.label+' vaktine '+remainingText+' · '+Math.round(phase.progress*100)+'% ilerleme.';
-  const selectedIndex=manualIndex??upcomingIndex;
+    : phase.next.label+' vaktine '+remainingText+'. Çember canlı saati izliyor.';
+  const selectedIndex=manualIndex??currentIndex;
   const selectedPrayer=SCHEDULE.times[selectedIndex];
   const compact=height<730;
+  useEffect(()=>{
+    const frame=requestAnimationFrame(()=>markStartup('configured-home-frame'));
+    return ()=>cancelAnimationFrame(frame);
+  },[]);
 
   return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:colors.canvas}}>
     <Atmosphere dark={dark}/>
     <ScrollView showsVerticalScrollIndicator={false} overScrollMode="never"
       contentContainerStyle={[styles.content,{paddingTop:compact?7:11}]}>
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Namaz takvimi için ilçe konumunu değiştir"
-          onPress={()=>setPickerOpen(true)}
-          style={[styles.location,{borderColor:dark?'#42665D':'#D4CCBB',backgroundColor:dark?'rgba(10,43,41,.86)':'rgba(255,255,255,.7)'}]}>
-          <Feather name="map-pin" size={14} color={colors.emerald}/>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.locationName,{color:colors.text}]}>{official.place?.name??SCHEDULE.locationName}</Text>
-          <Feather name="info" size={11} color={colors.muted}/>
-        </Pressable>
-        <View style={styles.centralBrand}>
-          <Svg width={59} height={23} viewBox="0 0 59 23">
-            <Path d="M2 22Q13 8 29 8Q46 8 57 22M28 8V2M28 2Q30 6 35 2"
-              fill="none" stroke={colors.gold} strokeWidth="1.5" strokeLinecap="round"/>
-            <Path d="M10 22H49" stroke={colors.gold} strokeWidth=".7" opacity=".58"/>
-          </Svg>
-          <Text numberOfLines={1} adjustsFontSizeToFit
-            style={[styles.logoText,{color:colors.text}]}>Camideyiz Biz</Text>
-        </View>
-        <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
-          <Pressable accessibilityRole="button" accessibilityLabel={dark?'Açık temayı göster':'Koyu temayı göster'}
-            onPress={()=>setMode(dark?'light':'dark')}
-            style={[styles.smallRound,{backgroundColor:dark?'#0C3833':'rgba(255,255,255,.82)',borderColor:colors.border}]}>
-            <Feather name={dark?'sun':'moon'} size={17} color={colors.gold}/>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Bildirimler henüz hazır değil"
-            onPress={()=>Alert.alert('Bildirimler','Bildirim ayarları resmî namaz vakitleri entegrasyonu tamamlandıktan sonra açılacak.')}
-            style={[styles.smallRound,{backgroundColor:dark?'#0C3833':'rgba(255,255,255,.82)',borderColor:colors.border}]}>
-            <Feather name="bell" size={17} color={colors.text}/>
-
-          </Pressable>
-        </View>
-      </View>
-      <DateDivider now={now} dark={dark} timezone={SCHEDULE.timezone} hijriDate={official.days?.today.hijriDate??null} officialSource={isOfficial}/>
-      <Pressable accessibilityRole="button"
-        accessibilityLabel="Namaz vakitleri veri kaynağını görüntüle"
-        onPress={()=>Alert.alert('Namaz vakitleri kaynağı',
-          official.sourceLabel+'\nİlçe: '+(official.place?.name??SCHEDULE.locationName)+
-          '\nVeri alım zamanı: '+official.days!.today.fetchedAt+
-          '\nDurum: '+(official.status==='offline'||official.status==='mirror-cached'?'Önbellekten':'Kaynak servisten')+
-          (isOfficial?'':'\nBu Diyanet’in resmî API servisi değildir; bağımsız sağlayıcı Diyanet takviminden aktardığını belirtir.'))}
-        onLongPress={__DEV__?showPreviewOptions:undefined}
-        style={[styles.demo,{
-          backgroundColor:'transparent',
-          borderColor:'transparent',
-        }]}>
-        <Feather name="info" size={12} color={colors.gold}/>
-        <Text style={[styles.demoText,{color:colors.muted}]}>
-          {timePreview?'Geliştirici zaman önizlemesi':isOfficial?(official.status==='offline'?'Diyanet · Çevrimdışı resmî takvim':'Diyanet · Resmî API'):'İdamedya · Diyanet kaynaklı aktarılan takvim (üçüncü taraf)'}
-        </Text>
-
-      </Pressable>
-
+      <HomeBrandHeader place={official.place} now={now}
+        timezone={SCHEDULE.timezone} compact={compact} onOpenLocation={()=>setPickerOpen(true)}
+        locationMode={official.locationMode}
+        autoLocationStatus={official.autoLocationStatus}
+        onEnableAutoLocation={official.enableAutoLocation}/>
+      <DateDivider now={now} timezone={SCHEDULE.timezone} hijriDate={official.days?.today.hijriDate??null}/>
       <View style={styles.wheelStage}>
         <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
         <PrayerWheel
           times={SCHEDULE.times} selectedIndex={selectedIndex}
-          onSelect={handleWheelSelection} focusRequest={focusRequest}
+          onSelect={handleWheelSelection}
+          onGestureStart={()=>{
+            cancelLiveReturn();
+            setManualIndex(previous=>previous??currentIndex);
+          }}
+          onGestureEnd={scheduleLiveReturn}
+          focusRequest={focusRequest}
           nowSeconds={previewSeconds} colors={colors}
           size={wheelSize} countdown={formatCountdown(phase.secondsRemaining)}
           isManualSelection={manualIndex!==null}
-          phaseProgress={phase.progress}
+          previousYatsiTime={official.days?.previous?.times.find(item=>item.key==='yatsi')?.time}
+          nextImsakTime={official.days?.next?.times.find(item=>item.key==='imsak')?.time}
           urgency={phase.urgency}
           nextKey={phase.next.key}
           restriction={restriction}
           indicativeWindows={indicativeWindows}
-          locationName={SCHEDULE.locationName}
+          locationName={official.place?.name
+            ?(official.place.name===official.place.stateName
+              ?official.place.name
+              :official.place.name+' · '+official.place.stateName)
+            :SCHEDULE.locationName}
         />
         <View style={{position:'absolute',right:8,top:22,alignItems:'flex-end',gap:3}}
           pointerEvents="none">
@@ -230,34 +288,37 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         <View style={{flexDirection:'row',alignItems:'center',gap:6,flex:1}}>
           <View style={{height:7,width:7,borderRadius:4,backgroundColor:accented}}/>
           <Text numberOfLines={1} adjustsFontSizeToFit
-            style={{fontSize:10.2,color:restriction?accented:colors.muted,fontWeight:restriction?'800':'600',flexShrink:1}}>
+            style={{fontSize:10.2,color:restriction||approachingKerahat?accented:colors.muted,
+              fontWeight:restriction||approachingKerahat?'800':'600',flexShrink:1}}>
             {restriction
               ? 'KERAHAT · '+restriction.title+' (yaklaşık)'
+              : approachingKerahat?'Kerahat aralığına yaklaşık '+kerahatMinutes+' dk'
               : nafileOnly ? 'İmsak sonrası · Nafile namaz bilgisi'
               : phase.urgency==='normal'
-              ? 'Canlı vakit ilerlemesi'
+              ? 'Çember canlı zamanla dönüyor'
               : phase.next.label+' vaktine '+remainingText}
           </Text>
         </View>
         {manualIndex!==null
-          ?<Pressable accessibilityRole="button" onPress={()=>focusIndex(null)}
+          ?<View accessible accessibilityLabel="Çember kısa süre sonra otomatik canlı vakte döner"
             style={{minHeight:28,flexDirection:'row',alignItems:'center',gap:5}}>
             <Feather name="rotate-ccw" size={12} color={colors.emerald}/>
-            <Text style={{fontSize:11,color:colors.emerald,fontWeight:'700'}}>Canlıya dön</Text>
-          </Pressable>
-          :<Text style={{fontSize:10,color:colors.muted}}>Çevre halkası: %{Math.round(phase.progress*100)}</Text>}
+            <Text style={{fontSize:10,color:colors.muted}}>Otomatik canlıya döner</Text>
+          </View>
+          :<Text style={{fontSize:10,color:colors.muted}}>Çember canlı zamanı izliyor</Text>}
       </View>
 
       <View style={[styles.chipsContainer,{
         borderColor:dark?'#5C6353':'#ECE2D1',
-        backgroundColor:dark?'rgba(5,32,33,.65)':'rgba(255,255,255,.76)',
+        backgroundColor:dark?'rgba(12,36,54,.73)':'rgba(255,255,255,.76)',
       }]}>
         <View style={styles.chipsRow}>
           {SCHEDULE.times.map((item,index)=>
             <Pill key={item.key} title={item.label} clock={item.time}
-              icon={ICONS[item.key]} active={selectedIndex===index}
+              icon={ICONS[item.key]} current={currentIndex===index}
+              focused={selectedIndex===index}
               accent={PRAYER_COLORS[item.key]} width={chipWidth}
-              dark={dark} onPress={()=>focusIndex(index)}/>)}
+              dark={dark} index={index} onSelect={focusIndex}/>)}
         </View>
       </View>
 
@@ -275,15 +336,16 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
       </View>
 
       <KerahatPanel view={kerahat} settings={kerahatSettings}
-        update={updateKerahatSettings} locationName={SCHEDULE.locationName}/>
+        locationName={SCHEDULE.locationName} secondsOfDay={previewSeconds}/>
       <DailyWisdomSection dateISO={zoned.dateISO} dark={dark}/>
+      <AdhanExperience/>
       <Pressable accessibilityRole="button"
         accessibilityLabel="Güncel zaman durumu ve kerahet açıklamasını oku"
         onPress={()=>Alert.alert(
           restriction?'Yaklaşık kerahet aralığı':phase.next.label+' vaktine kalan',
           restriction
             ? restriction.description+'\n\nBu aralıklar genel Diyanet açıklamasından türetilmiş yaklaşık değerlendirmelerdir. Farklı namaz türleri için hükümler ve istisnalar bulunmaktadır. Gerçek ibadet için kullanılmamalıdır.'
-            : 'Vakit zaman çizelgesinin yaklaşık %'+Math.round(phase.progress*100)+' kısmı geçti. Sonraki vakte '+remainingText+' var. Saatler seçilen takvim kaynağından alınmıştır.',
+            : 'Çember gerçek saatle birlikte sürekli döner. Sonraki vakte '+remainingText+' var. Saatler seçilen takvim kaynağından alınmıştır.',
         )}
         style={[styles.kerahetNote,{
           borderColor:restriction ? (dark?'#B96364':'#D59A98') : colors.border,
@@ -293,14 +355,13 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           borderWidth:1,borderRadius:14,padding:10,
         }]}>
         <View style={{height:31,width:31,borderRadius:11,alignItems:'center',justifyContent:'center',
-          backgroundColor:restriction?(dark?'#5B3032':'#F4D6D0'):(dark?'#245149':'#D9E9E1')}}>
+          backgroundColor:restriction?(dark?'#5B3032':'#F4D6D0'):(dark?'#234C69':'#D9E9E1')}}>
           <Feather name={restriction?'alert-triangle':nafileOnly?'book-open':phase.urgency==='normal'?'clock':'sun'}
             size={15} color={accented}/>
         </View>
         <View style={{flex:1,gap:3}}>
           <Text style={{fontSize:10,letterSpacing:.85,fontWeight:'800',color:accented}}>{stateTitle}</Text>
           <Text style={{fontSize:11,color:colors.text,lineHeight:16}}>{stateDescription}</Text>
-          <Text style={{fontSize:9.5,color:colors.muted}}>Namaz saatleri · {isOfficial?'Diyanet resmî API':'İdamedya · üçüncü taraf kaynak'}</Text>
         </View>
         <Feather name="chevron-right" size={14} color={colors.muted}/>
       </Pressable>
@@ -309,12 +370,15 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           İkindi farzı kılındıktan sonra nafile namazlar konusunda ayrıca kısıtlamalar vardır.
         </Text>
         :null}
-      <Text style={{textAlign:'center',color:colors.muted,fontSize:10,marginBottom:11}}>
-        Namaz vakitleri · {isOfficial?'Diyanet resmî API':'İdamedya (Diyanet takvimi aktarıldığı belirtiliyor)'}
-      </Text>
+      <HomeCalendarSection dateISO={zoned.dateISO}
+        today={SCHEDULE} placeName={official.place?.name??null}/>
+      <View style={{height:7,marginBottom:4}}/>
     </ScrollView>
     <LocationPicker visible={pickerOpen} onClose={()=>setPickerOpen(false)}
-      onSelect={p=>{official.selectPlace(p).catch(()=>undefined);setPickerOpen(false);}}/>
+      onSelect={async p=>{
+        await official.selectPlace(p);
+        setPickerOpen(false);
+      }}/>
   </SafeAreaView>;
 }
 
@@ -326,12 +390,16 @@ const NO_DATA_TIMES:readonly PrayerTime[]=PRAYER_KEYS.map((key,i)=>({
 function CalendarLoadingHome({official,now}:{
   official:ReturnType<typeof usePrayerSource>;now:Date;
 }){
-  const {colors,mode,setMode}=useAppTheme();
+  const {colors}=useAppTheme();
   const {width}=useWindowDimensions();
   const dark=colors.isDark;
   const [pickerOpen,setPickerOpen]=useState(false);
   const [selectedIndex,setSelectedIndex]=useState(0);
   const [focusRequest,setFocusRequest]=useState(0);
+  const selectPlaceholder=useCallback((index:number)=>{
+    setSelectedIndex(index);
+    setFocusRequest(x=>x+1);
+  },[]);
   const label=official.status==='loading'?'Takvim yükleniyor'
     :official.status==='choose-location'?'Takvim konumunu seç'
     :'Takvim kaynağına erişilemedi';
@@ -340,48 +408,44 @@ function CalendarLoadingHome({official,now}:{
     :official.status==='choose-location'
       ?'İl ve ilçeni seçerek vakitleri görüntüleyebilirsin.'
       :'Takvim verisi henüz doğrulanamadı. Bağlantını kontrol edebilir veya tekrar deneyebilirsin.';
+  useEffect(()=>{
+    const frame=requestAnimationFrame(()=>markStartup('loading-home-frame'));
+    return ()=>cancelAnimationFrame(frame);
+  },[]);
   return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:colors.canvas}}>
     <Atmosphere dark={dark}/>
     <ScrollView showsVerticalScrollIndicator={false}
       contentContainerStyle={[styles.content,{paddingTop:12,paddingBottom:30}]}>
-      <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="İl ve ilçeyi seç"
-          onPress={()=>setPickerOpen(true)}
-          style={[styles.location,{borderColor:colors.border,backgroundColor:colors.surface}]}>
-          <Feather name="map-pin" size={14} color={colors.emerald}/>
-          <Text numberOfLines={1} style={[styles.locationName,{color:colors.text}]}>
-            {official.place?.name??'Konum Seç'}
-          </Text>
-          <Feather name="chevron-down" size={12} color={colors.muted}/>
-        </Pressable>
-        <View style={styles.centralBrand}>
-          <Svg width={59} height={23} viewBox="0 0 59 23">
-            <Path d="M2 22Q13 8 29 8Q46 8 57 22M28 8V2M28 2Q30 6 35 2"
-              fill="none" stroke={colors.gold} strokeWidth="1.5" strokeLinecap="round"/>
-            <Path d="M10 22H49" stroke={colors.gold} strokeWidth=".7" opacity=".58"/>
-          </Svg>
-          <Text numberOfLines={1} adjustsFontSizeToFit
-            style={[styles.logoText,{color:colors.text}]}>Camideyiz Biz</Text>
-        </View>
-        <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
-          <Pressable accessibilityRole="button" accessibilityLabel={dark?'Açık tema':'Koyu tema'}
-            onPress={()=>setMode(dark?'light':'dark')}
-            style={[styles.smallRound,{backgroundColor:colors.surface,borderColor:colors.border}]}>
-            <Feather name={dark?'sun':'moon'} size={17} color={colors.gold}/>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Bildirimler henüz hazır değil"
-            onPress={()=>Alert.alert('Bildirimler','Bildirimler namaz vakti kaynağıyla eşlenince açılacak.')}
-            style={[styles.smallRound,{backgroundColor:colors.surface,borderColor:colors.border}]}>
-            <Feather name="bell" size={17} color={colors.text}/>
-          </Pressable>
-        </View>
-      </View>
-      <DateDivider now={now} dark={dark} timezone="Europe/Istanbul" hijriDate={null}/>
-      <View style={[styles.demo,{alignSelf:'center'}]}>
-        <Feather name="info" size={12} color={colors.gold}/>
-        <Text style={[styles.demoText,{color:colors.muted}]}>
-          {official.officialConfigured?'Diyanet · resmî kaynak bekleniyor':'İdamedya · açık takvim kaynağı'}
+      <HomeBrandHeader place={official.place} now={now}
+        onOpenLocation={()=>setPickerOpen(true)}
+        locationMode={official.locationMode}
+        autoLocationStatus={official.autoLocationStatus}
+        onEnableAutoLocation={official.enableAutoLocation}/>
+      <DateDivider now={now} timezone="Europe/Istanbul" hijriDate={null}/>
+      <View style={{flexDirection:'row',alignItems:'center',
+        alignSelf:'center',gap:8,minHeight:35,
+        paddingHorizontal:10,paddingVertical:6,borderRadius:13,
+        backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border}}>
+        <Feather name={official.status==='unavailable'?'alert-circle':'clock'}
+          size={14} color={colors.gold}/>
+        <Text style={{fontSize:11,color:colors.text,flexShrink:1}}>
+          {official.status==='unavailable'
+            ?official.failureReason==='calendar_missing_dates'
+              ?'Seçilen ilçenin güncel vakitleri kaynaklarda bulunamadı'
+              :official.failureReason==='calendar_invalid_response'
+                ?'Gelen takvim doğrulanamadı'
+                :official.failureReason==='calendar_rate_limited'
+                  ?'Takvim kaynakları yoğun, yeniden dene'
+                  :'Takvim bağlantısına erişilemedi'
+            :official.status==='choose-location'
+              ?'İl ve ilçeni seç':'Seçilen ilçenin takvimi yükleniyor'}
         </Text>
+        {official.status==='unavailable'?<Pressable
+          accessibilityRole="button" accessibilityLabel="Takvimi yeniden dene"
+          onPress={official.retry} hitSlop={9}
+          style={{padding:5}}>
+          <Feather name="refresh-cw" size={17} color={colors.emerald}/>
+        </Pressable>:null}
       </View>
       <View style={styles.wheelStage}>
         <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
@@ -391,9 +455,9 @@ function CalendarLoadingHome({official,now}:{
           nowSeconds={0} colors={colors}
           size={Math.min(width-10,366)} countdown=""
           isManualSelection={false}
-          phaseProgress={0} urgency="normal" nextKey="imsak"
+          urgency="normal" nextKey="imsak"
           restriction={null} indicativeWindows={[]}
-          locationName={official.place?.name??'Konum'}/>
+          locationName={official.place?.name??'Konum seçilmedi'}/>
       </View>
       <View style={[styles.chipsContainer,{
         borderColor:colors.border,backgroundColor:colors.surface,
@@ -401,14 +465,14 @@ function CalendarLoadingHome({official,now}:{
         <View style={styles.chipsRow}>
           {NO_DATA_TIMES.map((item,index)=><Pill key={item.key}
             title={item.label} clock="" icon={ICONS[item.key]}
-            active={selectedIndex===index} accent={PRAYER_COLORS[item.key]}
+            current={false} focused={selectedIndex===index}
+            accent={PRAYER_COLORS[item.key]}
             width={Math.max(49,(width-36)/6)}
-            dark={dark} onPress={()=>{
-              setSelectedIndex(index);setFocusRequest(x=>x+1);
-            }}/>)}
+            dark={dark} index={index} onSelect={selectPlaceholder}/>)}
         </View>
       </View>
       <DailyWisdomSection dateISO={zonedClock(now,'Europe/Istanbul').dateISO} dark={dark}/>
+      <AdhanExperience/>
       <View style={[styles.kerahetNote,{
         backgroundColor:colors.surface,borderColor:colors.border,
         borderWidth:1,borderRadius:16,paddingVertical:14,paddingHorizontal:13,
@@ -419,9 +483,6 @@ function CalendarLoadingHome({official,now}:{
         <View style={{flex:1,gap:4}}>
           <Text style={{fontSize:13,fontWeight:'800',color:colors.text}}>{label}</Text>
           <Text style={{fontSize:11,lineHeight:17,color:colors.muted}}>{info}</Text>
-          <Text style={{fontSize:10,color:colors.muted}}>
-            Gerçek veri alınmadan ibadet saati veya geri sayım gösterilmez.
-          </Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Takvimi yeniden kontrol et"
           onPress={official.retry} hitSlop={12}>
@@ -433,24 +494,35 @@ function CalendarLoadingHome({official,now}:{
         <Feather name="map-pin" size={16} color={colors.gold}/>
         <Text style={{fontSize:13,color:colors.text,fontWeight:'700'}}>Başka il veya ilçe seç</Text>
       </Pressable>
+      <HomeCalendarSection dateISO={zonedClock(now,'Europe/Istanbul').dateISO}
+        today={null} placeName={official.place?.name??null}/>
     </ScrollView>
     <LocationPicker visible={pickerOpen} onClose={()=>setPickerOpen(false)}
-      onSelect={place=>{
-        official.selectPlace(place).catch(()=>undefined);
+      onSelect={async place=>{
+        await official.selectPlace(place);
         setPickerOpen(false);
       }}/>
   </SafeAreaView>;
 }
 export default function HomeScreen(){
   const [now,setNow]=useState(()=>new Date());
+  useEffect(()=>startStartupPerformanceMonitor(),[]);
+  useEffect(()=>{
+    // A JS frame callback is a reproducible release-QA milestone; unlike a
+    // native frame capture it does not claim pixels were drawn by the launcher.
+    const frame=requestAnimationFrame(()=>markStartup('home-first-frame'));
+    return ()=>cancelAnimationFrame(frame);
+  },[]);
   useEffect(()=>{
     const timer=setInterval(()=>setNow(new Date()),1000);
     return ()=>clearInterval(timer);
   },[]);
-  const official=usePrayerSource(now);
+  const official=useSharedPrayerSource();
   const usable=official.days&&(
     official.days.source!==MIRROR_SOURCE||
-    now.getTime()-Date.parse(official.days.today.fetchedAt)<=MIRROR_CACHE_MS
+    now.getTime()-Date.parse(official.days.today.fetchedAt)<=
+      (official.status==='mirror-cached'
+        ?MIRROR_OFFLINE_CACHE_MS:MIRROR_CACHE_MS)
   );
   return usable
     ?<ConfiguredHome key={official.place?.id??0} official={official} now={now}/>
@@ -458,21 +530,9 @@ export default function HomeScreen(){
 }
 const styles=StyleSheet.create({
   content:{paddingHorizontal:11,paddingBottom:14,gap:8},
-  header:{height:62,flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:5},
-  location:{height:33,minWidth:93,borderRadius:20,borderWidth:1,
-    paddingHorizontal:9,flexDirection:'row',alignItems:'center',gap:5},
-  locationName:{fontFamily:'serif',fontSize:13,fontWeight:'700'},
-  centralBrand:{alignItems:'center',justifyContent:'center',flex:1,gap:0,marginHorizontal:-9},
-  logoText:{fontFamily:'serif',fontSize:23,fontWeight:'700',letterSpacing:-.7,marginTop:-2},
-  smallRound:{height:32,width:32,borderRadius:17,borderWidth:1,alignItems:'center',justifyContent:'center'},
-  notificationDot:{position:'absolute',height:6,width:6,borderRadius:3,backgroundColor:'#18BA91',top:3,right:4},
-  dateSection:{alignItems:'center',gap:3,marginTop:-4},
+  dateSection:{alignItems:'center',justifyContent:'center',alignSelf:'stretch',flexDirection:'row',paddingHorizontal:4,marginTop:1,minHeight:24},
   dateLine:{width:27,height:1,opacity:.65},
-  dateText:{fontFamily:'serif',fontSize:13.1,fontWeight:'600'},
-  hijri:{fontFamily:'serif',fontSize:11},
-  demo:{paddingHorizontal:6,paddingVertical:2,borderRadius:10,borderWidth:0,
-    flexDirection:'row',justifyContent:'center',alignItems:'center',gap:6,alignSelf:'center',marginTop:3},
-  demoText:{fontSize:10,fontWeight:'500',textAlign:'center'},
+  dateText:{fontFamily:'serif',fontSize:12.6,fontWeight:'600',flex:1,minWidth:0,lineHeight:21,textAlign:'center'},
   wheelStage:{alignItems:'center',justifyContent:'center',position:'relative',marginTop:-2,marginBottom:-12},
   halo:{position:'absolute',height:235,width:235,borderRadius:118},
   tinyActions:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:7,minHeight:26},

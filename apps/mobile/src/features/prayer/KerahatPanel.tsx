@@ -1,245 +1,172 @@
-import {useState} from 'react';
-import {
-  Alert,Linking,Modal,Pressable,ScrollView,StyleSheet,Text,View,
-} from 'react-native';
+import {Pressable,StyleSheet,Text,View} from 'react-native';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
+import {router} from 'expo-router';
 import {
-  DEFAULT_KERAHAT_SETTINGS,KERAHAT_RANGES,KERAHAT_SOURCE_URL,
-  formatWindowClock,kerahatWindowLabel,
-  type KerahatView,type KerahatSettings,
+  formatWindowClock,kerahatWindowLabel,kerahatRingWindows,
+  type KerahatKind,type KerahatView,type KerahatSettings,
 } from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 
-const ENTRIES=[
-  {key:'sunriseMinutes',label:'Güneş doğuşundan sonra',icon:'sunrise'},
-  {key:'preNoonMinutes',label:'Öğle vaktinden önce',icon:'sun'},
-  {key:'preSunsetMinutes',label:'Akşam vaktinden önce',icon:'sunset'},
-] as const;
-type SettingKey=typeof ENTRIES[number]['key'];
+const WINDOWS:{
+  key:KerahatKind;
+  icon:'weather-sunset-up'|'white-balance-sunny'|'weather-sunset-down';
+  title:string;
+}[]=[
+  {key:'sunrise',icon:'weather-sunset-up',title:'Güneş doğuşu'},
+  {key:'zenith',icon:'white-balance-sunny',title:'Öğle öncesi'},
+  {key:'sunset',icon:'weather-sunset-down',title:'Gün batımı'},
+];
 
-export function KerahatPanel({
-  view,settings,update,locationName,
-}:{
-  view:KerahatView;settings:KerahatSettings;update:(next:KerahatSettings)=>void;
-  locationName:string;
+/** The three bands are adjustable *approximate* guides, NOT an assertion
+ * about whether an individual prayer is permissible. Detail stays in the
+ * Heavy/Light guides; three compact range cards show individual states.
+ * The redundant 'Bugünün aralıkları' status card is intentionally removed.
+ */
+export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
+  view:KerahatView;settings:KerahatSettings;
+  locationName:string;secondsOfDay:number;
 }){
   const {colors}=useAppTheme();
-  const [settingsOpen,setSettingsOpen]=useState(false);
-  const [infoOpen,setInfoOpen]=useState(false);
   const dark=colors.isDark;
   const enabled=settings.mode!=='hidden';
-  const current=view.active;
-  const soon=view.next;
-  const openSource=()=>Linking.openURL(KERAHAT_SOURCE_URL).catch(()=>
-    Alert.alert('Kaynak açılamadı','Diyanet bağlantısını daha sonra yeniden deneyin.'));
-  const step=(key:SettingKey,amount:number)=>{
-    const {min,max}=KERAHAT_RANGES[key];
-    const n=Math.max(min,Math.min(max,settings[key]+amount));
-    update({...settings,mode:'custom',[key]:n});
-  };
+  const bands=kerahatRingWindows(view.windows,secondsOfDay);
+  const active=bands.find(w=>w.state==='active')??null;
+  const approaching=bands.find(w=>w.state==='approaching')??null;
+  const showBands=enabled&&bands.length>0;
+  const openGuide=(tab:'heavy'|'light')=>router.push({
+    pathname:'/kerahat-guide',params:{tab},
+  });
+
   return <View style={[styles.panel,{
-    backgroundColor:dark?'rgba(8,52,46,.89)':'rgba(255,252,241,.94)',
-    borderColor:current?'#E2AA67':colors.border,
+    backgroundColor:dark?'rgba(16,48,71,.94)':'rgba(255,252,244,.97)',
+    borderColor:active?'#9C4354':approaching?'#B59460':colors.border,
   }]}>
-    <View style={styles.top}>
-      <View style={[styles.symbol,{backgroundColor:dark?'#56402D':'#F7E4C5'}]}>
-        <MaterialCommunityIcons name="weather-sunset" size={21} color={dark?'#F3C385':'#9C6632'}/>
+    <View style={styles.heading}>
+      <View style={[styles.symbol,{
+        backgroundColor:active?(dark?'#65363C':'#F3E0DC')
+          :dark?'#463C2E':'#F4E8D3',
+      }]}>
+        <MaterialCommunityIcons name="weather-sunset" size={21}
+          color={active?'#DC8E90':dark?'#E8C18A':'#A2733C'}/>
       </View>
       <View style={{flex:1,gap:3}}>
-        <Text style={{fontFamily:'serif',color:colors.text,fontSize:17,fontWeight:'700'}}>
-          Kerahat Vakitleri
-        </Text>
-        <Text style={{fontSize:10.5,color:colors.muted,lineHeight:16}}>
-          {enabled
-            ?settings.mode==='custom'?'Kişisel görüntüleme · yaklaşık aralıklar':'Konuma göre hesaplanan yaklaşık aralıklar'
-            :'Çember gösterimi kapalı'} · {locationName}
+        <Text style={[styles.title,{color:colors.text}]}>Kerahat Vakitleri</Text>
+        <Text style={[styles.subtitle,{color:colors.muted}]}>
+          {locationName} · Yaklaşık zaman aralıkları
         </Text>
       </View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Kerahat aralıkları ayarları"
-        onPress={()=>setSettingsOpen(true)}
-        style={[styles.settings,{borderColor:colors.border,backgroundColor:colors.soft}]}>
-        <Feather name="sliders" color={colors.gold} size={17}/>
+      <Pressable accessibilityRole="button"
+        accessibilityLabel="Kerahat vakitleri rehberini aç"
+        onPress={()=>openGuide('heavy')} hitSlop={10}
+        style={[styles.infoIcon,{
+          borderColor:colors.border,backgroundColor:colors.soft,
+        }]}>
+        <Feather name="book-open" color={colors.gold} size={17}/>
       </Pressable>
     </View>
-    {enabled && view.windows.length ?<>
-      <View style={styles.list}>
-        {view.windows.map(w=><Pressable key={w.kind} accessibilityRole="button"
-          onPress={()=>setInfoOpen(true)}
-          style={[styles.window,{borderColor:current?.kind===w.kind?'#DBB477':colors.border,
-            backgroundColor:current?.kind===w.kind?(dark?'#4D3731':'#F9EBDC'):colors.soft}]}>
-          <View style={[styles.dot,{backgroundColor:current?.kind===w.kind?'#E09B67':'#D5B477'}]}/>
-          <Text numberOfLines={1} style={{fontSize:11,color:colors.text,flex:1,fontWeight:'700'}}>
-            {kerahatWindowLabel(w.kind)}
+
+    {showBands?<View style={styles.cards}>
+      {WINDOWS.map(entry=>{
+        const band=bands.find(w=>w.kind===entry.key);
+        if(!band)return null;
+        const isActive=band.state==='active';
+        const isNear=band.state==='approaching';
+        const accent=isActive?(dark?'#F0A4A3':'#A1394B')
+          :isNear?(dark?'#EBC183':'#986B31'):colors.gold;
+        const background=isActive
+          ?dark?'rgba(133,49,68,.31)':'#F9EBE5'
+          :isNear?dark?'rgba(163,113,50,.21)':'#FAF1DF'
+            :colors.soft;
+        return <Pressable key={entry.key} accessibilityRole="button"
+          accessibilityLabel={kerahatWindowLabel(entry.key)+' · yaklaşık '+
+            formatWindowClock(band.startSeconds)+' ile '+
+            formatWindowClock(band.endSeconds)+
+            (isActive?' · şu an bu aralıkta':isNear?' · yaklaşıyor':'')}
+          onPress={()=>openGuide('heavy')}
+          style={[styles.card,{
+            backgroundColor:background,
+            borderColor:isActive||isNear?accent:colors.border,
+            borderWidth:isActive?1.6:1,
+          }]}>
+          <View style={[styles.iconHalo,{
+            backgroundColor:isActive?'rgba(193,85,93,.17)':
+              isNear?'rgba(204,155,79,.18)':'rgba(192,156,93,.13)',
+          }]}>
+            <MaterialCommunityIcons name={entry.icon} size={18} color={accent}/>
+          </View>
+          <Text numberOfLines={1} adjustsFontSizeToFit
+            style={[styles.caption,{color:colors.text}]}>
+            {entry.title}
           </Text>
-          <Text style={{fontSize:11,fontWeight:'800',color:current?.kind===w.kind?colors.gold:colors.text}}>
-            {formatWindowClock(w.startSeconds)}–{formatWindowClock(w.endSeconds)}
+          <Text numberOfLines={1} adjustsFontSizeToFit
+            style={[styles.hours,{color:isActive||isNear?accent:colors.text}]}>
+            {formatWindowClock(band.startSeconds)}–{formatWindowClock(band.endSeconds)}
           </Text>
-        </Pressable>)}
-      </View>
-      <View style={styles.statusRow}>
-        <Feather name={current?'alert-circle':soon?'clock':'check-circle'} size={15}
-          color={current?'#DEAA68':colors.emerald}/>
-        <Text style={{flex:1,color:colors.muted,fontSize:11,lineHeight:17}}>
-          {current?'Şu an yaklaşık '+kerahatWindowLabel(current.kind).toLocaleLowerCase('tr-TR')+' aralığı'
-            :soon?'Sıradaki yaklaşık aralık: '+kerahatWindowLabel(soon.kind)
-              :'Bugün için gösterilen yaklaşık aralıklar tamamlandı'}
-        </Text>
-      </View>
-    </>:<Text style={{color:colors.muted,fontSize:11,lineHeight:18}}>
-      {enabled?'Takvim güncel değil; yaklaşık aralıklar gösterilmiyor.':
-        'Kerahat vurguları gizlendi. Dilersen ayarlardan yeniden açabilirsin.'}
-    </Text>}
-    <Pressable accessibilityRole="button" onPress={()=>setInfoOpen(true)}
-      style={{flexDirection:'row',alignItems:'center',gap:6,alignSelf:'flex-start'}}>
-      <Feather name="info" size={12} color={colors.gold}/>
-      <Text style={{color:colors.muted,fontSize:10.5,textDecorationLine:'underline'}}>
-        Aralıklar ve namaz türlerine ilişkin önemli bilgi
+          <View style={[styles.bandFoot,{
+            backgroundColor:isActive?'#9B3546':isNear?'#C9904B':colors.gold,
+            opacity:isActive||isNear?1:.32,
+          }]}/>
+        </Pressable>;
+      })}
+    </View>:<View style={[styles.empty,{backgroundColor:colors.soft}]}>
+      <Feather name={enabled?'clock':'eye-off'} size={17} color={colors.gold}/>
+      <Text style={{flex:1,fontSize:11,lineHeight:18,color:colors.muted}}>
+        {enabled?'İlçenin güncel takvimi alındığında aralıklar gösterilir.'
+          :'Kerahat halkası ayarlardan gizlenmiş.'}
       </Text>
-    </Pressable>
+    </View>}
 
-    <Modal visible={settingsOpen} transparent animationType="slide"
-      onRequestClose={()=>setSettingsOpen(false)}>
-      <View style={styles.backdrop}>
-        <Pressable accessibilityLabel="Ayar penceresini kapat" accessibilityRole="button"
-          style={StyleSheet.absoluteFill} onPress={()=>setSettingsOpen(false)}/>
-        <View style={[styles.sheet,{backgroundColor:colors.canvas,borderColor:colors.border}]}>
-          <View style={styles.sheetTop}>
-            <View style={{flex:1,gap:4}}>
-              <Text style={{fontFamily:'serif',fontSize:23,color:colors.text,fontWeight:'700'}}>
-                Kerahat ayarları
-              </Text>
-              <Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
-                İlçeyi değiştirdiğinde aralıklar yeni namaz vakitlerine göre yenilenir.
-              </Text>
-            </View>
-            <Pressable accessibilityLabel="Kapat" onPress={()=>setSettingsOpen(false)}>
-              <Feather name="x" size={23} color={colors.text}/>
-            </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={{gap:12,paddingBottom:8}} showsVerticalScrollIndicator={false}>
-            {([
-              {mode:'standard',label:'Otomatik · varsayılan',description:'Diyanet açıklamalarındaki yaklaşık sürelerden hareketle.'},
-              {mode:'custom',label:'Kişisel görsel aralıklar',description:'Çemberdeki vurgunun süresini değiştir; namaz vakti değişmez.'},
-              {mode:'hidden',label:'Çemberde gösterme',description:'Kerahat vurgularını gizle; açıklamaları okuyabilirsin.'},
-            ] as const).map(opt=><Pressable key={opt.mode} accessibilityRole="radio"
-              accessibilityState={{selected:settings.mode===opt.mode}}
-              onPress={()=>update({...settings,mode:opt.mode})}
-              style={[styles.option,{borderColor:settings.mode===opt.mode?colors.gold:colors.border,
-                backgroundColor:settings.mode===opt.mode?colors.soft:colors.surface}]}>
-              <Feather name={settings.mode===opt.mode?'check-circle':'circle'}
-                size={19} color={settings.mode===opt.mode?colors.emerald:colors.muted}/>
-              <View style={{flex:1,gap:3}}>
-                <Text style={{fontSize:13,fontWeight:'800',color:colors.text}}>{opt.label}</Text>
-                <Text style={{fontSize:11,lineHeight:17,color:colors.muted}}>{opt.description}</Text>
-              </View>
-            </Pressable>)}
-            {settings.mode==='custom'?<View style={{gap:12,marginTop:7}}>
-              {ENTRIES.map(entry=><View key={entry.key} style={[styles.stepper,{
-                borderColor:colors.border,backgroundColor:colors.surface}]}>
-                <View style={{flex:1,gap:4}}>
-                  <Text style={{fontSize:12.5,fontWeight:'700',color:colors.text}}>{entry.label}</Text>
-                  <Text style={{fontSize:10,color:colors.muted}}>
-                    {KERAHAT_RANGES[entry.key].min}–{KERAHAT_RANGES[entry.key].max} dk aralığında
-                  </Text>
-                </View>
-                <Pressable accessibilityRole="button" accessibilityLabel={entry.label+' 1 dakika azalt'}
-                  disabled={settings[entry.key]<=KERAHAT_RANGES[entry.key].min}
-                  onPress={()=>step(entry.key,-1)} style={[styles.increment,{borderColor:colors.border}]}>
-                  <Feather name="minus" size={16} color={colors.gold}/>
-                </Pressable>
-                <Text style={{minWidth:34,textAlign:'center',fontSize:16,fontWeight:'800',color:colors.text}}>
-                  {settings[entry.key]}
-                </Text>
-                <Pressable accessibilityRole="button" accessibilityLabel={entry.label+' 1 dakika artır'}
-                  disabled={settings[entry.key]>=KERAHAT_RANGES[entry.key].max}
-                  onPress={()=>step(entry.key,1)} style={[styles.increment,{borderColor:colors.border}]}>
-                  <Feather name="plus" size={16} color={colors.gold}/>
-                </Pressable>
-              </View>)}
-              <Pressable onPress={()=>update({...DEFAULT_KERAHAT_SETTINGS,mode:'custom'})}
-                style={{alignSelf:'center',padding:9,flexDirection:'row',gap:7}}>
-                <Feather name="rotate-ccw" color={colors.emerald} size={14}/>
-                <Text style={{fontSize:12,color:colors.emerald,fontWeight:'700'}}>
-                  Süreleri varsayılana sıfırla
-                </Text>
-              </Pressable>
-            </View>:null}
-            <View style={[styles.notice,{backgroundColor:colors.soft,borderColor:colors.border}]}>
-              <Feather name="shield" color={colors.gold} size={18}/>
-              <Text style={{flex:1,fontSize:11,lineHeight:18,color:colors.muted}}>
-                Bu tercihler yalnızca yaklaşık görselleştirmeyi değiştirir.
-                Namaz vakitlerini veya dinî hükümleri değiştirmez.
-                Güneşin konumu ve mezhep farklılıkları nedeniyle kesin sınırlar olarak kullanılmamalıdır.
-              </Text>
-            </View>
-            <Pressable onPress={()=>setSettingsOpen(false)} style={[styles.done,{backgroundColor:colors.emerald}]}>
-              <Text style={{color:'#FFFFFF',fontWeight:'800'}}>Ayarları uygula</Text>
-            </Pressable>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-
-    <Modal visible={infoOpen} transparent animationType="fade"
-      onRequestClose={()=>setInfoOpen(false)}>
-      <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={()=>setInfoOpen(false)}/>
-        <View style={[styles.sheet,{backgroundColor:colors.canvas,borderColor:colors.border,gap:14}]}>
-          <View style={styles.sheetTop}>
-            <Text style={{fontFamily:'serif',fontSize:23,fontWeight:'700',color:colors.text}}>
-              Kerahat hakkında
-            </Text>
-            <Pressable onPress={()=>setInfoOpen(false)} accessibilityLabel="Kapat">
-              <Feather name="x" size={22} color={colors.text}/>
-            </Pressable>
-          </View>
-          <Text style={{fontSize:13,lineHeight:21,color:colors.text}}>
-            Diyanet Din İşleri Yüksek Kurulu; güneşin doğuşu, tam tepede oluşu
-            ve batışı çevresindeki vakitleri açıklar. Gösterilen dakika aralıkları
-            mutedil bölgeler için yaklaşık değerlendirmelerdir; kesin fetva veya
-            güneş yüksekliği ölçümü değildir.
-          </Text>
-          <View style={{borderLeftWidth:3,borderLeftColor:colors.gold,paddingLeft:12,gap:6}}>
-            <Text style={{fontSize:12.5,lineHeight:19,color:colors.text,fontWeight:'700'}}>
-              Tüm namazlar için aynı hüküm geçerli değildir.
-            </Text>
-            <Text style={{fontSize:11.5,lineHeight:19,color:colors.muted}}>
-              Güneş batmadan önceki vakitte o günün ikindi farzı için istisna vardır.
-              İmsak sonrası ve ikindi namazı sonrası gibi dönemlerde ise özellikle
-              nafile namazlara ilişkin farklı kısıtlamalar bulunur. Mezhep
-              farklılıkları da söz konusudur.
-            </Text>
-          </View>
-          <Pressable accessibilityRole="link" onPress={openSource}
-            style={[styles.done,{backgroundColor:colors.emerald,flexDirection:'row',gap:9}]}>
-            <Feather name="external-link" size={15} color="#FFFFFF"/>
-            <Text style={{fontWeight:'800',color:'#FFFFFF'}}>Diyanet açıklamasını aç</Text>
-          </Pressable>
-          <Pressable onPress={()=>setInfoOpen(false)} style={{alignSelf:'center',padding:6}}>
-            <Text style={{color:colors.muted,fontSize:12}}>Kapat</Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
+    <View style={styles.guideRow}>
+      <Pressable accessibilityRole="button"
+        accessibilityLabel="Ağır kerahat vakitleri rehberini aç"
+        onPress={()=>openGuide('heavy')}
+        style={[styles.guideButton,{
+          borderColor:colors.border,
+          backgroundColor:dark?'#493334':'#F9ECE7',
+        }]}>
+        <MaterialCommunityIcons name="weather-sunset" size={19}
+          color={dark?'#EEC1AC':'#9B564C'}/>
+        <Text style={[styles.guideText,{color:colors.text}]}>
+          Ağır Kerahat
+        </Text>
+        <Feather name="chevron-right" size={15} color={colors.gold}/>
+      </Pressable>
+      <Pressable accessibilityRole="button"
+        accessibilityLabel="Hafif kerahat vakitleri rehberini aç"
+        onPress={()=>openGuide('light')}
+        style={[styles.guideButton,{
+          borderColor:colors.border,
+          backgroundColor:dark?'#17415C':'#E7F5F1',
+        }]}>
+        <MaterialCommunityIcons name="information-outline" size={19}
+          color={dark?'#6CCCF7':'#168D8B'}/>
+        <Text style={[styles.guideText,{color:colors.text}]}>
+          Hafif Kerahat
+        </Text>
+        <Feather name="chevron-right" size={15} color={colors.gold}/>
+      </Pressable>
+    </View>
   </View>;
 }
+
 const styles=StyleSheet.create({
-  panel:{borderWidth:1,borderRadius:20,padding:14,gap:12,width:'100%'},
-  top:{flexDirection:'row',alignItems:'center',gap:11},
+  panel:{borderWidth:1.1,borderRadius:22,padding:13,gap:11,width:'100%'},
+  heading:{flexDirection:'row',alignItems:'center',gap:10},
   symbol:{width:41,height:41,borderRadius:14,alignItems:'center',justifyContent:'center'},
-  settings:{width:38,height:38,borderWidth:1,borderRadius:12,alignItems:'center',justifyContent:'center'},
-  list:{gap:7},
-  window:{minHeight:35,borderWidth:1,borderRadius:11,paddingHorizontal:10,flexDirection:'row',
-    alignItems:'center',gap:7},
-  dot:{width:7,height:7,borderRadius:4},
-  statusRow:{flexDirection:'row',gap:7,alignItems:'center',paddingHorizontal:3},
-  backdrop:{flex:1,backgroundColor:'rgba(0,15,13,.64)',justifyContent:'flex-end'},
-  sheet:{borderTopLeftRadius:26,borderTopRightRadius:26,
-    borderWidth:1,maxHeight:'87%',paddingHorizontal:19,paddingTop:22,paddingBottom:28},
-  sheetTop:{flexDirection:'row',alignItems:'flex-start',gap:10,marginBottom:14},
-  option:{borderWidth:1,borderRadius:14,padding:12,flexDirection:'row',alignItems:'center',gap:11},
-  stepper:{borderWidth:1,borderRadius:14,padding:12,flexDirection:'row',alignItems:'center',gap:7},
-  increment:{width:33,height:33,borderRadius:10,borderWidth:1,alignItems:'center',justifyContent:'center'},
-  notice:{borderWidth:1,borderRadius:14,padding:13,flexDirection:'row',alignItems:'flex-start',gap:10},
-  done:{height:47,borderRadius:14,alignItems:'center',justifyContent:'center'},
+  title:{fontFamily:'serif',fontSize:18,fontWeight:'800'},
+  subtitle:{fontSize:10.5,lineHeight:16},
+  infoIcon:{width:36,height:36,borderRadius:13,borderWidth:1,alignItems:'center',justifyContent:'center'},
+  cards:{flexDirection:'row',gap:7},
+  card:{flex:1,minWidth:0,borderRadius:14,
+    alignItems:'center',justifyContent:'center',paddingHorizontal:3,
+    paddingTop:9,paddingBottom:8,gap:7},
+  iconHalo:{height:31,width:31,borderRadius:11,alignItems:'center',justifyContent:'center'},
+  caption:{fontSize:11,fontWeight:'700',textAlign:'center'},
+  hours:{fontSize:10.8,fontWeight:'800',fontVariant:['tabular-nums'],textAlign:'center'},
+  bandFoot:{height:3,width:'67%',borderRadius:6,marginTop:1},
+  empty:{flexDirection:'row',alignItems:'center',gap:9,padding:12,borderRadius:13},
+  guideRow:{flexDirection:'row',gap:8},
+  guideButton:{flex:1,minWidth:0,alignItems:'center',flexDirection:'row',
+    gap:6,minHeight:48,paddingHorizontal:9,borderWidth:1,borderRadius:13},
+  guideText:{flex:1,fontSize:11.5,fontWeight:'800'},
 });

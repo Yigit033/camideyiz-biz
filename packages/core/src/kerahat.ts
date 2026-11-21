@@ -4,6 +4,7 @@ import {indicativeKerahatWindows,type RestrictionWindow} from './timeline.ts';
 export const KERAHAT_SOURCE_URL =
   'https://kurul.diyanet.gov.tr/tr/fetva/mekruh-vakitler-hangileridir-hangi-vakitlerde-kaza-ve-hangi-vakitlerde-nafile-namaz-kilinmaz/0193c42d-52b7-7186-d5b4-f1d3c950ad73';
 
+/** 'standard' is accepted for persisted legacy preferences only. */
 export type KerahatMode = 'standard' | 'custom' | 'hidden';
 export type KerahatSettings = {
   mode:KerahatMode;
@@ -12,20 +13,39 @@ export type KerahatSettings = {
   preSunsetMinutes:number;
 };
 export const DEFAULT_KERAHAT_SETTINGS:Readonly<KerahatSettings> = {
-  mode:'standard',sunriseMinutes:45,preNoonMinutes:10,preSunsetMinutes:45,
+  // Turkey-oriented PRODUCT defaults for the adjustable warning overlay.
+  // Diyanet's published approximate noon guidance is ~10 min, NOT 30 min.
+  // This configurable 30-minute precaution is not an official religious ruling.
+  mode:'custom',sunriseMinutes:45,preNoonMinutes:30,preSunsetMinutes:45,
 };
 export const KERAHAT_RANGES = {
   sunriseMinutes:{min:40,max:50},
-  preNoonMinutes:{min:5,max:15},
+  preNoonMinutes:{min:5,max:45},
   preSunsetMinutes:{min:40,max:50},
 } as const;
+/** Upgrade a v2 on-device preference without overwriting real custom offsets.
+ * The old app saved 45/10/45 even when no control was adjusted. For exactly
+ * that legacy factory profile, adopt the owner's new 45/30/45 defaults.
+ * A legacy profile with different numbers is intentionally left untouched.
+ * Old storage cannot distinguish a manually selected 45/10/45 from factory
+ * values; that one identical combination necessarily follows the new default.
+ */
+export function migrateLegacyKerahatSettings(value:unknown):KerahatSettings{
+  const legacy=validateKerahatSettings(value);
+  if(legacy.sunriseMinutes===45 && legacy.preNoonMinutes===10 &&
+     legacy.preSunsetMinutes===45){
+    return {...legacy,preNoonMinutes:DEFAULT_KERAHAT_SETTINGS.preNoonMinutes};
+  }
+  return legacy;
+}
+
 export type KerahatKind=RestrictionWindow['kind'];
 export type KerahatView={
   windows:readonly RestrictionWindow[];
   active:RestrictionWindow|null;
   next:RestrictionWindow|null;
   /** This is a locally adjustable visual estimate, never a religious ruling. */
-  method:'diyanet-inspired-approximate';
+  method:'configurable-approximate';
   isCustom:boolean;
 };
 
@@ -58,7 +78,7 @@ export function getKerahatView(
   if(!Number.isFinite(secondsOfDay)||secondsOfDay<0||secondsOfDay>=86400)
     throw new RangeError('Invalid seconds of day');
   const empty:KerahatView={
-    windows:[],active:null,next:null,method:'diyanet-inspired-approximate',
+    windows:[],active:null,next:null,method:'configurable-approximate',
     isCustom:settings.mode==='custom',
   };
   // Never paint religious guidance on demo, stale or wrong-date schedules.
@@ -74,7 +94,7 @@ export function getKerahatView(
     windows,
     active:windows.find(w=>secondsOfDay>=w.startSeconds&&secondsOfDay<w.endSeconds)??null,
     next:windows.find(w=>w.startSeconds>secondsOfDay)??null,
-    method:'diyanet-inspired-approximate',
+    method:'configurable-approximate',
     isCustom:settings.mode==='custom',
   };
 }

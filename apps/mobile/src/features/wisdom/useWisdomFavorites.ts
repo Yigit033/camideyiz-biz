@@ -1,7 +1,8 @@
 import {useCallback,useEffect,useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {WISDOM_LIBRARY} from '@camideyiz/core';
-const KEY='@camideyiz/wisdom-favorites/v2';
+// Old excerpt IDs were retired; do not show or migrate deleted catalog items.
+const KEY='@camideyiz/wisdom-favorites/v3';
 const ALLOWED=new Set(WISDOM_LIBRARY.map(i=>i.id));
 
 export function useWisdomFavorites(){
