@@ -41,6 +41,9 @@ assert.match(sched,/widgetFamilySignature/);
 assert.match(sched,/BRAND_VERSION=2/);
 assert.match(sched,/nativeRenderPending/);
 assert.match(sched,/reason\.endsWith\(launcherShortName\(i\)\)/);
+assert.match(sched,/"launcher:update:all"\.equals\(reason\)/);
+assert.match(asyncReceiver,/latestReason="launcher:update:all"/,
+  'coalescing different providers must repaint ALL affected families');
 assert.match(sched,/latestGeneration\+\+/);
 for(let i=0;i<8;i++)
   assert.match(sched,new RegExp('if\\([a-zA-Z]+\\.length>0&&dirty\\['+i+'\\]&&isCurrentGeneration\\(generation\\)\\)'));

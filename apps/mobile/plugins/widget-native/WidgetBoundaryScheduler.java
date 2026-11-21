@@ -313,7 +313,8 @@ public final class WidgetBoundaryScheduler {
       boolean[] dirty=new boolean[NAMES.length];
       boolean any=false;
       boolean force=forceFullRender(reason);
-      boolean globalForce=force&&!reason.startsWith("launcher:update:");
+      boolean globalForce=force&&(!reason.startsWith("launcher:update:")||
+          "launcher:update:all".equals(reason));
       for(int i=0;i<NAMES.length;i++){
         boolean requestedByLauncher=reason.startsWith("launcher:update:")&&
             reason.endsWith(launcherShortName(i));

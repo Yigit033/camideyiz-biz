@@ -109,6 +109,11 @@ public final class WidgetBoundaryAsyncRefresh {
         mergedEvents.incrementAndGet();
         // Preserve a reboot/time-change reason, which requires alarm rearming.
         if(needsAlarmRearm(reason))latestReason=reason;
+        else if(reason.startsWith("launcher:update:")){
+          // Multiple provider onUpdate() broadcasts can share a debounce
+          // window. Never repaint only the LAST provider in that batch.
+          if(!latestReason.equals(reason))latestReason="launcher:update:all";
+        }
         return;
       }
       refreshScheduled=true;
