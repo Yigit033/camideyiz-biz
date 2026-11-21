@@ -1,22 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_focus_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical" android:padding="9dp" android:background="@drawable/widget_bg">
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-<ImageView android:layout_width="36dp" android:layout_height="36dp" android:src="@drawable/widget_brand_lockup" android:contentDescription="Camideyiz Biz marka logosu" android:scaleType="fitCenter" />
-
-<TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#D8BF8D" android:textSize="10sp" android:includeFontPadding="false" />
-</LinearLayout>
-<TextView android:id="@+id/widget_focus_city" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim bekleniyor" android:textSize="10sp" android:textColor="#B2C6D6" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp" />
-<TextView android:layout_width="match_parent" android:layout_height="1dp" android:text="" android:includeFontPadding="false" android:layout_marginTop="4dp" android:layout_marginBottom="5dp" android:background="#2B536B" />
-<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:baselineAligned="false">
-<LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
-<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="ŞU AN" android:textSize="10sp" android:textColor="#B2C6D6" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  />
-<TextView android:id="@+id/widget_focus_current" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textSize="22sp" android:textColor="#F2F7FB" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="7dp" android:textStyle="bold" />
-</LinearLayout>
-<TextView android:layout_width="1dp" android:layout_height="65dp" android:text="" android:background="#2B536B" android:includeFontPadding="false" android:layout_marginStart="6dp" android:layout_marginEnd="8dp"/>
-<LinearLayout android:layout_width="0dp" android:layout_weight="1.25" android:layout_height="wrap_content" android:orientation="vertical">
-<TextView android:id="@+id/widget_focus_next" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SIRADAKİ VAKİT" android:textSize="11sp" android:textColor="#D8BF8D" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold" />
-<Chronometer android:id="@+id/widget_focus_countdown" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F2F7FB" android:textSize="23sp" android:textStyle="bold" android:fontFamily="sans-serif" android:includeFontPadding="false" android:singleLine="true" />
-<TextView android:id="@+id/widget_focus_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim bekleniyor" android:textSize="10sp" android:textColor="#B2C6D6" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" />
-
-</LinearLayout></LinearLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widget_focus_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:background="@drawable/widget_bg" android:padding="9dp" android:orientation="vertical" android:gravity="center_vertical">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="27dp" android:gravity="center_vertical" android:orientation="horizontal">
+ <ImageView android:layout_width="27dp" android:layout_height="27dp" android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
+ <TextView android:id="@+id/widget_focus_city" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Konum" android:textSize="11sp" android:textColor="#AFC5D4" android:gravity="right|center_vertical" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  android:layout_weight="1" android:layout_marginStart="6dp"/>
+ </LinearLayout>
+ <TextView android:layout_width="match_parent" android:layout_height="1dp" android:text=""
+   android:background="#31566D" android:layout_marginTop="4dp" android:layout_marginBottom="6dp"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:orientation="horizontal" android:gravity="center_vertical" android:baselineAligned="false">
+  <LinearLayout android:layout_width="0dp" android:layout_weight="0.8" android:layout_height="wrap_content"
+   android:orientation="vertical" android:gravity="center_vertical">
+ <TextView  android:layout_width="match_parent" android:layout_height="wrap_content" android:text="ŞU AN" android:textSize="9sp" android:textColor="#AFC5D4" android:gravity="left" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  />
+ <TextView android:id="@+id/widget_focus_current" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—" android:textSize="19sp" android:textColor="#F1F7F8" android:gravity="left" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold" android:layout_marginTop="5dp"/>
+  </LinearLayout>
+  <TextView android:layout_width="1dp" android:layout_height="53dp" android:text="" android:background="#31566D"
+    android:layout_marginStart="4dp" android:layout_marginEnd="9dp"/>
+  <LinearLayout android:layout_width="0dp" android:layout_weight="1.2" android:layout_height="wrap_content"
+   android:gravity="center_vertical" android:orientation="vertical">
+ <TextView  android:layout_width="match_parent" android:layout_height="wrap_content" android:text="KALAN SÜRE" android:textSize="9sp" android:textColor="#AFC5D4" android:gravity="left" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  />
+ <Chronometer android:id="@+id/widget_focus_countdown" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F4D392" android:textSize="27sp" android:textStyle="bold" android:fontFamily="sans-serif-medium" android:includeFontPadding="false" android:gravity="left" android:singleLine="true"/>
+ <TextView android:id="@+id/widget_focus_next" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Sıradaki" android:textSize="10sp" android:textColor="#F1F7F8" android:gravity="left" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  android:layout_marginTop="3dp"/>
+ <TextView android:id="@+id/widget_focus_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Saat --:--" android:textSize="9sp" android:textColor="#AFC5D4" android:gravity="left" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  android:layout_marginTop="2dp"/>
+  </LinearLayout>
+ </LinearLayout>
 </LinearLayout>

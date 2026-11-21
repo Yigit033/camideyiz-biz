@@ -1,26 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
- android:id="@+id/widget_slim_root" android:layout_width="match_parent"
- android:layout_height="match_parent" android:orientation="vertical"
- android:gravity="center" android:padding="4dp" android:background="@drawable/widget_bg_light">
- <ImageView android:layout_width="34dp" android:layout_height="34dp"
-  android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter"
-  android:contentDescription="Camideyiz Biz logosu"/>
- 
-
- <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SIRADAKİ" android:textColor="#586F7D" android:textSize="8sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="11dp" android:letterSpacing=".02"/>
-
- <TextView android:id="@+id/widget_slim_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim" android:textColor="#152C3D" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp" android:textStyle="bold"/>
-
- <TextView android:id="@+id/widget_slim_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#977444" android:textSize="16sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="2dp" android:textStyle="bold"/>
-
+ android:id="@+id/widget_slim_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:orientation="vertical" android:background="@drawable/widget_bg_light" android:padding="6dp">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:orientation="vertical" android:gravity="center">
+ <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
+ <TextView  android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SIRADAKİ" android:textSize="8sp" android:textColor="#607481" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  android:layout_marginTop="5dp"/>
+ <TextView android:id="@+id/widget_slim_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim" android:textSize="13sp" android:textColor="#163045" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold" android:layout_marginTop="3dp"/>
+ <TextView android:id="@+id/widget_slim_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textSize="12sp" android:textColor="#465E70" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  android:layout_marginTop="2dp"/>
+ </LinearLayout>
  <TextView android:layout_width="match_parent" android:layout_height="1dp"
-  android:layout_marginTop="10dp" android:layout_marginBottom="9dp" android:background="#D8E3E4" android:text=""/>
- <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Kalan" android:textColor="#586F7D" android:textSize="8sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
- <Chronometer android:id="@+id/widget_slim_countdown"
-  android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:layout_marginTop="3dp" android:text="--:--"
-  android:textColor="#152C3D" android:textSize="11sp" android:textStyle="bold"
-  android:singleLine="true" android:includeFontPadding="false"/>
+  android:text="" android:background="#DAE3E6"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:orientation="vertical" android:gravity="center">
+ <TextView  android:layout_width="match_parent" android:layout_height="wrap_content" android:text="KALAN SÜRE" android:textSize="8sp" android:textColor="#607481" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  />
+ <LinearLayout android:layout_width="match_parent" android:layout_height="39dp" android:gravity="center"
+  android:orientation="vertical" android:layout_marginTop="6dp"
+  android:background="@drawable/widget_chip_light">
+ <Chronometer android:id="@+id/widget_slim_countdown" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#91652D" android:textSize="20sp" android:textStyle="bold" android:fontFamily="sans-serif-medium" android:includeFontPadding="false" android:gravity="center" android:singleLine="true"/>
+ </LinearLayout>
+ </LinearLayout>
 </LinearLayout>
