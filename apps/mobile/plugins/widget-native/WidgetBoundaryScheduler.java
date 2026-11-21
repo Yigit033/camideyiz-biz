@@ -48,7 +48,8 @@ public final class WidgetBoundaryScheduler {
   private static final String[] NAMES = {
     "NextPrayerWidget","PrayerDayWidget","CompactPrayerWidget",
     "PrayerFocusWidget","PrayerStripWidget",
-    "MiniPrayerRingWidget","PremiumPrayerRingWidget","SlimPrayerWidget"
+    "MiniPrayerRingWidget","PremiumPrayerRingWidget","SlimPrayerWidget",
+    "SquarePrayerRingWidget"
   };
   // Published days may remain valid offline up to their 16-day coverage.
   // Do not erase a still-valid published timetable after only 72 hours.
@@ -68,7 +69,7 @@ public final class WidgetBoundaryScheduler {
   private static volatile boolean renderPending=false;
   private static volatile long latestGeneration=0;
   private static volatile String pendingSignature="";
-  private static final int BRAND_VERSION=2;
+  private static final int BRAND_VERSION=3;
   // AlarmManager state is not durable across force-stop or device reboot.
   // First widget engine operation in each process must explicitly rearm it.
   private static boolean alarmRearmRequiredThisProcess=true;
@@ -397,7 +398,7 @@ public final class WidgetBoundaryScheduler {
 
   private static String launcherShortName(int index){
     return new String[]{"next","daily","compact","focus","strip",
-        "ring:mini","ring:premium","slim"}[index];
+        "ring:mini","ring:premium","slim","ring:square"}[index];
   }
 
   /** Per-family signatures must not include the clock's moving seconds:
@@ -416,7 +417,8 @@ public final class WidgetBoundaryScheduler {
         lightTheme(context)+"|"+props.optBoolean("ready",false)+"|";
     String[] data={city+"|"+next,city+"|"+date+"|"+next+"|"+day,
         next,city+"|"+next,city+"|"+date+"|"+next+"|"+day,
-        date+"|"+next+"|"+day,city+"|"+date+"|"+next+"|"+day,next};
+        date+"|"+next+"|"+day,city+"|"+date+"|"+next+"|"+day,next,
+        date+"|"+next+"|"+day};
     String[] result=new String[NAMES.length];
     for(int i=0;i<NAMES.length;i++){
       int[] copy=ids[i].clone();
@@ -476,7 +478,7 @@ public final class WidgetBoundaryScheduler {
     }
   }
 
-  /** Only eight binder inventory reads per refresh, including a widget-ID
+  /** Only nine binder inventory reads per refresh, including a widget-ID
    * fingerprint: replacing one 1×1 instance without changing count still
    * triggers its initial render.
    */
@@ -491,7 +493,8 @@ public final class WidgetBoundaryScheduler {
       manager.getAppWidgetIds(component(context,NAMES[4])),
       manager.getAppWidgetIds(component(context,NAMES[5])),
       manager.getAppWidgetIds(component(context,NAMES[6])),
-      manager.getAppWidgetIds(component(context,NAMES[7]))
+      manager.getAppWidgetIds(component(context,NAMES[7])),
+      manager.getAppWidgetIds(component(context,NAMES[8]))
     };
     StringBuilder key=new StringBuilder(600);
     key.append(BRAND_VERSION).append('|')
@@ -632,7 +635,7 @@ public final class WidgetBoundaryScheduler {
         JSONObject value=i<times.length()?times.getJSONObject(i):null;
         String label=value==null?"—":value.optString("label","—");
         String clock=value==null?"--:--":value.optString("time","--:--");
-        boolean selected=nextInCurrentDay && label.equals(next);
+        boolean selected=ready && (nextInCurrentDay?label.equals(next):i==5);
         card.setTextViewText(icons[i],symbols[i]);
         card.setTextViewText(labels[i],label);
         card.setTextViewText(clocks[i],clock);
@@ -643,7 +646,8 @@ public final class WidgetBoundaryScheduler {
           R.drawable.widget_row_clear);
       }
       card.setTextViewText(R.id.widget_day_footer,ready
-          ?"Sıradaki · "+next+"  "+time:"Takvimi açıp eşitle");
+          ?next+" vaktine kalan":"Takvim bekleniyor");
+      setCountdown(card,R.id.widget_day_countdown,nextAt,now);
       card.setOnClickPendingIntent(R.id.widget_day_root,launchAction(context,41019));
       manager.updateAppWidget(day,card);
       count+=day.length;
@@ -804,6 +808,20 @@ public final class WidgetBoundaryScheduler {
       count+=slim.length;
     }
 
+    // Fixed 2×2 square ring: the countdown is its central focal point.
+    // Reuse the 224px ring bitmap (no extra JS timer or duplicate allocation).
+    int[] squareRing=widgetIds[8];
+    if(squareRing.length>0&&dirty[8]&&isCurrentGeneration(generation)){
+      RemoteViews card=new RemoteViews(context.getPackageName(),
+          light?R.layout.widget_ring_square_light:R.layout.widget_ring_square);
+      card.setImageViewBitmap(R.id.widget_ring_square_art,prepared[0]);
+      card.setTextViewText(R.id.widget_ring_square_next,ready?next:"Takvim");
+      card.setTextViewText(R.id.widget_ring_square_time,ready?"Saat "+time:"--:--");
+      setCountdown(card,R.id.widget_ring_square_countdown,nextAt,now);
+      card.setOnClickPendingIntent(R.id.widget_ring_square_root,launchAction(context,41026));
+      manager.updateAppWidget(squareRing,card);
+      count+=squareRing.length;
+    }
     return count;
   }
 
@@ -851,6 +869,7 @@ public final class WidgetBoundaryScheduler {
     result.put("installedMiniRing",counts[5]);
     result.put("installedPremiumRing",counts[6]);
     result.put("installedSlim",counts[7]);
+    result.put("installedSquareRing",counts[8]);
     result.put("widgetTheme",lightTheme(context)?"light":"dark");
     long last=local.getLong("lastAppliedAt",0);
     result.put("lastAppliedAt",last);

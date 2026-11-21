@@ -56,7 +56,8 @@ final class WidgetRenderPipeline {
           JSONArray times=snapshot.optBoolean("ready",false)
               ?snapshot.getJSONArray("times"):new JSONArray();
           long now=System.currentTimeMillis();
-          if(dirty[5]&&installed[5].length>0)
+          if((dirty[5]&&installed[5].length>0)||
+              (dirty[8]&&installed[8].length>0))
             frames[0]=PrayerRingBitmapRenderer.render(times,now,false,224);
           if(dirty[6]&&installed[6].length>0)
             frames[1]=PrayerRingBitmapRenderer.render(times,now,false,432);

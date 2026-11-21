@@ -5,7 +5,7 @@
  * Deliberately no React Native, Expo, AsyncStorage, clock/GPS or network import.
  */
 export const HEADLESS_RECHECK_MS=2*60*60_000;
-export const WIDGET_BRAND_ASSET_VERSION=2;
+export const WIDGET_BRAND_ASSET_VERSION=3;
 export const HEADLESS_COVERAGE_MS=24*60*60_000;
 export const HEADLESS_MAX_SOURCE_AGE_MS=16*24*60*60_000;
 
@@ -18,6 +18,7 @@ export type HeadlessNativeHealth={
   installedNext?:number;installedDay?:number;
   installedCompact?:number;installedFocus?:number;installedStrip?:number;
   installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;
+  installedSquareRing?:number;
   brandAssetVersion?:number;nativeRenderPending?:boolean;
 };
 
@@ -34,7 +35,8 @@ export function shouldSkipWidgetHeadlessRefresh(
   if(!Number.isSafeInteger(v.activeCityId)||!v.activeCityId||
      v.activeCityId!==v.nativeCityId)return false;
   const counts=[v.installedNext,v.installedDay,v.installedCompact,v.installedFocus,
-    v.installedStrip,v.installedMiniRing,v.installedPremiumRing,v.installedSlim];
+    v.installedStrip,v.installedMiniRing,v.installedPremiumRing,v.installedSlim,
+    v.installedSquareRing];
   if(counts.some(n=>n!==undefined&&(!Number.isSafeInteger(n)||n<0))||
      counts.reduce<number>((sum,n)=>sum+(n??0),0)<1)return false;
   const source=v.calendarSourceAt,updated=v.lastSyncAt,end=v.calendarEndsAt;
