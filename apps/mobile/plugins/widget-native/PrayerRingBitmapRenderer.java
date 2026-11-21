@@ -4,6 +4,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.os.SystemClock;
 import android.util.LruCache;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,7 +28,19 @@ public final class PrayerRingBitmapRenderer {
   private static final LruCache<String,Bitmap> CACHE=new LruCache<String,Bitmap>(2*1024*1024){
     @Override protected int sizeOf(String key,Bitmap bitmap){return bitmap.getByteCount();}
   };
+  private static volatile long lastBitmapMs=0;
+  private static volatile long maxBitmapMs=0;
+  private static volatile long cacheHits=0;
+  private static volatile long cacheMisses=0;
   private PrayerRingBitmapRenderer(){}
+
+  /** Pure in-memory timing counters. Never force an extra ring render for QA. */
+  public static synchronized void appendMetrics(JSONObject output)throws JSONException{
+    output.put("nativeRingBitmapMs",lastBitmapMs);
+    output.put("nativeRingMaxBitmapMs",maxBitmapMs);
+    output.put("nativeRingCacheHits",cacheHits);
+    output.put("nativeRingCacheMisses",cacheMisses);
+  }
 
   private static int minutesOfDay(String clock)throws JSONException{
     if(clock==null||!clock.matches("([01]\\d|2[0-3]):[0-5]\\d"))
@@ -90,7 +103,13 @@ public final class PrayerRingBitmapRenderer {
     }
     String key=size+"|"+light+"|"+ready+"|"+current+"|"+Arrays.toString(boundaries);
     Bitmap cached=CACHE.get(key);
-    if(cached!=null&&!cached.isRecycled())return cached;
+    if(cached!=null&&!cached.isRecycled()){
+      cacheHits++;
+      lastBitmapMs=0;
+      return cached;
+    }
+    cacheMisses++;
+    long renderAt=SystemClock.elapsedRealtime();
     Bitmap bitmap=Bitmap.createBitmap(size,size,Bitmap.Config.ARGB_8888);
     Canvas canvas=new Canvas(bitmap);
     float mid=size*.5f,radius=size*.322f;
@@ -116,6 +135,8 @@ public final class PrayerRingBitmapRenderer {
     pen.setColor(light?0x333A6478:0x442F536B);
     canvas.drawCircle(mid,mid,size*.368f,pen);
     CACHE.put(key,bitmap);
+    lastBitmapMs=SystemClock.elapsedRealtime()-renderAt;
+    maxBitmapMs=Math.max(maxBitmapMs,lastBitmapMs);
     return bitmap;
   }
 }

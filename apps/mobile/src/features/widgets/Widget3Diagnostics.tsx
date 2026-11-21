@@ -30,6 +30,8 @@ type NativeWidgetHealth={
   nativeRefreshBatches?:number;nativeBridgeCalls?:number;
   nativeRefreshMs?:number;nativeCommitMs?:number;nativeRenderMs?:number;
   nativeAlarmMs?:number;nativeSkippedRenders?:number;nativeRenderedBatches?:number;
+  nativeRingBitmapMs?:number;nativeRingMaxBitmapMs?:number;
+  nativeRingCacheHits?:number;nativeRingCacheMisses?:number;
 };
 type WidgetBridge={
   getStatus:()=>Promise<string>;
@@ -235,6 +237,10 @@ export function Widget3Diagnostics(){
         ['Birleştirilen Android olayları',String(health?.nativeCoalescedEvents??'—')],
         ['Atlanan gereksiz çizimler',String(health?.nativeSkippedRenders??'—')],
         ['Native çizim batch sayısı',String(health?.nativeRenderedBatches??'—')],
+        ['Çember bitmap son / en yavaş (ms)',[
+          health?.nativeRingBitmapMs??'—',health?.nativeRingMaxBitmapMs??'—'].join(' / ')],
+        ['Çember bitmap önbelleği (isabet / üretim)',[
+          health?.nativeRingCacheHits??'—',health?.nativeRingCacheMisses??'—'].join(' / ')],
         ['Aktarım aşaması',health?.lastTransferStage||'Başlamadı'],
         ['Son aktarım denemesi',clock(health?.lastTransferAttemptAt??0)],
         ['Son aktarım açıklaması',health?.lastTransferDetail||'—'],

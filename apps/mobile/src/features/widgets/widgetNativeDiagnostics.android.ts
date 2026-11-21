@@ -33,6 +33,8 @@ export type AndroidWidgetNativeStatus={
   nativeRefreshBatches?:number;nativeBridgeCalls?:number;
   nativeRefreshMs?:number;nativeCommitMs?:number;nativeRenderMs?:number;
   nativeAlarmMs?:number;nativeSkippedRenders?:number;nativeRenderedBatches?:number;
+  nativeRingBitmapMs?:number;nativeRingMaxBitmapMs?:number;
+  nativeRingCacheHits?:number;nativeRingCacheMisses?:number;
 };
 
 const bridge=():NativeBridge|null=>{

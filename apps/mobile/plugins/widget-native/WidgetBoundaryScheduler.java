@@ -799,6 +799,7 @@ public final class WidgetBoundaryScheduler {
     result.put("nativeSkippedRenders",skippedUnchangedRenders);
     result.put("nativeRenderedBatches",renderedBatches);
     WidgetBoundaryAsyncRefresh.appendMetrics(result);
+    PrayerRingBitmapRenderer.appendMetrics(result);
     return result;
   }
 }
