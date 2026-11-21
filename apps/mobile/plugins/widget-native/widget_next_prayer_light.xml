@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical" android:padding="9dp" android:background="@drawable/widget_bg_light">
 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-<ImageView android:layout_width="26dp" android:layout_height="17dp" android:src="@drawable/widget_brand_symbol" android:contentDescription="Camideyiz Biz marka logosu" android:scaleType="fitCenter" />
-<TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="5dp" android:text="Camideyiz Biz" android:textColor="#152821" android:textSize="12sp" android:textStyle="bold" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
+<ImageView android:layout_width="33dp" android:layout_height="33dp" android:src="@drawable/widget_brand_lockup" android:contentDescription="Camideyiz Biz marka logosu" android:scaleType="fitCenter" />
+
 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="#A88A5C" android:textSize="10sp" android:includeFontPadding="false" />
 </LinearLayout>
 <TextView android:id="@+id/widget_city" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim bekleniyor" android:textSize="10sp" android:textColor="#65736C" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp" />

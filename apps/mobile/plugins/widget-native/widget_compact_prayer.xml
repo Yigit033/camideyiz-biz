@@ -4,10 +4,10 @@
  android:layout_height="match_parent" android:orientation="vertical"
  android:gravity="center" android:padding="2dp"
  android:background="@drawable/widget_bg">
- <ImageView android:layout_width="18dp" android:layout_height="10dp"
-  android:src="@drawable/widget_brand_symbol" android:contentDescription="Camideyiz Biz"
+ <ImageView android:layout_width="24dp" android:layout_height="24dp"
+  android:src="@drawable/widget_brand_lockup" android:contentDescription="Camideyiz Biz"
   android:scaleType="fitCenter"/>
- <TextView android:id="@+id/widget_compact_brand" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Camideyiz Biz" android:textColor="#F2F7FB" android:textSize="7sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold" android:layout_marginTop="1dp" />
+ 
 
  <TextView android:id="@+id/widget_compact_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim" android:textColor="#B2C6D6" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="1dp" />
 
