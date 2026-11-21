@@ -3,10 +3,10 @@
  android:id="@+id/widget_slim_root" android:layout_width="match_parent"
  android:layout_height="match_parent" android:orientation="vertical"
  android:gravity="center" android:padding="4dp" android:background="@drawable/widget_bg">
- <ImageView android:layout_width="22dp" android:layout_height="15dp"
-  android:src="@drawable/widget_brand_symbol" android:scaleType="fitCenter"
+ <ImageView android:layout_width="34dp" android:layout_height="34dp"
+  android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter"
   android:contentDescription="Camideyiz Biz logosu"/>
- <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Camideyiz Biz" android:textColor="#F2F7FB" android:textSize="7sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold" android:layout_marginTop="2dp"/>
+ 
 
  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SIRADAKİ" android:textColor="#AFC5D4" android:textSize="8sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="11dp" android:letterSpacing=".02"/>
 
