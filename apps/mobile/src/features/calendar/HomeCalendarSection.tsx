@@ -62,7 +62,7 @@ export const HomeCalendarSection=memo(function HomeCalendarSection({
       </View>
       <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
         <Text style={{fontSize:10.5,color:colors.muted}}>
-          {today?'Bugünün doğrulanmış saatleri':'Vakitler ilçe seçildikten sonra görünür'}
+          {today?'Bugünün vakitleri':'Vakitler ilçe seçildikten sonra görünür'}
         </Text>
         <Text style={{fontSize:11.5,fontWeight:'700',color:colors.gold}}>Takvimi aç  ›</Text>
       </View>
@@ -102,7 +102,7 @@ export const HomeCalendarSection=memo(function HomeCalendarSection({
           </Text>
         </View>
       </View>:<Text style={{color:colors.muted,fontSize:11}}>
-        Yeni yılın doğrulanmış dini günler listesi bekleniyor.
+        Yeni yılın dini günleri yakında eklenecek.
       </Text>}
       <Text style={{fontSize:11.5,fontWeight:'700',color:colors.gold,textAlign:'right'}}>
         Tüm dini günler  ›

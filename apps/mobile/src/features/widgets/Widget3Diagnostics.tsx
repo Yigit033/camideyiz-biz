@@ -74,49 +74,33 @@ function clock(value:number):string{
     day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',
   }):'—';
 }
+/** Plain-language state for users. Technical causes live only in the
+ * shareable support report and the hidden (long-press) detail view. */
+const RETRY='“Takvimi eşitle”ye dokunarak tekrar dene.';
 function displayState(status:NativeWidgetHealth|null,cityId:number|null){
-  if(!status)return {title:'Widget motoruna erişilemiyor',
-    description:'Bu APK eski olabilir veya native modüle bağlanılamıyor.',
+  if(!status)return {title:'Widget’lara ulaşılamıyor',
+    description:'Uygulamayı güncelleyip tekrar dene.',
     icon:'alert-triangle' as const};
   if(status.installedNext+status.installedDay+
       (status.installedCompact??0)+(status.installedFocus??0)+
       (status.installedStrip??0)+
       (status.installedMiniRing??0)+(status.installedPremiumRing??0)+
       (status.installedSlim??0)+(status.installedSquareRing??0)===0)return {
-    title:'Ana ekranda kurulu widget yok',
-    description:'Telefonun widget menüsünden dokuz Camideyiz Biz tasarımından birini ekle.',
+    title:'Ana ekranda widget yok',
+    description:'Ana ekrana uzun bas, Widget’lar menüsünden Camideyiz Biz’i seç.',
     icon:'smartphone' as const};
-  if(cityId!==null && status.activeCityId!==cityId)return {
-    title:status.activeCityId===0?'İlçe native belleğe henüz aktarılmadı':
-      'Widget henüz yeni ilçeye geçmedi',
-    description:'Seçili ilçe ile Android widget seçim kaydı uyuşmuyor; yeniden eşitle.',
-    icon:'map-pin' as const};
-  if(status.lastTransferError)return {title:'Takvim aktarımında hata',
-    description:status.lastTransferError,icon:'alert-triangle' as const};
-  if(status.lastError)return {title:'Android çizim / alarm hatası',
-    description:status.lastError,icon:'alert-triangle' as const};
-  if(!status.hasTimeline)return {
-    title:'Android henüz doğrulanmış takvim almadı',
-    description:status.lastTransferDetail||
-      'Seçilen ilçe için yayımlanmış güncel vakitlerin alınması bekleniyor.',
+  if((cityId!==null && status.activeCityId!==cityId)||
+     (cityId!==null&&status.hasTimeline&&status.nativeCityId!==cityId))return {
+    title:'Widget yeni ilçeye geçiyor',description:RETRY,icon:'map-pin' as const};
+  if(status.lastTransferError||status.lastError||!status.persisted)return {
+    title:'Widget güncellenemedi',description:RETRY,icon:'alert-triangle' as const};
+  if(!status.hasTimeline||!status.lastReady)return {
+    title:'Vakitler bekleniyor',
+    description:'İnternete bağlanınca widget’lar güncellenir.',
     icon:'calendar' as const};
-  if(cityId!==null&&status.nativeCityId!==cityId)return {
-    title:'Kayıtlı takvim farklı ilçeye ait',
-    description:'Eski ilçenin saatleri güvenlik nedeniyle gösterilmiyor.',
-    icon:'map-pin' as const};
-  if(!status.lastReady)return {
-    title:'Kayıtlı takvimin geçerli günü yok',
-    description:'Yayımlanmış ileri tarihler için takvimi yeniden eşitle.',
-    icon:'calendar' as const};
-  if(status.nativeRenderPending)return {title:'Doğrulanmış takvim hazırlanıyor',
-    description:'Vakitler kaydedildi; Android widget çizimi asenkron tamamlanacak.',
-    icon:'clock' as const};
-  if(!status.persisted)return {title:'Native veri doğrulanamadı',
-    description:'Android kayıt onayı eksik, rapordaki aktarım nedenini kontrol et.',
-    icon:'alert-circle' as const};
-  return {title:'Android’e doğrulanmış vakitler gönderildi',
-    description:'Native kayıt hazır. Ana ekran launcher çizimini telefon ekranında ayrıca kontrol et.',
-    icon:'check-circle' as const};
+  if(status.nativeRenderPending)return {title:'Widget’lar güncelleniyor',
+    description:'',icon:'clock' as const};
+  return {title:'Widget’lar güncel',description:'',icon:'check-circle' as const};
 }
 export function Widget3Diagnostics(){
   const {colors}=useAppTheme();
@@ -126,14 +110,16 @@ export function Widget3Diagnostics(){
   const [health,setHealth]=useState<NativeWidgetHealth|null>(null);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState<string|null>(null);
+  // Technical cause, kept only for the support report / hidden details.
+  const [failure,setFailure]=useState<string|null>(null);
   const cityId=source.place?.id??null;
   const query=useCallback(async()=>{
     const native=bridge();
-    if(!native){setHealth(null);setError('Native widget köprüsü bulunamadı');return;}
+    if(!native){setHealth(null);setFailure('Native widget bridge missing');return;}
     try{
       setHealth(readHealth(await native.getStatus()));
-      setError(null);
-    }catch(e){setHealth(null);setError(e instanceof Error?e.message:'Native tanılama başarısız');}
+      setFailure(null);
+    }catch(e){setHealth(null);setFailure(e instanceof Error?e.message:'native status failed');}
   },[]);
   useEffect(()=>{
     if(Platform.OS!=='android')return;
@@ -159,10 +145,14 @@ export function Widget3Diagnostics(){
       // The verified foreground publisher already sends native RemoteViews.
       // A second forced refresh here was repainting all eight types again.
       await query();
-      if(!result.updated)setError(result.detail);
+      if(!result.updated){
+        setFailure(result.detail);
+        setError('Widget güncellenemedi. İnternet bağlantını kontrol edip tekrar dene.');
+      }
     }catch(e){
       await query();
-      setError(e instanceof Error?e.message:'Widget onarma isteği başarısız');
+      setFailure(e instanceof Error?e.message:'refresh failed');
+      setError('Widget güncellenemedi. Tekrar dene.');
     }finally{setBusy(false);}
   };
   // Only meaningful once a boundary alarm exists; older APKs omit the field.
@@ -187,7 +177,7 @@ export function Widget3Diagnostics(){
           backgroundRegistered:companion.backgroundRegistered,
           backgroundReport:companion.backgroundReport,
           startupPerformance:readStartupDiagnostics(),
-          error,
+          error:failure??error,
         },null,2)});
     }catch{/* user dismissed OS sharing or it failed */}
   };
@@ -197,22 +187,20 @@ export function Widget3Diagnostics(){
       <View style={[styles.round,{backgroundColor:colors.soft}]}>
         <Feather name={description.icon} size={19} color={health?.lastReady?colors.emerald:colors.gold}/>
       </View>
-      <View style={{flex:1,gap:5}}>
+      {/* Long-press the title: hidden support details (not for everyday users). */}
+      <Pressable style={{flex:1,gap:5}} onLongPress={()=>setOpened(v=>!v)}
+        delayLongPress={700} accessibilityRole="header">
         <Text style={{fontFamily:'serif',fontSize:16,fontWeight:'700',color:colors.text}}>
           Widget Durumu
         </Text>
         <Text style={{fontSize:12,color:colors.text,fontWeight:'800'}}>
           {description.title}
         </Text>
-      </View>
-      <Pressable accessibilityRole="button" accessibilityLabel="Widget teknik ayrıntılarını aç"
-        onPress={()=>setOpened(v=>!v)} style={{padding:8}}>
-        <Feather name={opened?'chevron-up':'chevron-down'} size={20} color={colors.gold}/>
       </Pressable>
     </View>
-    <Text style={{fontSize:11,lineHeight:18,color:colors.muted}}>
+    {description.description?<Text style={{fontSize:11,lineHeight:18,color:colors.muted}}>
       {description.description}
-    </Text>
+    </Text>:null}
     <View style={styles.indicators}>
       <Text style={[styles.indicator,{color:colors.muted}]}>
         <Feather name="layers" size={12}/> {' '+installed+' kurulu'}
@@ -231,8 +219,7 @@ export function Widget3Diagnostics(){
       style={[styles.notice,{backgroundColor:colors.soft,borderColor:colors.border}]}>
       <Feather name="bell" size={15} color={colors.gold}/>
       <Text style={{flex:1,fontSize:11,lineHeight:16,color:colors.text}}>
-        Widget yeni vakte birkaç dakika gecikmeli geçebilir. Tam dakikada geçiş için
-        “Alarmlar ve hatırlatıcılar” iznini aç.
+        Tam dakikada güncellenmesi için “Alarmlar ve hatırlatıcılar” iznini aç.
       </Text>
       <Feather name="chevron-right" size={16} color={colors.gold}/>
     </Pressable>:null}
@@ -294,36 +281,30 @@ export function Widget3Diagnostics(){
         ['Arka plan işi',companion.backgroundRegistered?'Kayıtlı (kesin zaman yok)':'Kayıtlı değil'],
         ['Arka plan servis durumu',companion.backgroundReport?.registrationStatus??'Henüz kontrol edilmedi'],
         ['Arka plan kayıt sorunu',companion.backgroundReport?.registrationError||'Yok'],
-        ['Hata',error||health?.lastTransferError||health?.lastError||'Yok'],
+        ['Hata',failure||health?.lastTransferError||health?.lastError||'Yok'],
       ] as [string,string][]).map(([name,value])=><View key={name} style={styles.detailRow}>
         <Text style={{fontSize:10.5,color:colors.muted,flex:1}}>{name}</Text>
         <Text style={{fontSize:10.5,fontWeight:'700',color:colors.text,flex:1.35,
           textAlign:'right'}}>{value.trim()||'—'}</Text>
       </View>)}
-      <Text style={{color:colors.muted,fontSize:10,lineHeight:16,marginTop:4}}>
-        Native kayıt ve güncelleme istekleri gerçek ana ekran piksellerinin doğrulanması değildir.
-      </Text>
+      <Pressable accessibilityRole="button" accessibilityLabel="Destek raporunu paylaş"
+        onPress={()=>void share()}
+        style={[styles.button,{backgroundColor:colors.soft,borderColor:colors.border,borderWidth:1}]}>
+        <Feather name="share-2" size={15} color={colors.gold}/>
+        <Text style={{fontSize:11,fontWeight:'800',color:colors.text}}>Destek raporunu paylaş</Text>
+      </Pressable>
     </View>:null}
     {error?<Text accessibilityRole="alert" style={{fontSize:11,color:colors.warning}}>
       {error}
     </Text>:null}
-    <View style={{flexDirection:'row',gap:8}}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Widget'ı tanıla ve yeniden çizdir"
-        disabled={busy} onPress={()=>void repair()}
-        style={[styles.button,{backgroundColor:colors.accentStrong,opacity:busy?.6:1,flex:1.45}]}>
-        <Feather name="refresh-cw" size={15} color="#FFFFFF"/>
-        <Text style={{fontSize:11,fontWeight:'800',color:'#FFFFFF'}}>
-          {busy?'Eşitleniyor…':'Takvimi eşitle ve çizdir'}
-        </Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel="Widget tanı raporunu paylaş"
-        onPress={()=>void share()}
-        style={[styles.button,{backgroundColor:colors.soft,borderColor:colors.border,
-          borderWidth:1,flex:1}]}>
-        <Feather name="share-2" size={15} color={colors.gold}/>
-        <Text style={{fontSize:11,fontWeight:'800',color:colors.text}}>Raporu paylaş</Text>
-      </Pressable>
-    </View>
+    <Pressable accessibilityRole="button" accessibilityLabel="Widget takvimini eşitle"
+      disabled={busy} onPress={()=>void repair()}
+      style={[styles.button,{backgroundColor:colors.accentStrong,opacity:busy?.6:1}]}>
+      <Feather name="refresh-cw" size={15} color="#FFFFFF"/>
+      <Text style={{fontSize:11,fontWeight:'800',color:'#FFFFFF'}}>
+        {busy?'Eşitleniyor…':'Takvimi eşitle'}
+      </Text>
+    </Pressable>
   </View>;
 }
 const styles=StyleSheet.create({

@@ -63,7 +63,7 @@ export default function MoreScreen(){
         <View style={{flex:1,gap:4}}>
           <Text style={{color:colors.text,fontSize:14,fontWeight:'800'}}>Ana ekran widget’ları ve uyarılar</Text>
           <Text style={{color:colors.muted,fontSize:11,lineHeight:17}}>
-            İki widget, vakte özel bildirimler, ses/sessiz ve bildirim geçmişi
+            Widget’lar, vakit bildirimleri ve ezan
           </Text>
         </View>
         <Feather name="chevron-right" size={19} color={colors.gold}/>

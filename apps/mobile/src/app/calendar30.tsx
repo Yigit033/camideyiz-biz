@@ -43,7 +43,7 @@ const DayCard=memo(function DayCard({dateISO,day,today,open,onToggle}:{
         </Text>
       </View>)}
     </View>:<Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
-      Bu günün vakitleri mevcut kaynaklarda bulunamadı. Tahmini saat gösterilmiyor.
+      Bu günün vakitleri henüz yayımlanmadı.
     </Text>}
     {open&&day?<View style={{gap:11,paddingTop:8,borderTopWidth:1,borderTopColor:colors.border}}>
       <View style={{flexDirection:'row',flexWrap:'wrap',rowGap:13}}>
@@ -53,10 +53,6 @@ const DayCard=memo(function DayCard({dateISO,day,today,open,onToggle}:{
             fontVariant:['tabular-nums']}}>{item.time}</Text>
         </View>)}
       </View>
-      <Text style={{fontSize:9.5,color:colors.muted}}>
-        {day.provider==='diyanet-awqat-salah'?'Diyanet resmî API önbelleği':
-          'Diyanet vakitlerinin bağımsız aktarımı · '+day.provider}
-      </Text>
     </View>:null}
   </Pressable>;
 });
@@ -106,13 +102,10 @@ export default function Calendar30Screen(){
           borderWidth:1,borderColor:colors.border,gap:6}}>
           <Text style={{color:colors.text,fontSize:12.5,fontWeight:'700'}}>
             {status==='choose-location'?'Önce ana sayfadan il veya ilçe seç':
-              loading&&!snapshot?'Yayımlanmış takvim yükleniyor…':
-              status==='unavailable'?'Yayımlanmış namaz takvimi alınamadı':
-              coverage===30?'30 günün tamamı doğrulandı':
-              coverage+' / 30 günün vakitleri yayımlanmış'}
-          </Text>
-          <Text style={{color:colors.muted,fontSize:11,lineHeight:17}}>
-            Eksik günlere saat uydurulmaz. Her satır, seçili ilçenin yayımlanmış verisinden gelir.
+              loading&&!snapshot?'Takvim yükleniyor…':
+              status==='unavailable'?'Namaz takvimi alınamadı':
+              coverage===30?'30 günlük takvim hazır':
+              coverage+' / 30 günün vakitleri hazır'}
           </Text>
           {(error||status==='partial'||status==='unavailable')&&status!=='choose-location'?
             <Pressable accessibilityRole="button" accessibilityLabel="Takvim verilerini yeniden yükle"
@@ -124,18 +117,13 @@ export default function Calendar30Screen(){
               </Text>
             </Pressable>:null}
           {status==='unavailable'&&error?<Text style={{fontSize:10,color:colors.muted}}>
-            Ağ bağlantısı veya takvim kaynağı kullanılamıyor.
+            İnternet bağlantını kontrol edip yeniden dene.
           </Text>:null}
         </View>
       </View>}
       renderItem={({item})=><DayCard dateISO={item.iso} day={item.day}
         today={item.iso===dateISO} open={expanded===item.iso}
         onToggle={()=>setExpanded(curr=>curr===item.iso?null:item.iso)}/>}
-      ListFooterComponent={<Text style={{fontSize:10.5,color:colors.muted,lineHeight:17,
-        marginTop:8,textAlign:'center'}}>
-        Resmî API yapılandırılmışsa doğrulanmış Diyanet verileri; aksi hâlde Diyanet vakitlerini
-        yeniden yayımlayan bağımsız sağlayıcılar kullanılır. Uygulama namaz vakti hesaplamaz.
-      </Text>}
     />
   </SafeAreaView>;
 }

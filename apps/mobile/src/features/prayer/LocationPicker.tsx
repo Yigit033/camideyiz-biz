@@ -177,7 +177,7 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
       {offline?<View style={[styles.hint,{backgroundColor:colors.soft}]}>
         <Feather name="wifi-off" size={15} color={colors.gold}/>
         <Text style={{flex:1,color:colors.muted,fontSize:11,lineHeight:17}}>
-          Kaydedilmiş il/ilçe listesini gösteriyoruz. Saatler ayrıca doğrulanacaktır.
+          İnternet yok; kayıtlı il ve ilçe listesi gösteriliyor.
         </Text>
       </View>:null}
       {province?<Text style={{fontSize:11,color:colors.muted,paddingHorizontal:19,marginBottom:8}}>

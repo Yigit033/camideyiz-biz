@@ -1,18 +1,18 @@
-import {Alert,Linking,Pressable,StyleSheet,Switch,Text,View} from 'react-native';
+import {Pressable,StyleSheet,Switch,Text,View} from 'react-native';
 import {router} from 'expo-router';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import {Page,Panel} from '@/components/Page';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {useKerahatSettings} from '@/features/prayer/KerahatSettingsProvider';
 import {
-  DEFAULT_KERAHAT_SETTINGS,KERAHAT_RANGES,KERAHAT_SOURCE_URL,type KerahatSettings,
+  DEFAULT_KERAHAT_SETTINGS,KERAHAT_RANGES,type KerahatSettings,
 } from '@camideyiz/core';
 
 type SettingKey='sunriseMinutes'|'preNoonMinutes'|'preSunsetMinutes';
 const ROWS:{key:SettingKey;title:string;note:string;icon:'sunrise'|'sun'|'sunset'}[]=[
-  {key:'sunriseMinutes',title:'Güneş doğuşu sonrası',note:'İç halkada gösterilen yaklaşık süre',icon:'sunrise'},
-  {key:'preNoonMinutes',title:'Zeval · öğle öncesi',note:'Öğle öncesindeki yaklaşık süre',icon:'sun'},
-  {key:'preSunsetMinutes',title:'Güneş batışı öncesi',note:'Akşam öncesindeki yaklaşık süre',icon:'sunset'},
+  {key:'sunriseMinutes',title:'Güneş doğuşu sonrası',note:'Güneş doğduktan sonra',icon:'sunrise'},
+  {key:'preNoonMinutes',title:'Zeval · öğle öncesi',note:'Öğle vaktinden önce',icon:'sun'},
+  {key:'preSunsetMinutes',title:'Güneş batışı öncesi',note:'Akşam vaktinden önce',icon:'sunset'},
 ];
 
 export default function KerahatSettingsScreen(){
@@ -29,11 +29,8 @@ export default function KerahatSettingsScreen(){
     const value=Math.max(min,Math.min(max,settings[key]+delta));
     update({...settings,mode:'custom',[key]:value} as KerahatSettings);
   };
-  const openSource=()=>void Linking.openURL(KERAHAT_SOURCE_URL)
-    .catch(()=>Alert.alert('Bağlantı açılamadı','İnternet bağlantını kontrol et.'));
-
   return <Page title="Kerahet Vakitleri"
-    subtitle="İç halka görünümünü ve yaklaşık aralıkları yönet. Namaz vakitleri değişmez.">
+    subtitle="Çemberdeki kerahet halkasını ve sürelerini ayarla.">
     <Pressable onPress={()=>router.back()} accessibilityRole="button"
       accessibilityLabel="Ayarlar sayfasına dön"
       style={{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:7,paddingVertical:4}}>
@@ -61,13 +58,7 @@ export default function KerahatSettingsScreen(){
     </Panel>
     {enabled?<Panel>
       <Text style={{fontSize:17,fontWeight:'700',fontFamily:'serif',color:colors.text}}>
-        Görsel aralık süreleri
-      </Text>
-      <Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
-        Türkiye için uygulama başlangıç profili: 45 / 30 / 45 dk. Bu değerler
-        kişiselleştirilebilir görsel uyarı süreleridir; resmî dinî hüküm veya
-        Diyanet tarafından yayımlanan sabit kerahet süresi değildir.
-        Namaz vakitleri değiştirilmez.
+        Kerahet süreleri
       </Text>
       <Pressable accessibilityRole="button"
         accessibilityLabel="Kerahet uyarı sürelerini 45, 30 ve 45 dakikaya döndür"
@@ -119,29 +110,6 @@ export default function KerahatSettingsScreen(){
         </View>;
       })}
     </Panel>:null}
-    <Panel>
-      <View style={{flexDirection:'row',gap:10,alignItems:'flex-start'}}>
-        <Feather name="shield" size={19} color={colors.gold}/>
-        <View style={{flex:1,gap:9}}>
-          <Text style={{fontSize:14,fontWeight:'700',color:colors.text}}>
-            Kaynak ve dinî doğruluk
-          </Text>
-          <Text style={{fontSize:11.5,color:colors.muted,lineHeight:19}}>
-            Kerahet aralıkları güneş konumunun kesin ölçümü değildir; yayımlanmış
-            namaz saatlerinden türetilmiş, kişiselleştirilebilir yaklaşık
-            görselleştirmelerdir. Farz ve nafile namazlarla ilgili hükümler aynı
-            olmayabilir; mezhep farklılıklarını dikkate al.
-          </Text>
-        </View>
-      </View>
-      <Pressable onPress={openSource} accessibilityRole="link"
-        style={[styles.sourceLink,{borderColor:colors.border}]}>
-        <Feather name="external-link" size={16} color={colors.emerald}/>
-        <Text style={{fontSize:12,color:colors.emerald,fontWeight:'800'}}>
-          Diyanet açıklamasını aç
-        </Text>
-      </Pressable>
-    </Panel>
   </Page>;
 }
 const styles=StyleSheet.create({
@@ -156,6 +124,4 @@ const styles=StyleSheet.create({
   adjust:{alignItems:'center',gap:4},
   adjustButton:{height:27,width:30,alignItems:'center',justifyContent:'center',
     borderWidth:1,borderRadius:9},
-  sourceLink:{height:42,borderWidth:1,borderRadius:13,flexDirection:'row',
-    gap:8,alignItems:'center',justifyContent:'center'},
 });

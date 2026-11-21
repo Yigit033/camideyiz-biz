@@ -156,7 +156,7 @@ export default function MosquesScreen(){
         <View style={[styles.tip,{borderTopColor:colors.border}]}>
           <Feather name="info" size={14} color={colors.gold}/>
           <Text style={{fontSize:11,lineHeight:18,color:colors.muted,flex:1}}>
-            Bölge boş bırakılırsa Google Haritalar, cihazının konumuna göre yakın sonuçlar göstermeye çalışır.
+            Bölge yazmazsan yakınındaki camiler gösterilir.
           </Text>
         </View>
       </View>
@@ -171,13 +171,6 @@ export default function MosquesScreen(){
           description="Google Haritalar'daki mevcut fotoğraflar, yorumlar ve adresler."/>
         <InfoRow icon="navigation" title="Yol tarifi"
           description="Yaya, araç veya toplu taşıma seçenekleri Google Haritalar'da."/>
-      </View>
-      <View style={styles.disclaimer}>
-        <Feather name="shield" size={14} color={colors.gold}/>
-        <Text style={{flex:1,color:colors.muted,fontSize:10,lineHeight:17}}>
-          Camideyiz Biz cami verilerini toplamaz veya konumunu bu sayfada kendi sunucusuna göndermez.
-          Haritalar açıldıktan sonraki arama ve konum işlemlerini Google yönetir.
-        </Text>
       </View>
     </ScrollView>
   </SafeAreaView>;
@@ -211,5 +204,4 @@ const styles=StyleSheet.create({
   infoRow:{flexDirection:'row',alignItems:'center',gap:13},
   infoIcon:{height:43,width:43,borderRadius:14,borderWidth:1,
     alignItems:'center',justifyContent:'center'},
-  disclaimer:{flexDirection:'row',alignItems:'flex-start',gap:9,paddingHorizontal:4,paddingBottom:10},
 });

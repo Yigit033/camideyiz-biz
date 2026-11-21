@@ -394,15 +394,6 @@ export default function GalleryEditor(){
             </Pressable>)}
           </View>
         </View>
-
-        <View style={{flexDirection:'row',gap:9,alignItems:'flex-start'}}>
-          <Feather name="lock" size={15} color={colors.gold}/>
-          <Text style={{flex:1,fontSize:10.5,lineHeight:18,color:colors.muted}}>
-            Yazdığın mesaj yalnızca telefonunda taslak olarak saklanır.
-            Herhangi bir hesaba veya sunucuya gönderilmez. Paylaşılacak
-            görseli telefonunun sistem paylaşım ekranında sen seçersin.
-          </Text>
-        </View>
       </ScrollView>
 
       <View style={[styles.footer,{borderTopColor:colors.border,
@@ -428,10 +419,6 @@ export default function GalleryEditor(){
           </Text>
         </Pressable>
       </View>
-      <Text style={{fontSize:9.5,color:colors.muted,
-        backgroundColor:colors.surface,textAlign:'center',paddingBottom:5}}>
-        WhatsApp'ta kişi veya Durum hedefi, telefonun paylaşım menüsüne bağlıdır.
-      </Text>
     </KeyboardAvoidingView>
   </SafeAreaView>;
 }

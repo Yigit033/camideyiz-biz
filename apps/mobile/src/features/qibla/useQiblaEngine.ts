@@ -196,7 +196,7 @@ export function useQiblaEngine(){
         if(applyPosition(fresh,'fresh')){
           setMessage('Telefonu yere paralel tut ve yavaşça kendi etrafında dön.');
         }else if(hadFallback){
-          setMessage('GPS konumu doğrulanamadı; son bilinen konumla devam ediliyor.');
+          setMessage('Güncel konum alınamadı; son bilinen konum kullanılıyor.');
         }else{
           setMessage('Güncel konum yeterince güvenilir değil. Açık alanda tekrar dene.');
         }

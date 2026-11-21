@@ -218,8 +218,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     : phase.urgency==='approaching'?'#EAC178'
     : colors.emerald;
   const stateTitle=restriction
-    ? 'KERAHET · YAKLAŞIK ARALIK'
-    : approachingKerahat?'KERAHET ARALIĞI YAKLAŞIYOR'
+    ? 'KERAHET VAKTİ'
+    : approachingKerahat?'KERAHET VAKTİ YAKLAŞIYOR'
     : nafileOnly ? 'NAFİLE NAMAZ BİLGİSİ'
     : phase.urgency==='imminent' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ ÇOK YAKIN'
     : phase.urgency==='approaching' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ YAKLAŞIYOR'
@@ -227,12 +227,12 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
   const stateDescription=restriction
     ? restriction.description
     : approachingKerahat
-      ? 'Yaklaşık '+kerahatMinutes+' dakika sonra bir kerahet zaman aralığı başlayacak. Ayrıntılar için Kerahet Vakitleri bölümüne bak.'
+      ? kerahatMinutes+' dakika sonra kerahet vakti başlıyor.'
     : nafileOnly
     ? 'İmsak ile güneş arasında sabah namazının sünneti dışındaki nafile namazlarla ilgili kısıtlamalar vardır.'
     : phase.urgency!=='normal'
     ? phase.next.label+' vaktine '+remainingText+'. '
-    : phase.next.label+' vaktine '+remainingText+'. Çember canlı saati izliyor.';
+    : phase.next.label+' vaktine '+remainingText+'.';
   const selectedIndex=manualIndex??currentIndex;
   const selectedPrayer=SCHEDULE.times[selectedIndex];
   const compact=height<730;
@@ -291,11 +291,9 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
             style={{fontSize:10.2,color:restriction||approachingKerahat?accented:colors.muted,
               fontWeight:restriction||approachingKerahat?'800':'600',flexShrink:1}}>
             {restriction
-              ? 'KERAHET · '+restriction.title+' (yaklaşık)'
-              : approachingKerahat?'Kerahet aralığına yaklaşık '+kerahatMinutes+' dk'
+              ? 'KERAHET · '+restriction.title
+              : approachingKerahat?'Kerahete '+kerahatMinutes+' dk'
               : nafileOnly ? 'İmsak sonrası · Nafile namaz bilgisi'
-              : phase.urgency==='normal'
-              ? 'Çember canlı zamanla dönüyor'
               : phase.next.label+' vaktine '+remainingText}
           </Text>
         </View>
@@ -305,7 +303,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
             <Feather name="rotate-ccw" size={12} color={colors.emerald}/>
             <Text style={{fontSize:10,color:colors.muted}}>Otomatik canlıya döner</Text>
           </View>
-          :<Text style={{fontSize:10,color:colors.muted}}>Çember canlı zamanı izliyor</Text>}
+          :null}
       </View>
 
       <View style={[styles.chipsContainer,{
@@ -342,10 +340,10 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
       <Pressable accessibilityRole="button"
         accessibilityLabel="Güncel zaman durumu ve kerahet açıklamasını oku"
         onPress={()=>Alert.alert(
-          restriction?'Yaklaşık kerahet aralığı':phase.next.label+' vaktine kalan',
+          restriction?'Kerahet vakti':phase.next.label+' vaktine kalan',
           restriction
-            ? restriction.description+'\n\nBu aralıklar genel Diyanet açıklamasından türetilmiş yaklaşık değerlendirmelerdir. Farklı namaz türleri için hükümler ve istisnalar bulunmaktadır. Gerçek ibadet için kullanılmamalıdır.'
-            : 'Çember gerçek saatle birlikte sürekli döner. Sonraki vakte '+remainingText+' var. Saatler seçilen takvim kaynağından alınmıştır.',
+            ? restriction.description
+            : phase.next.label+' vaktine '+remainingText+' var.',
         )}
         style={[styles.kerahetNote,{
           borderColor:restriction ? (dark?'#B96364':'#D59A98') : colors.border,
@@ -407,7 +405,7 @@ function CalendarLoadingHome({official,now}:{
     ?'İnternet üzerinden ilçe takvimi kontrol ediliyor.'
     :official.status==='choose-location'
       ?'İl ve ilçeni seçerek vakitleri görüntüleyebilirsin.'
-      :'Takvim verisi henüz doğrulanamadı. Bağlantını kontrol edebilir veya tekrar deneyebilirsin.';
+      :'Vakitler alınamadı. İnternet bağlantını kontrol edip tekrar dene.';
   useEffect(()=>{
     const frame=requestAnimationFrame(()=>markStartup('loading-home-frame'));
     return ()=>cancelAnimationFrame(frame);

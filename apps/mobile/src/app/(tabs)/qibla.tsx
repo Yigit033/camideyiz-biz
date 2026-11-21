@@ -284,10 +284,6 @@ export default function QiblaScreen(){
         ?<Text style={{fontSize:10,color:colors.muted,textAlign:'center'}}>
           Konum hassasiyeti düşük (~{Math.round(locationAccuracy)} m). Açık alanda yeniden dene.
         </Text>:null}
-      <Text style={{fontSize:10,lineHeight:17,color:colors.muted,textAlign:'center',marginTop:3}}>
-        Kıble yönü konumundan Kâbe’ye büyük çember (en kısa yol) açısıyla hesaplanır.
-        Pusula manyetik alanlardan etkilenebilir; ±° değeri sensörün kendi hata tahminidir.
-      </Text>
     </ScrollView>
   </SafeAreaView>;
 }

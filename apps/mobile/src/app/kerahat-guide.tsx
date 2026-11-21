@@ -116,10 +116,7 @@ export default function KerahatGuideScreen(){
           <View style={[styles.unavailable,{borderColor:colors.border}]}>
             <Feather name="alert-triangle" size={26} color={colors.gold}/>
             <Text style={[styles.unavailableTitle,{color:colors.text}]}>
-              Orijinal görsel henüz eklenmedi
-            </Text>
-            <Text style={[styles.unavailableDetail,{color:colors.muted}]}>
-              Görselin geçici bir kopyası yerine orijinal dosyası gereklidir.
+              Görsel yüklenemedi
             </Text>
           </View>
         :zoomed?

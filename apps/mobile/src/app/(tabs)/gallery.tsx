@@ -111,7 +111,6 @@ export default function Gallery(){
           </Text>
           <Text style={{fontSize:11.5,lineHeight:18,color:colors.muted}}>
             Hazır mesajlar, farklı yazı tipleri, konum ve renk seçenekleri.
-            Görsel telefonunuzda oluşturulur.
           </Text>
         </View>
       </View>
@@ -159,14 +158,6 @@ export default function Gallery(){
         <Feather name="search" size={25} color={colors.gold}/>
         <Text style={{color:colors.muted,fontSize:12}}>Bu aramada tasarım bulunamadı.</Text>
       </View>}
-    </View>
-    <View style={{flexDirection:'row',gap:8,alignItems:'flex-start',marginTop:4}}>
-      <Feather name="shield" size={16} color={colors.gold}/>
-      <Text style={{flex:1,fontSize:10.5,color:colors.muted,lineHeight:18}}>
-        Ürün içinde gönderi paylaşma, sosyal akış veya mesajların sunucuya
-        yüklenmesi bulunmaz. Hazırlanan fotoğraf, telefonunuzun paylaşım menüsüyle
-        WhatsApp ve diğer uygun uygulamalara aktarılır.
-      </Text>
     </View>
   </Page>;
 }

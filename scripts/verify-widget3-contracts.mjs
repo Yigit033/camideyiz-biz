@@ -48,9 +48,14 @@ assert.match(sync,/repairPersistedAndroidWidget\(cityId\)/,
   'Android sync must use the guarded native recovery helper');
 assert.match(service,/recoverPrayerWidgets\(place\.id\)/,
   'temporary JS/network failure must not erase valid native calendar');
-assert.match(panel,/Takvimi eşitle ve çizdir/);
-assert.match(panel,/Raporu paylaş/);
-assert.match(panel,/Native kayıt ve güncelleme istekleri gerçek ana ekran piksellerinin doğrulanması değildir/);
+assert.match(panel,/'Takvimi eşitle'/);
+// Support report and technical rows stay reachable, hidden behind a long-press.
+assert.match(panel,/Destek raporunu paylaş/);
+assert.match(panel,/onLongPress=\{\(\)=>setOpened\(v=>!v\)\}/);
+// Plain language only: no internal/native jargon in the user-facing states.
+const states=panel.slice(panel.indexOf('function displayState'),panel.indexOf('export function Widget3Diagnostics'));
+const userCopy=(states.match(/'[^'\n]*'/g)??[]).join(' ');
+assert.doesNotMatch(userCopy,/[Nn]ative|APK|launcher|asenkron|doğrulanmış/);
 assert.match(screen,/<Widget3Diagnostics\/>/);
 for(const file of ['widget_next_prayer_info.xml','widget_prayer_day_info.xml',
   'widget_compact_prayer_info.xml','widget_prayer_focus_info.xml']){
@@ -92,6 +97,6 @@ assert.match(companion,/fetchAndPublishVerifiedWidgetCalendar\(place,selectedSou
   'refresh button must call the dedicated verified publisher fallback');
 assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!source\.place\)return/,
   'startup must wait for first paint and a real GPS district before native writes');
-assert.match(panel,/if\(!result\.updated\)setError\(result\.detail\)/,
+assert.match(panel,/if\(!result\.updated\)\{\s*setFailure\(result\.detail\);\s*setError\('Widget güncellenemedi/,
   'manual repair must not claim success before native publish');
 console.log('Widget 3.1: no blank cache writes, persistent diagnostics, verified offline horizon, native rollover, same-city recovery, 30m host fallback, diagnostic UX');

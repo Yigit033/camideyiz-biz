@@ -18,7 +18,9 @@ assert.match(screen,/FlatList/);
 assert.match(screen,/useCalendar30\(dateISO\)/);
 assert.match(screen,/Yayımlanmış veri bekleniyor/);
 assert.match(days,/religiousDaysFrom\(current\)/);
-assert.match(days,/Diyanet kaynağını aç/);
+// Copy policy (22.11.2026): no source/disclaimer links in the UI; the
+// Diyanet source URL stays in core data for audits only.
+assert.doesNotMatch(days,/Diyanet kaynağını aç|Kaynak: T\.C\./);
 assert.match(route,/<Stack\.Screen name="calendar30"/);
 assert.match(route,/<Stack\.Screen name="religious-days"/);
 assert.match(provider,/mergeCalendar30\(snapshots\)/);

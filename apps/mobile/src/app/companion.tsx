@@ -71,7 +71,7 @@ function WidgetShowcase({now}: {now:number}){
             {preview.status==='ready'?preview.nextTime:'—'}
           </Text>
           <Text style={{fontSize:10,color:'#BCDCCC'}}>
-            {preview.status==='ready'?'Vakte yaklaşık '+preview.remainingMinutes+' dakika':'Takvimi aç'}
+            {preview.status==='ready'?'Vakte '+preview.remainingMinutes+' dakika':'Takvimi aç'}
           </Text>
         </View>
         <Text style={{fontSize:9,color:'#8EB8A9'}}>Sıradaki Vakit · 2×2</Text>
@@ -100,14 +100,6 @@ function WidgetShowcase({now}: {now:number}){
         </Text>
       </View>
     </ScrollView>
-    <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
-      <Feather name="shield" size={16} color={colors.gold}/>
-      <Text style={{fontSize:11,lineHeight:18,color:colors.muted,flex:1}}>
-        Bunlar tasarım önizlemeleridir. Telefon ana ekranındaki gerçek widget
-        durumunu aşağıdaki Widget 3.0 tanılama kartından kontrol edebilir,
-        gerektiğinde oradan yeniden çizdirebilirsin.
-      </Text>
-    </View>
   </View>;
 }
 
@@ -147,7 +139,7 @@ export default function CompanionScreen(){
     if(choice!=='adhan'){companion.setSound(choice);return;}
     if(!nativeAdhanSupported){
       Alert.alert('Ezan sesi yalnızca Android sürümünde',
-        'Bu cihazda vakitte otomatik ezan desteklenmiyor. Ana sayfadan ezanı elle dinleyebilirsin.');
+        'Bu cihazda vakitte otomatik ezan desteklenmiyor.');
       return;
     }
     companion.setSound('adhan');
@@ -177,7 +169,7 @@ export default function CompanionScreen(){
           'Yaklaşık 10 saniye sonra ezan otomatik başlayacak; telefonu kilitleyerek dene. Durdurmak için bildirimdeki “Ezanı durdur”u kullan.');
       }catch{
         Alert.alert('Ezan testi yapılamadı',
-          'Kesin alarm iznini ve bu sürümün native ezan desteğini kontrol et.');
+          '“Alarmlar ve hatırlatıcılar” iznini kontrol edip tekrar dene.');
       }
       return;
     }
@@ -243,19 +235,13 @@ export default function CompanionScreen(){
             thumbColor={settings.enabled?'#F5D6A4':'#FFFFFF'}/>
         </View>
         <Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
-          İmsak, öğle, ikindi, akşam ve yatsı vakti başladığında bildirim
-          alabilir, ayrıca 5–60 dakika öncesini seçebilirsin. Güneş doğuşu
-          ezan vakti değildir. Başlangıçta izin ve bildirimler kapalıdır.
+          Vakit girdiğinde ya da 5–60 dakika önce hatırlatma al.
         </Text>
         <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
           <MaterialCommunityIcons name="mosque" size={21} color={colors.gold}/>
           <View style={{flex:1,gap:7}}>
             <Text style={{fontSize:13,fontWeight:'800',color:colors.text}}>
               Beş vakitte bildir
-            </Text>
-            <Text style={{fontSize:10.5,color:colors.muted,lineHeight:17}}>
-              Ezan vakitlerinin başlangıcında telefonun bildirimini planlar.
-              Ses türünü aşağıdan seçebilirsin: sistem uyarısı, sessiz veya Android'de tam ezan.
             </Text>
             <Pressable accessibilityRole="button"
               accessibilityState={{selected:allAtTime}}
@@ -357,10 +343,10 @@ export default function CompanionScreen(){
         </View>
         <Text style={{fontSize:10,color:colors.muted,lineHeight:17}}>
           {settings.sound==='adhan'
-            ?'Seçtiğin vakitlerde bildirim yerine ezan okunur; erken hatırlatmalar bildirim olarak kalır. Telefon sessiz veya titreşimdeyse, görüşme sürüyorsa ya da medya sesi kapalıysa ezan çalmaz ve yerine “vakti girdi” bildirimi gelir.'
+            ?'Seçtiğin vakitlerde bildirim yerine ezan okunur. Telefon sessizdeyse ezan yerine bildirim gelir.'
             :settings.sound==='silent'
-              ?'Bildirimler ses çıkarmadan gelir.'
-              :'Vakit girdiğinde telefonun bildirim sesiyle uyarılırsın.'}
+              ?'Bildirimler sessiz gelir.'
+              :'Bildirimler telefonun bildirim sesiyle gelir.'}
         </Text>
         {settings.sound==='adhan'&&nativeAdhanSupported?<View style={{gap:7}}>
           <Text style={{fontSize:11,color:colors.text,fontWeight:'800'}}>Ezan okunacak vakitler</Text>
@@ -385,8 +371,7 @@ export default function CompanionScreen(){
             })}
           </View>
           {!SABAH_EZANI_AVAILABLE?<Text style={{fontSize:10,color:colors.muted,lineHeight:16}}>
-            Sabah ezanı “es-salâtü hayrun mine’n-nevm” ifadesiyle diğerlerinden ayrılır.
-            Uygulamadaki kayıt öğle ezanı olduğu için imsakta ezan yerine bildirim gelir.
+            İmsakta ezan yerine bildirim gelir.
           </Text>:null}
         </View>:null}
         {Platform.OS==='android'&&!isExpoGoRuntime()?<View style={[styles.note,{
@@ -400,10 +385,10 @@ export default function CompanionScreen(){
             </Text>
             <Text style={{color:colors.muted,fontSize:10,lineHeight:16}}>
               {exactMissing
-                ?'Android “Alarmlar ve hatırlatıcılar” izni olmadan pil tasarrufu için bildirimleri erteleyebilir. Ezan için bu izin zorunludur.'
+                ?'Tam vaktinde gelmesi için “Alarmlar ve hatırlatıcılar” iznini aç.'
                 :settings.precise
-                  ?'Vakitler alarm saati önceliğiyle kurulur; pil tasarrufu modları dahil sistem erteleyemez. Bu yüzden durum çubuğunda alarm simgesi görünür.'
-                  :'Kesin alarm kullanılır. Bazı telefonlar (ör. ColorOS, MIUI) yine de birkaç dakika erteleyebilir.'}
+                  ?'Bildirimler tam dakikasında gelir; durum çubuğunda alarm simgesi görünür.'
+                  :'Bazı telefonlarda bildirimler birkaç dakika gecikebilir.'}
             </Text>
             {exactMissing?<Pressable accessibilityRole="button"
               onPress={()=>askExactAlarms(settings.sound==='adhan'?'adhan':'notifications')}
@@ -423,10 +408,6 @@ export default function CompanionScreen(){
             </View>}
           </View>
         </View>:null}
-        {Platform.OS==='ios'?<Text style={{fontSize:10,color:colors.muted,lineHeight:17}}>
-          iPhone, 30 saniyeden uzun özel bildirim seslerine izin vermediği için
-          otomatik tam ezan seçeneği sunulmuyor. Ezanı ana sayfadan dinleyebilirsin.
-        </Text>:null}
         <View style={{flexDirection:'row',gap:8}}>
           <Pressable disabled={!settings.enabled||companion.syncing}
             onPress={companion.refresh} accessibilityRole="button"
@@ -441,13 +422,6 @@ export default function CompanionScreen(){
             <Feather name="send" color={colors.gold} size={16}/>
             <Text style={{fontWeight:'800',fontSize:12,color:colors.text}}>{settings.sound==='adhan'?'Ezanı test et':'Test bildirimi'}</Text>
           </Pressable>
-        </View>
-        <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
-          <Feather name="shield" size={16} color={colors.gold}/>
-          <Text style={{fontSize:11,lineHeight:18,color:colors.muted,flex:1}}>
-            Bildirimler seçtiğin ilçenin namaz vakitlerine göre telefonunda planlanır.
-            Vakitlerin güncel kalması için uygulamayı ara sıra açabilirsin.
-          </Text>
         </View>
       </View>
       {(announcement.available||announcement.enabled||
@@ -470,9 +444,7 @@ export default function CompanionScreen(){
             thumbColor={announcement.enabled?'#F4D49C':'#FFFFFF'}/>
         </View>
         <Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
-          Camideyiz Biz ekibinin özel duyurularını ayrı bir izinle alabilirsin.
-          Bu seçenek namaz vakti bildirimlerinden bağımsızdır. Kişisel ilçe
-          tercihin, mesajların veya fotoğrafların duyuru sunucusuna gönderilmez.
+          Camideyiz Biz duyurularını al.
         </Text>
         <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
           <Feather name={announcement.status==='registered'?'check-circle':
@@ -480,15 +452,12 @@ export default function CompanionScreen(){
             size={18} color={colors.gold}/>
           <View style={{flex:1,gap:6}}>
             <Text style={{fontSize:12,fontWeight:'800',color:colors.text}}>
-              {announcement.status==='registered'?'Duyurular etkin':
-                announcement.status==='pending-disable'?'Sunucudan kayıt silme bekleniyor':
-                announcement.status==='not-configured'?'Duyuru altyapısı hazırlık aşamasında':
-                announcement.status==='error'?'Duyuru bağlantısında sorun var':
-                announcement.status==='syncing'?'Duyuru tercihi eşitleniyor':
+              {announcement.status==='registered'?'Duyurular açık':
+                announcement.status==='pending-disable'?'Duyurular kapatılıyor':
+                announcement.status==='not-configured'?'Duyurular yakında':
+                announcement.status==='error'?'Duyurulara bağlanılamadı, tekrar dene':
+                announcement.status==='syncing'?'Güncelleniyor…':
                 'Duyurular kapalı'}
-            </Text>
-            <Text style={{fontSize:10.5,lineHeight:18,color:colors.muted}}>
-              {announcement.detail}
             </Text>
           </View>
         </View>
@@ -500,7 +469,7 @@ export default function CompanionScreen(){
               backgroundColor:colors.soft,borderWidth:1,borderColor:colors.border}]}>
             <Feather name="refresh-cw" size={14} color={colors.gold}/>
             <Text style={{fontSize:11,fontWeight:'800',color:colors.text}}>
-              Duyuru kaydını eşitle
+              Yeniden dene
             </Text>
           </Pressable>:null}
       </View>:null}
@@ -514,10 +483,6 @@ export default function CompanionScreen(){
             <Text style={{color:'#BD756C',fontSize:12,fontWeight:'700'}}>Tümünü sil</Text>
           </Pressable>:null}
         </View>
-        <Text style={{fontSize:11,lineHeight:18,color:colors.muted}}>
-          Son hatırlatmaların burada görünür. Telefonun bildirim merkezinden
-          silinen bazı bildirimler listede yer almayabilir.
-        </Text>
         {companion.inbox.length?
           companion.inbox.slice(0,40).map(item=><View key={item.id} style={[styles.inboxRow,{
             borderColor:colors.border,backgroundColor:colors.soft}]}>

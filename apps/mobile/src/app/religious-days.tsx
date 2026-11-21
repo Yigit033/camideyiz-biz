@@ -1,5 +1,5 @@
 import {useMemo,useState} from 'react';
-import {FlatList,Linking,Pressable,Text,View} from 'react-native';
+import {FlatList,Pressable,Text,View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
@@ -76,16 +76,12 @@ export default function ReligiousDaysScreen(){
        </View>
        <Text style={{fontSize:11,color:colors.muted,lineHeight:17}}>
          Kandil geceleri, takvimde belirtilen günün akşamında idrak edilir.
-         Tarihler hesaplanmaz; Diyanet'in yayımlanmış yıllık listelerinden alınmıştır.
        </Text>
      </View>}
      ListEmptyComponent={<View style={{padding:22,alignItems:'center',gap:9}}>
        <Feather name="calendar" size={27} color={colors.gold}/>
        <Text style={{fontSize:13,color:colors.text,textAlign:'center'}}>
-         Bu filtrede doğrulanmış bir dini gün bulunmuyor.
-       </Text>
-       <Text style={{color:colors.muted,textAlign:'center',fontSize:11}}>
-         2028 ve sonraki yıllar için yıllık liste güncellendiğinde gösterilecek.
+         Bu filtrede dini gün bulunmuyor.
        </Text>
      </View>}
      renderItem={({item})=>{
@@ -123,23 +119,9 @@ export default function ReligiousDaysScreen(){
          {active?<View style={{gap:10,borderTopColor:colors.border,borderTopWidth:1,paddingTop:12}}>
            <Text style={{fontSize:12,color:colors.text,lineHeight:19}}>{item.note}</Text>
            <Text style={{fontSize:11,color:colors.muted}}>{item.hijri}</Text>
-           <Pressable accessibilityRole="link"
-             accessibilityLabel="Diyanet resmî dini günler listesinde doğrula"
-             onPress={()=>void Linking.openURL(item.sourceURL)}
-             style={{flexDirection:'row',gap:6,alignItems:'center',paddingVertical:5}}>
-             <Feather name="external-link" size={15} color={colors.gold}/>
-             <Text style={{fontSize:11,fontWeight:'700',color:colors.gold}}>
-               Diyanet kaynağını aç
-             </Text>
-           </Pressable>
          </View>:null}
        </Pressable>;
      }}
-     ListFooterComponent={<Text style={{fontSize:10.5,color:colors.muted,
-       lineHeight:17,textAlign:'center',marginTop:8}}>
-       Kaynak: T.C. Diyanet İşleri Başkanlığı Vakit Hesaplama.
-       Yeni yıllar için yalnız doğrulanan tarihler eklenecektir.
-     </Text>}
    />
  </SafeAreaView>;
 }
