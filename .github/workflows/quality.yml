@@ -28,6 +28,8 @@ jobs:
         run: node scripts/verify-calendar-views.mjs
       - name: Verify Widget Engine 4.0 nonblocking native coordinator and native timing
         run: node scripts/verify-widget-engine4.mjs
+      - name: Verify Widget Engine 4.1 bounded rendering, unified brand and stale-work protection
+        run: node scripts/verify-widget-engine41.mjs
       - name: Test headless native health fast-path against stale, wrong-city and missing alarm snapshots
         run: node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
       - name: Verify Widget 3.0 offline/native recovery contracts
@@ -120,6 +122,9 @@ jobs:
           set -euo pipefail
           app=apps/mobile/android/app/src/main
           test -s "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          test -s "$app/java/biz/camideyiz/app/widget/WidgetRenderPipeline.java"
+          test -s "$app/res/drawable-nodpi/widget_brand_lockup.png"
+          cmp apps/mobile/assets/widget-brand-lockup.png "$app/res/drawable-nodpi/widget_brand_lockup.png"
           test -s "$app/java/biz/camideyiz/app/widget/WidgetBoundaryReceiver.java"
           test -s "$app/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
           test -s "$app/java/biz/camideyiz/app/widget/CamideyizWidgetPackage.java"

@@ -20,6 +20,7 @@ on:
       - apps/mobile/src/features/native/**
       - scripts/verify-widget-native-runtime.mjs
       - scripts/verify-widget-engine4.mjs
+      - scripts/verify-widget-engine41.mjs
       - scripts/verify-widget-headless-gate.mjs
       - packages/core/src/widgetCalendarCache*
       - scripts/verify-widget3-contracts.mjs
@@ -73,6 +74,7 @@ jobs:
           node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
           node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
           node scripts/verify-widget-engine4.mjs
+          node scripts/verify-widget-engine41.mjs
           node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
           node scripts/verify-adhan-playback-contracts.mjs
           node scripts/verify-brand-symbol.mjs
@@ -96,6 +98,9 @@ jobs:
           set -euo pipefail
           root="apps/mobile/android/app/src/main"
           test -s "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          test -s "$root/java/biz/camideyiz/app/widget/WidgetRenderPipeline.java"
+          test -s "$root/res/drawable-nodpi/widget_brand_lockup.png"
+          cmp apps/mobile/assets/widget-brand-lockup.png "$root/res/drawable-nodpi/widget_brand_lockup.png"
           test -s "$root/java/biz/camideyiz/app/widget/WidgetBoundaryReceiver.java"
           test -s "$root/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
           test -s "$root/java/biz/camideyiz/app/widget/CamideyizWidgetPackage.java"
