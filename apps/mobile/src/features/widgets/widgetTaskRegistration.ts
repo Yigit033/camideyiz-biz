@@ -19,6 +19,13 @@ if(hasAndroidNativeWidgetBridge()){
       // Native alarm/RemoteViews continues functioning without JS.
       if(AppState.currentState==='active')
         return BackgroundTask.BackgroundTaskResult.Success;
+      // Native alarm and launcher countdown already own the current prayer.
+      // Avoid loading the large JS calendar engine for a healthy 2h window.
+      const {canSkipWidgetHeadlessRefresh}=await import('./widgetHeadlessHealthGate');
+      if(await canSkipWidgetHeadlessRefresh())
+        return BackgroundTask.BackgroundTaskResult.Success;
+      if(AppState.currentState==='active')
+        return BackgroundTask.BackgroundTaskResult.Success;
       const {runWidgetBackgroundRefresh}=await import('./widgetBackground');
       const ok=await runWidgetBackgroundRefresh();
       return ok
