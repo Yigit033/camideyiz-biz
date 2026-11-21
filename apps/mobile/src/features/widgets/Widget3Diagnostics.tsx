@@ -163,7 +163,7 @@ export function Widget3Diagnostics(){
   const share=async()=>{
     try{
       await Share.share({message:
-        'Camideyiz Biz · Widget Engine 4.1 tanılama\n'+
+        'Camideyiz Biz · Widget Engine 4.2 tanılama\n'+
         JSON.stringify({
           time:new Date().toISOString(),
           selectedDistrictId:cityId,
@@ -186,7 +186,7 @@ export function Widget3Diagnostics(){
       </View>
       <View style={{flex:1,gap:5}}>
         <Text style={{fontFamily:'serif',fontSize:16,fontWeight:'700',color:colors.text}}>
-          Widget Engine 4.1 · Sistem Tanısı
+          Widget Engine 4.2 · Sistem Tanısı
         </Text>
         <Text style={{fontSize:12,color:colors.text,fontWeight:'800'}}>
           {description.title}

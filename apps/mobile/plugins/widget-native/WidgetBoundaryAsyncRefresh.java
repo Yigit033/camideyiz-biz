@@ -179,7 +179,7 @@ public final class WidgetBoundaryAsyncRefresh {
   /** Read-only, process-local native performance diagnostics; no PII or IO. */
   public static void appendMetrics(JSONObject output)throws JSONException{
     output.put("engineVersion",4);
-    output.put("engineRevision","4.1");
+    output.put("engineRevision","4.2");
     output.put("nativeQueueWaitMs",lastQueueWaitMs);
     output.put("nativeBridgeQueueWaitMs",lastBridgeQueueWaitMs);
     output.put("nativeBatchMs",lastBatchMs);
