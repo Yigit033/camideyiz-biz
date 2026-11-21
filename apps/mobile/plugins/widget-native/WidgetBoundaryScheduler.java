@@ -182,6 +182,11 @@ public final class WidgetBoundaryScheduler {
       if(raw!=null)calendarCity=new JSONObject(raw).optInt("cityId",0);
     }catch(JSONException ignored){}
     if(existing!=cityId || (calendarCity!=0&&calendarCity!=cityId)){
+      // Invalidate the old district's in-flight bitmap before persisting the
+      // new district. Even a zero-widget selection must reject stale dispatch.
+      latestGeneration++;
+      renderPending=false;
+      pendingSignature="";
       SharedPreferences.Editor editor=local.edit().putInt("activeCityId",cityId)
           .putString("lastTransferStage","awaiting-published-data")
           .putString("lastTransferDetail","İlçe seçildi; doğrulanmış takvim bekleniyor.")
@@ -309,6 +314,13 @@ public final class WidgetBoundaryScheduler {
       selection.put("nativeAppliedAt",now);
       WidgetInventory inventory=inspectWidgetInventory(app,selection);
       installed=inventory.count;
+      if(renderPending&&!inventory.signature.equals(pendingSignature)){
+        // A calendar/district/installed-host change invalidates all queued
+        // rasterized frames, including when zero widgets remain installed.
+        latestGeneration++;
+        renderPending=false;
+        pendingSignature="";
+      }
       String[] keys=familyKeys(app,selection,inventory.ids);
       boolean[] dirty=new boolean[NAMES.length];
       boolean any=false;
