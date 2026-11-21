@@ -22,7 +22,10 @@ assert.match(worker,/synchronized\(GATE\)/);
 assert.match(worker,/WORKER\.schedule\(\(\)->performBatch\(app\),DEBOUNCE_MS,TimeUnit\.MILLISECONDS\)/);
 assert.match(worker,/mergedEvents\.incrementAndGet\(\)/);
 assert.match(worker,/PENDING\.add\(pending\)/);
-assert.match(worker,/finally\{[\s\S]*?for\(BroadcastReceiver\.PendingResult item:pending\)safeFinish\(item\)/);
+assert.match(worker,/WidgetBoundaryScheduler\.refresh\(app,reason,finish\)/);
+assert.match(worker,/AtomicBoolean finished=new AtomicBoolean\(false\)/);
+assert.match(worker,/for\(BroadcastReceiver\.PendingResult item:pending\)safeFinish\(item\)/,
+  'every goAsync PendingResult completes after pipeline callback');
 assert.match(worker,/for\(BroadcastReceiver\.PendingResult item:PENDING\)safeFinish\(item\)/);
 assert.match(worker,/pending\.finish\(\)/);
 assert.match(bridge,/WidgetBoundaryAsyncRefresh\.executeBridge\(\(\)->/);
