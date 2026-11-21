@@ -26,6 +26,13 @@ export type AndroidWidgetNativeStatus={
   lastAttemptAt:number;lastRefreshReason:string;lastHostDispatchAt:number;
   lastInstanceCount:number;calendarSourceAt:number;calendarEndsAt:number;
   sourceAgeHours:number;osRecoveryMinutes:number;
+  engineVersion?:number;
+  nativeQueueWaitMs?:number;nativeBridgeQueueWaitMs?:number;
+  nativeBatchMs?:number;nativeMaxBatchMs?:number;
+  nativeLastBatchSize?:number;nativeCoalescedEvents?:number;
+  nativeRefreshBatches?:number;nativeBridgeCalls?:number;
+  nativeRefreshMs?:number;nativeCommitMs?:number;nativeRenderMs?:number;
+  nativeAlarmMs?:number;nativeSkippedRenders?:number;nativeRenderedBatches?:number;
 };
 
 const bridge=():NativeBridge|null=>{

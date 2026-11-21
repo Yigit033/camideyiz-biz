@@ -9,6 +9,7 @@ import {getMirrorPrayerTriplet,getPrayerTriplet,
   type PrayerPlaceSelection} from '../prayer/prayerApi';
 import {configuredPrayerApi} from '../prayer/prayerApi';
 import {hasAndroidNativeWidgetBridge} from '../native/nativeRuntime';
+import {getAndroidWidgetStatus} from './widgetNativeDiagnostics.android';
 import {prepareWidgetDistrict,recordWidgetTransferIssue,
   recoverPrayerWidgets,syncPrayerWidgets} from './widgetSync';
 import {
@@ -262,14 +263,31 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
   const now=Date.now();
   const place=parsePlace(await AsyncStorage.getItem(ACTIVE_PLACE_KEY));
   if(!place){await report('waiting-data','İlçe henüz seçilmedi',null,false);return true;}
-  // Paint the currently verified native snapshot FIRST, before a network
-  // request can time out or WorkManager's short execution budget expires.
-  const recoveredAtStart=await recoverPrayerWidgets(place.id);
+  // Prefer a cheap native health check. WorkManager can run frequently but
+  // an already-valid native AlarmManager/Chronometer must not be redrawn
+  // or refetched every time a periodic task wakes the process.
   let cached=await readCache(now,place.id);
+  const ready=cached&&buildPrayerWidgetSnapshot(cached.days,now).status==='ready';
+  const native=await getAndroidWidgetStatus().catch(()=>null);
+  const nativeHealthy=Boolean(native?.persisted&&native?.lastReady&&
+    native.hasTimeline&&!native.lastError&&!native.lastTransferError&&
+    native.nativeCityId===place.id&&native.activeCityId===place.id&&
+    native.calendarEndsAt>now+24*60*60_000);
+  const needsNetwork=!ready||
+    now-(cached?.fetchedAt??0)>=WIDGET_NETWORK_REFRESH_MS;
+  if(nativeHealthy&&!needsNetwork){
+    // A valid native schedule progresses independently of React. Do not
+    // enqueue an expensive "manual repair" or duplicate full publication.
+    await report('updated','Native takvim güncel; gereksiz WorkManager yenilemesi atlandı.',
+      null,true);
+    return true;
+  }
+  const recoveredAtStart=!nativeHealthy&&native?.hasTimeline&&
+    native.nativeCityId===place.id
+    ?await recoverPrayerWidgets(place.id):null;
   let networkAt:null|number=null;
   let fetchError='';
-  const ready=cached&&buildPrayerWidgetSnapshot(cached.days,now).status==='ready';
-  if(!ready||now-(cached?.fetchedAt??0)>=WIDGET_NETWORK_REFRESH_MS){
+  if(needsNetwork){
     try{
       const today=zonedClock(new Date(now),'Europe/Istanbul').dateISO;
       const result=place.source==='idamedya-diyanet-republished'
@@ -301,7 +319,14 @@ export async function runWidgetBackgroundRefresh():Promise<boolean>{
   const recovered=selected.length===0?await recoverPrayerWidgets(place.id):null;
   let result:import('./widgetSyncShared').WidgetSyncResult;
   if(selected.length){
-    result=await syncPrayerWidgets(selected,Date.now(),place.id,usable?.fetchedAt??Date.now());
+    if(nativeHealthy&&!networkAt){
+      // Published data did not change; OS alarm and launcher ticker own the
+      // ongoing state. Avoid a needless native full publish.
+      result={available:true,updated:true,detail:
+        'Native takvim zaten sağlıklı; tekrar yayın atlanmıştır.'};
+    }else{
+      result=await syncPrayerWidgets(selected,Date.now(),place.id,usable?.fetchedAt??Date.now());
+    }
   }else{
     const reason=fetchError
       ?'Yayımlanmış takvim alınamadı: '+fetchError

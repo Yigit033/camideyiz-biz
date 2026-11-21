@@ -23,6 +23,13 @@ type NativeWidgetHealth={
   lastSyncAt:number;nextAlarmAt:number;
   calendarSourceAt:number;calendarEndsAt:number;sourceAgeHours:number;
   osRecoveryMinutes:number;
+  engineVersion?:number;
+  nativeQueueWaitMs?:number;nativeBridgeQueueWaitMs?:number;
+  nativeBatchMs?:number;nativeMaxBatchMs?:number;
+  nativeLastBatchSize?:number;nativeCoalescedEvents?:number;
+  nativeRefreshBatches?:number;nativeBridgeCalls?:number;
+  nativeRefreshMs?:number;nativeCommitMs?:number;nativeRenderMs?:number;
+  nativeAlarmMs?:number;nativeSkippedRenders?:number;nativeRenderedBatches?:number;
 };
 type WidgetBridge={
   getStatus:()=>Promise<string>;
@@ -134,13 +141,8 @@ export function Widget3Diagnostics(){
     setError(null);
     try{
       const result=await companion.refreshWidgets();
-      if(result.updated){
-        const native=bridge();
-        if(native?.refreshNow){
-          // Repaint only AFTER a confirmed, verified data transfer.
-          setHealth(readHealth(await native.refreshNow()));
-        }
-      }
+      // The verified foreground publisher already sends native RemoteViews.
+      // A second forced refresh here was repainting all eight types again.
       await query();
       if(!result.updated)setError(result.detail);
     }catch(e){
@@ -151,7 +153,7 @@ export function Widget3Diagnostics(){
   const share=async()=>{
     try{
       await Share.share({message:
-        'Camideyiz Biz · Widget 3.0 tanılama\n'+
+        'Camideyiz Biz · Widget Engine 4.0 tanılama\n'+
         JSON.stringify({
           time:new Date().toISOString(),
           selectedDistrictId:cityId,
@@ -174,7 +176,7 @@ export function Widget3Diagnostics(){
       </View>
       <View style={{flex:1,gap:5}}>
         <Text style={{fontFamily:'serif',fontSize:16,fontWeight:'700',color:colors.text}}>
-          Widget 3.0 · Sistem Tanısı
+          Widget Engine 4.0 · Sistem Tanısı
         </Text>
         <Text style={{fontSize:12,color:colors.text,fontWeight:'800'}}>
           {description.title}
@@ -221,6 +223,18 @@ export function Widget3Diagnostics(){
         ['Son native çizim isteği',clock(health?.lastHostDispatchAt??0)],
         ['Son kontrol',clock(health?.lastAttemptAt??0)],
         ['Son tetikleyici',health?.lastRefreshReason||'—'],
+        ['Native motor sürümü',String(health?.engineVersion??'Eski APK')],
+        ['Native son işlem / kayıt / çizim (ms)',[
+          health?.nativeRefreshMs??'—',health?.nativeCommitMs??'—',
+          health?.nativeRenderMs??'—'].join(' / ')],
+        ['Native alarm yenilemesi (ms)',String(health?.nativeAlarmMs??'—')],
+        ['Broadcast kuyrukta bekleme (ms)',String(health?.nativeQueueWaitMs??'—')],
+        ['React Native köprü kuyruğu (ms)',String(health?.nativeBridgeQueueWaitMs??'—')],
+        ['Native son batch / en yavaş batch (ms)',[
+          health?.nativeBatchMs??'—',health?.nativeMaxBatchMs??'—'].join(' / ')],
+        ['Birleştirilen Android olayları',String(health?.nativeCoalescedEvents??'—')],
+        ['Atlanan gereksiz çizimler',String(health?.nativeSkippedRenders??'—')],
+        ['Native çizim batch sayısı',String(health?.nativeRenderedBatches??'—')],
         ['Aktarım aşaması',health?.lastTransferStage||'Başlamadı'],
         ['Son aktarım denemesi',clock(health?.lastTransferAttemptAt??0)],
         ['Son aktarım açıklaması',health?.lastTransferDetail||'—'],
