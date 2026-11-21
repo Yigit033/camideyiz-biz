@@ -62,6 +62,9 @@ public final class WidgetBoundaryScheduler {
   private static volatile long lastAlarmMs=0;
   private static volatile long skippedUnchangedRenders=0;
   private static volatile long renderedBatches=0;
+  // AlarmManager state is not durable across force-stop or device reboot.
+  // First widget engine operation in each process must explicitly rearm it.
+  private static boolean alarmRearmRequiredThisProcess=true;
 
   private WidgetBoundaryScheduler() {}
 
@@ -348,7 +351,7 @@ public final class WidgetBoundaryScheduler {
 
   private static boolean forceFullRender(String reason){
     return forceAlarmRearm(reason)||reason.startsWith("manual:")||
-        reason.startsWith("theme:");
+        reason.startsWith("theme:")||reason.startsWith("launcher:update:");
   }
 
   private static final class WidgetInventory{
@@ -703,9 +706,11 @@ public final class WidgetBoundaryScheduler {
       if(manager==null)throw new IllegalStateException("AlarmManager absent");
       // Keep the existing inexact alarm if its boundary is already correct.
       // Forced rearm is required after reboot, time change or app replacement.
-      if(!force&&local.getLong("nextAlarmAt",-1)==next)return;
+      if(!force&&!alarmRearmRequiredThisProcess&&
+          local.getLong("nextAlarmAt",-1)==next)return;
       PendingIntent intent=alarmIntent(context);
       manager.cancel(intent);
+      alarmRearmRequiredThisProcess=false;
       if(next<=now){
         local.edit().putLong("nextAlarmAt",0).apply();
         return;
