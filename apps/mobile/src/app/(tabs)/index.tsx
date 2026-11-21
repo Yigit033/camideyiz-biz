@@ -252,7 +252,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         onEnableAutoLocation={official.enableAutoLocation}/>
       <DateDivider now={now} timezone={SCHEDULE.timezone} hijriDate={official.days?.today.hijriDate??null}/>
       <View style={styles.wheelStage}>
-        <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
+        <View style={[styles.halo,{backgroundColor:dark?'rgba(32,182,235,.08)':'rgba(203,168,100,.12)'}]}/>
         <PrayerWheel
           times={SCHEDULE.times} selectedIndex={selectedIndex}
           onSelect={handleWheelSelection}
@@ -349,7 +349,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           borderColor:restriction ? (dark?'#B96364':'#D59A98') : colors.border,
           backgroundColor:restriction
             ? (dark?'rgba(165,56,61,.22)':'#FCF0ED')
-            : (dark?'rgba(13,59,54,.72)':'rgba(255,255,255,.67)'),
+            : (dark?'rgba(16,43,64,.86)':'rgba(255,255,255,.67)'),
           borderWidth:1,borderRadius:14,padding:10,
         }]}>
         <View style={{height:31,width:31,borderRadius:11,alignItems:'center',justifyContent:'center',
@@ -446,7 +446,7 @@ function CalendarLoadingHome({official,now}:{
         </Pressable>:null}
       </View>
       <View style={styles.wheelStage}>
-        <View style={[styles.halo,{backgroundColor:dark?'rgba(2,75,70,.18)':'rgba(203,168,100,.12)'}]}/>
+        <View style={[styles.halo,{backgroundColor:dark?'rgba(32,182,235,.08)':'rgba(203,168,100,.12)'}]}/>
         <PrayerWheel preview times={NO_DATA_TIMES}
           selectedIndex={selectedIndex}
           onSelect={setSelectedIndex} focusRequest={focusRequest}
@@ -544,7 +544,7 @@ const styles=StyleSheet.create({
   tickTrack:{position:'absolute',left:'8%',right:'8%',top:4,height:1,zIndex:-1},
   dailyRow:{flexDirection:'row',gap:8,height:136,marginHorizontal:2,marginTop:6},
   dailyAyet:{flex:1.28,borderRadius:20,borderWidth:1,overflow:'hidden',padding:12,justifyContent:'space-between',
-    shadowColor:'#4A6C59',shadowOpacity:.18,shadowRadius:9,elevation:3},
+    shadowColor:'#0A2236',shadowOpacity:.18,shadowRadius:9,elevation:3},
   dailyHadis:{flex:1,borderRadius:20,borderWidth:1,overflow:'hidden',padding:12,justifyContent:'space-between',
     shadowColor:'#5E4932',shadowOpacity:.08,shadowRadius:5,elevation:2},
   dailyHeading:{fontFamily:'serif',fontSize:15,fontWeight:'700'},

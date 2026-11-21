@@ -16,12 +16,12 @@ type Props={
 const NextPrayerWidget=(props:Props)=>{
   'widget';
   return <Column verticalArrangement={{spacedBy:7}}
-    modifiers={[fillMaxSize(),background('#073930'),cornerRadius(21),paddingAll(15)]}>
+    modifiers={[fillMaxSize(),background('#0C2438'),cornerRadius(21),paddingAll(15)]}>
     <Text color="#EACB87" maxLines={1}
       style={{fontSize:15,fontWeight:'bold',fontFamily:'serif'}}>
       ☪  Camideyiz Biz
     </Text>
-    <Text color="#A6D6C1" maxLines={1}
+    <Text color="#AFC5D4" maxLines={1}
       style={{fontSize:12,fontWeight:'normal'}}>
       {props.ready?props.city:'Takvim yüklenmedi'}
     </Text>
@@ -41,11 +41,11 @@ const NextPrayerWidget=(props:Props)=>{
           style={{fontSize:21,fontWeight:'bold',fontFamily:'serif'}}>
           Vakitleri yükle
         </Text>
-        <Text color="#B6D8C9" maxLines={2} style={{fontSize:11}}>
+        <Text color="#B2C6D6" maxLines={2} style={{fontSize:11}}>
           Uygulamayı açıp takvimi eşitle
         </Text>
       </Column>}
-    {props.ready?<Text color="#9FC6B6" maxLines={1} style={{fontSize:10}}>
+    {props.ready?<Text color="#AFC5D4" maxLines={1} style={{fontSize:10}}>
       Son yenileme · {props.updatedClock}
     </Text>:null}
   </Column>;

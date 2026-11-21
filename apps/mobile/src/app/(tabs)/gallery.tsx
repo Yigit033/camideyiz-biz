@@ -51,8 +51,8 @@ function GalleryTile({item,width}:{
         <MaterialCommunityIcons name="image-filter-hdr" color={item.accent} size={43}/>
         <View style={{height:1,width:42,backgroundColor:item.accent,opacity:.7}}/>
         <Text style={{fontSize:9,fontWeight:'800',letterSpacing:1.5,
-          color:'#C5D3C7'}}>GÖRSEL {String(item.index).padStart(2,'0')}</Text>
-        <Text style={{fontSize:9,color:'#A4BEB7'}}>Yakında eklenecek</Text>
+          color:colors.muted}}>GÖRSEL {String(item.index).padStart(2,'0')}</Text>
+        <Text style={{fontSize:9,color:colors.muted}}>Yakında eklenecek</Text>
       </View>}
     </View>
     <View style={{height:TILE_META_HEIGHT,paddingHorizontal:9,paddingVertical:8,

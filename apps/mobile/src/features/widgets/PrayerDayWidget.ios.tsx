@@ -1,6 +1,6 @@
 import {HStack,Image,Spacer,Text,VStack,ZStack} from '@expo/ui/swift-ui';
 import {clipShape,containerBackground,font,foregroundStyle,frame,lineLimit,
-  padding,widgetURL} from '@expo/ui/swift-ui/modifiers';
+  monospacedDigit,padding,widgetURL} from '@expo/ui/swift-ui/modifiers';
 import {createWidget,type WidgetEnvironment} from 'expo-widgets';
 
 type Props={
@@ -11,10 +11,11 @@ type Props={
 
 const PrayerDayWidget=(props:Props,env:WidgetEnvironment)=>{
   'widget';
-  const gold='#F2CC87',white='#FFF7E7',pale='#ABDCC9';
+  // Same midnight-blue / gold system as the Android RemoteViews widgets.
+  const gold='#F4D392',white='#F1F7F8',pale='#AFC5D4';
   const large=env.widgetFamily==='systemLarge';
   return <ZStack modifiers={[
-    containerBackground('#07372F','widget'),
+    containerBackground('#0C2438','widget'),
     clipShape('containerRelativeShape'),widgetURL('camideyizbiz:///'),
   ]}>
     <VStack alignment="leading" spacing={large?13:7}
@@ -52,15 +53,20 @@ const PrayerDayWidget=(props:Props,env:WidgetEnvironment)=>{
           </Text>
         </HStack>)}
       </VStack>:<Text modifiers={[font({size:12}),foregroundStyle(pale)]}>
-        Namaz vakitlerini görüntülemek için uygulamayı aç.
+        Vakitleri görmek için uygulamayı aç.
       </Text>}
       <Spacer/>
-      <HStack>
-        <Text modifiers={[font({size:10}),foregroundStyle(gold)]}>
-          {props.ready?'Sıradaki: '+props.nextName+' · '+props.nextTime:'Kaynak bağlantısını kontrol et'}
+      {props.ready?<HStack spacing={6}>
+        <Text modifiers={[font({size:11}),foregroundStyle(pale)]}>
+          {props.nextName+' vaktine kalan'}
         </Text>
         <Spacer/>
-      </HStack>
+        <Text
+          timerInterval={{lower:new Date(props.updatedAt),upper:new Date(props.nextAt)}}
+          countsDown
+          modifiers={[font({size:large?22:17,weight:'bold',design:'rounded'}),
+            monospacedDigit(),foregroundStyle(gold)]}/>
+      </HStack>:null}
     </VStack>
   </ZStack>;
 };

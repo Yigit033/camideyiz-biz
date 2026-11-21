@@ -60,20 +60,21 @@ export const AdhanExperience=memo(function AdhanExperience(){
           <MaterialCommunityIcons name="waveform" size={19} color="#ECD39C"/>
           <Text style={styles.playerTitle}>Ezanı Dinle</Text>
         </View>
-        <Text style={styles.playerSub}>Huzurlu bir dinleme anı</Text>
+        <Text style={[styles.playerSub,dark&&{color:INK_DARK.sub}]}>Huzurlu bir dinleme anı</Text>
         <View style={styles.playRow}>
           <Pressable accessibilityRole="button"
             accessibilityLabel={starting?'Ezan yüklenmesini iptal et':playing?'Ezanı duraklat':'Ezanı dinlemeye başla'}
             accessibilityHint="Çevrimdışı ezan kaydını oynatır veya duraklatır"
             onPress={()=>void toggle()}
             style={styles.playButton}>
-            <Feather name={starting?'loader':playing?'pause':'play'} size={24} color="#11382F"/>
+            <Feather name={starting?'loader':playing?'pause':'play'} size={24}
+              color={dark?'#0B2A44':'#11382F'}/>
           </Pressable>
           <View style={{flex:1,gap:5}}>
             <Text numberOfLines={1} style={{fontSize:13,fontWeight:'700',color:'#FFF7E8'}}>
               {starting?'Ezan hazırlanıyor…':playing?'Ezan okunuyor':duration&&position>=duration-.4?'Yeniden dinle':'Dinlemeye başla'}
             </Text>
-            <Text style={{fontSize:10,color:'#C8DBDA'}}>{starting?'Kaydedilmiş sese bağlanılıyor':loaded?'Arka planda ve kilit ekranında dinle':'Ses dosyası hazırlanıyor'}</Text>
+            <Text style={{fontSize:10,color:dark?INK_DARK.sub:'#C8DBDA'}}>{starting?'Kaydedilmiş sese bağlanılıyor':loaded?'Arka planda ve kilit ekranında dinle':'Ses dosyası hazırlanıyor'}</Text>
           </View>
         </View>
         <Pressable accessible accessibilityRole="adjustable"
@@ -91,7 +92,7 @@ export const AdhanExperience=memo(function AdhanExperience(){
           </View>
         </Pressable>
         <View style={styles.bottomRow}>
-          <Text style={styles.time}>{timeLabel(position)} / {duration?timeLabel(duration):'--:--'}</Text>
+          <Text style={[styles.time,dark&&{color:INK_DARK.time}]}>{timeLabel(position)} / {duration?timeLabel(duration):'--:--'}</Text>
           <View style={{flexDirection:'row',gap:10}}>
             <Pressable accessibilityRole="button" accessibilityLabel="10 saniye geri al"
               onPress={()=>void seek(position-10)} style={styles.miniControl}>
@@ -105,7 +106,7 @@ export const AdhanExperience=memo(function AdhanExperience(){
             </Pressable>
           </View>
         </View>
-        <Text style={{fontSize:10.5,color:'#D5E7D9',marginTop:4}}>
+        <Text style={{fontSize:10.5,color:dark?INK_DARK.caption:'#D5E7D9',marginTop:4}}>
           Seçilen ezan kaydı · 3:17 · Çevrimdışı
         </Text>
         {error?<Text accessibilityRole="alert" style={{color:'#FFD4CB',fontSize:10}}>
@@ -188,6 +189,9 @@ export const AdhanExperience=memo(function AdhanExperience(){
     </Modal>
   </View>;
 });
+/** Dark-theme inks on the midnight-blue player card (light theme keeps the
+ * original emerald card and its mint-grey inks). */
+const INK_DARK={sub:'#C3D6E4',time:'#DDE8F1',caption:'#CFE0EC'} as const;
 const styles=StyleSheet.create({
   section:{gap:10,width:'100%'},
   sectionHeading:{flexDirection:'row',alignItems:'center',gap:9,paddingHorizontal:2},

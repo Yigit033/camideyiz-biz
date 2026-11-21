@@ -16,12 +16,12 @@ type Props={
 const PrayerDayWidget=(props:Props)=>{
   'widget';
   return <Column verticalArrangement={{spacedBy:6}}
-    modifiers={[fillMaxSize(),background('#063930'),cornerRadius(21),paddingAll(15)]}>
+    modifiers={[fillMaxSize(),background('#0C2438'),cornerRadius(21),paddingAll(15)]}>
     <Text color="#EFCF8B" maxLines={1}
       style={{fontSize:15,fontWeight:'bold',fontFamily:'serif'}}>
       ☪  Camideyiz Biz
     </Text>
-    <Text color="#A6D6C1" maxLines={1} style={{fontSize:11}}>
+    <Text color="#AFC5D4" maxLines={1} style={{fontSize:11}}>
       {props.ready?props.city+'  ·  Bugünün vakitleri':'Takvim henüz yüklenmedi'}
     </Text>
     {props.ready
@@ -62,7 +62,7 @@ const PrayerDayWidget=(props:Props)=>{
           style={{fontSize:21,fontWeight:'bold',fontFamily:'serif'}}>
           Namaz vakitleri bekleniyor
         </Text>
-        <Text color="#B7DACC" maxLines={2} style={{fontSize:12}}>
+        <Text color="#B2C6D6" maxLines={2} style={{fontSize:12}}>
           Uygulamayı açıp ilçe takvimini güncelle
         </Text>
       </Column>}
@@ -75,7 +75,7 @@ const PrayerDayWidget=(props:Props)=>{
         Güncellemek için uygulamayı aç
       </Text>}
     {props.ready
-      ?<Text color="#9BBFB1" maxLines={1} style={{fontSize:10}}>
+      ?<Text color="#AFC5D4" maxLines={1} style={{fontSize:10}}>
         Widget yenilemesi · {props.updatedClock}
       </Text>:null}
   </Column>;

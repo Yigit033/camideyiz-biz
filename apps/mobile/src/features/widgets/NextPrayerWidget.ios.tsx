@@ -12,49 +12,37 @@ type Props={
 
 const NextPrayerWidget=(props:Props,env:WidgetEnvironment)=>{
   'widget';
-  const gold='#F2CE87',ivory='#FFF8E7',mint='#94CFB6';
+  // Same midnight-blue / gold system as the Android RemoteViews widgets.
+  const gold='#F4D392',ink='#F1F7F8',muted='#AFC5D4';
   const compact=env.widgetFamily==='systemSmall';
   return <ZStack modifiers={[
-    containerBackground('#07352E','widget'),
+    containerBackground('#0C2438','widget'),
     clipShape('containerRelativeShape'),widgetURL('camideyizbiz:///'),
   ]}>
-    <VStack alignment="leading" spacing={compact?3:10}
+    <VStack alignment="leading" spacing={compact?3:8}
       modifiers={[frame({maxWidth:Infinity,maxHeight:Infinity,alignment:'leading'}),
-        padding({all:compact?11:18})]}>
+        padding({all:compact?12:18})]}>
       <HStack spacing={6}>
-        <Image systemName="moon.stars.fill" size={15} color={gold}/>
-        <Text modifiers={[font({size:11,weight:'semibold',design:'serif'}),
-          foregroundStyle(gold),lineLimit(1)]}>Camideyiz Biz</Text>
+        <Image systemName="moon.stars.fill" size={14} color={gold}/>
+        <Text modifiers={[font({size:11,weight:'semibold'}),foregroundStyle(muted),lineLimit(1)]}>
+          {props.ready?props.city:'Camideyiz Biz'}
+        </Text>
         <Spacer/>
       </HStack>
-      <Text modifiers={[font({size:12,weight:'medium'}),foregroundStyle(mint),lineLimit(1)]}>
-        {props.ready?props.city:'Konum seç'}
-      </Text>
-      {props.ready?<VStack alignment="leading" spacing={compact?1:5}>
-        <Text modifiers={[font({size:12,weight:'medium'}),foregroundStyle(ivory)]}>
-          Sıradaki · {props.nextName}
+      {props.ready?<VStack alignment="leading" spacing={compact?2:4}>
+        <Text modifiers={[font({size:compact?13:15,weight:'semibold'}),foregroundStyle(ink),lineLimit(1)]}>
+          {props.nextName}  {props.nextTime}
         </Text>
-        <Text modifiers={[font({size:compact?27:36,weight:'bold',design:'rounded'}),
-          foregroundStyle(gold),monospacedDigit()]}>
-          {props.nextTime}
-        </Text>
-        {!compact?<Text modifiers={[font({size:10}),foregroundStyle(mint)]}>Vakte kalan</Text>:null}
+        <Text modifiers={[font({size:10,weight:'medium'}),foregroundStyle(muted)]}>KALAN</Text>
         <Text
           timerInterval={{lower:new Date(props.updatedAt),upper:new Date(props.nextAt)}}
           countsDown
-          modifiers={[font({size:compact?15:22,weight:'semibold',design:'rounded'}),
-            monospacedDigit(),foregroundStyle(ivory)]}/>
+          modifiers={[font({size:compact?28:40,weight:'bold',design:'rounded'}),
+            monospacedDigit(),foregroundStyle(gold),lineLimit(1)]}/>
       </VStack>:<VStack alignment="leading" spacing={6}>
-        <Text modifiers={[font({size:20,weight:'bold',design:'serif'}),
-          foregroundStyle(ivory)]}>Takvim hazır değil</Text>
-        <Text modifiers={[font({size:11}),foregroundStyle(mint)]}>
-          Güncel namaz vakitleri için uygulamayı aç
-        </Text>
+        <Text modifiers={[font({size:18,weight:'bold'}),foregroundStyle(ink)]}>Vakitler bekleniyor</Text>
+        <Text modifiers={[font({size:11}),foregroundStyle(muted)]}>Uygulamayı aç</Text>
       </VStack>}
-      {!compact?<Spacer/>:null}
-      {!compact?<Text modifiers={[font({size:9}),foregroundStyle('#BDD3CA'),lineLimit(1)]}>
-        {props.ready?'Türkiye takvimi · Uygulamayı aç':'Uygulamayı aç'}
-      </Text>:null}
     </VStack>
   </ZStack>;
 };

@@ -84,6 +84,7 @@ jobs:
           node scripts/verify-adhan-playback-contracts.mjs
           node scripts/verify-prayer-alerts.mjs
           node scripts/verify-qibla.mjs
+          node scripts/verify-dark-palette.mjs
           node scripts/verify-brand-symbol.mjs
           node scripts/verify-splash.mjs
           node scripts/verify-home-visual-contracts.mjs

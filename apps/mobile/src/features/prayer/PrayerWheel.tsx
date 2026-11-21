@@ -63,15 +63,15 @@ function arc(from: number, to: number, radius: number) {
     ' 1 ' + end.x.toFixed(3) + ' ' + end.y.toFixed(3);
 }
 /** One upright pictogram at the exact angular centre of its prayer period. */
-function SectorIcon({sector,size,rotation}:{
-  sector:PrayerArc;size:number;rotation:SharedValue<number>;
+function SectorIcon({sector,size,rotation,dark}:{
+  sector:PrayerArc;size:number;rotation:SharedValue<number>;dark:boolean;
 }){
   const layout=prayerSectorVisualLayout(sector.from,sector.to);
   const point=polar(layout.labelAngle,layout.labelRadius);
   const scale=size/DIAMETER;
   const width=layout.labelWidth*scale,height=layout.labelHeight*scale;
   const contrastInk=sector.key==='yatsi'?'#FFF6E6'
-    :sector.key==='aksam'?'#3A241B':'#16372E';
+    :sector.key==='aksam'?'#3A241B':dark?'#0B2A44':'#16372E';
   const unrotate=useAnimatedStyle(()=>({
     transform:[{rotateZ:-rotation.value+'deg'}],
   }));
@@ -323,8 +323,8 @@ export function PrayerWheel({
                 x1="12%" y1="5%" x2="92%" y2="98%">
                 <Stop offset="0%" stopColor={blendHex(PRAYER_COLORS[item.key],'#FFFFFF',colors.isDark?.29:.44)}/>
                 <Stop offset="28%" stopColor={PRAYER_COLORS[item.key]}/>
-                <Stop offset="72%" stopColor={blendHex(PRAYER_COLORS[item.key],'#061B1C',colors.isDark?.29:.12)}/>
-                <Stop offset="100%" stopColor={blendHex(PRAYER_COLORS[item.key],'#061B1C',colors.isDark?.48:.26)}/>
+                <Stop offset="72%" stopColor={blendHex(PRAYER_COLORS[item.key],colors.isDark?'#061A2C':'#061B1C',colors.isDark?.29:.12)}/>
+                <Stop offset="100%" stopColor={blendHex(PRAYER_COLORS[item.key],colors.isDark?'#061A2C':'#061B1C',colors.isDark?.48:.26)}/>
               </LinearGradient>)}
             </Defs>
             {warningTint?<Circle cx="180" cy="180" r="173"
@@ -432,7 +432,7 @@ export function PrayerWheel({
             </G>)}
           </Svg>
           {sectors.map(item=><SectorIcon key={'icon-'+item.key}
-             sector={item} size={size} rotation={rotation}/>)} 
+             sector={item} size={size} rotation={rotation} dark={colors.isDark}/>)} 
           {sectors.map(item=><SectorStartClock key={'clock-'+item.key}
             sector={item} size={size} rotation={rotation} preview={preview}/>)}
         </Animated.View>

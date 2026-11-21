@@ -196,6 +196,8 @@ try {
     }
     Invoke-Checked 'Verify Kıble fused compass and guidance contracts' {
       & node scripts/verify-qibla.mjs
+      if ($LASTEXITCODE -ne 0) { return }
+      & node scripts/verify-dark-palette.mjs
     }
     Invoke-Checked 'Verify on-time prayer alerts and ezan fallback contracts' {
       & node scripts/verify-prayer-alerts.mjs

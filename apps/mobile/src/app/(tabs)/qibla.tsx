@@ -62,6 +62,9 @@ export default function QiblaScreen(){
     return()=>{deactivateKeepAwake(KEEP_AWAKE_TAG).catch(()=>undefined);};
   },[]));
   const compassSize=Math.min(Math.max(255,width-42),352);
+  // Brand semantics: success is the logo cyan in dark mode, emerald in light.
+  const SUCCESS=dark?'#7FD8F7':'#2E8B5E';
+  const ON_GOLD=dark?'#0B2A44':'#16382B';
   const locationReady=bearing!==null&&positionUsable;
   const disturbed=interference==='interference';
   // A historical angle may remain visible, but it must never be actionable.
@@ -172,7 +175,7 @@ export default function QiblaScreen(){
       }]}>
         <Feather name={aligned?'check-circle':disturbed||tilt==='upright'?'alert-triangle'
           :locationReady?'compass':'map-pin'}
-          size={20} color={aligned?'#9CE6A9':disturbed?'#E8A16B':colors.gold}/>
+          size={20} color={aligned?SUCCESS:disturbed?'#E8A16B':colors.gold}/>
         <Text style={{color:colors.text,fontFamily:'serif',fontSize:17,
           fontWeight:'700'}}>{headingStatus}</Text>
       </View>
@@ -221,7 +224,7 @@ export default function QiblaScreen(){
             (errorDegrees!==null?'artı eksi '+errorDegrees+' derece':statusName(compassAccuracy))}
           style={[styles.sensorBadge,{borderColor:disturbed?'#E8A16B':colors.isDark?'#4696BB':'#B7C8B9'}]}>
           <MaterialCommunityIcons name={disturbed?'magnet':'crosshairs-gps'} size={18}
-            color={disturbed?'#E8A16B':compassAccuracy===3?'#9EEDB9':colors.gold}/>
+            color={disturbed?'#E8A16B':compassAccuracy===3?SUCCESS:colors.gold}/>
           <Text style={{fontSize:10,fontWeight:'800',color:colors.text}}>
             {errorDegrees!==null?'±'+errorDegrees+'°'
               :compassAccuracy===null?'—':compassAccuracy===3?'İyi':compassAccuracy===2?'Orta':'Düşük'}
@@ -233,10 +236,10 @@ export default function QiblaScreen(){
           accessibilityLabel={!locationReady?'Konumu etkinleştir':'Yeniden kalibrasyon rehberini aç'}
           style={({pressed})=>[styles.primaryButton,{opacity:busy?.7:pressed?.88:1,flex:1.18}]}>
           <GoldButtonBackground/>
-          {busy?<ActivityIndicator color="#11392D" size="small"/>:
-            <MaterialCommunityIcons name={locationReady?'refresh':'crosshairs-gps'} size={22} color="#10372B"/>}
+          {busy?<ActivityIndicator color={ON_GOLD} size="small"/>:
+            <MaterialCommunityIcons name={locationReady?'refresh':'crosshairs-gps'} size={22} color={ON_GOLD}/>}
           <Text adjustsFontSizeToFit numberOfLines={1}
-            style={{color:'#16382B',fontSize:14,fontWeight:'800'}}>
+            style={{color:ON_GOLD,fontSize:14,fontWeight:'800'}}>
             {locationReady?'Yeniden Kalibre Et':'Konumu Etkinleştir'}
           </Text>
         </Pressable>

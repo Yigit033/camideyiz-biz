@@ -118,7 +118,7 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
         style={{
           width:timeSize,minHeight:61,borderRadius:17,borderWidth:1,
           borderColor:dark?'rgba(212,185,126,.46)':'#D6B97E',
-          backgroundColor:dark?'rgba(44,50,37,.93)':'#FBF2DE',
+          backgroundColor:dark?'rgba(16,48,71,.94)':'#FBF2DE',
           alignItems:'center',justifyContent:'center',gap:4,
           paddingHorizontal:4,
         }}>

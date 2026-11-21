@@ -9,14 +9,14 @@ import Animated,{
   type SharedValue,
 } from 'react-native-reanimated';
 
-const GOLD='#E0BE7A',IVORY='#F7E8CB',EMERALD='#15493D';
+const GOLD='#E0BE7A';
 const DIAL=360;
 
-function KaabaSymbol({x=180,y=58}: {x?:number;y?:number}){
+function KaabaSymbol({x=180,y=58,dark}: {x?:number;y?:number;dark:boolean}){
   return <G transform={'translate('+x+' '+y+')'}>
     <Circle r="27" fill="#E6B85E" opacity=".13"/>
-    <Circle r="23" fill="#071E1A" stroke="#FFE8A6" strokeWidth="2.4"/>
-    <Circle r="19" fill="#0C2C24" stroke="#8C6E3B" strokeWidth=".8"/>
+    <Circle r="23" fill={dark?'#071A2B':'#071E1A'} stroke="#FFE8A6" strokeWidth="2.4"/>
+    <Circle r="19" fill={dark?'#0B2A44':'#0C2C24'} stroke="#8C6E3B" strokeWidth=".8"/>
     <Path d="M-12 -7 L0 -11 L13 -5 L1 -1 Z" fill="#CDA75D"/>
     <Path d="M-12 -7 L1 -1 V13 L-12 8 Z" fill="#1F2624"/>
     <Path d="M1 -1 L13 -5 V8 L1 13 Z" fill="#080E11"/>
@@ -181,8 +181,8 @@ export const QiblaCompass=memo(function QiblaCompass({
           <Stop offset="100%" stopColor="#70502A"/>
         </LinearGradient>
         <RadialGradient id="qGlint" cx="45%" cy="34%" rx="63%" ry="70%">
-          <Stop offset="0%" stopColor="#D3E0C4" stopOpacity=".18"/>
-          <Stop offset="100%" stopColor="#D3E0C4" stopOpacity="0"/>
+          <Stop offset="0%" stopColor={dark?'#CFE4F2':'#D3E0C4'} stopOpacity=".18"/>
+          <Stop offset="100%" stopColor={dark?'#CFE4F2':'#D3E0C4'} stopOpacity="0"/>
         </RadialGradient>
         <LinearGradient id="qStar" x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0%" stopColor={dark?'#72C9E5':'#7AA59A'}/>
@@ -227,7 +227,7 @@ export const QiblaCompass=memo(function QiblaCompass({
         transform={'rotate('+(i*45)+' 180 180)'}>
         <Polygon points="180,88 164,166 180,180" fill="url(#qStar)" opacity={i%2===0?'.98':'.64'}/>
         <Polygon points="180,88 196,166 180,180" fill={i%2===0?(dark?'#3F90B9':'#4D8878'):(dark?'#1C567A':'#195648')} opacity=".83"/>
-        <Path d="M180 88V180" fill="none" stroke="#D3E2B9" strokeWidth=".6" strokeOpacity=".38"/>
+        <Path d="M180 88V180" fill="none" stroke={dark?'#CFE2F0':'#D3E2B9'} strokeWidth=".6" strokeOpacity=".38"/>
       </G>)}
       <Circle cx="180" cy="180" r="151" stroke="#FFF3CB" strokeOpacity=".16" fill="none"/>
     </Svg>
@@ -266,7 +266,7 @@ export const QiblaCompass=memo(function QiblaCompass({
             fill="#F8CD6F" opacity=".12" stroke="#ECC77B" strokeWidth="2"/>
           <Path d="M180 195L175 181L180 78L187 181Z" fill="url(#needleGlow)"/>
           <Path d="M180 78L180 195" stroke="#FFFFFF" strokeWidth="1.3" strokeOpacity=".9"/>
-          <KaabaSymbol x={180} y={58}/>
+          <KaabaSymbol x={180} y={58} dark={dark}/>
         </G>:null}
       </Svg>
     </Animated.View>

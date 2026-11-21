@@ -71,7 +71,7 @@ export default function MosquesScreen(){
         borderColor:colors.isDark?'#3F718F':'#C8D9CA',
       }]}>
         <View pointerEvents="none" style={[styles.halo,{
-          backgroundColor:colors.isDark?'rgba(95,177,145,.10)':'rgba(255,255,255,.62)',
+          backgroundColor:colors.isDark?'rgba(32,182,235,.08)':'rgba(255,255,255,.62)',
         }]}/>
         <View style={styles.illustration}>
           <MosqueLandscape width={landscapeWidth} dark={colors.isDark}/>
@@ -190,7 +190,7 @@ const styles=StyleSheet.create({
   heroDescription:{textAlign:'center',fontSize:12,lineHeight:20,maxWidth:310,marginBottom:8},
   primary:{height:55,borderRadius:17,width:'100%',
     flexDirection:'row',alignItems:'center',justifyContent:'center',gap:12,
-    shadowColor:'#082A1E',shadowOpacity:.18,shadowRadius:8,elevation:3},
+    shadowColor:'#0A2236',shadowOpacity:.18,shadowRadius:8,elevation:3},
   primaryText:{color:'#FFFFFF',fontSize:15,fontWeight:'800',letterSpacing:.2},
   heroFoot:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap'},
   searchCard:{borderWidth:1,borderRadius:23,padding:17,gap:14},

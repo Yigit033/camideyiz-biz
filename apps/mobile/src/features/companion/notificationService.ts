@@ -104,7 +104,7 @@ export function alertContent(event:PrayerAlertEvent,cityId:number,sound:'default
       kind:KIND,eventKey:event.key,cityId,localTime:event.localTime,
       dateISO:event.dateISO,prayer:event.prayer,soundMode:sound,delivery:armedAs,
     },
-    color:'#0C6752',
+    color:'#0C76B4', // brand blue, same as the notification icon accent
   };
 }
 const owned=(request:Notifications.NotificationRequest):boolean=>{

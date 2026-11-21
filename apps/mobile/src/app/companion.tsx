@@ -17,6 +17,7 @@ import {isExpoGoRuntime} from '@/features/native/nativeRuntime';
 import {nativeAdhanSupported,nativeAdhanStatus,testNativeAdhan}
   from '@/features/companion/nativeAdhan';
 import {Widget3Diagnostics} from '@/features/widgets/Widget3Diagnostics';
+import {WidgetPreview} from '@/features/widgets/WidgetPreview';
 
 const NAMES:Record<PrayerKey,string>={
   imsak:'İmsak',gunes:'Güneş',ogle:'Öğle',ikindi:'İkindi',aksam:'Akşam',yatsi:'Yatsı',
@@ -35,7 +36,7 @@ function InfoPill({text,icon}:{
     <Text style={{color:colors.text,fontSize:10,fontWeight:'700'}}>{text}</Text>
   </View>;
 }
-function WidgetShowcase({now}: {now:number}){
+function WidgetShowcase(){
   const {colors}=useAppTheme();
   const source=useSharedPrayerSource();
   const days=useMemo(():readonly PrayerSchedule[]=>{
@@ -43,8 +44,6 @@ function WidgetShowcase({now}: {now:number}){
     if(!d||d.city.id!==source.place?.id)return [];
     return d.source==='idamedya-diyanet-republished'?d.upcoming:[d.today,d.next];
   },[source.days,source.place?.id]);
-  const preview=buildPrayerWidgetSnapshot(days,now);
-  const displayTimes=preview.times;
   return <View style={{gap:11}}>
     <View style={styles.sectionHeader}>
       <View style={{flexDirection:'row',gap:8,alignItems:'center'}}>
@@ -53,53 +52,7 @@ function WidgetShowcase({now}: {now:number}){
       </View>
       <InfoPill icon="smartphone" text="Önizleme"/>
     </View>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{gap:12,paddingRight:12}}>
-      <View style={[styles.widgetCompact,{backgroundColor:'#063B34',borderColor:'#D1AC6D'}]}>
-        <View style={{flexDirection:'row',alignItems:'center',gap:7}}>
-          <Feather name="moon" size={15} color="#F2CE8A"/>
-          <Text style={styles.widgetBrand}>Camideyiz Biz</Text>
-        </View>
-        <Text style={{fontSize:11,color:'#B1D9C8'}} numberOfLines={1}>
-          {preview.status==='ready'?preview.city:'Takvim seçilmedi'}
-        </Text>
-        <View style={{gap:2,flex:1,justifyContent:'center'}}>
-          <Text style={{fontSize:11,color:'#DCE9DD'}}>
-            {preview.status==='ready'?'Sıradaki · '+preview.nextName:'Vakitler yükleniyor'}
-          </Text>
-          <Text style={{fontSize:33,fontWeight:'800',color:'#F1CF8D'}}>
-            {preview.status==='ready'?preview.nextTime:'—'}
-          </Text>
-          <Text style={{fontSize:10,color:'#BCDCCC'}}>
-            {preview.status==='ready'?'Vakte '+preview.remainingMinutes+' dakika':'Takvimi aç'}
-          </Text>
-        </View>
-        <Text style={{fontSize:9,color:'#8EB8A9'}}>Sıradaki Vakit · 2×2</Text>
-      </View>
-      <View style={[styles.widgetWide,{backgroundColor:'#063B34',borderColor:'#D1AC6D'}]}>
-        <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
-          <Text style={styles.widgetBrand}>☪  Camideyiz Biz</Text>
-          <Text numberOfLines={1} style={{fontSize:10,color:'#B1D9C8',maxWidth:105}}>
-            {preview.city}
-          </Text>
-        </View>
-        <Text style={{fontSize:11,fontWeight:'600',color:'#F1CF8D'}}>Bugünün vakitleri</Text>
-        <View style={{gap:5,flex:1}}>
-          {displayTimes.length?
-            displayTimes.map(item=><View key={item.key}
-              style={{flexDirection:'row',justifyContent:'space-between'}}>
-              <Text style={{fontSize:10.5,color:'#BEDACC'}}>{item.label}</Text>
-              <Text style={{fontSize:10.5,color:'#FBF1E1',fontWeight:'800'}}>{item.time}</Text>
-            </View>)
-            :<Text style={{fontSize:12,color:'#A5CDBE'}}>
-              Vakitler henüz yüklenmedi.
-            </Text>}
-        </View>
-        <Text style={{fontSize:9,color:'#A0C8B9'}}>
-          {preview.status==='ready'?'Sıradaki: '+preview.nextName+' · '+preview.nextTime:'Yenilemek için aç'}
-        </Text>
-      </View>
-    </ScrollView>
+    <WidgetPreview days={days} dark={colors.isDark}/>
   </View>;
 }
 
@@ -107,11 +60,6 @@ export default function CompanionScreen(){
   const {colors}=useAppTheme();
   const companion=useCompanion();
   const source=useSharedPrayerSource();
-  const [now,setNow]=useState(Date.now());
-  useEffect(()=>{
-    const id=setInterval(()=>setNow(Date.now()),45_000);
-    return ()=>clearInterval(id);
-  },[]);
   const {settings,permission,sync,ready,settings:alerts}=companion;
   const announcement=companion.announcement;
   const allAtTime=(['imsak','ogle','ikindi','aksam','yatsi'] as const)
@@ -217,7 +165,7 @@ export default function CompanionScreen(){
         </View>
       </View>
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
-        <WidgetShowcase now={now}/>
+        <WidgetShowcase/>
       </View>
       <Widget3Diagnostics/>
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
@@ -518,9 +466,6 @@ const styles=StyleSheet.create({
   sectionTitle:{fontFamily:'serif',fontSize:18,fontWeight:'700'},
   infoPill:{paddingHorizontal:8,minHeight:26,borderWidth:1,borderRadius:15,
     flexDirection:'row',gap:5,alignItems:'center'},
-  widgetCompact:{width:207,height:209,borderRadius:21,borderWidth:1.4,padding:15,gap:8},
-  widgetWide:{width:258,height:209,borderRadius:21,borderWidth:1.4,padding:15,gap:7},
-  widgetBrand:{fontFamily:'serif',fontSize:14,fontWeight:'700',color:'#F1CE8D'},
   note:{borderWidth:1,borderRadius:13,padding:11,flexDirection:'row',alignItems:'flex-start',gap:8},
   miniButton:{height:33,paddingHorizontal:10,borderRadius:11,
     flexDirection:'row',gap:6,alignItems:'center'},

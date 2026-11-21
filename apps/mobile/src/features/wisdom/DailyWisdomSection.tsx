@@ -193,7 +193,7 @@ const styles=StyleSheet.create({
     flexDirection:'row',alignItems:'center',gap:6},
   row:{flexDirection:'row',gap:9,alignItems:'stretch',width:'100%'},
   card:{flex:1,minWidth:0,minHeight:204,borderWidth:1,borderRadius:19,padding:13,overflow:'hidden',
-    shadowColor:'#06261F',shadowOpacity:.09,shadowRadius:7,elevation:2},
+    shadowColor:'#0A2236',shadowOpacity:.09,shadowRadius:7,elevation:2},
   cardTop:{flexDirection:'row',gap:6,alignItems:'center',paddingRight:28},
   bookmark:{position:'absolute',right:8,top:8,width:30,height:30,borderRadius:11,
     justifyContent:'center',alignItems:'center'},
