@@ -24,7 +24,7 @@ public final class CamideyizWidgetBridge extends ReactContextBaseJavaModule {
   }
 
   @ReactMethod
-  public void selectDistrict(int cityId,Promise promise){
+  public void selectDistrict(int cityId, Promise promise){
     submit(promise,"WIDGET_DISTRICT",()->promise.resolve(
         WidgetBoundaryScheduler.selectDistrict(getReactApplicationContext(),cityId).toString()));
   }
