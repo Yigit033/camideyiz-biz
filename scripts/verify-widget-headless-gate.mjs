@@ -13,16 +13,17 @@ const now=Date.parse('2026-11-21T08:00:00+03:00');
 const good={
   supported:true,persisted:true,hasTimeline:true,lastReady:true,
   nativeCityId:9545,activeCityId:9545,lastError:'',lastTransferError:'',
-  brandAssetVersion:2,nativeRenderPending:false,
+  brandAssetVersion:3,nativeRenderPending:false,
   calendarSourceAt:now-10*60_000,lastSyncAt:now-15*60_000,
   calendarEndsAt:now+2*86_400_000,nextAlarmAt:now+2*60_000,
   installedNext:1,installedDay:0,installedCompact:1,installedFocus:0,
   installedStrip:0,installedMiniRing:0,installedPremiumRing:1,installedSlim:0,
+  installedSquareRing:0,
 };
 assert.equal(shouldSkipWidgetHeadlessRefresh(good,now),true);
 for(const patch of [
   {supported:false},{persisted:false},{hasTimeline:false},{lastReady:false},
-  {brandAssetVersion:1},{nativeRenderPending:true},
+  {brandAssetVersion:2},{nativeRenderPending:true},
   {nativeCityId:9541},{activeCityId:0},{lastError:'disk'},
   {lastTransferError:'district mismatch'},
   {calendarSourceAt:now-HEADLESS_MAX_SOURCE_AGE_MS-1},

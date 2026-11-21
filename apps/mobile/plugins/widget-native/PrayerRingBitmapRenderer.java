@@ -112,7 +112,8 @@ public final class PrayerRingBitmapRenderer {
     long renderAt=SystemClock.elapsedRealtime();
     Bitmap bitmap=Bitmap.createBitmap(size,size,Bitmap.Config.ARGB_8888);
     Canvas canvas=new Canvas(bitmap);
-    float mid=size*.5f,radius=size*.322f;
+    // Use more of the square footprint without sacrificing central text.
+    float mid=size*.5f,radius=size*(size==224?.376f:.346f);
     RectF ring=new RectF(mid-radius,mid-radius,mid+radius,mid+radius);
     Paint pen=new Paint(Paint.ANTI_ALIAS_FLAG);
     pen.setStyle(Paint.Style.STROKE);
@@ -131,9 +132,9 @@ public final class PrayerRingBitmapRenderer {
     pen.setStyle(Paint.Style.STROKE);
     pen.setColor(light?0x333A6478:0x663E6076);
     pen.setStrokeWidth(size*.0027f);
-    canvas.drawCircle(mid,mid,size*.267f,pen);
+    canvas.drawCircle(mid,mid,radius-size*.052f,pen);
     pen.setColor(light?0x333A6478:0x442F536B);
-    canvas.drawCircle(mid,mid,size*.368f,pen);
+    canvas.drawCircle(mid,mid,radius+size*.043f,pen);
     CACHE.put(key,bitmap);
     lastBitmapMs=SystemClock.elapsedRealtime()-renderAt;
     maxBitmapMs=Math.max(maxBitmapMs,lastBitmapMs);

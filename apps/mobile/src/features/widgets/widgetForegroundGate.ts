@@ -16,6 +16,7 @@ export type NativeWidgetSummary={
   installedNext:number;installedDay:number;
   installedCompact?:number;installedFocus?:number;installedStrip?:number;
   installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;
+  installedSquareRing?:number;
 };
 
 export function widgetNeedsForegroundPublish(

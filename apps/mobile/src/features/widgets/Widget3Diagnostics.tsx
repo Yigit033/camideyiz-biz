@@ -13,7 +13,8 @@ type NativeWidgetHealth={
   supported:true;nativeCityId:number;activeCityId:number;
   installedNext:number;installedDay:number;
   installedCompact?:number;installedFocus?:number;installedStrip?:number;
-  installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;widgetTheme?:string;
+  installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;
+  installedSquareRing?:number;widgetTheme?:string;
   lastTransferAttemptAt:number;lastTransferStage:string;
   lastTransferDetail:string;lastTransferError:string;
   lastReady:boolean;persisted:boolean;hasTimeline:boolean;state:string;
@@ -76,9 +77,9 @@ function displayState(status:NativeWidgetHealth|null,cityId:number|null){
       (status.installedCompact??0)+(status.installedFocus??0)+
       (status.installedStrip??0)+
       (status.installedMiniRing??0)+(status.installedPremiumRing??0)+
-      (status.installedSlim??0)===0)return {
+      (status.installedSlim??0)+(status.installedSquareRing??0)===0)return {
     title:'Ana ekranda kurulu widget yok',
-    description:'Telefonun widget menüsünden sekiz Camideyiz Biz tasarımından birini ekle.',
+    description:'Telefonun widget menüsünden dokuz Camideyiz Biz tasarımından birini ekle.',
     icon:'smartphone' as const};
   if(cityId!==null && status.activeCityId!==cityId)return {
     title:status.activeCityId===0?'İlçe native belleğe henüz aktarılmadı':
@@ -143,7 +144,7 @@ export function Widget3Diagnostics(){
     (health?.installedCompact??0)+(health?.installedFocus??0)+
     (health?.installedStrip??0)+
     (health?.installedMiniRing??0)+(health?.installedPremiumRing??0)+
-    (health?.installedSlim??0);
+    (health?.installedSlim??0)+(health?.installedSquareRing??0);
   const repair=async()=>{
     if(busy)return;
     setBusy(true);
@@ -220,11 +221,12 @@ export function Widget3Diagnostics(){
         ['Son eşitleme sonucu',companion.widget.detail],
         ['Android native bağlantısı',
           hasAndroidNativeWidgetBridge()?'Hazır — gerçek APK köprüsü':'Eksik — APK desteği yok'],
-        ['Kurulu widgetlar (1×1 / 2×2 / Günlük / Odak / Şerit / Mini Çember / Premium Çember / 1×2 Dikey)',
+        ['Kurulu widgetlar (1×1 / 2×2 / Günlük / Odak / Şerit / Mini Çember / Premium Çember / 1×2 Dikey / Kare Çember 2×2)',
           [health?.installedCompact??0,health?.installedNext??0,
             health?.installedDay??0,health?.installedFocus??0,
             health?.installedStrip??0,health?.installedMiniRing??0,
-            health?.installedPremiumRing??0,health?.installedSlim??0].join(' / ')],
+            health?.installedPremiumRing??0,health?.installedSlim??0,
+            health?.installedSquareRing??0].join(' / ')],
         ['Widget teması',health?.widgetTheme??'Sistem'],
         ['Native takvim',health?.hasTimeline?'Kayıtlı':'Yok'],
         ['Son yayın',clock(health?.calendarSourceAt??0)],

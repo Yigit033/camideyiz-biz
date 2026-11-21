@@ -7,6 +7,7 @@ export type WidgetSyncResult={
   installedNext?:number;installedDay?:number;
   installedCompact?:number;installedFocus?:number;installedStrip?:number;
   installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;
+  installedSquareRing?:number;
   lastNativeWriteAt?:number;nextNativeAlarmAt?:number;
   nativePersisted?:boolean;launcherConfirmed?:false;
 };
