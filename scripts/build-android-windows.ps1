@@ -188,6 +188,9 @@ try {
     Invoke-Checked 'Verify Widget Engine 4.1 and supplied single-image branding' {
       & node scripts/verify-widget-engine41.mjs
     }
+    Invoke-Checked 'Verify Widget Engine 4.3 on-time switch, day/night theme and previews' {
+      & node scripts/verify-widget-engine43.mjs
+    }
     Invoke-Checked 'Test fast and safe widget headless health gate' {
       & node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
     }

@@ -21,6 +21,7 @@ on:
       - scripts/verify-widget-native-runtime.mjs
       - scripts/verify-widget-engine4.mjs
       - scripts/verify-widget-engine41.mjs
+      - scripts/verify-widget-engine43.mjs
       - scripts/verify-widget-headless-gate.mjs
       - packages/core/src/widgetCalendarCache*
       - scripts/verify-widget3-contracts.mjs
@@ -75,6 +76,7 @@ jobs:
           node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
           node scripts/verify-widget-engine4.mjs
           node scripts/verify-widget-engine41.mjs
+          node scripts/verify-widget-engine43.mjs
           node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
           node scripts/verify-adhan-playback-contracts.mjs
           node scripts/verify-brand-symbol.mjs

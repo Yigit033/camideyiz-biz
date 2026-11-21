@@ -30,6 +30,8 @@ jobs:
         run: node scripts/verify-widget-engine4.mjs
       - name: Verify Widget Engine 4.1 bounded rendering, unified brand and stale-work protection
         run: node scripts/verify-widget-engine41.mjs
+      - name: Verify Widget Engine 4.3 exact boundary switch, launcher day/night theme and picker previews
+        run: node scripts/verify-widget-engine43.mjs
       - name: Test headless native health fast-path against stale, wrong-city and missing alarm snapshots
         run: node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
       - name: Verify Widget 3.0 offline/native recovery contracts
@@ -143,6 +145,10 @@ jobs:
           grep -F 'widget_day_countdown' "$app/res/layout/widget_prayer_day.xml"
           grep -F 'widget_ring_square_countdown' "$app/res/layout/widget_ring_square.xml"
           grep -F 'SquarePrayerRingWidgetProvider' "$app/AndroidManifest.xml"
+          grep -F 'widget_ring_square_auto' "$app/res/values/camideyiz_widget.xml"
+          grep -F '@layout/widget_ring_square</item>' "$app/res/values-night/camideyiz_widget.xml"
+          test -s "$app/res/drawable/widget_ring_track.xml"
+          grep -F 'SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED' "$app/AndroidManifest.xml"
           test -s "$app/java/biz/camideyiz/app/widget/PrayerRingBitmapRenderer.java"
           test -s "$app/res/drawable-nodpi/widget_brand_symbol.png"
           cmp apps/mobile/assets/camideyiz-original-symbol.png "$app/res/drawable-nodpi/widget_brand_symbol.png"
