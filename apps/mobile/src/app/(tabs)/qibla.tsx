@@ -1,16 +1,22 @@
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {
   ActivityIndicator,Alert,Linking,Pressable,ScrollView,StyleSheet,
   Text,View,useWindowDimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useFocusEffect} from 'expo-router';
+import {activateKeepAwakeAsync,deactivateKeepAwake} from 'expo-keep-awake';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import Svg,{Defs,LinearGradient,Rect,Stop} from 'react-native-svg';
-import {relativeQiblaAngle,qiblaGuidance} from '@camideyiz/core';
+import {qiblaGuidance} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
-import {QiblaBackdrop,QiblaCompass,QiblaKaabaGlyph} from '@/features/qibla/QiblaArtwork';
+import {QiblaBackdrop,QiblaCalibrationGuide,QiblaCompass,QiblaKaabaGlyph}
+  from '@/features/qibla/QiblaArtwork';
 import {useQiblaEngine,type CompassAccuracy} from '@/features/qibla/useQiblaEngine';
+
+const KEEP_AWAKE_TAG='camideyiz-qibla';
+const distanceFormat=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:0});
 
 const KAABA_MAP_URL='https://www.google.com/maps/search/?api=1&query=21.4225%2C39.8262';
 const GOLD='#EDCE8A';
@@ -44,19 +50,31 @@ export default function QiblaScreen(){
   const {width}=useWindowDimensions();
   const dark=colors.isDark;
   const {bearing,heading,compassAccuracy,freshness,locationAccuracy,
-    locationLabel,positionSource,positionUsable,permissionDenied,busy,message,
+    locationLabel,distanceKm,positionSource,positionUsable,permissionDenied,busy,message,
+    tilt,interference,errorDegrees,needleAngle,northAngle,
     requestLocation,recalibrateHeading}=useQiblaEngine();
   const [showGuide,setShowGuide]=useState(false);
   const lastAlignedHaptic=useRef(0);
+  // A compass is used while standing still and reading: keep the screen on
+  // only while this tab is focused.
+  useFocusEffect(useCallback(()=>{
+    activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(()=>undefined);
+    return()=>{deactivateKeepAwake(KEEP_AWAKE_TAG).catch(()=>undefined);};
+  },[]));
   const compassSize=Math.min(Math.max(255,width-42),352);
   const locationReady=bearing!==null&&positionUsable;
-  const relative=locationReady&&heading!==null?relativeQiblaAngle(bearing,heading):null;
+  const disturbed=interference==='interference';
   // A historical angle may remain visible, but it must never be actionable.
-  const hasValidHeading=freshness==='live'&&relative!==null&&
-    compassAccuracy!==null&&compassAccuracy>=2;
+  // Held upright the phone's top edge has no horizontal direction at all.
+  const hasValidHeading=freshness==='live'&&locationReady&&heading!==null&&
+    compassAccuracy!==null&&compassAccuracy>=2&&tilt!=='upright';
   const guidance=useMemo(()=>hasValidHeading&&bearing!==null&&heading!==null
     ?qiblaGuidance(bearing,heading):null,[hasValidHeading,bearing,heading]);
-  const aligned=guidance?.direction==='near'&&compassAccuracy===3;
+  // "Aligned" (green + haptic) only when every signal is trustworthy.
+  const aligned=guidance?.direction==='near'&&compassAccuracy===3&&
+    !disturbed&&tilt==='flat';
+  const needsCalibration=showGuide||disturbed||
+    (locationReady&&freshness==='live'&&compassAccuracy!==null&&compassAccuracy<=1);
 
   useEffect(()=>{
     if(!aligned)return;
@@ -83,29 +101,39 @@ export default function QiblaScreen(){
   // shown only as a labelled reference, never presented as a turn instruction.
   const turnInstruction=!locationReady?'Konum bekleniyor'
     :freshness!=='live'?'Pusula sinyali bekleniyor'
+    :tilt==='upright'?'Telefonu yere paralel tut'
     :compassAccuracy===1?'Önce pusulayı kalibre et'
     :!guidance?'Pusula yönü bekleniyor'
     :guidance.direction==='near'
-      ?compassAccuracy===3?'Kıble doğrultusuna yakınsın':'Doğrultuya yakın · kalibre et'
+      ?aligned?'Kıble doğrultusundasın':'Doğrultuya yakın · kalibre et'
       :guidance.direction==='right'?'Sağa '+guidance.turnDegrees+'° dön'
       :'Sola '+guidance.turnDegrees+'° dön';
   const absoluteBearingText=bearing===null
     ?'Kâbe açısı konum alındığında hesaplanır'
-    :'Kâbe açısı '+Math.round(bearing)+'° · Gerçek kuzeye göre'+
-      (positionSource==='last-known'?' · Son bilinen konum':'')+
-      (!positionUsable?' · Güncellenmeli':'');
+    :'Kâbe '+Math.round(bearing)+'° · gerçek kuzeye göre'+
+      (distanceKm!==null?' · '+distanceFormat.format(distanceKm)+' km':'')+
+      (positionSource==='last-known'?' · son bilinen konum':'')+
+      (!positionUsable?' · güncellenmeli':'');
   const headingStatus=!locationReady?
       (bearing===null?'Konumunu etkinleştir':'Konum güncellenmeli')
     :freshness==='recovering'?'Pusula yeniden bağlanıyor'
     :freshness==='stale'?'Pusula verisi bekleniyor'
+    :tilt==='upright'?'Telefonu yatay tut'
+    :disturbed?'Manyetik parazit algılandı'
     :compassAccuracy===1?'Kalibrasyon gerekli'
     :!hasValidHeading?'Pusula sinyali bekleniyor'
-    :aligned?'Kıble doğrultusuna yakınsın'
+    :aligned?'Kıble doğrultusundasın'
+    :tilt==='tilted'?'Telefonu biraz daha yatay tut'
     :guidance?.direction==='near'?'Sensör doğruluğunu artır'
     :'İbreyi takip ederek yönel';
-  const detailMessage=compassAccuracy===1&&freshness==='live'
-    ?'Pusula sinyali düşük. Metal eşyalardan uzaklaş ve cihazı kalibre et.'
-    :message;
+  const detailMessage=disturbed
+    ?'Yakında mıknatıs ya da metal var (hoparlör, manyetik kılıf, laptop, demir masa). Uzaklaşıp 8 hareketi yap; ibre bu sırada sapabilir.'
+    :tilt==='upright'
+      ?'Pusula telefonun üst kenarını kullanır; telefon dik tutulduğunda yön ölçülemez.'
+      :compassAccuracy===1&&freshness==='live'
+        ?'Pusula sinyali düşük. Metal eşyalardan uzaklaş ve cihazı kalibre et.'
+        :message;
+  const precisionText=errorDegrees!==null?' · ±'+errorDegrees+'°':'';
   return <SafeAreaView edges={['top']} style={{flex:1,backgroundColor:dark?'#06192C':colors.canvas}}>
     <QiblaBackdrop dark={dark}/>
     <ScrollView showsVerticalScrollIndicator={false}
@@ -132,8 +160,7 @@ export default function QiblaScreen(){
       </View>
       <View style={{marginTop:4,marginBottom:0}}>
         <QiblaCompass size={compassSize} dark={dark}
-          relative={hasValidHeading?relative:null}
-          heading={hasValidHeading?heading:null}
+          needleAngle={needleAngle} northAngle={northAngle}
           available={hasValidHeading} aligned={aligned}/>
       </View>
 
@@ -143,8 +170,9 @@ export default function QiblaScreen(){
         shadowColor:hasValidHeading?'#DAB56A':'transparent',
         shadowOpacity:hasValidHeading?.27:0,shadowRadius:13,
       }]}>
-        <Feather name={aligned?'check-circle':locationReady?'compass':'map-pin'}
-          size={20} color={aligned?'#9CE6A9':colors.gold}/>
+        <Feather name={aligned?'check-circle':disturbed||tilt==='upright'?'alert-triangle'
+          :locationReady?'compass':'map-pin'}
+          size={20} color={aligned?'#9CE6A9':disturbed?'#E8A16B':colors.gold}/>
         <Text style={{color:colors.text,fontFamily:'serif',fontSize:17,
           fontWeight:'700'}}>{headingStatus}</Text>
       </View>
@@ -185,14 +213,18 @@ export default function QiblaScreen(){
           </Text>
           <Text numberOfLines={2} style={{color:colors.muted,fontSize:11,lineHeight:17}}>
             {locationReady?'Konum alındı':bearing!==null?'Konum güncellenmeli':'Konum izni bekleniyor'}
-            {'  ·  Pusula: '+statusName(compassAccuracy)}
+            {locationAccuracy!==null&&locationReady?' (±'+Math.round(locationAccuracy)+' m)':''}
+            {'  ·  Pusula: '+(disturbed?'Parazit':statusName(compassAccuracy))+precisionText}
           </Text>
         </View>
-        <View style={[styles.sensorBadge,{borderColor:colors.isDark?'#4696BB':'#B7C8B9'}]}>
-          <MaterialCommunityIcons name="crosshairs-gps" size={18}
-            color={compassAccuracy===3?'#9EEDB9':colors.gold}/>
+        <View accessible accessibilityLabel={'Pusula hassasiyeti '+
+            (errorDegrees!==null?'artı eksi '+errorDegrees+' derece':statusName(compassAccuracy))}
+          style={[styles.sensorBadge,{borderColor:disturbed?'#E8A16B':colors.isDark?'#4696BB':'#B7C8B9'}]}>
+          <MaterialCommunityIcons name={disturbed?'magnet':'crosshairs-gps'} size={18}
+            color={disturbed?'#E8A16B':compassAccuracy===3?'#9EEDB9':colors.gold}/>
           <Text style={{fontSize:10,fontWeight:'800',color:colors.text}}>
-            {compassAccuracy===null?'—':compassAccuracy===3?'İyi':compassAccuracy===2?'Orta':'Düşük'}
+            {errorDegrees!==null?'±'+errorDegrees+'°'
+              :compassAccuracy===null?'—':compassAccuracy===3?'İyi':compassAccuracy===2?'Orta':'Düşük'}
           </Text>
         </View>
       </View>
@@ -220,24 +252,30 @@ export default function QiblaScreen(){
           </Text>
         </Pressable>
       </View>
-      <View style={[styles.helper,{
-        borderColor:showGuide?colors.gold:'transparent',
-        backgroundColor:showGuide?(dark?'rgba(10,49,75,.65)':'rgba(255,251,239,.65)'):'transparent',
+      {needsCalibration?<View style={[styles.calibration,{
+        borderColor:disturbed?'#E8A16B':colors.gold,
+        backgroundColor:dark?'rgba(10,49,75,.72)':'rgba(255,251,239,.78)',
       }]}>
-        <MaterialCommunityIcons name="infinity" size={30} color={colors.gold}/>
+        <QiblaCalibrationGuide width={Math.min(260,width-80)} color={colors.gold}/>
+        <Text style={{color:colors.text,fontSize:12,lineHeight:19,textAlign:'center',fontWeight:'600'}}>
+          {disturbed
+            ?'Mıknatıs ve metallerden uzaklaş, sonra telefonu havada yavaşça 8 çiz.'
+            :'Telefonu havada yavaşça 8 şeklinde 2–3 kez hareket ettir, sonra yere paralel tut.'}
+        </Text>
+      </View>:<View style={[styles.helper,{borderColor:'transparent'}]}>
+        <MaterialCommunityIcons name="cellphone-arrow-down" size={26} color={colors.gold}/>
         <View style={{height:34,width:1,backgroundColor:colors.gold,opacity:.54}}/>
         <Text style={{color:colors.text,fontSize:11.5,lineHeight:19,flex:1}}>
-          {showGuide?'Telefonu metal eşyalardan uzak tut. Kalibrasyon için havada yavaşça 8 hareketi yap.':
-            'Daha doğru sonuç için telefonu düz tut; gerekiyorsa havada yavaşça 8 hareketi yap.'}
+          Telefonu yere paralel tut ve üst kenarını altın ibrenin gösterdiği yöne çevir.
         </Text>
-      </View>
+      </View>}
       {permissionDenied?<Pressable onPress={()=>Linking.openSettings().catch(()=>undefined)}
         style={{alignSelf:'center',paddingVertical:6}} accessibilityRole="button">
         <Text style={{fontSize:12,color:colors.gold,fontWeight:'700'}}>
           Konum izinlerini ayarlarda aç
         </Text>
       </Pressable>:null}
-      {locationReady&&(!hasValidHeading||compassAccuracy===1)
+      {locationReady&&(!hasValidHeading||compassAccuracy===1||disturbed)
         ?<Text style={{fontSize:11,lineHeight:17,color:colors.muted,textAlign:'center',
           paddingHorizontal:13,marginTop:0}}>
           {detailMessage}
@@ -247,8 +285,8 @@ export default function QiblaScreen(){
           Konum hassasiyeti düşük (~{Math.round(locationAccuracy)} m). Açık alanda yeniden dene.
         </Text>:null}
       <Text style={{fontSize:10,lineHeight:17,color:colors.muted,textAlign:'center',marginTop:3}}>
-        Telefonun üst kenarını ibrenin gösterdiği yöne çevir. Pusula manyetik alanlardan etkilenebilir;
-        derece göstergesi sensörün kesin doğruluğunu garanti etmez.
+        Kıble yönü konumundan Kâbe’ye büyük çember (en kısa yol) açısıyla hesaplanır.
+        Pusula manyetik alanlardan etkilenebilir; ±° değeri sensörün kendi hata tahminidir.
       </Text>
     </ScrollView>
   </SafeAreaView>;
@@ -281,4 +319,6 @@ const styles=StyleSheet.create({
     flexDirection:'row',alignItems:'center',justifyContent:'center',gap:9},
   helper:{width:'100%',padding:7,borderRadius:12,borderWidth:1,
     flexDirection:'row',gap:13,alignItems:'center',marginTop:2},
+  calibration:{width:'100%',borderRadius:18,borderWidth:1.2,paddingVertical:12,
+    paddingHorizontal:14,alignItems:'center',gap:8,marginTop:2},
 });

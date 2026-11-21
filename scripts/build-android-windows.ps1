@@ -194,6 +194,9 @@ try {
     Invoke-Checked 'Verify light widget layouts match their dark design sources' {
       & node scripts/sync-widget-light-layouts.mjs --check
     }
+    Invoke-Checked 'Verify Kıble fused compass and guidance contracts' {
+      & node scripts/verify-qibla.mjs
+    }
     Invoke-Checked 'Verify on-time prayer alerts and ezan fallback contracts' {
       & node scripts/verify-prayer-alerts.mjs
       if ($LASTEXITCODE -ne 0) { return }

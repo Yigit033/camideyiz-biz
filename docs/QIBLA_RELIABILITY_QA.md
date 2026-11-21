@@ -78,3 +78,41 @@ Kaynaklar:
 
 **Release engeli:** En az iki gerçek cihazda bu matris uygulanıp sonuçlar
 kaydedilmeden "pusula her cihazda kesin doğrulukla çalışıyor" denilmemelidir.
+
+## Kıble 3.0 (22 Kasım 2026): birleşik sensörlü pusula
+
+**Neden:** `expo-location`'ın Android pusulası ham ivmeölçer ve manyetometreyi `getOrientation` ile işler:
+- **Kalite:** Jiroskop füzyonu yok; ~5 Hz örnekleme ve ~2° gönderim eşiği titrek ve gecikmeli bir ibre üretir.
+- **Eksik sinyaller:** Eğim ve manyetik parazit bilgisi yoktur.
+- **Gerçek kuzey hatası:** `(manyetik + sapma) % 360` hesabı, sapmanın eksi olduğu ülkelerde kuzeye yakın yönlerde eksi değer üretir; bu değerler eskiden geçersiz sayılıp atılıyordu.
+
+**Yeni mimari:**
+- **Native modül:** `plugins/compass-native/CamideyizCompassModule.java`.
+  - `TYPE_ROTATION_VECTOR` kullanır: sensör merkezinde jiroskop, ivmeölçer ve manyetometre füzyonu. Jiroskopsuz cihazlarda `TYPE_GEOMAGNETIC_ROTATION_VECTOR`'a düşer.
+  - Sensörler ayrı bir `HandlerThread` üzerinde dinlenir; olaylar en fazla ~30 Hz, yalnızca anlamlı değişimde gönderilir.
+- **Yön:** Telefonun **üst kenarının** yatay izdüşümüdür. Sapma (declination), kıble açısının hesaplandığı **aynı taze GPS konumundan** alınır.
+- **Hassasiyet:** Rotation vector'ün kendi hata tahmini (`values[4]`) ekranda **±N°** olarak gösterilir.
+- **Eğim:**
+  - 30°'ye kadar normal.
+  - 30–55° arası "biraz daha yatay tut".
+  - 55°'den fazlasında yönlendirme verilmez ("telefonu yere paralel tut").
+- **Manyetik parazit:** Ölçülen alan şiddeti, konumdaki dünya modeli (WMM) şiddetiyle karşılaştırılır. Sapma %25'i aşınca uyarı verilir ve %15'in altına inince kalkar (titremeyi önleyen histerezis). Parazitte yönlendirme sürer ama "doğrultudasın" onayı ve titreşim verilmez.
+- **Performans:** İbre ve kuzey halkası Reanimated paylaşılan değerleriyle UI iş parçacığında döner. Sensör örneği ekranı yeniden çizmez; metinler en fazla ~9 Hz'de ve yalnızca değiştiğinde güncellenir. SVG kadran hiç yeniden kurulmaz.
+- **Kullanım:**
+  - Kıble sekmesi açıkken ekran kapanmaz (`expo-keep-awake`).
+  - Kalibrasyon gerektiğinde canlı 8 hareketi animasyonu çıkar.
+  - Kâbe'ye büyük çember mesafesi ve konum hassasiyeti (±m) gösterilir.
+- **Yedek:** iOS'ta (Apple yönü zaten birleşik ve eğim telafili) ve Expo Go'da `expo-location` kullanılır; orada da eksi gerçek kuzey düzeltilir.
+
+**Doğrulama:**
+- `npm test`: eksi sapma, filtre profilleri, eğim, parazit histerezisi ve mesafe testleri.
+- `node scripts/verify-qibla.mjs`.
+- `aapt2`/`javac` ile React Native Android 0.88.1'e karşı derleme.
+
+**Cihaz testi:**
+1. Bilinen bir kıble referansıyla (camii mihrabı ya da harita) karşılaştır; ±° değerini not et.
+2. Telefonu düz tutarken hızlı dön; ibre takılmadan ve gecikmeden izlemeli.
+3. Telefonu dik tut; yönlendirme kaybolmalı ve "yere paralel tut" görünmeli.
+4. Hoparlöre ya da manyetik kılıfa yaklaştır; "Manyetik parazit" uyarısı ve 8 animasyonu çıkmalı. Uzaklaşınca kalkmalı.
+5. Ekran 1–2 dk kapanmamalı; sekmeden çıkınca normal zaman aşımı geri gelmeli.
+6. Uygulamayı arka plana al ve geri dön; sensör yeniden bağlanmalı. Pil tüketimi önceki sürümle karşılaştırılmalı.

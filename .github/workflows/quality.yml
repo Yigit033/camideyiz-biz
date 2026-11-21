@@ -18,6 +18,8 @@ jobs:
       - run: npm run typecheck
       - name: Verify background ezan playback and exact selected recording
         run: node scripts/verify-adhan-playback-contracts.mjs
+      - name: Verify Kıble 3.0 fused compass, honest guidance gating and UI-thread needle
+        run: node scripts/verify-qibla.mjs
       - name: Verify on-time prayer alerts, ezan-instead-of-notification and guaranteed fallback
         run: |
           node scripts/verify-prayer-alerts.mjs

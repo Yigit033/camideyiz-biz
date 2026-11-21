@@ -2,19 +2,28 @@ import {useCallback,useEffect,useRef,useState} from 'react';
 import {AppState} from 'react-native';
 import {useFocusEffect} from 'expo-router';
 import * as Location from 'expo-location';
+import {useSharedValue,withTiming,Easing,type SharedValue} from 'react-native-reanimated';
 import {
   filterQiblaHeading,headingFreshness,isUsableQiblaFix,qiblaBearing,
-  QIBLA_HEADING_EXPIRED_MS,QIBLA_POSITION_MAX_ACCURACY_METERS,
-  QIBLA_POSITION_MAX_AGE_MS,type HeadingFilter,type HeadingFreshness,
+  normalizeReportedHeading,qiblaTiltState,magneticInterference,kaabaDistanceKm,
+  shortestHeadingDelta,
+  QIBLA_POSITION_MAX_ACCURACY_METERS,QIBLA_POSITION_MAX_AGE_MS,
+  type HeadingFilter,type HeadingFreshness,type HeadingProfile,
+  type MagneticInterference,type QiblaTilt,
 } from '@camideyiz/core';
+import {nativeCompassAvailable,setNativeCompassLocation,watchNativeCompass,
+  type NativeCompassReading} from './nativeCompass';
 
 export type CompassAccuracy=0|1|2|3;
 export type PositionSource='fresh'|'last-known'|'none';
+export type CompassSource='fused'|'standard'|'none';
 
 const GPS_TIMEOUT_MS=10_000;
 const GPS_REFRESH_MS=90_000;
 const HEADING_RESUBSCRIBE_MS=9_000;
 const HEADING_RETRY_GAP_MS=8_000;
+const TEXT_UPDATE_MS=110; // discrete UI text ≤ ~9 Hz; the needle itself is UI-thread
+const SENSOR_STATUS_UPDATE_MS=500;
 
 /** A bounded timeout around Expo's native fix. The native request may continue
  * in the OS; Promise.race does NOT cancel it. We never apply a timed-out result.
@@ -33,14 +42,29 @@ async function withTimeout<T>(promise:Promise<T>,duration:number):Promise<T>{
   }
 }
 
-/** Lifecycle-safe tracking. GPS decides the geodesic direction; the
- * magnetometer/gyroscope-derived heading decides phone orientation.
- * Their failure states are independent: a sensor interruption must never
- * wipe the last valid coordinate or turn bearing.
+/** Continuous (unwrapped) angle for Reanimated: always the shortest arc, so
+ * crossing 359°→1° never spins the needle the long way round. */
+function advance(shared:SharedValue<number>,last:{current:number},target:number){
+  const previous=last.current;
+  let next=previous+shortestHeadingDelta(previous,target);
+  if(Math.abs(next)>3600){
+    // Re-base by whole turns: jump INVISIBLY to the equivalent angle first,
+    // otherwise the animation would spin ten turns back to the wrapped value.
+    const turns=Math.trunc(next/360)*360;
+    shared.value=previous-turns;
+    next-=turns;
+  }
+  last.current=next;
+  shared.value=withTiming(next,{duration:70,easing:Easing.out(Easing.quad)});
+}
+
+/** Lifecycle-safe tracking. GPS decides the geodesic direction; the compass
+ * decides phone orientation. Their failure states are independent: a sensor
+ * interruption must never wipe the last valid coordinate or Qibla bearing.
  *
- * A short-lived OS last-known location is used only after foreground location
- * permission and only while its age/accuracy are within strict bounds.
- * No latitude/longitude is written to AsyncStorage or uploaded.
+ * Android uses the fused rotation-vector module (tilt, interference and a
+ * real ±° error estimate); iOS/Expo Go use expo-location's heading.
+ * No latitude/longitude is written to storage or uploaded.
  */
 export function useQiblaEngine(){
   const [bearing,setBearing]=useState<number|null>(null);
@@ -49,12 +73,24 @@ export function useQiblaEngine(){
   const [freshness,setFreshness]=useState<HeadingFreshness>('stale');
   const [locationAccuracy,setLocationAccuracy]=useState<number|null>(null);
   const [locationLabel,setLocationLabel]=useState('Konum bekleniyor');
+  const [distanceKm,setDistanceKm]=useState<number|null>(null);
   const [positionSource,setPositionSource]=useState<PositionSource>('none');
   const [headingEnabled,setHeadingEnabled]=useState(false);
   const [permissionDenied,setPermissionDenied]=useState(false);
   const [busy,setBusy]=useState(false);
   const [cycle,setCycle]=useState(0);
   const [message,setMessage]=useState('Konumuna izin vererek kıble yönünü bulabilirsin.');
+  const [tilt,setTilt]=useState<QiblaTilt>('flat');
+  const [interference,setInterference]=useState<MagneticInterference>('unknown');
+  const [errorDegrees,setErrorDegrees]=useState<number|null>(null);
+  const [compassSource,setCompassSource]=useState<CompassSource>('none');
+
+  // UI-thread animation inputs: updated per sensor sample WITHOUT re-rendering.
+  const needleAngle=useSharedValue(0);  // Qibla relative to the phone's top edge
+  const northAngle=useSharedValue(0);   // device heading (cardinal ring = -heading)
+  const lastNeedle=useRef(0);
+  const lastNorth=useRef(0);
+  const bearingRef=useRef<number|null>(null);
 
   const mounted=useRef(true);
   const focused=useRef(false);
@@ -66,7 +102,9 @@ export function useQiblaEngine(){
   const geocodeSequence=useRef(0);
   const [positionUsable,setPositionUsable]=useState(false);
   const filter=useRef<HeadingFilter|null>(null);
-  const lastUiHeadingAt=useRef(0);
+  const lastTextAt=useRef(0);
+  const lastStatusAt=useRef(0);
+  const interferenceRef=useRef<MagneticInterference>('unknown');
 
   useEffect(()=>{
     mounted.current=true;
@@ -82,7 +120,12 @@ export function useQiblaEngine(){
     try{direction=qiblaBearing(fix.coords.latitude,fix.coords.longitude);}
     catch{return false;}
     if(!mounted.current)return false;
+    // Declination for the fused compass comes from this very fix.
+    setNativeCompassLocation(fix.coords.latitude,fix.coords.longitude,fix.coords.altitude);
+    bearingRef.current=direction;
     setBearing(direction);
+    try{setDistanceKm(kaabaDistanceKm(fix.coords.latitude,fix.coords.longitude));}
+    catch{setDistanceKm(null);}
     setLocationAccuracy(fix.coords.accuracy);
     setPositionSource(source);
     setHeadingEnabled(true);
@@ -151,7 +194,7 @@ export function useQiblaEngine(){
         );
         if(!mounted.current)return;
         if(applyPosition(fresh,'fresh')){
-          setMessage('Telefonu düz tutup yavaşça çevir. Metal ve mıknatıslardan uzak dur.');
+          setMessage('Telefonu yere paralel tut ve yavaşça kendi etrafında dön.');
         }else if(hadFallback){
           setMessage('GPS konumu doğrulanamadı; son bilinen konumla devam ediliyor.');
         }else{
@@ -195,7 +238,7 @@ export function useQiblaEngine(){
     if(!headingEnabled)return;
     let active=true;
     let foreground=AppState.currentState==='active';
-    let listener:Location.LocationSubscription|null=null;
+    let stopWatch:(()=>void)|null=null;
     let observing=false;
     let lastStartAt=0;
     let lastValidAt=0;
@@ -204,10 +247,63 @@ export function useQiblaEngine(){
     // Preserve last-known display angle for brief interruptions; no guidance
     // is enabled until a fresh heading is accepted in the new focus session.
     setFreshness('recovering');
+
+    /** One pipeline for both sources: filter → UI-thread needle → throttled text. */
+    const accept=(trueHeading:number,quality:number,profile:HeadingProfile,now:number)=>{
+      const result=filterQiblaHeading(filter.current,{trueHeading,accuracy:quality},now,profile);
+      filter.current=result.filter;
+      if(!result.accepted){
+        invalidRun+=1;
+        if(invalidRun>=3){
+          lastValidAt=0; // Never revive the last accepted sample as live.
+          setCompassAccuracy(quality>=0&&quality<=3?quality as CompassAccuracy:0);
+          setFreshness('recovering');
+          if(trueHeading<0)
+            setMessage('Gerçek kuzey verisi bulunamadı. Konum ve pusula izinlerini kontrol et.');
+        }
+        return;
+      }
+      invalidRun=0;
+      lastValidAt=now;
+      const angle=result.filter!.angle;
+      if(result.updated){
+        advance(northAngle,lastNorth,angle);
+        if(bearingRef.current!==null)
+          advance(needleAngle,lastNeedle,(bearingRef.current-angle+360)%360);
+      }
+      if(now-lastTextAt.current>=TEXT_UPDATE_MS){
+        lastTextAt.current=now;
+        setCompassAccuracy(result.filter!.accuracy);
+        setFreshness('live');
+        // Text needs whole degrees only: identical values bail out of render.
+        setHeading(Math.round(angle*2)/2);
+      }
+    };
+
+    const onNative=(reading:NativeCompassReading)=>{
+      if(!active||!foreground)return;
+      const now=Date.now();
+      const tiltState=qiblaTiltState(reading.tiltDeg);
+      if(now-lastStatusAt.current>=SENSOR_STATUS_UPDATE_MS){
+        lastStatusAt.current=now;
+        setTilt(tiltState);
+        const next=magneticInterference(reading.fieldUT,reading.expectedUT,interferenceRef.current);
+        interferenceRef.current=next;
+        setInterference(next);
+        setErrorDegrees(reading.accuracyDeg>0&&reading.accuracyDeg<90
+          ?Math.max(1,Math.round(reading.accuracyDeg)):null);
+      }
+      // Held upright the top edge has no horizontal direction: not an error,
+      // just no heading — keep the session alive without an invalid streak.
+      if(tiltState==='upright'||reading.magHeading<0){lastValidAt=now;return;}
+      accept(normalizeReportedHeading(reading.trueHeading,reading.magHeading),
+        reading.quality,'fused',now);
+    };
+
     const remove=()=>{
       generation+=1;
-      listener?.remove();
-      listener=null;
+      stopWatch?.();
+      stopWatch=null;
       observing=false;
       lastValidAt=0;
     };
@@ -216,48 +312,37 @@ export function useQiblaEngine(){
       observing=true;
       const current=++generation;
       lastStartAt=Date.now();
-      void Location.watchHeadingAsync(reading=>{
-        if(!active||!foreground||current!==generation)return;
-        const now=Date.now();
-        const result=filterQiblaHeading(filter.current,reading,now);
-        filter.current=result.filter;
-        if(!result.accepted){
-          invalidRun+=1;
-          if(invalidRun>=3){
-            lastValidAt=0; // Never revive the last accepted sample as live.
-            setCompassAccuracy(0);
-            setFreshness('recovering');
-            if(!Number.isFinite(reading.trueHeading)||reading.trueHeading<0)
-              setMessage('Gerçek kuzey verisi bulunamadı. Konum ve pusula izinlerini kontrol et.');
+      void (async()=>{
+        try{
+          if(await nativeCompassAvailable()){
+            const stop=await watchNativeCompass(onNative);
+            if(active&&foreground&&current===generation){
+              stopWatch=stop;setCompassSource('fused');
+            }else stop();
+            return;
           }
-          return;
+          const subscription=await Location.watchHeadingAsync(reading=>{
+            if(!active||!foreground||current!==generation)return;
+            accept(normalizeReportedHeading(reading.trueHeading,reading.magHeading),
+              reading.accuracy,'raw',Date.now());
+          },()=>{
+            if(active&&current===generation){
+              setFreshness('recovering');
+              setMessage('Pusula geçici olarak kesildi. Bağlantı yeniden kuruluyor.');
+              remove();
+            }
+          });
+          if(active&&foreground&&current===generation){
+            stopWatch=()=>subscription.remove();setCompassSource('standard');
+          }else subscription.remove();
+        }catch{
+          if(active&&current===generation){
+            setFreshness('recovering');
+            setMessage('Pusula sensörüne erişilemiyor; kalibrasyonu ve cihazı kontrol et.');
+            remove();
+          }
         }
-        invalidRun=0;
-        lastValidAt=now;
-        setCompassAccuracy(result.filter!.accuracy);
-        setFreshness('live');
-        // Native sensors may emit >50 readings/second. Filter every sample,
-        // render the heavy compass tree at <=20 Hz to limit JS/UI load.
-        if(result.updated&&(now-lastUiHeadingAt.current>=50)){
-          lastUiHeadingAt.current=now;
-          setHeading(result.filter!.angle);
-        }
-      },()=>{
-        if(active&&current===generation){
-          setFreshness('recovering');
-          setMessage('Pusula geçici olarak kesildi. Bağlantı yeniden kuruluyor.');
-          remove();
-        }
-      }).then(next=>{
-        if(active&&foreground&&current===generation){listener=next;}
-        else next.remove();
-      }).catch(()=>{
-        if(active&&current===generation){
-          setFreshness('recovering');
-          setMessage('Pusula sensörüne erişilemiyor; kalibrasyonu ve cihazı kontrol et.');
-          remove();
-        }
-      });
+      })();
     };
     const onAppState=AppState.addEventListener('change',state=>{
       foreground=state==='active';
@@ -294,19 +379,28 @@ export function useQiblaEngine(){
       remove();
       setFreshness('stale');
     };
-  },[headingEnabled,cycle,requestLocation]));
+  },[headingEnabled,cycle,requestLocation,needleAngle,northAngle]));
+
+  // A new GPS bearing re-aims the needle immediately, even without rotation.
+  useEffect(()=>{
+    const angle=filter.current?.angle;
+    if(bearing!==null&&angle!==undefined)
+      advance(needleAngle,lastNeedle,(bearing-angle+360)%360);
+  },[bearing,needleAngle]);
 
   const recalibrateHeading=useCallback(()=>{
     // Start a fresh foreground subscription without discarding the last
     // geodesic bearing or forcing the GPS permission flow again.
     filter.current=null;
+    interferenceRef.current='unknown';
     setFreshness('recovering');
     setCompassAccuracy(null);
     setCycle(i=>i+1);
-    setMessage('Telefonu havada yavaşça 8 şeklinde hareket ettirip düz tut.');
+    setMessage('Telefonu havada yavaşça 8 şeklinde hareket ettirip yere paralel tut.');
   },[]);
 
   return {bearing,heading,compassAccuracy,freshness,
-    locationAccuracy,locationLabel,positionSource,positionUsable,
-    permissionDenied,busy,message,requestLocation,recalibrateHeading};
+    locationAccuracy,locationLabel,distanceKm,positionSource,positionUsable,
+    permissionDenied,busy,message,tilt,interference,errorDegrees,compassSource,
+    needleAngle,northAngle,requestLocation,recalibrateHeading};
 }

@@ -3,8 +3,48 @@ import assert from 'node:assert/strict';
 import {
   filterQiblaHeading,headingFreshness,isUsableQiblaFix,
   shortestHeadingDelta,QIBLA_HEADING_EXPIRED_MS,
-  QIBLA_POSITION_MAX_AGE_MS,
+  QIBLA_POSITION_MAX_AGE_MS,normalizeReportedHeading,qiblaTiltState,
+  magneticInterference,kaabaDistanceKm,
 } from './qiblaTracking.ts';
+
+test('negative true north near north (negative declination) is wrapped, -1 stays unknown',()=>{
+ assert.equal(normalizeReportedHeading(-2.5,1.5),357.5,'Expo: (1.5° + -4° declination) % 360');
+ assert.equal(normalizeReportedHeading(-1),-1,'-1 is the "no true north" sentinel');
+ assert.equal(normalizeReportedHeading(42),42);
+ assert.equal(normalizeReportedHeading(NaN),-1);
+ assert.equal(normalizeReportedHeading(-120,10),-120,'implausible values are not invented');
+});
+test('fused profile follows a real fast turn immediately and lags less',()=>{
+ const start=filterQiblaHeading(null,{trueHeading:10,accuracy:3},1000,'fused').filter!;
+ const raw=filterQiblaHeading(start,{trueHeading:100,accuracy:3},1080,'raw');
+ const fused=filterQiblaHeading(start,{trueHeading:100,accuracy:3},1080,'fused');
+ assert.equal(raw.accepted,false,'raw profile holds an unconfirmed 90° spike');
+ assert.equal(fused.accepted,true,'gyro-fused turns are real');
+ const slow=filterQiblaHeading(start,{trueHeading:20,accuracy:3},1100,'raw').filter!;
+ const quick=filterQiblaHeading(start,{trueHeading:20,accuracy:3},1100,'fused').filter!;
+ assert.ok(Math.abs(shortestHeadingDelta(quick.angle,20))<Math.abs(shortestHeadingDelta(slow.angle,20)));
+});
+test('tilt gates guidance: flat, tilted warning, upright not actionable',()=>{
+ assert.equal(qiblaTiltState(8),'flat');
+ assert.equal(qiblaTiltState(35),'tilted');
+ assert.equal(qiblaTiltState(70),'upright');
+ assert.equal(qiblaTiltState(NaN),'flat','iOS / unknown tilt never blocks guidance');
+});
+test('magnetic interference uses the location model with hysteresis',()=>{
+ assert.equal(magneticInterference(47,46),'none');
+ assert.equal(magneticInterference(70,46),'interference');
+ assert.equal(magneticInterference(54,46,'interference'),'interference','stays until <15%');
+ assert.equal(magneticInterference(51,46,'interference'),'none');
+ assert.equal(magneticInterference(120,-1),'interference','implausible without a model');
+ assert.equal(magneticInterference(45,-1),'none');
+ assert.equal(magneticInterference(-1,46),'unknown');
+});
+test('distance to the Kaaba is a plausible great-circle value',()=>{
+ const istanbul=kaabaDistanceKm(41.0082,28.9784);
+ assert.ok(istanbul>2350&&istanbul<2420,'Istanbul ≈ 2,385 km: '+istanbul);
+ assert.ok(kaabaDistanceKm(21.4225,39.8262)<0.001);
+ assert.throws(()=>kaabaDistanceKm(91,0));
+});
 
 test('shortest arc handles north wrap and invalid angles',()=>{
  assert.equal(shortestHeadingDelta(359,1),2);

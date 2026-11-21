@@ -38,8 +38,13 @@ export function headingFreshness(lastAccepted:number|null,now:number):HeadingFre
  *  - wraparound 359° -> 1° never becomes a 358° rotation
  *  - after a long suspension the filter safely restarts from the new pose
  */
+/** 'raw': expo-location style accel+mag heading — heavy smoothing and spike
+ * rejection. 'fused': rotation-vector (gyro-fused) heading — already smooth,
+ * so lighter smoothing keeps the needle responsive and sudden turns are real. */
+export type HeadingProfile='raw'|'fused';
 export function filterQiblaHeading(
   previous:HeadingFilter|null,sample:HeadingSample,now:number,
+  profile:HeadingProfile='raw',
 ):HeadingResult{
   if(!Number.isFinite(now)||now<0)throw new RangeError('Invalid sample timestamp');
   const q=sample.accuracy;
@@ -55,8 +60,8 @@ export function filterQiblaHeading(
       accepted:true,updated:true};
   const elapsed=now-previous.acceptedAt;
   const rawDelta=Math.abs(shortestHeadingDelta(previous.rawAngle,raw));
-  const suspicious=(elapsed<130&&rawDelta>65)||
-    (elapsed<250&&rawDelta>130);
+  const suspicious=profile==='raw'&&((elapsed<130&&rawDelta>65)||
+    (elapsed<250&&rawDelta>130));
   if(suspicious){
     const corroborated=previous.suspectAngle!==undefined &&
       previous.suspectAt!==undefined&&now-previous.suspectAt<750&&
@@ -66,7 +71,8 @@ export function filterQiblaHeading(
         accepted:false,updated:false};
   }
   const diff=shortestHeadingDelta(previous.angle,raw);
-  const tau=Math.abs(diff)>25?125:Math.abs(diff)>8?190:310;
+  const lag=profile==='fused'?.4:1;
+  const tau=(Math.abs(diff)>25?125:Math.abs(diff)>8?190:310)*lag;
   const alpha= Math.max(.12,Math.min(.9,1-Math.exp(-Math.max(8,elapsed)/tau)));
   const maxStep=Math.max(8,Math.min(135,Math.max(16,elapsed)*.85));
   const step=Math.max(-maxStep,Math.min(maxStep,diff*alpha));
@@ -76,6 +82,57 @@ export function filterQiblaHeading(
     angle:changed?smoothed:previous.angle,rawAngle:raw,
     acceptedAt:now,accuracy:quality,
   },accepted:true,updated:changed};
+}
+
+/** Native/Expo heading payloads use -1 for "true north unknown". Expo's
+ * Android heading computes (magnetic + declination) % 360, which is NEGATIVE
+ * near north wherever declination is negative (W. Europe, the Americas);
+ * those are valid angles and must be wrapped, not discarded. */
+export function normalizeReportedHeading(trueHeading:number,magHeading?:number):number{
+  if(!Number.isFinite(trueHeading))return -1;
+  if(trueHeading===-1)return -1;
+  if(trueHeading<0&&trueHeading>-90&&(magHeading===undefined||magHeading>=0))
+    return normalizeBearing(trueHeading);
+  return trueHeading;
+}
+
+/** Device tilt from horizontal. The needle uses the phone's TOP edge, which
+ * is only a reliable direction when the phone is held reasonably flat. */
+export type QiblaTilt='flat'|'tilted'|'upright';
+export const QIBLA_TILT_TILTED_DEG=30;
+export const QIBLA_TILT_UPRIGHT_DEG=55;
+export function qiblaTiltState(tiltDeg:number):QiblaTilt{
+  if(!Number.isFinite(tiltDeg)||tiltDeg<0)return 'flat';
+  return tiltDeg>=QIBLA_TILT_UPRIGHT_DEG?'upright':tiltDeg>=QIBLA_TILT_TILTED_DEG?'tilted':'flat';
+}
+
+/** Magnetic interference: measured field strength vs. the geomagnetic model
+ * at the user's location (≈25–65 µT on Earth). Speakers, magnetic cases,
+ * laptops and steel furniture distort both magnitude and direction.
+ * Hysteresis (enter 25%, leave 15%) prevents the warning from flickering. */
+export type MagneticInterference='none'|'interference'|'unknown';
+export function magneticInterference(
+  fieldUT:number,expectedUT:number,previous:MagneticInterference='none',
+):MagneticInterference{
+  if(!Number.isFinite(fieldUT)||fieldUT<=0)return 'unknown';
+  // Without a location model, only a physically implausible field is flagged.
+  if(!Number.isFinite(expectedUT)||expectedUT<=0)
+    return fieldUT<18||fieldUT>80?'interference':'none';
+  const deviation=Math.abs(fieldUT-expectedUT)/expectedUT;
+  const threshold=previous==='interference'?.15:.25;
+  return deviation>threshold?'interference':'none';
+}
+
+/** Great-circle (haversine) distance to the Kaaba in kilometres. */
+export function kaabaDistanceKm(latitude:number,longitude:number):number{
+  if(!Number.isFinite(latitude)||Math.abs(latitude)>90||
+     !Number.isFinite(longitude)||Math.abs(longitude)>180)
+    throw new RangeError('Invalid coordinate');
+  const r=Math.PI/180,R=6371.0088;
+  const dLat=(21.4225-latitude)*r,dLon=(39.8262-longitude)*r;
+  const a=Math.sin(dLat/2)**2+
+    Math.cos(latitude*r)*Math.cos(21.4225*r)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(a)));
 }
 
 export type QiblaFix={
