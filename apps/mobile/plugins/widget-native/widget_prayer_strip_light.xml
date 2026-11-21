@@ -86,8 +86,8 @@
    android:includeFontPadding="false"/>
   <Chronometer android:id="@+id/widget_strip_countdown"
    android:layout_width="wrap_content" android:layout_height="wrap_content"
-   android:layout_marginStart="8dp" android:text="--:--" android:textColor="#152821"
-   android:textSize="24sp" android:textStyle="bold" android:singleLine="true"
+   android:layout_marginStart="8dp" android:text="--:--" android:textColor="#91652D"
+   android:textSize="24sp" android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:singleLine="true"
    android:includeFontPadding="false"/>
  </LinearLayout>
 </LinearLayout>

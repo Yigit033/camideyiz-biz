@@ -17,7 +17,7 @@
  <LinearLayout android:layout_width="match_parent" android:layout_height="39dp" android:gravity="center"
   android:orientation="vertical" android:layout_marginTop="6dp"
   android:background="@drawable/widget_chip_dark">
- <Chronometer android:id="@+id/widget_slim_countdown" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F4D392" android:textSize="20sp" android:textStyle="bold" android:fontFamily="sans-serif-medium" android:includeFontPadding="false" android:gravity="center" android:singleLine="true"/>
+ <Chronometer android:id="@+id/widget_slim_countdown" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F4D392" android:textSize="16sp" android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:includeFontPadding="false" android:gravity="center" android:singleLine="true"/>
  </LinearLayout>
  </LinearLayout>
 </LinearLayout>

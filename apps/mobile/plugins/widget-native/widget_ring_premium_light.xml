@@ -26,8 +26,8 @@
    android:gravity="center" android:includeFontPadding="false"/>
   <Chronometer android:id="@+id/widget_ring_premium_countdown" android:layout_width="wrap_content"
    android:layout_height="wrap_content" android:layout_marginTop="4dp"
-   android:text="--:--" android:textSize="33sp" android:textStyle="bold"
-   android:fontFamily="sans-serif-medium" android:textColor="#F4D392"
+   android:text="--:--" android:textSize="31sp" android:textStyle="bold"
+   android:fontFamily="sans-serif-condensed" android:textColor="#F4D392"
    android:singleLine="true" android:includeFontPadding="false"/>
   <TextView android:id="@+id/widget_ring_premium_next" android:layout_width="match_parent"
    android:layout_height="wrap_content" android:text="Takvim" android:textSize="15sp"

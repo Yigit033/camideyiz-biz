@@ -8,6 +8,6 @@
  <LinearLayout android:id="@+id/widget_compact_remaining_row" android:layout_width="match_parent"
   android:layout_height="23dp" android:orientation="vertical" android:gravity="center" android:layout_marginTop="3dp"
   android:background="@drawable/widget_chip_dark">
- <Chronometer android:id="@+id/widget_compact_countdown" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F4D392" android:textSize="15sp" android:textStyle="bold" android:fontFamily="sans-serif-medium" android:includeFontPadding="false" android:gravity="center" android:singleLine="true"/>
+ <Chronometer android:id="@+id/widget_compact_countdown" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F4D392" android:textSize="15sp" android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:includeFontPadding="false" android:gravity="center" android:singleLine="true"/>
  </LinearLayout>
 </LinearLayout>
