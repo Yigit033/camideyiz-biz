@@ -23,7 +23,7 @@ type NativeWidgetHealth={
   lastSyncAt:number;nextAlarmAt:number;
   calendarSourceAt:number;calendarEndsAt:number;sourceAgeHours:number;
   osRecoveryMinutes:number;
-  engineVersion?:number;
+  engineVersion?:number;engineRevision?:string;
   nativeQueueWaitMs?:number;nativeBridgeQueueWaitMs?:number;
   nativeBatchMs?:number;nativeMaxBatchMs?:number;
   nativeLastBatchSize?:number;nativeCoalescedEvents?:number;
@@ -162,7 +162,7 @@ export function Widget3Diagnostics(){
   const share=async()=>{
     try{
       await Share.share({message:
-        'Camideyiz Biz · Widget Engine 4.0 tanılama\n'+
+        'Camideyiz Biz · Widget Engine 4.1 tanılama\n'+
         JSON.stringify({
           time:new Date().toISOString(),
           selectedDistrictId:cityId,
@@ -185,7 +185,7 @@ export function Widget3Diagnostics(){
       </View>
       <View style={{flex:1,gap:5}}>
         <Text style={{fontFamily:'serif',fontSize:16,fontWeight:'700',color:colors.text}}>
-          Widget Engine 4.0 · Sistem Tanısı
+          Widget Engine 4.1 · Sistem Tanısı
         </Text>
         <Text style={{fontSize:12,color:colors.text,fontWeight:'800'}}>
           {description.title}
@@ -232,7 +232,7 @@ export function Widget3Diagnostics(){
         ['Son native çizim isteği',clock(health?.lastHostDispatchAt??0)],
         ['Son kontrol',clock(health?.lastAttemptAt??0)],
         ['Son tetikleyici',health?.lastRefreshReason||'—'],
-        ['Native motor sürümü',String(health?.engineVersion??'Eski APK')],
+        ['Native motor sürümü',String(health?.engineRevision??health?.engineVersion??'Eski APK')],
         ['Native son işlem / kayıt / çizim (ms)',[
           health?.nativeRefreshMs??'—',health?.nativeCommitMs??'—',
           health?.nativeRenderMs??'—'].join(' / ')],
