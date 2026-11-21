@@ -383,8 +383,8 @@ public final class WidgetBoundaryScheduler {
   }
 
   private static String launcherShortName(int index){
-    return new String[]{"next","day","compact","focus","strip",
-        "miniRing","premiumRing","slim"}[index];
+    return new String[]{"next","daily","compact","focus","strip",
+        "ring:mini","ring:premium","slim"}[index];
   }
 
   /** Per-family signatures must not include the clock's moving seconds:

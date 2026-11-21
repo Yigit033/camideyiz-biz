@@ -5,6 +5,7 @@
  * Deliberately no React Native, Expo, AsyncStorage, clock/GPS or network import.
  */
 export const HEADLESS_RECHECK_MS=2*60*60_000;
+export const WIDGET_BRAND_ASSET_VERSION=2;
 export const HEADLESS_COVERAGE_MS=24*60*60_000;
 export const HEADLESS_MAX_SOURCE_AGE_MS=16*24*60*60_000;
 
@@ -17,6 +18,7 @@ export type HeadlessNativeHealth={
   installedNext?:number;installedDay?:number;
   installedCompact?:number;installedFocus?:number;installedStrip?:number;
   installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;
+  brandAssetVersion?:number;nativeRenderPending?:boolean;
 };
 
 export function shouldSkipWidgetHeadlessRefresh(
@@ -25,6 +27,8 @@ export function shouldSkipWidgetHeadlessRefresh(
   if(!input||typeof input!=='object'||Array.isArray(input)||
      !Number.isFinite(now))return false;
   const v=input as HeadlessNativeHealth;
+  if(v.brandAssetVersion!==WIDGET_BRAND_ASSET_VERSION||
+     v.nativeRenderPending===true)return false;
   if(v.supported!==true||v.persisted!==true||v.hasTimeline!==true||
      v.lastReady!==true||v.lastError!==''||v.lastTransferError!=='')return false;
   if(!Number.isSafeInteger(v.activeCityId)||!v.activeCityId||
