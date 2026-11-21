@@ -334,7 +334,7 @@ Referanslar:
 - https://github.com/expo/expo/issues/52173
 
 
-## 15 Kasım 2026 — Ana sayfa çemberi ve kerahat geri bildirimi
+## 15 Kasım 2026 — Ana sayfa çemberi ve kerahet geri bildirimi
 
 Kullanıcı geri bildirimleri doğrultusunda Home (Expo Router) üzerinde:
 - **Üst gösterge artık içinde bulunulan vakti** seçer
@@ -347,13 +347,13 @@ Kullanıcı geri bildirimleri doğrultusunda Home (Expo Router) üzerinde:
   Saatler alt satırdan çıkarılıp her renkli sektörün **başlangıç
   açısında HH:MM etiketleri** olarak gösterilir. Animasyon sırasında
   metinler ters dönmez (counter-rotation).
-- Mevcut namaz çemberi/animasyon boyutlarını koruyarak kerahat
+- Mevcut namaz çemberi/animasyon boyutlarını koruyarak kerahet
   işaretleri **iç çemberde ince ayrı bir halka** haline getirilir;
   dış çemberdeki eski uyarı çizgileri artık kullanılmaz.
-- Kerahat ana sayfada **Kerahat Vakitleri** başlığı altında
+- Kerahet ana sayfada **Kerahet Vakitleri** başlığı altında
   güneş doğuşu, zeval ve gün batımı için üç görselleştirilmiş kartta
-  gösterilir. Kerahat tercihleri ana sayfadan kaldırıldı;
-  `Diğer > Namaz Takvimi Ayarları > Kerahat Vakitleri` ekranında
+  gösterilir. Kerahet tercihleri ana sayfadan kaldırıldı;
+  `Diğer > Namaz Takvimi Ayarları > Kerahet Vakitleri` ekranında
   görünürlük ve 3 görsel aralık süresi düzenlenir.
 - Yeni tercihlerde ayrı bir `standart/varsayılan` mod sunulmaz:
   tek ayarlanabilir görsel profil + gizleme seçeneği vardır.

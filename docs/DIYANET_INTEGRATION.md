@@ -56,7 +56,7 @@ Yeterli doğrulanmış tarih yoksa mobil örnek saat göstermez.
 - API şifresi/tokens/log içerikleri asla \`EXPO_PUBLIC\` değişkeni olmamalı ve GitHub'a gönderilmemeli.
 - İnternet kesintisinde yalnızca tarih, kimlik ve orijinal fetchedAt doğrulaması geçen daha önce indirilmiş takvim kullanılır ve “Çevrimdışı” olarak işaretlenir.
 - Şüpheli, tarihi yanlış, eksik veya tutarsız içerik **fail closed** davranışıyla reddedilir.
-- Örnek kerahat aralıkları gerçek Diyanet verisi gelince **aktif olmaz**. Doğrulanmış fıkhî yöntem, özel istisnalar ve dinî uzman incelemesi ayrıca gereklidir.
+- Örnek kerahet aralıkları gerçek Diyanet verisi gelince **aktif olmaz**. Doğrulanmış fıkhî yöntem, özel istisnalar ve dinî uzman incelemesi ayrıca gereklidir.
 
 ## Önemli eksikler
 - Gerçek API hesabı, Supabase anahtarları, canlı Next deployment ve gerçek telefon testi yok.

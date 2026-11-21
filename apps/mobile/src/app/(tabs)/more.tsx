@@ -36,16 +36,16 @@ export default function MoreScreen(){
         <Text style={[styles.headingText,{color:colors.text}]}>Namaz Takvimi Ayarları</Text>
       </View>
       <Pressable accessibilityRole="button"
-        accessibilityLabel="Kerahat vakitleri ve iç çember ayarlarını aç"
+        accessibilityLabel="Kerahet vakitleri ve iç çember ayarlarını aç"
         onPress={()=>router.push('/kerahat-settings')}
         style={[styles.share,{backgroundColor:colors.soft}]}>
         <MaterialCommunityIcons name="weather-sunset" size={20} color={colors.gold}/>
         <View style={{flex:1,gap:4}}>
           <Text style={{color:colors.text,fontSize:14,fontWeight:'800'}}>
-            Kerahat Vakitleri
+            Kerahet Vakitleri
           </Text>
           <Text style={{color:colors.muted,fontSize:11,lineHeight:17}}>
-            İç halka, görünüm ve kerahat zaman aralıkları
+            İç halka, görünüm ve kerahet zaman aralıkları
           </Text>
         </View>
         <Feather name="chevron-right" size={19} color={colors.gold}/>

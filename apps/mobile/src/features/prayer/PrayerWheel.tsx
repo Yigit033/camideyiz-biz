@@ -291,7 +291,7 @@ export function PrayerWheel({
   const ringWindows=preview?[]:kerahatRingWindows(indicativeWindows,nowSeconds);
   const kerahatActive=ringWindows.some(window=>window.state==='active');
   const kerahatApproaching=ringWindows.some(window=>window.state==='approaching');
-  // Distinct high-contrast status colours; no change to kerahat intervals.
+  // Distinct high-contrast status colours; no change to kerahet intervals.
   const warningTint=kerahatActive?'#9B3546':kerahatApproaching?'#C78A38':null;
   const kerahatArcs=ringWindows.flatMap(window=>{
     const from=clockSecondsToVisualAngle(window.startSeconds,times,sectors);
@@ -301,7 +301,7 @@ export function PrayerWheel({
     return sectors.flatMap(sector=>{
       const start=Math.max(from,sector.from);
       const end=Math.min(to,sector.to);
-      // Never trim minute-based kerahat durations by a decorative margin.
+      // Never trim minute-based kerahet durations by a decorative margin.
       return end>start+.02?[{...window,from:start,to:end,
         sectorKey:sector.key}]:[];
     });
@@ -365,7 +365,7 @@ export function PrayerWheel({
                 strokeWidth="11" fill="none"/>
             </G>)}
             {/* 24 civil-hour divisions, each coloured by its actual
-                prayer interval. Render above wedges, below kerahat warnings. */}
+                prayer interval. Render above wedges, below kerahet warnings. */}
             {clockTicks.map(item=>{
               const major=item.hour%3===0;
               const start=polar(item.angle,major?167:170);
@@ -386,7 +386,7 @@ export function PrayerWheel({
               return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
                 stroke={colors.isDark?'#071E2D':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
             })}
-            {/* Approximate kerahat arcs share the SAME angular coordinates
+            {/* Approximate kerahet arcs share the SAME angular coordinates
                 on two concentric tracks. Outer = warning, inner = interval.
                 Both rotate WITH the physical dial, never with elapsed progress.
                 Active: deep burgundy; next 20min: warm amber; otherwise muted. */}
@@ -484,8 +484,8 @@ export function PrayerWheel({
           fontWeight:kerahatActive||kerahatApproaching?'900':'800',
         }]}>
           {preview?'NAMAZ VAKİTLERİ':isManualSelection?'SEÇİLEN VAKİT'
-            :kerahatActive?'KERAHAT VAKTİ'
-              :kerahatApproaching?'KERAHAT YAKLAŞIYOR':'SIRADAKİ VAKİT'}
+            :kerahatActive?'KERAHET VAKTİ'
+              :kerahatApproaching?'KERAHET YAKLAŞIYOR':'SIRADAKİ VAKİT'}
         </Text>
         <Text numberOfLines={1} adjustsFontSizeToFit
           style={[styles.prayerName,{color:colors.text}]}>

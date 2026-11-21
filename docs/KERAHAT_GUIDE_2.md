@@ -1,7 +1,7 @@
-# Kerahat 2.0 — original source posters, lossless WebP
+# Kerahet 2.0 — original source posters, lossless WebP
 
 ## Status
-- Screen has two tabs: **Ağır Kerahat** / **Hafif Kerahat**.
+- Screen has two tabs: **Ağır Kerahet** / **Hafif Kerahet**.
 - Tabs show the original 1126×2000 user-supplied artwork with no cropping
   or overlays. Zoom/scroll preserves source content.
 - Release APK refuses temporary WebP placeholders; assets require a manifest.

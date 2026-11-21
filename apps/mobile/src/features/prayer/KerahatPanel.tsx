@@ -50,13 +50,13 @@ export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
           color={active?'#DC8E90':dark?'#E8C18A':'#A2733C'}/>
       </View>
       <View style={{flex:1,gap:3}}>
-        <Text style={[styles.title,{color:colors.text}]}>Kerahat Vakitleri</Text>
+        <Text style={[styles.title,{color:colors.text}]}>Kerahet Vakitleri</Text>
         <Text style={[styles.subtitle,{color:colors.muted}]}>
           {locationName} · Yaklaşık zaman aralıkları
         </Text>
       </View>
       <Pressable accessibilityRole="button"
-        accessibilityLabel="Kerahat vakitleri rehberini aç"
+        accessibilityLabel="Kerahet vakitleri rehberini aç"
         onPress={()=>openGuide('heavy')} hitSlop={10}
         style={[styles.infoIcon,{
           borderColor:colors.border,backgroundColor:colors.soft,
@@ -112,13 +112,13 @@ export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
       <Feather name={enabled?'clock':'eye-off'} size={17} color={colors.gold}/>
       <Text style={{flex:1,fontSize:11,lineHeight:18,color:colors.muted}}>
         {enabled?'İlçenin güncel takvimi alındığında aralıklar gösterilir.'
-          :'Kerahat halkası ayarlardan gizlenmiş.'}
+          :'Kerahet halkası ayarlardan gizlenmiş.'}
       </Text>
     </View>}
 
     <View style={styles.guideRow}>
       <Pressable accessibilityRole="button"
-        accessibilityLabel="Ağır kerahat vakitleri rehberini aç"
+        accessibilityLabel="Ağır kerahet vakitleri rehberini aç"
         onPress={()=>openGuide('heavy')}
         style={[styles.guideButton,{
           borderColor:colors.border,
@@ -127,12 +127,12 @@ export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
         <MaterialCommunityIcons name="weather-sunset" size={19}
           color={dark?'#EEC1AC':'#9B564C'}/>
         <Text style={[styles.guideText,{color:colors.text}]}>
-          Ağır Kerahat
+          Ağır Kerahet
         </Text>
         <Feather name="chevron-right" size={15} color={colors.gold}/>
       </Pressable>
       <Pressable accessibilityRole="button"
-        accessibilityLabel="Hafif kerahat vakitleri rehberini aç"
+        accessibilityLabel="Hafif kerahet vakitleri rehberini aç"
         onPress={()=>openGuide('light')}
         style={[styles.guideButton,{
           borderColor:colors.border,
@@ -141,7 +141,7 @@ export function KerahatPanel({view,settings,locationName,secondsOfDay}:{
         <MaterialCommunityIcons name="information-outline" size={19}
           color={dark?'#6CCCF7':'#168D8B'}/>
         <Text style={[styles.guideText,{color:colors.text}]}>
-          Hafif Kerahat
+          Hafif Kerahet
         </Text>
         <Feather name="chevron-right" size={15} color={colors.gold}/>
       </Pressable>

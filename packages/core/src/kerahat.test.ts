@@ -55,7 +55,7 @@ test('invalid or unsafe manual configuration is rejected before persistence',()=
  assert.throws(()=>validateKerahatSettings({...DEFAULT_KERAHAT_SETTINGS,mode:'official'}));
  assert.throws(()=>formatWindowClock(86400));
 });
-test('demo, stale or hidden input never produces live kerahat markers',()=>{
+test('demo, stale or hidden input never produces live kerahet markers',()=>{
  assert.equal(getKerahatView(DEMO_SCHEDULE,DEMO_SCHEDULE.dateISO,sec(8,0)).windows.length,0);
  assert.equal(getKerahatView(istanbul,'2026-11-13',sec(8,0)).windows.length,0);
  assert.equal(getKerahatView(istanbul,'2026-11-14',sec(8,0),

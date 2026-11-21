@@ -39,7 +39,7 @@ test('Prayer icons sit at the angular midpoint of their own sector',()=>{
     'even a narrow wedge retains a centered icon');
   assert.throws(()=>prayerSectorLabelAngle(36,32));
 });
-test('P1 kerahat ring has a 20m amber approach and burgundy active band at exact bounds',()=>{
+test('P1 kerahet ring has a 20m amber approach and burgundy active band at exact bounds',()=>{
   const sunrise=windows[0];
   const before=kerahatRingWindows(windows,sunrise.startSeconds-20*60-1);
   assert.equal(before[0].state,'inactive');
@@ -58,7 +58,7 @@ test('sunrise, zenith and sunset warnings are independent, approximate and date-
   assert.equal(kerahatRingWindows(windows,sec(17,10))[2].state,'active');
   assert.ok(kerahatRingWindows(windows,sec(21,0)).every(w=>w.state==='inactive'));
   assert.equal(kerahatRingWindows([],sec(17,10)).length,0,
-    'hidden or unavailable kerahat produces NO warning without source data');
+    'hidden or unavailable kerahet produces NO warning without source data');
   assert.throws(()=>kerahatRingWindows(windows,-1));
   assert.throws(()=>kerahatRingWindows(windows,86400));
   assert.throws(()=>kerahatRingWindows(windows,sec(12,0),-1));
@@ -103,7 +103,7 @@ test('outer progress tracks active wedge only, including actual next-day İmsak'
   assert.equal(currentPrayerArc(0,[],[]),null);
 });
 
-test('kerahat windows retain exact 24-hour proportional dial angles',()=>{
+test('kerahet windows retain exact 24-hour proportional dial angles',()=>{
   const sectors=makeVisualDialSectors(schedule.times);
 
   for(const w of windows){

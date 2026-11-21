@@ -51,15 +51,15 @@ export type KerahatView={
 
 export function validateKerahatSettings(value:unknown):KerahatSettings {
   if(!value||typeof value!=='object'||Array.isArray(value))
-    throw new RangeError('Invalid kerahat settings object');
+    throw new RangeError('Invalid kerahet settings object');
   const o=value as Record<string,unknown>;
   if(o.mode!=='standard'&&o.mode!=='custom'&&o.mode!=='hidden')
-    throw new RangeError('Invalid kerahat mode');
+    throw new RangeError('Invalid kerahet mode');
   for(const key of ['sunriseMinutes','preNoonMinutes','preSunsetMinutes'] as const){
     const amount=o[key],range=KERAHAT_RANGES[key];
     if(typeof amount!=='number'||!Number.isInteger(amount)||
       amount<range.min||amount>range.max)
-      throw new RangeError('Invalid visual kerahat offset: '+key);
+      throw new RangeError('Invalid visual kerahet offset: '+key);
   }
   return {
     mode:o.mode,

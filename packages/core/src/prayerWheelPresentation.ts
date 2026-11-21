@@ -111,7 +111,7 @@ export type KerahatRingState='inactive'|'approaching'|'active';
 export type KerahatRingWindow=RestrictionWindow&{
   state:KerahatRingState;
 };
-/** A restrained 20-minute notice before an *approximate* kerahat window.
+/** A restrained 20-minute notice before an *approximate* kerahet window.
  * Half-open [start,end) boundaries prevent false active highlights.
  */
 export const KERAHAT_APPROACH_SECONDS=20*60;

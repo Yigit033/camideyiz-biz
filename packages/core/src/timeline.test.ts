@@ -30,7 +30,7 @@ test('urgency thresholds are deterministic',()=>{
   assert.equal(calculatePrayerPhase(DEMO_SCHEDULE,ak-15*60).urgency,'imminent');
   assert.equal(calculatePrayerPhase(DEMO_SCHEDULE,ak).next.key,'yatsi');
 });
-test('three indicative kerahat periods are distinct and bounded',()=>{
+test('three indicative kerahet periods are distinct and bounded',()=>{
   const w=indicativeKerahatWindows(DEMO_SCHEDULE);
   assert.deepEqual(w.map(x=>x.kind),['sunrise','zenith','sunset']);
   assert.deepEqual(w.map(x=>[x.startSeconds/60,x.endSeconds/60]),[

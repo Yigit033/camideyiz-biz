@@ -28,8 +28,8 @@ assert.match(wheel,/position:'absolute',top:4\*scale,left:0,right:0/);
 // Keep individual approximate ranges and both heavy/light guides.
 assert.doesNotMatch(panel,/styles\.statusRow|statusText=|\{statusText\}/);
 assert.match(panel,/styles\.cards/);
-assert.match(panel,/Ağır Kerahat/);
-assert.match(panel,/Hafif Kerahat/);
+assert.match(panel,/Ağır Kerahet/);
+assert.match(panel,/Hafif Kerahet/);
 
 // Never silently substitute a pre-cropped thumbnail for the full photograph.
 // A fixed portrait frame with explicit Android Image width/height prevents
@@ -46,11 +46,11 @@ assert.match(gallery,/flexWrap:'wrap'/);
 assert.match(gallery,/tiles\.map\(slot=>/);
 assert.match(gallery,/maxWidth:tileWidth\*2\+TILE_SPACING/);
 
-// Keep ring calculation unchanged; kerahat stands out at a glance.
+// Keep ring calculation unchanged; kerahet stands out at a glance.
 assert.match(wheel,/const kerahatArcs=ringWindows\.flatMap/);
 assert.match(wheel,/strokeWidth=\{kerahatActive\?3\.5:kerahatApproaching\?2\.6:\.8\}/);
-assert.match(wheel,/'KERAHAT VAKTİ'/);
+assert.match(wheel,/'KERAHET VAKTİ'/);
 assert.match(wheel,/window\.state==='active'\?15\.5/);
 assert.match(wheel,/window\.state==='active'\?14/);
 
-console.log('Home visual QA: original emblem hierarchy, stationary mosque pin, uncropped aligned gallery, removed redundant card and strong kerahat cues OK');
+console.log('Home visual QA: original emblem hierarchy, stationary mosque pin, uncropped aligned gallery, removed redundant card and strong kerahet cues OK');

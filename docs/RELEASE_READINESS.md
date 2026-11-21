@@ -9,7 +9,7 @@
 - [x] Kaynak yanıtı yoksa yanlış namaz saati üretmeyen tam tasarım.
 - [x] İstanbul 14.11.2026 vakitleri resmi Diyanet web takvimiyle örnek karşılaştırmada eşleşti.
 - [ ] Gerçek Android/iOS cihaz ve diğer il/ilçelerde veri/kullanım koşulları QA.
-- [x] Kerahat 2.0 yaklaşık üç aralık için çember vurgusu, konuma bağlı saat, kişisel gösterim ayarı.
+- [x] Kerahet 2.0 yaklaşık üç aralık için çember vurgusu, konuma bağlı saat, kişisel gösterim ayarı.
 - [x] Günün Ayeti/Hadisi 2.0: 12+7 kaynaklı kısa alıntı, günlük döngü, yerel favori, paylaşım.
 - [ ] Haftalık görünüm, çoklu konum ve Galeri ürün özellikleri.
 - [x] Widget ve bildirim altyapısı kodlandı (Expo SDK58 iOS/Android widget, 6 vakit, yerel plan, inbox).
@@ -73,9 +73,9 @@ Kaynaklar:
 - On foreground tab focus, location is refreshed if older than 90s; sensor is unsubscribed on blur.
 - Kıble bottom-tab label overlap corrected; physical Android/iOS screenshot QA still pending.
 
-## 14 Kasım 2026 — Kerahat ve Günün Seçkisi 2.0
+## 14 Kasım 2026 — Kerahet ve Günün Seçkisi 2.0
 
-- Yaklaşık kerahat bantları gerçek namaz saatine göre çizilir; dakika ayarı kişisel görselleştirmedir, fetva değildir.
+- Yaklaşık kerahet bantları gerçek namaz saatine göre çizilir; dakika ayarı kişisel görselleştirmedir, fetva değildir.
 - Günlük kartlar artık sabit değil; kaynaklı yerel 12 ayet / 7 hadis kataloğu vardır.
 - Uygulama ek DB/sunucu/API anahtarı gerektirmeden çevrimdışı günlük seçki ve favori yönetimi sunar.
 - Yayın engeli: dinî uzman incelemesi, alıntıların yayın izni, fiziksel Android/iOS QA; dokümantasyon [KERAHAT_AND_DAILY_WISDOM_2.md](KERAHAT_AND_DAILY_WISDOM_2.md).

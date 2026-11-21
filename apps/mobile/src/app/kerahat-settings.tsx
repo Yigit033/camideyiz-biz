@@ -32,7 +32,7 @@ export default function KerahatSettingsScreen(){
   const openSource=()=>void Linking.openURL(KERAHAT_SOURCE_URL)
     .catch(()=>Alert.alert('Bağlantı açılamadı','İnternet bağlantını kontrol et.'));
 
-  return <Page title="Kerahat Vakitleri"
+  return <Page title="Kerahet Vakitleri"
     subtitle="İç halka görünümünü ve yaklaşık aralıkları yönet. Namaz vakitleri değişmez.">
     <Pressable onPress={()=>router.back()} accessibilityRole="button"
       accessibilityLabel="Ayarlar sayfasına dön"
@@ -47,14 +47,14 @@ export default function KerahatSettingsScreen(){
         </View>
         <View style={{flex:1,gap:4}}>
           <Text style={{fontSize:17,fontFamily:'serif',color:colors.text,fontWeight:'700'}}>
-            Çemberde kerahat halkası
+            Çemberde kerahet halkası
           </Text>
           <Text style={{fontSize:11,lineHeight:17,color:colors.muted}}>
             Üç aralığı ana namaz çemberinin iç tarafında ayrı bir halkayla gösterir.
           </Text>
         </View>
         <Switch value={enabled} onValueChange={toggle} disabled={!ready}
-          accessibilityLabel="Kerahat halkasını göster"
+          accessibilityLabel="Kerahet halkasını göster"
           trackColor={{false:colors.border,true:colors.emerald}}
           thumbColor="#FFF8E9"/>
       </View>
@@ -66,11 +66,11 @@ export default function KerahatSettingsScreen(){
       <Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
         Türkiye için uygulama başlangıç profili: 45 / 30 / 45 dk. Bu değerler
         kişiselleştirilebilir görsel uyarı süreleridir; resmî dinî hüküm veya
-        Diyanet tarafından yayımlanan sabit kerahat süresi değildir.
+        Diyanet tarafından yayımlanan sabit kerahet süresi değildir.
         Namaz vakitleri değiştirilmez.
       </Text>
       <Pressable accessibilityRole="button"
-        accessibilityLabel="Kerahat uyarı sürelerini 45, 30 ve 45 dakikaya döndür"
+        accessibilityLabel="Kerahet uyarı sürelerini 45, 30 ve 45 dakikaya döndür"
         disabled={!ready||isAtDefault}
         onPress={resetToDefault}
         style={[styles.resetButton,{
@@ -127,7 +127,7 @@ export default function KerahatSettingsScreen(){
             Kaynak ve dinî doğruluk
           </Text>
           <Text style={{fontSize:11.5,color:colors.muted,lineHeight:19}}>
-            Kerahat aralıkları güneş konumunun kesin ölçümü değildir; yayımlanmış
+            Kerahet aralıkları güneş konumunun kesin ölçümü değildir; yayımlanmış
             namaz saatlerinden türetilmiş, kişiselleştirilebilir yaklaşık
             görselleştirmelerdir. Farz ve nafile namazlarla ilgili hükümler aynı
             olmayabilir; mezhep farklılıklarını dikkate al.

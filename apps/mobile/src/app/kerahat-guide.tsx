@@ -19,8 +19,8 @@ const ORIGINAL_WIDTH=1126;
 const ORIGINAL_HEIGHT=2000;
 type Tab='heavy'|'light';
 const TABS:readonly {key:Tab;label:string}[]=[
-  {key:'heavy',label:'Ağır Kerahat'},
-  {key:'light',label:'Hafif Kerahat'},
+  {key:'heavy',label:'Ağır Kerahet'},
+  {key:'light',label:'Hafif Kerahet'},
 ];
 
 export default function KerahatGuideScreen(){
@@ -42,7 +42,7 @@ export default function KerahatGuideScreen(){
   const posterWidth=zoomed?viewportWidth*2:viewportWidth;
   const posterHeight=posterWidth*ORIGINAL_HEIGHT/ORIGINAL_WIDTH;
   const selected=tab==='heavy'
-    ?'Ağır Kerahat Vakitleri':'Hafif Kerahat Vakitleri';
+    ?'Ağır Kerahet Vakitleri':'Hafif Kerahet Vakitleri';
 
   // Expo resolves dimensions for bundled static PNGs. The temporary 1×1
   // placeholders must never masquerade as the original teaching posters.
@@ -68,9 +68,9 @@ export default function KerahatGuideScreen(){
         <Feather name="arrow-left" color={colors.text} size={21}/>
       </Pressable>
       <View style={styles.heading}>
-        <Text style={[styles.title,{color:colors.text}]}>Kerahat Vakitleri</Text>
+        <Text style={[styles.title,{color:colors.text}]}>Kerahet Vakitleri</Text>
         <Text style={[styles.subtitle,{color:colors.muted}]}>
-          Ağır ve hafif kerahat rehberi
+          Ağır ve hafif kerahet rehberi
         </Text>
       </View>
       <Pressable

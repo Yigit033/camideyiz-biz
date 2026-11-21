@@ -218,8 +218,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     : phase.urgency==='approaching'?'#EAC178'
     : colors.emerald;
   const stateTitle=restriction
-    ? 'KERAHAT · YAKLAŞIK ARALIK'
-    : approachingKerahat?'KERAHAT ARALIĞI YAKLAŞIYOR'
+    ? 'KERAHET · YAKLAŞIK ARALIK'
+    : approachingKerahat?'KERAHET ARALIĞI YAKLAŞIYOR'
     : nafileOnly ? 'NAFİLE NAMAZ BİLGİSİ'
     : phase.urgency==='imminent' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ ÇOK YAKIN'
     : phase.urgency==='approaching' ? phase.next.label.toLocaleUpperCase('tr-TR')+' VAKTİ YAKLAŞIYOR'
@@ -227,7 +227,7 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
   const stateDescription=restriction
     ? restriction.description
     : approachingKerahat
-      ? 'Yaklaşık '+kerahatMinutes+' dakika sonra bir kerahat zaman aralığı başlayacak. Ayrıntılar için Kerahat Vakitleri bölümüne bak.'
+      ? 'Yaklaşık '+kerahatMinutes+' dakika sonra bir kerahet zaman aralığı başlayacak. Ayrıntılar için Kerahet Vakitleri bölümüne bak.'
     : nafileOnly
     ? 'İmsak ile güneş arasında sabah namazının sünneti dışındaki nafile namazlarla ilgili kısıtlamalar vardır.'
     : phase.urgency!=='normal'
@@ -291,8 +291,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
             style={{fontSize:10.2,color:restriction||approachingKerahat?accented:colors.muted,
               fontWeight:restriction||approachingKerahat?'800':'600',flexShrink:1}}>
             {restriction
-              ? 'KERAHAT · '+restriction.title+' (yaklaşık)'
-              : approachingKerahat?'Kerahat aralığına yaklaşık '+kerahatMinutes+' dk'
+              ? 'KERAHET · '+restriction.title+' (yaklaşık)'
+              : approachingKerahat?'Kerahet aralığına yaklaşık '+kerahatMinutes+' dk'
               : nafileOnly ? 'İmsak sonrası · Nafile namaz bilgisi'
               : phase.urgency==='normal'
               ? 'Çember canlı zamanla dönüyor'

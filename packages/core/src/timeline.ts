@@ -26,7 +26,7 @@ export type PrayerPhase = {
 export type TimeAwareness = {
   phase: PrayerPhase;
   restriction: RestrictionWindow | null;
-  /** Every kerahat window produced by the prototype is indicative, NEVER an official ruling. */
+  /** Every kerahet window produced by the prototype is indicative, NEVER an official ruling. */
   indicativeWindows: readonly RestrictionWindow[];
   /** A live feed must supply the matching local date; stale data never produces live guidance. */
   usableForGuidance: boolean;

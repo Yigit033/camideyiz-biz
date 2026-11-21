@@ -2,7 +2,7 @@
 
 ## Ürün kapsamı
 
-Ana sayfanın **en altında** (mevcut Ayet/Hadis, Ezan, Kerahat ve vakit alanları bozulmadan) iki giriş kartı:
+Ana sayfanın **en altında** (mevcut Ayet/Hadis, Ezan, Kerahet ve vakit alanları bozulmadan) iki giriş kartı:
 1. **30 Günlük Namaz Vakitleri** — ana sayfada halihazırda doğrulanmış bugünkü İmsak, Öğle ve Akşam. Dokununca tam 30 günlük takvim. Yalnız açıldığında ağ/kaynak sorgusu.
 2. **Dini Günler ve Geceler** — Diyanet'in doğrulanmış 2026/2027 listelerinden sıradaki olay ve bağımsız yıl/kategori filtreli liste. İnternet gerektirmez.
 
