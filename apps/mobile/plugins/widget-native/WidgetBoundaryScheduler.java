@@ -23,6 +23,7 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -52,6 +53,15 @@ public final class WidgetBoundaryScheduler {
   // Do not erase a still-valid published timetable after only 72 hours.
   private static final long MAX_AGE = 16L * 24 * 60 * 60 * 1000;
   private static final long MAX_FUTURE = 17L * 24 * 60 * 60 * 1000;
+
+  // Process-local measurements are captured on Android's monotonic clock.
+  // A physical device is still required to establish actual frame/jank costs.
+  private static volatile long lastRefreshMs=0;
+  private static volatile long lastRenderMs=0;
+  private static volatile long lastCommitMs=0;
+  private static volatile long lastAlarmMs=0;
+  private static volatile long skippedUnchangedRenders=0;
+  private static volatile long renderedBatches=0;
 
   private WidgetBoundaryScheduler() {}
 
@@ -241,11 +251,14 @@ public final class WidgetBoundaryScheduler {
   /** Safe recovery is idempotent and reads only the persisted verified timeline.
    * Reasons are recorded for actionable support diagnostics, not pixel claims. */
   public static synchronized void refresh(Context context,String reason) {
+    final long started=SystemClock.elapsedRealtime();
     Context app=context.getApplicationContext();
     SharedPreferences local=prefs(app);
     long now=System.currentTimeMillis();
     long nextBoundary=0;
     int installed=0;
+    lastRenderMs=0;
+    lastCommitMs=0;
     local.edit().putLong("lastAttemptAt",now)
         .putString("lastRefreshReason",reason).apply();
     try {
@@ -264,11 +277,11 @@ public final class WidgetBoundaryScheduler {
           for(int i=0;i<entries.length();i++){
             JSONObject item=entries.getJSONObject(i);
             long at=item.getLong("at");
-            if(at<=now) selection=item.getJSONObject("props");
-            else { nextBoundary=at; break; }
+            if(at<=now)selection=item.getJSONObject("props");
+            else {nextBoundary=at;break;}
           }
           long expiresAt=Math.min(sourceAt+MAX_AGE,calendarEndsAt);
-          if(nextBoundary==0 || nextBoundary>expiresAt)
+          if(nextBoundary==0||nextBoundary>expiresAt)
             nextBoundary=expiresAt>now?expiresAt:0;
         }
       }
@@ -276,33 +289,112 @@ public final class WidgetBoundaryScheduler {
       selection.put("updatedAt",now);
       selection.put("updatedClock",clock(now));
       selection.put("nativeAppliedAt",now);
-
-      // Commit native data BEFORE a launcher update; if writing fails,
-      // report the error rather than treating update as successful.
-      if(!local.edit().putLong("lastAppliedAt",now)
-          .putLong("calendarEndsAt",calendarEndsAt)
-          .putLong("calendarSourceAt",sourceAt)
-          .putString("lastProps",selection.toString())
-          .putString("lastNextName",selection.optString("nextName",""))
-          .putString("lastNextTime",selection.optString("nextTime",""))
-          .putString("lastCity",selection.optString("city",""))
-          .putString("lastDateISO",selection.optString("dateISO",""))
-          .putBoolean("lastReady",selection.optBoolean("ready",false))
-          .remove("lastError").commit())
-        throw new IllegalStateException("native snapshot commit failed");
-
-      installed=renderWidgets(app,selection);
-      local.edit().putInt("lastInstanceCount",installed)
-          .putLong("lastHostDispatchAt",installed>0?now:0).apply();
+      WidgetInventory inventory=inspectWidgetInventory(app,selection);
+      installed=inventory.count;
+      boolean force=forceFullRender(reason);
+      boolean unchanged=!force&&local.getLong("lastAppliedAt",0)>0&&
+          local.getString("lastError","").isEmpty()&&
+          inventory.signature.equals(local.getString("lastRenderSignature",""));
+      if(unchanged){
+        // Chronometer already ticks inside the launcher. No duplicate bitmap,
+        // RemoteViews IPC, synchronous commit or JS wakeup is necessary.
+        skippedUnchangedRenders++;
+        local.edit().putLong("calendarEndsAt",calendarEndsAt)
+            .putLong("calendarSourceAt",sourceAt).apply();
+      }else{
+        long committedAt=SystemClock.elapsedRealtime();
+        // Preserve old semantics: a successful native publish acknowledges the
+        // persisted data only after a successful full host dispatch.
+        if(!local.edit().putLong("lastAppliedAt",now)
+            .putLong("calendarEndsAt",calendarEndsAt)
+            .putLong("calendarSourceAt",sourceAt)
+            .putString("lastProps",selection.toString())
+            .putString("lastNextName",selection.optString("nextName",""))
+            .putString("lastNextTime",selection.optString("nextTime",""))
+            .putString("lastCity",selection.optString("city",""))
+            .putString("lastDateISO",selection.optString("dateISO",""))
+            .putBoolean("lastReady",selection.optBoolean("ready",false))
+            .remove("lastError").commit())
+          throw new IllegalStateException("native snapshot commit failed");
+        lastCommitMs=SystemClock.elapsedRealtime()-committedAt;
+        long renderAt=SystemClock.elapsedRealtime();
+        installed=renderWidgets(app,selection,inventory.ids);
+        lastRenderMs=SystemClock.elapsedRealtime()-renderAt;
+        renderedBatches++;
+        local.edit().putString("lastRenderSignature",inventory.signature)
+            .putInt("lastInstanceCount",installed)
+            .putLong("lastHostDispatchAt",installed>0?now:0).apply();
+      }
     }catch(Exception error){
       Log.e(TAG,"Native launcher widget update failed",error);
       local.edit().putString("lastError",
           error.getClass().getSimpleName()+": "+error.getMessage()).apply();
       nextBoundary=0;
     }
-    // No pinned widgets: do not keep waking the process for prayer boundaries.
-    // AppWidgetProvider.onUpdate() will restart the alarm when a widget is added.
-    scheduleNext(app,installed>0?nextBoundary:0,now);
+    // No pinned widgets: no alarm. A reboot/time change MUST rearm alarms.
+    long alarmAt=SystemClock.elapsedRealtime();
+    scheduleNext(app,installed>0?nextBoundary:0,now,forceAlarmRearm(reason));
+    lastAlarmMs=SystemClock.elapsedRealtime()-alarmAt;
+    lastRefreshMs=SystemClock.elapsedRealtime()-started;
+    if(lastRefreshMs>1500)
+      Log.w(TAG,"Slow widget refresh "+lastRefreshMs+"ms, reason="+reason+
+          ", commit="+lastCommitMs+", render="+lastRenderMs+", alarm="+lastAlarmMs);
+  }
+
+  private static boolean forceAlarmRearm(String reason){
+    return reason.contains("BOOT_COMPLETED")||reason.contains("TIME_SET")||
+        reason.contains("TIMEZONE_CHANGED")||reason.contains("MY_PACKAGE_REPLACED");
+  }
+
+  private static boolean forceFullRender(String reason){
+    return forceAlarmRearm(reason)||reason.startsWith("manual:")||
+        reason.startsWith("theme:");
+  }
+
+  private static final class WidgetInventory{
+    final int[][] ids;
+    final int count;
+    final String signature;
+    WidgetInventory(int[][] ids,int count,String signature){
+      this.ids=ids;this.count=count;this.signature=signature;
+    }
+  }
+
+  /** Only eight binder inventory reads per refresh, including a widget-ID
+   * fingerprint: replacing one 1×1 instance without changing count still
+   * triggers its initial render.
+   */
+  private static WidgetInventory inspectWidgetInventory(
+      Context context,JSONObject props){
+    AppWidgetManager manager=AppWidgetManager.getInstance(context);
+    int[][] ids={
+      manager.getAppWidgetIds(component(context,NAMES[0])),
+      manager.getAppWidgetIds(component(context,NAMES[1])),
+      manager.getAppWidgetIds(component(context,NAMES[2])),
+      manager.getAppWidgetIds(component(context,NAMES[3])),
+      manager.getAppWidgetIds(component(context,NAMES[4])),
+      manager.getAppWidgetIds(component(context,NAMES[5])),
+      manager.getAppWidgetIds(component(context,NAMES[6])),
+      manager.getAppWidgetIds(component(context,NAMES[7]))
+    };
+    StringBuilder key=new StringBuilder(600);
+    key.append(prefs(context).getInt("activeCityId",0)).append('|')
+      .append(lightTheme(context)).append('|')
+      .append(props.optBoolean("ready",false)).append('|')
+      .append(props.optString("city","")).append('|')
+      .append(props.optString("dateISO","")).append('|')
+      .append(props.optString("nextName","")).append('|')
+      .append(props.optString("nextTime","")).append('|')
+      .append(props.optLong("nextAt",0)).append('|')
+      .append(props.optJSONArray("times")==null?"[]":props.optJSONArray("times").toString());
+    int count=0;
+    for(int[] category:ids){
+      count+=category.length;
+      int[] sorted=category.clone();
+      Arrays.sort(sorted);
+      key.append('|').append(Arrays.toString(sorted));
+    }
+    return new WidgetInventory(ids,count,key.toString());
   }
 
   private static JSONObject emptyProps(long now) throws JSONException {
@@ -365,7 +457,7 @@ public final class WidgetBoundaryScheduler {
         PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
   }
 
-  private static int renderWidgets(Context context,JSONObject props)
+  private static int renderWidgets(Context context,JSONObject props,int[][] widgetIds)
       throws JSONException {
     AppWidgetManager manager=AppWidgetManager.getInstance(context);
     boolean ready=props.optBoolean("ready",false);
@@ -382,7 +474,7 @@ public final class WidgetBoundaryScheduler {
     int count=0;
 
     // 2×2: published prayer clock and a native, launcher-driven countdown.
-    int[] small=manager.getAppWidgetIds(component(context,NAMES[0]));
+    int[] small=widgetIds[0];
     if(small.length>0){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_next_prayer_light:R.layout.widget_next_prayer);
@@ -398,7 +490,7 @@ public final class WidgetBoundaryScheduler {
     }
 
     // 4×2: six PUBLISHED hours, highlight the actual upcoming prayer.
-    int[] day=manager.getAppWidgetIds(component(context,NAMES[1]));
+    int[] day=widgetIds[1];
     JSONArray times=ready?props.getJSONArray("times"):new JSONArray();
     if(day.length>0){
       RemoteViews card=new RemoteViews(context.getPackageName(),
@@ -441,7 +533,7 @@ public final class WidgetBoundaryScheduler {
     }
 
     // 1×1: compact, native system countdown without waking React.
-    int[] compact=manager.getAppWidgetIds(component(context,NAMES[2]));
+    int[] compact=widgetIds[2];
     if(compact.length>0){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_compact_prayer_light:R.layout.widget_compact_prayer);
@@ -456,7 +548,7 @@ public final class WidgetBoundaryScheduler {
     }
 
     // 4×2: focus on the current interval and the remaining time to next.
-    int[] focus=manager.getAppWidgetIds(component(context,NAMES[3]));
+    int[] focus=widgetIds[3];
     if(focus.length>0){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_prayer_focus_light:R.layout.widget_prayer_focus);
@@ -479,7 +571,7 @@ public final class WidgetBoundaryScheduler {
     }
     // Responsive six-prayer strip: six published clocks and a single native
     // countdown (also usable on four-column launchers where 6×2 is impossible).
-    int[] strip=manager.getAppWidgetIds(component(context,NAMES[4]));
+    int[] strip=widgetIds[4];
     if(strip.length>0){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_prayer_strip_light:R.layout.widget_prayer_strip);
@@ -524,8 +616,8 @@ public final class WidgetBoundaryScheduler {
 
     // Arc bitmap generation is bounded, cached, and off the UI thread.
     // Only create bitmaps for actual installed ring widgets; no per-second JS.
-    int[] miniRing=manager.getAppWidgetIds(component(context,NAMES[5]));
-    int[] premiumRing=manager.getAppWidgetIds(component(context,NAMES[6]));
+    int[] miniRing=widgetIds[5];
+    int[] premiumRing=widgetIds[6];
     if(miniRing.length>0||premiumRing.length>0){
       if(miniRing.length>0){
         RemoteViews card=new RemoteViews(context.getPackageName(),
@@ -583,7 +675,7 @@ public final class WidgetBoundaryScheduler {
 
     // Dedicated narrow 1×2 widget: larger type and no compression of the
     // countdown into the 1×1 minimum launcher footprint.
-    int[] slim=manager.getAppWidgetIds(component(context,NAMES[7]));
+    int[] slim=widgetIds[7];
     if(slim.length>0){
       RemoteViews card=new RemoteViews(context.getPackageName(),
         light?R.layout.widget_slim_prayer_light:R.layout.widget_slim_prayer);
@@ -604,18 +696,20 @@ public final class WidgetBoundaryScheduler {
         PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
   }
 
-  private static void scheduleNext(Context context,long next,long now){
+  private static void scheduleNext(Context context,long next,long now,boolean force){
     SharedPreferences local=prefs(context);
     try{
       AlarmManager manager=(AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
       if(manager==null)throw new IllegalStateException("AlarmManager absent");
+      // Keep the existing inexact alarm if its boundary is already correct.
+      // Forced rearm is required after reboot, time change or app replacement.
+      if(!force&&local.getLong("nextAlarmAt",-1)==next)return;
       PendingIntent intent=alarmIntent(context);
       manager.cancel(intent);
       if(next<=now){
         local.edit().putLong("nextAlarmAt",0).apply();
         return;
       }
-      // Android Doze may delay inexact alarms. No exact-alarm permission.
       manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next+1200,intent);
       local.edit().putLong("nextAlarmAt",next).apply();
     }catch(Exception error){
@@ -628,14 +722,16 @@ public final class WidgetBoundaryScheduler {
     SharedPreferences local=prefs(context);
     JSONObject result=new JSONObject();
     result.put("supported",true);
-    result.put("installedNext",installedCount(context,NAMES[0]));
-    result.put("installedDay",installedCount(context,NAMES[1]));
-    result.put("installedCompact",installedCount(context,NAMES[2]));
-    result.put("installedFocus",installedCount(context,NAMES[3]));
-    result.put("installedStrip",installedCount(context,NAMES[4]));
-    result.put("installedMiniRing",installedCount(context,NAMES[5]));
-    result.put("installedPremiumRing",installedCount(context,NAMES[6]));
-    result.put("installedSlim",installedCount(context,NAMES[7]));
+    int[] counts=new int[NAMES.length];
+    for(int i=0;i<NAMES.length;i++)counts[i]=installedCount(context,NAMES[i]);
+    result.put("installedNext",counts[0]);
+    result.put("installedDay",counts[1]);
+    result.put("installedCompact",counts[2]);
+    result.put("installedFocus",counts[3]);
+    result.put("installedStrip",counts[4]);
+    result.put("installedMiniRing",counts[5]);
+    result.put("installedPremiumRing",counts[6]);
+    result.put("installedSlim",counts[7]);
     result.put("widgetTheme",lightTheme(context)?"light":"dark");
     long last=local.getLong("lastAppliedAt",0);
     result.put("lastAppliedAt",last);
@@ -678,7 +774,7 @@ public final class WidgetBoundaryScheduler {
     boolean ready=local.getBoolean("lastReady",false);
     String error=local.getString("lastError","");
     int count=0;
-    for(String name:NAMES)count+=installedCount(context,name);
+    for(int installed:counts)count+=installed;
     String stage=local.getString("lastTransferStage","never-attempted");
     String transferError=local.getString("lastTransferError","");
     String state=!error.isEmpty()||!transferError.isEmpty()||
@@ -691,6 +787,13 @@ public final class WidgetBoundaryScheduler {
     result.put("osRecoveryMinutes",30);
     // Android Launcher is outside this process: no pixel acknowledgment.
     result.put("launcherConfirmed",false);
+    result.put("nativeRefreshMs",lastRefreshMs);
+    result.put("nativeCommitMs",lastCommitMs);
+    result.put("nativeRenderMs",lastRenderMs);
+    result.put("nativeAlarmMs",lastAlarmMs);
+    result.put("nativeSkippedRenders",skippedUnchangedRenders);
+    result.put("nativeRenderedBatches",renderedBatches);
+    WidgetBoundaryAsyncRefresh.appendMetrics(result);
     return result;
   }
 }
