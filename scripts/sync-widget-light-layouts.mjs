@@ -26,6 +26,8 @@ export const INKS={
 const DRAWABLES=[
   [/@drawable\/widget_bg"/g,'@drawable/widget_bg_light"'],
   [/@drawable\/widget_chip_dark"/g,'@drawable/widget_chip_light"'],
+  // Glowing cyan mark on navy → deep-azure mark on ivory (build-widget-marks.mjs).
+  [/@drawable\/widget_brand_mark_dark"/g,'@drawable/widget_brand_mark_light"'],
 ];
 export function toLight(xml,name='layout'){
   let out=xml.replace(/#[0-9A-Fa-f]{6}\b/g,hex=>{

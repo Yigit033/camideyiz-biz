@@ -7,7 +7,7 @@
  android:background="@drawable/widget_bg" android:padding="10dp" android:orientation="vertical">
  <LinearLayout android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center_vertical"
   android:orientation="horizontal">
- <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/widget_brand_lockup"
+ <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/widget_brand_mark_dark"
   android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <TextView android:id="@+id/widget_focus_city" android:layout_width="0dp" android:layout_height="wrap_content"
   android:layout_weight="1" android:layout_marginStart="6dp" android:text="Konum" android:textSize="11sp"
@@ -43,7 +43,7 @@
   <Chronometer android:id="@+id/widget_focus_countdown" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="1" android:text="--:--" android:textColor="#F4D392" android:textSize="27sp"
    android:textStyle="bold" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
-   android:gravity="start|center_vertical" android:singleLine="true" android:autoSizeTextType="uniform"
+   android:gravity="start|center_vertical" android:maxLines="1" android:autoSizeTextType="uniform"
    android:autoSizeMinTextSize="18sp" android:autoSizeMaxTextSize="56sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_focus_next" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="0.3" android:text="Sıradaki" android:textSize="10sp" android:textColor="#F1F7F8"

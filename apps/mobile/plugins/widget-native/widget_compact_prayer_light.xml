@@ -5,7 +5,7 @@
  android:id="@+id/widget_compact_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg_light" android:padding="4dp" android:gravity="center" android:orientation="vertical">
  <ImageView android:layout_width="match_parent" android:layout_height="16dp" android:layout_weight="0.35"
-  android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
+  android:src="@drawable/widget_brand_mark_light" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <TextView android:id="@+id/widget_compact_name" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="0.9" android:layout_marginTop="2dp" android:text="Sıradaki vakit" android:textSize="10sp"
   android:textColor="#163045" android:textStyle="bold" android:gravity="center" android:maxLines="1"
@@ -23,7 +23,7 @@
  <Chronometer android:id="@+id/widget_compact_countdown" android:layout_width="match_parent"
   android:layout_height="match_parent" android:text="--:--" android:textColor="#91652D" android:textSize="15sp"
   android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:includeFontPadding="false"
-  android:gravity="center" android:singleLine="true" android:autoSizeTextType="uniform"
+  android:gravity="center" android:maxLines="1" android:autoSizeTextType="uniform"
   android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="26sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
 </LinearLayout>

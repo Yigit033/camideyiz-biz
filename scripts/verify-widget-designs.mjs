@@ -58,13 +58,19 @@ for(const kind of variants){
     assert.ok(plugin.includes("'"+file+"'"),'CNG missing '+file);
     assert.match(xml,/xmlns:android=/);
     assert.match(xml,/@drawable\/widget_bg/);
-    assert.match(xml,/@drawable\/widget_brand_lockup/);
+    // Theme-matched transparent mark: glowing cyan on navy, deep azure on ivory.
+    assert.match(xml,suffix?/@drawable\/widget_brand_mark_light"/:/@drawable\/widget_brand_mark_dark"/);
+    assert.doesNotMatch(xml,suffix?/widget_brand_mark_dark/:/widget_brand_mark_light/);
+    assert.doesNotMatch(xml,/widget_brand_lockup/,'the opaque square badge logo is retired');
+    // singleLine makes TextView autosize treat the width as unbounded
+    // (horizontal scrolling), which ellipsized countdowns as "7:29:…".
+    assert.doesNotMatch(xml,/android:singleLine=/,'use maxLines="1": '+file);
     assert.doesNotMatch(xml,/<View\b|android:text="Camideyiz Biz"|@drawable\/widget_brand_symbol/,
       'Native RemoteViews must use supported tags and a SINGLE supplied logo: '+file);
     assert.doesNotMatch(xml,/Pendik|Tuzla|12:54|28:40/,
       'Initial widget layouts must not ship fabricated clocks/locations');
     assert.match(element(xml,clocks[kind]),/^<Chronometer\b/);
-    assert.match(element(xml,clocks[kind]),/android:singleLine="true"/);
+    assert.match(element(xml,clocks[kind]),/android:maxLines="1"/);
     const hero=font(xml,clocks[kind]),comparison=font(xml,secondary[kind]);
     assert.ok(hero>comparison,kind+suffix+' countdown must dominate its next clock/name ('+
       hero+' vs '+comparison+')');
@@ -130,7 +136,7 @@ for(const token of ['widget_ring_square_root','widget_ring_square_art',
 assert.match(scheduler,/manager\.updateAppWidget\(squareRing,card\)/);
 assert.match(scheduler,/nextInCurrentDay\?label\.equals\(next\):i==5/,
   'After Yatsı do not highlight today’s expired İmsak');
-assert.match(scheduler,/BRAND_VERSION=4/);
+assert.match(scheduler,/BRAND_VERSION=5;/);
 assert.match(pipe,/dirty\[8\]&&installed\[8\]\.length>0/);
 assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,224\)/);
 assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,432\)/);
@@ -160,7 +166,7 @@ for(const kind of variants){
     for(const tag of xml.match(/<(TextView|Chronometer)\b[^<>]*autoSizeTextType[^<>]*>/g)??[]){
       assert.doesNotMatch(tag,/android:layout_(width|height)="wrap_content"/,
         'autosize needs fixed/weighted bounds: '+kind+suffix);
-      assert.match(tag,/android:(maxLines="1"|singleLine="true")/);
+      assert.match(tag,/android:maxLines="1"/);
       assert.doesNotMatch(tag,/android:ellipsize=/,'autosized text must shrink, not ellipsize');
     }
   }

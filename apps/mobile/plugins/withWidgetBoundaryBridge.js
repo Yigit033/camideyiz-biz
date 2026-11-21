@@ -177,12 +177,15 @@ function withSources(config){
       path.join(__dirname,'..','assets','camideyiz-original-symbol.png'),
       path.join(logoTarget,'widget_brand_symbol.png'),
     );
-    // Complete user-supplied cyan 3D mark + integrated camideyiz.biz text.
-    // Preserve this widget-only asset as one image, never a TextView wordmark.
-    await fs.copyFile(
-      path.join(__dirname,'..','assets','widget-brand-lockup.png'),
-      path.join(logoTarget,'widget_brand_lockup.png'),
-    );
+    // Theme-specific transparent brand marks (mark + integrated camideyiz.biz
+    // wordmark as ONE image, never a TextView), derived from the approved icon
+    // by scripts/build-widget-marks.mjs. Dark: glowing cyan; light: deep azure.
+    for(const theme of ['dark','light']){
+      await fs.copyFile(
+        path.join(__dirname,'..','assets','widget-mark-'+theme+'.png'),
+        path.join(logoTarget,'widget_brand_mark_'+theme+'.png'),
+      );
+    }
     for(const [dir,files] of Object.entries(RESOURCES)){
       const targetDir=path.join(srcRoot,'res',dir);
       await fs.mkdir(targetDir,{recursive:true});

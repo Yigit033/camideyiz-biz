@@ -105,8 +105,9 @@ jobs:
           root="apps/mobile/android/app/src/main"
           test -s "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
           test -s "$root/java/biz/camideyiz/app/widget/WidgetRenderPipeline.java"
-          test -s "$root/res/drawable-nodpi/widget_brand_lockup.png"
-          cmp apps/mobile/assets/widget-brand-lockup.png "$root/res/drawable-nodpi/widget_brand_lockup.png"
+          for theme in dark light; do
+            cmp "apps/mobile/assets/widget-mark-$theme.png" "$root/res/drawable-nodpi/widget_brand_mark_$theme.png"
+          done
           test -s "$root/java/biz/camideyiz/app/widget/WidgetBoundaryReceiver.java"
           test -s "$root/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
           test -s "$root/java/biz/camideyiz/app/widget/CamideyizWidgetPackage.java"

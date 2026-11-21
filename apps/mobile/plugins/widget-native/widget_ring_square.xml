@@ -3,7 +3,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_ring_square_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg" android:padding="5dp" android:orientation="vertical" android:gravity="center">
- <ImageView android:layout_width="match_parent" android:layout_height="18dp" android:src="@drawable/widget_brand_lockup"
+ <ImageView android:layout_width="match_parent" android:layout_height="18dp" android:src="@drawable/widget_brand_mark_dark"
   android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
   android:layout_marginTop="1dp">
@@ -21,7 +21,7 @@
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
   <Chronometer android:id="@+id/widget_ring_square_countdown" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="0.42" android:text="--:--" android:textSize="18sp" android:textColor="#F4D392" android:textStyle="bold" android:fontFamily="sans-serif-condensed"
-   android:gravity="center" android:singleLine="true" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="34sp" android:autoSizeStepGranularity="1sp"/>
+   android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="34sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_ring_square_next" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="0.24" android:text="Sıradaki" android:textSize="11sp" android:textColor="#F1F7F8" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>

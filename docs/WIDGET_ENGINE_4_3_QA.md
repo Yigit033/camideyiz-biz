@@ -72,6 +72,16 @@ Native Java, XML, `values-night` ve manifest değiştiği için **yeni APK şart
 
 Cihazda bakılacaklar: 1×1, 1×2, 2×2 ve 4×2 widget'ları launcher'da en küçük ve büyütülmüş hâlleriyle dene. Hiçbir metin `…` ile kesilmemeli. Geri sayım her boyutta en baskın öğe olmalı. Çember içi yazı halkaya değmemeli. Büyük hücrede üst/alt boş bant kalmamalı.
 
+## Widget Tasarım 8.1: kesilmeyen sayaç ve temaya özel logo
+
+- **Kök neden:** 8.0 cihaz testinde geri sayımlar "7:29:…" olarak kesildi. Chronometer'larda `singleLine="true"` vardı. `singleLine`, TextView'i yatay kaydırılabilir yapar; Android'in otomatik boyutlandırması da bu durumda genişliği sınırsız sayıp boyutu yalnız yüksekliğe göre seçer. `maxLines="1"` kullanan normal yazılar bu yüzden doğru ölçekleniyordu.
+- **Düzeltme:** Tüm Chronometer'lar `maxLines="1"` kullanır. `verify-widget-designs.mjs` widget layout'larında `singleLine` kullanımını tamamen reddeder.
+- **Temaya özel logo:** Opak, koyu kare rozet kaldırıldı (`widget-brand-lockup.png`). Her tema için şeffaf amblem + wordmark eklendi:
+  - **Koyu:** Splash'teki parlak cyan amblem. Widget zemini splash'ten açık olduğu için zayıf zemin pikselleri ayıklandı; kutu izi oluşmaz.
+  - **Açık:** Aynı siluet, keskin kenarlarla ve gölgelendirmeyi koruyan koyu mavi (azure) ton eşlemesiyle; fildişi kartta okunur.
+- Amblemler `scripts/build-widget-marks.mjs` ile onaylı ikondan türetilmiş `splash-mark.png`'den piksel işlemleriyle üretilir; yeniden çizim yoktur. CI ve Windows APK betiği `--check` ile birebir eşleşmeyi doğrular. Açık layout'lar eşleme tablosu sayesinde açık amblemi otomatik kullanır.
+- `BRAND_VERSION=5`, JS tarafındaki `WIDGET_BRAND_ASSET_VERSION` ile birlikte artırıldı; kurulu widget'lar yeni APK'da temiz yeniden çizilir.
+
 ## Bilinen sınırlar
 
 - Kesin alarm Android 12+ cihazda kullanıcının verdiği "Alarmlar ve hatırlatıcılar" iznine bağlıdır. Bazı üreticilerin (MIUI, ColorOS) agresif pil yönetimi alarmları yine geciktirebilir.

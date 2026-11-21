@@ -198,6 +198,8 @@ try {
       & node scripts/verify-splash.mjs
       if ($LASTEXITCODE -ne 0) { return }
       & node scripts/build-splash-mark.mjs --check
+      if ($LASTEXITCODE -ne 0) { return }
+      & node scripts/build-widget-marks.mjs --check
     }
     Invoke-Checked 'Test fast and safe widget headless health gate' {
       & node --experimental-strip-types scripts/verify-widget-headless-gate.mjs

@@ -10,21 +10,27 @@ const engine=read(p+'WidgetRenderPipeline.java');
 const asyncReceiver=read(p+'WidgetBoundaryAsyncRefresh.java');
 const bridge=read(p+'CamideyizWidgetBridge.java');
 const plugin=read('apps/mobile/plugins/withWidgetBoundaryBridge.js');
-const logo=readFileSync(resolve(root,'apps/mobile/assets/widget-brand-lockup.png'));
-assert.equal(logo.readUInt32BE(16),128);
-assert.equal(logo.readUInt32BE(20),128);
-assert.equal(createHash('sha256').update(logo).digest('hex'),
-  'b927d6e7422d357fef66712166649c7567097450dbbab8373858315eccd3a860',
-  'widget asset must remain the user-supplied symbol + integrated wordmark');
+// Theme marks are pixel derivations of the approved icon (build-widget-marks.mjs).
+const MARK_SHA={
+  dark:'232ffef37b07ffb55b14bdb0f6109a2deb37dcd10b8e262b11d45da049cc28cd',
+  light:'17ba24c395f2408741d70ac7d86bb30eb353d99da36d03d59796f9e44b1b0e84',
+};
+for(const theme of ['dark','light']){
+  const logo=readFileSync(resolve(root,'apps/mobile/assets/widget-mark-'+theme+'.png'));
+  assert.equal(logo.readUInt32BE(16),256,'widget mark width');
+  assert.equal(createHash('sha256').update(logo).digest('hex'),MARK_SHA[theme],
+    'widget-mark-'+theme+'.png must be the build-widget-marks.mjs derivation');
+}
 assert.match(plugin,/'WidgetRenderPipeline.java'/);
-assert.match(plugin,/widget-brand-lockup\.png/);
-assert.match(plugin,/widget_brand_lockup\.png/);
+assert.match(plugin,/'widget-mark-'\+theme\+'\.png'/);
+assert.match(plugin,/'widget_brand_mark_'\+theme\+'\.png'/);
+assert.doesNotMatch(plugin,/widget_brand_lockup/,'opaque square badge logo is retired');
 const base=['widget_compact_prayer','widget_next_prayer','widget_prayer_day',
   'widget_prayer_focus','widget_prayer_strip','widget_ring_mini',
   'widget_ring_premium','widget_slim_prayer','widget_ring_square'];
 for(const variant of base)for(const suffix of ['','_light']){
   const xml=read(p+variant+suffix+'.xml');
-  assert.match(xml,/@drawable\/widget_brand_lockup/);
+  assert.match(xml,/@drawable\/widget_brand_mark_(dark|light)"/);
   assert.doesNotMatch(xml,/android:text="Camideyiz Biz"|@drawable\/widget_brand_symbol/,
     'no duplicate brand TextView or old symbol: '+variant+suffix);
 }
@@ -38,7 +44,7 @@ assert.match(engine,/WidgetBoundaryScheduler\.renderFailed/);
 assert.match(sched,/WidgetRenderPipeline\.enqueue\(/);
 assert.match(sched,/private static String\[\] familyKeys\(/);
 assert.match(sched,/widgetFamilySignature/);
-assert.match(sched,/BRAND_VERSION=4/);
+assert.match(sched,/BRAND_VERSION=5;/);
 assert.match(sched,/nativeRenderPending/);
 assert.match(sched,/reason\.endsWith\(launcherShortName\(i\)\)/);
 assert.match(sched,/"launcher:update:all"\.equals\(reason\)/);

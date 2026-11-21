@@ -69,9 +69,9 @@ public final class WidgetBoundaryScheduler {
   private static volatile boolean renderPending=false;
   private static volatile long latestGeneration=0;
   private static volatile String pendingSignature="";
-  // 4: day/night-aware layouts and light ring designs. Forces one clean
-  // repaint of every pinned widget after the APK upgrade.
-  private static final int BRAND_VERSION=4;
+  // 5: theme-specific transparent brand marks (4: day/night layouts, light
+  // rings). Forces one clean repaint of every pinned widget after upgrade.
+  private static final int BRAND_VERSION=5;
   // The boundary alarm fires AT the published prayer minute. A delivery
   // that lands a moment early/late must already present the new interval,
   // so the launcher Chronometer never shows a negative "−00:01" countdown.

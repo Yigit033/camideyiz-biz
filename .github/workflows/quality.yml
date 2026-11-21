@@ -46,6 +46,7 @@ jobs:
         run: |
           node scripts/verify-splash.mjs
           node scripts/build-splash-mark.mjs --check
+          node scripts/build-widget-marks.mjs --check
       - name: Verify all 27 gallery originals, full-frame preview and row alignment
         run: npm run verify:gallery-assets
       - name: Verify home, gallery and kerahat visual regression contracts
@@ -131,8 +132,9 @@ jobs:
           app=apps/mobile/android/app/src/main
           test -s "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
           test -s "$app/java/biz/camideyiz/app/widget/WidgetRenderPipeline.java"
-          test -s "$app/res/drawable-nodpi/widget_brand_lockup.png"
-          cmp apps/mobile/assets/widget-brand-lockup.png "$app/res/drawable-nodpi/widget_brand_lockup.png"
+          for theme in dark light; do
+            cmp "apps/mobile/assets/widget-mark-$theme.png" "$app/res/drawable-nodpi/widget_brand_mark_$theme.png"
+          done
           test -s "$app/java/biz/camideyiz/app/widget/WidgetBoundaryReceiver.java"
           test -s "$app/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
           test -s "$app/java/biz/camideyiz/app/widget/CamideyizWidgetPackage.java"

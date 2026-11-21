@@ -5,7 +5,7 @@
  android:background="@drawable/widget_bg" android:padding="8dp" android:orientation="vertical">
  <LinearLayout android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center_vertical"
   android:orientation="horizontal">
- <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/widget_brand_lockup"
+ <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/widget_brand_mark_dark"
   android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <TextView android:id="@+id/widget_day_city" android:layout_width="0dp" android:layout_height="wrap_content"
   android:layout_weight="1" android:layout_marginStart="6dp" android:text="Konum" android:textSize="11sp"
@@ -132,6 +132,6 @@
   <Chronometer android:id="@+id/widget_day_countdown" android:layout_width="0dp" android:layout_weight="1.1"
    android:layout_height="match_parent" android:text="--:--" android:textSize="23sp" android:textStyle="bold"
    android:fontFamily="sans-serif-medium" android:textColor="#F4D392" android:gravity="end|center_vertical"
-   android:includeFontPadding="false" android:singleLine="true" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="16sp" android:autoSizeMaxTextSize="44sp" android:autoSizeStepGranularity="1sp"/>
+   android:includeFontPadding="false" android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="16sp" android:autoSizeMaxTextSize="44sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
 </LinearLayout>

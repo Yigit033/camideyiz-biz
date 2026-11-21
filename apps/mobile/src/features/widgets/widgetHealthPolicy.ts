@@ -6,7 +6,7 @@
  */
 export const HEADLESS_RECHECK_MS=2*60*60_000;
 // MUST equal WidgetBoundaryScheduler.BRAND_VERSION (CI enforces lockstep).
-export const WIDGET_BRAND_ASSET_VERSION=4;
+export const WIDGET_BRAND_ASSET_VERSION=5;
 export const HEADLESS_COVERAGE_MS=24*60*60_000;
 export const HEADLESS_MAX_SOURCE_AGE_MS=16*24*60*60_000;
 

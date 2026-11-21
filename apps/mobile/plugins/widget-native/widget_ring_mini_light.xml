@@ -3,7 +3,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_ring_mini_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg_light" android:padding="6dp" android:orientation="vertical" android:gravity="center">
- <ImageView android:layout_width="match_parent" android:layout_height="20dp" android:src="@drawable/widget_brand_lockup"
+ <ImageView android:layout_width="match_parent" android:layout_height="20dp" android:src="@drawable/widget_brand_mark_light"
   android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
   android:layout_marginTop="2dp">
@@ -39,6 +39,6 @@
  <Chronometer android:id="@+id/widget_ring_mini_countdown" android:layout_width="0dp" android:layout_weight="1"
   android:layout_height="match_parent" android:text="--:--" android:textColor="#91652D" android:textSize="18sp"
   android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:includeFontPadding="false"
-  android:gravity="center" android:singleLine="true" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="12sp" android:autoSizeMaxTextSize="34sp" android:autoSizeStepGranularity="1sp"/>
+  android:gravity="center" android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="12sp" android:autoSizeMaxTextSize="34sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
 </LinearLayout>
