@@ -65,4 +65,13 @@ assert.doesNotMatch(panel,/await native\.refreshNow\(\)/,
 assert.match(panel,/nativeBridgeQueueWaitMs/);
 assert.match(panel,/nativeCoalescedEvents/);
 assert.match(panel,/nativeSkippedRenders/);
-console.log('Widget Engine 4.0 QA: async bridge, debounced broadcasts, dirty-only RemoteViews, alarm rearm, 8-count status, background fast-path, native timing diagnostics OK');
+const headlessTask=read('apps/mobile/src/features/widgets/widgetTaskRegistration.ts');
+const headlessGate=read('apps/mobile/src/features/widgets/widgetHeadlessHealthGate.ts');
+assert.match(headlessTask,/await import\('\.\/widgetHeadlessHealthGate'\)/);
+assert.match(headlessTask,/if\(await canSkipWidgetHeadlessRefresh\(\)\)/);
+assert.ok(headlessTask.indexOf('canSkipWidgetHeadlessRefresh()')<
+  headlessTask.indexOf("await import('./widgetBackground')"),
+  'heavy calendar module must import only after native headless health gate');
+assert.doesNotMatch(headlessGate,/prayerApi|notificationService|AsyncStorage|@camideyiz\/core/,
+  'health gate must be a cheap leaf module');
+console.log('Widget Engine 4.0 QA: async bridge, debounced broadcasts, dirty-only RemoteViews, alarm rearm, 8-count status, lightweight headless gate and native timing diagnostics OK');

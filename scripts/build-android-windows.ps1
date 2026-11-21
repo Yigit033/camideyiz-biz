@@ -185,6 +185,9 @@ try {
     Invoke-Checked 'Verify Widget Engine 4.0 nonblocking coordinator and perf metrics' {
       & node scripts/verify-widget-engine4.mjs
     }
+    Invoke-Checked 'Test fast and safe widget headless health gate' {
+      & node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
+    }
     Invoke-Checked 'Verify verified native widget recovery contracts' {
       & node scripts/verify-widget3-contracts.mjs
     }
