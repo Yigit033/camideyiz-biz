@@ -34,7 +34,7 @@ jobs:
         run: node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
       - name: Verify Widget 3.0 offline/native recovery contracts
         run: node scripts/verify-widget3-contracts.mjs
-      - name: Verify five premium widget layouts, original 3D brand and native countdowns
+      - name: Verify nine countdown-first widgets including fixed 2×2 circle
         run: node scripts/verify-widget-designs.mjs
       - name: Verify exact owner-supplied brand icon is unchanged
         run: node scripts/verify-brand-symbol.mjs
@@ -140,14 +140,17 @@ jobs:
           test -s "$app/res/layout/widget_prayer_day.xml"
           test -s "$app/res/xml/widget_next_prayer_info.xml"
           test -s "$app/res/xml/widget_prayer_day_info.xml"
+          grep -F 'widget_day_countdown' "$app/res/layout/widget_prayer_day.xml"
+          grep -F 'widget_ring_square_countdown' "$app/res/layout/widget_ring_square.xml"
+          grep -F 'SquarePrayerRingWidgetProvider' "$app/AndroidManifest.xml"
           test -s "$app/java/biz/camideyiz/app/widget/PrayerRingBitmapRenderer.java"
           test -s "$app/res/drawable-nodpi/widget_brand_symbol.png"
           cmp apps/mobile/assets/camideyiz-original-symbol.png "$app/res/drawable-nodpi/widget_brand_symbol.png"
-          for name in CompactPrayer PrayerFocus PrayerStrip MiniPrayerRing PremiumPrayerRing SlimPrayer; do
+          for name in CompactPrayer PrayerFocus PrayerStrip MiniPrayerRing PremiumPrayerRing SlimPrayer SquarePrayerRing; do
             test -s "$app/java/biz/camideyiz/app/${name}WidgetProvider.java"
             grep -F "${name}WidgetProvider" "$app/AndroidManifest.xml"
           done
-          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip widget_ring_mini widget_ring_premium widget_slim_prayer; do
+          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip widget_ring_mini widget_ring_premium widget_slim_prayer widget_ring_square; do
             test -s "$app/res/layout/${resource}.xml"
             test -s "$app/res/layout/${resource}_light.xml"
             test -s "$app/res/xml/${resource}_info.xml"

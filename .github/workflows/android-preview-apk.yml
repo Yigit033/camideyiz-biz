@@ -118,16 +118,18 @@ jobs:
           grep -F 'widget_root' "$root/res/layout/widget_next_prayer.xml"
           grep -F 'widget_day_root' "$root/res/layout/widget_prayer_day.xml"
           grep -F 'widget_day_time_5' "$root/res/layout/widget_prayer_day.xml"
-          # The premium next-prayer layout now has responsive 9dp padding.
-          grep -F 'android:padding="9dp"' "$root/res/layout/widget_next_prayer.xml"
+          grep -F 'widget_day_countdown' "$root/res/layout/widget_prayer_day.xml"
+          grep -F 'widget_ring_square_countdown' "$root/res/layout/widget_ring_square.xml"
+          # 8dp padding protects live countdown prominence in the 2×2 footprint.
+          grep -F 'android:padding="8dp"' "$root/res/layout/widget_next_prayer.xml"
           test -s "$root/res/drawable-nodpi/widget_brand_symbol.png"
           cmp apps/mobile/assets/camideyiz-original-symbol.png \
               "$root/res/drawable-nodpi/widget_brand_symbol.png"
-          for name in CompactPrayer PrayerFocus PrayerStrip MiniPrayerRing PremiumPrayerRing SlimPrayer; do
+          for name in CompactPrayer PrayerFocus PrayerStrip MiniPrayerRing PremiumPrayerRing SlimPrayer SquarePrayerRing; do
             test -s "$root/java/biz/camideyiz/app/${name}WidgetProvider.java"
             grep -F "${name}WidgetProvider" "$root/AndroidManifest.xml"
           done
-          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip widget_ring_mini widget_ring_premium widget_slim_prayer; do
+          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip widget_ring_mini widget_ring_premium widget_slim_prayer widget_ring_square; do
             test -s "$root/res/layout/${resource}.xml"
             test -s "$root/res/layout/${resource}_light.xml"
             test -s "$root/res/xml/${resource}_info.xml"
