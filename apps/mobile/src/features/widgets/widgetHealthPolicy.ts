@@ -41,6 +41,7 @@ export function shouldSkipWidgetHeadlessRefresh(
      !Number.isFinite(end)||!Number.isFinite(next))return false;
   if(source<=0||source>now+60_000||now-source>HEADLESS_MAX_SOURCE_AGE_MS||
      updated<=0||updated>now+60_000||now-updated>=HEADLESS_RECHECK_MS||
-     end<=now+HEADLESS_COVERAGE_MS||next<=now||next>end)return false;
+     end<=now+HEADLESS_COVERAGE_MS||
+     end>source+17*24*60*60_000||next<=now||next>end)return false;
   return true;
 }

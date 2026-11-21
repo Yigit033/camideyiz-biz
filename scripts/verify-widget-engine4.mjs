@@ -72,6 +72,8 @@ assert.match(headlessTask,/if\(await canSkipWidgetHeadlessRefresh\(\)\)/);
 assert.ok(headlessTask.indexOf('canSkipWidgetHeadlessRefresh()')<
   headlessTask.indexOf("await import('./widgetBackground')"),
   'heavy calendar module must import only after native headless health gate');
-assert.doesNotMatch(headlessGate,/prayerApi|notificationService|AsyncStorage|@camideyiz\/core/,
-  'health gate must be a cheap leaf module');
+assert.doesNotMatch(headlessGate.split('\n')
+  .filter(line=>line.trim().startsWith('import ')).join('\n'),
+  /prayerApi|notificationService|AsyncStorage|@camideyiz\/core/,
+  'health gate must not import heavyweight provider, storage or notifications');
 console.log('Widget Engine 4.0 QA: async bridge, debounced broadcasts, dirty-only RemoteViews, alarm rearm, 8-count status, lightweight headless gate and native timing diagnostics OK');

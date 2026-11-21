@@ -25,6 +25,7 @@ for(const patch of [
   {lastTransferError:'district mismatch'},
   {calendarSourceAt:now-HEADLESS_MAX_SOURCE_AGE_MS-1},
   {calendarSourceAt:now+60_001},
+  {calendarEndsAt:now+18*86_400_000},
   {lastSyncAt:now-HEADLESS_RECHECK_MS},
   {lastSyncAt:now+60_001},
   {calendarEndsAt:now+HEADLESS_COVERAGE_MS},
@@ -42,6 +43,6 @@ assert.equal(shouldSkipWidgetHeadlessRefresh(good,NaN),false);
 assert.equal(shouldSkipWidgetHeadlessRefresh(good,Infinity),false);
 const boundary={...good,lastSyncAt:now-HEADLESS_RECHECK_MS+1,
   calendarEndsAt:now+HEADLESS_COVERAGE_MS+1,
-  calendarSourceAt:now-HEADLESS_MAX_SOURCE_AGE_MS};
+  calendarSourceAt:now-15*86_400_000};
 assert.equal(shouldSkipWidgetHeadlessRefresh(boundary,now),true);
 console.log('Widget Engine 4.0 headless policy: valid native cache bypasses heavy JS; 22 wrong-city, stale, missing-alarm and damaged-cache cases fail closed');
