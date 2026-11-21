@@ -182,6 +182,9 @@ try {
     Invoke-Checked 'Verify safe native widget bridge and broadcast worker' {
       & node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
     }
+    Invoke-Checked 'Verify Widget Engine 4.0 nonblocking coordinator and perf metrics' {
+      & node scripts/verify-widget-engine4.mjs
+    }
     Invoke-Checked 'Verify verified native widget recovery contracts' {
       & node scripts/verify-widget3-contracts.mjs
     }

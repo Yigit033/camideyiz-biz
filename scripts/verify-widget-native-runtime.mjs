@@ -75,11 +75,28 @@ assert.match(configPlugin,/'SlimPrayerWidgetProvider'/);
 assert.match(configPlugin,/'PrayerRingBitmapRenderer.java'/);
 assert.match(configPlugin,/'MiniPrayerRingWidgetProvider'/);
 assert.match(configPlugin,/'PremiumPrayerRingWidgetProvider'/);
-assert.match(asyncRefresh,/Executors\.newSingleThreadExecutor\(/);
-assert.match(asyncRefresh,/finally\s*\{[\s\S]*?pending\.finish\(\)/,
-  'goAsync pending result must finish even if native update fails');
-assert.match(asyncRefresh,/catch \(RejectedExecutionException error\) \{\s*pending\.finish\(\)/);
-assert.match(nativeScheduler,/scheduleNext\(app,installed>0\?nextBoundary:0,now\)/,
-  'no pinned widget must mean no unnecessary Android wakeup alarm');
+assert.match(asyncRefresh,/ScheduledThreadPoolExecutor\(1,/,
+  'native widget coordinator must be a single ordered worker');
+assert.match(asyncRefresh,/WORKER\.schedule\(\(\)->performBatch\(app\),DEBOUNCE_MS,TimeUnit\.MILLISECONDS\)/,
+  'rapid launcher broadcasts must be coalesced');
+assert.match(asyncRefresh,/for\(BroadcastReceiver\.PendingResult item:pending\)safeFinish\(item\)/,
+  'every coalesced goAsync result must be finished after the native batch');
+assert.match(asyncRefresh,/for\(BroadcastReceiver\.PendingResult item:PENDING\)safeFinish\(item\)/,
+  'rejected native broadcast batch must still finish every PendingResult');
+assert.match(nativeScheduler,/scheduleNext\(app,installed>0\?nextBoundary:0,now,forceAlarmRearm\(reason\)\)/,
+  'no pinned widget must mean no alarm; boot/time changes must rearm');
 
-console.log('Widget 3.3: bridge detection, async native receivers, completion and zero-widget alarm gating verified');
+const bridge=read('apps/mobile/plugins/widget-native/CamideyizWidgetBridge.java');
+assert.match(bridge,/WidgetBoundaryAsyncRefresh\.executeBridge\(/,
+  'ReactMethods must not do native storage, canvas, or RemoteViews on RN module queue');
+for(const name of ['selectDistrict','reportTransfer','publishCalendar','refreshNow',
+  'setAppearance','getStatus']){
+  const at=bridge.indexOf('public void '+name+'(');
+  assert.ok(at>0,'bridge entrypoint '+name);
+  assert.match(bridge.slice(at,at+450),/submit\(promise,/,
+    'all native bridge methods must enqueue onto serial coordinator: '+name);
+}
+assert.match(nativeScheduler,/lastRenderSignature/);
+assert.match(nativeScheduler,/nativeSkippedRenders/);
+assert.match(nativeScheduler,/alarmRearmRequiredThisProcess/);
+console.log('Widget Engine 4.0: bridge queue, coalesced goAsync batches, idempotent rendering, process alarm recovery and zero-widget gating verified');

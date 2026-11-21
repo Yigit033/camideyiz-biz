@@ -19,6 +19,7 @@ on:
       - apps/mobile/src/features/widgets/**
       - apps/mobile/src/features/native/**
       - scripts/verify-widget-native-runtime.mjs
+      - scripts/verify-widget-engine4.mjs
       - packages/core/src/widgetCalendarCache*
       - scripts/verify-widget3-contracts.mjs
       - apps/mobile/src/features/companion/**
@@ -70,6 +71,7 @@ jobs:
           node scripts/verify-startup-performance.mjs
           node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
           node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
+          node scripts/verify-widget-engine4.mjs
           node scripts/verify-adhan-playback-contracts.mjs
           node scripts/verify-brand-symbol.mjs
           node scripts/verify-home-visual-contracts.mjs

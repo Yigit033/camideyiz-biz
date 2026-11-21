@@ -26,6 +26,8 @@ jobs:
         run: node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
       - name: Verify premium calendar views and lazy 30-day loading
         run: node scripts/verify-calendar-views.mjs
+      - name: Verify Widget Engine 4.0 nonblocking native coordinator and native timing
+        run: node scripts/verify-widget-engine4.mjs
       - name: Verify Widget 3.0 offline/native recovery contracts
         run: node scripts/verify-widget3-contracts.mjs
       - name: Verify five premium widget layouts, original 3D brand and native countdowns
