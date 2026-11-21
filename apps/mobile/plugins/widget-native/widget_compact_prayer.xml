@@ -1,13 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 1×1. Every line autosizes into a weighted slot; the countdown chip keeps a
+     20dp floor and grows with the cell, so HH:MM:SS never clips. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_compact_root" android:layout_width="match_parent" android:layout_height="match_parent"
- android:background="@drawable/widget_bg" android:padding="3dp" android:gravity="center" android:orientation="vertical">
- <ImageView android:layout_width="18dp" android:layout_height="18dp" android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
- <TextView android:id="@+id/widget_compact_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Sıradaki vakit" android:textSize="10sp" android:textColor="#F1F7F8" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold" android:layout_marginTop="2dp"/>
- <TextView android:id="@+id/widget_compact_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textSize="10sp" android:textColor="#AFC5D4" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"  android:layout_marginTop="1dp"/>
+ android:background="@drawable/widget_bg" android:padding="4dp" android:gravity="center" android:orientation="vertical">
+ <ImageView android:layout_width="match_parent" android:layout_height="16dp" android:layout_weight="0.35"
+  android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
+ <TextView android:id="@+id/widget_compact_name" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.9" android:layout_marginTop="2dp" android:text="Sıradaki vakit" android:textSize="10sp"
+  android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1"
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp"
+  android:autoSizeMaxTextSize="16sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_compact_time" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.65" android:text="--:--" android:textSize="10sp" android:textColor="#AFC5D4"
+  android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="13sp"
+  android:autoSizeStepGranularity="1sp"/>
  <LinearLayout android:id="@+id/widget_compact_remaining_row" android:layout_width="match_parent"
-  android:layout_height="23dp" android:orientation="vertical" android:gravity="center" android:layout_marginTop="3dp"
+  android:layout_height="20dp" android:layout_weight="0.9" android:layout_marginTop="3dp"
+  android:paddingStart="3dp" android:paddingEnd="3dp" android:orientation="vertical" android:gravity="center"
   android:background="@drawable/widget_chip_dark">
- <Chronometer android:id="@+id/widget_compact_countdown" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:--" android:textColor="#F4D392" android:textSize="15sp" android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:includeFontPadding="false" android:gravity="center" android:singleLine="true"/>
+ <Chronometer android:id="@+id/widget_compact_countdown" android:layout_width="match_parent"
+  android:layout_height="match_parent" android:text="--:--" android:textColor="#F4D392" android:textSize="15sp"
+  android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:includeFontPadding="false"
+  android:gravity="center" android:singleLine="true" android:autoSizeTextType="uniform"
+  android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="26sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
 </LinearLayout>

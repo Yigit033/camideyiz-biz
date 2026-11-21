@@ -1,102 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- GENERATED from widget_ring_premium.xml by scripts/sync-widget-light-layouts.mjs. Do not edit. 4×4 premium ring. Larger ring art, centre text proportional to the ring, and a six-hour footer with a 46dp floor that grows with the widget. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_ring_premium_root" android:layout_width="match_parent" android:layout_height="match_parent"
- android:background="@drawable/widget_bg_light" android:orientation="vertical" android:padding="9dp">
- <LinearLayout android:layout_width="match_parent" android:layout_height="33dp"
-  android:gravity="center_vertical" android:orientation="horizontal">
-  <ImageView android:layout_width="32dp" android:layout_height="32dp"
-   android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter"
-   android:contentDescription="Camideyiz.biz"/>
-  <TextView android:id="@+id/widget_ring_premium_city" android:layout_width="0dp"
-   android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="8dp"
-   android:text="Konum" android:textSize="11sp" android:textColor="#586F7D"
-   android:gravity="right|center_vertical" android:ellipsize="end"
-   android:maxLines="1" android:includeFontPadding="false"/>
+ android:background="@drawable/widget_bg_light" android:orientation="vertical" android:padding="10dp">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center_vertical"
+  android:orientation="horizontal">
+ <ImageView android:layout_width="30dp" android:layout_height="30dp" android:src="@drawable/widget_brand_lockup"
+  android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
+ <TextView android:id="@+id/widget_ring_premium_city" android:layout_width="0dp" android:layout_height="wrap_content"
+  android:layout_weight="1" android:layout_marginStart="6dp" android:text="Konum" android:textSize="12sp"
+  android:textColor="#607481" android:gravity="end|center_vertical" android:maxLines="1"
+  android:ellipsize="end" android:includeFontPadding="false"/>
  </LinearLayout>
- <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
-  android:layout_weight="1" android:layout_marginTop="2dp">
+ <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:layout_marginTop="2dp" android:layout_marginBottom="4dp">
   <ImageView android:id="@+id/widget_ring_premium_art" android:src="@drawable/widget_ring_track" android:layout_width="match_parent"
    android:layout_height="match_parent" android:scaleType="fitCenter"
    android:contentDescription="Vakit aralıklarını gösteren premium zaman çemberi"/>
-  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-   android:layout_gravity="center" android:orientation="vertical" android:gravity="center"
-   android:paddingStart="52dp" android:paddingEnd="52dp">
-  <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-   android:text="KALAN SÜRE" android:textSize="9sp" android:textColor="#586F7D"
-   android:gravity="center" android:includeFontPadding="false"/>
-  <Chronometer android:id="@+id/widget_ring_premium_countdown" android:layout_width="wrap_content"
-   android:layout_height="wrap_content" android:layout_marginTop="4dp"
-   android:text="--:--" android:textSize="31sp" android:textStyle="bold"
-   android:fontFamily="sans-serif-condensed" android:textColor="#91652D"
-   android:singleLine="true" android:includeFontPadding="false"/>
-  <TextView android:id="@+id/widget_ring_premium_next" android:layout_width="match_parent"
-   android:layout_height="wrap_content" android:text="Takvim" android:textSize="15sp"
-   android:textStyle="bold" android:textColor="#152C3D" android:gravity="center"
-   android:maxLines="1" android:ellipsize="end" android:layout_marginTop="5dp" android:includeFontPadding="false"/>
-  <TextView android:id="@+id/widget_ring_premium_time" android:layout_width="match_parent"
-   android:layout_height="wrap_content" android:text="Saat --:--" android:textSize="11sp"
-   android:textColor="#586F7D" android:gravity="center" android:maxLines="1"
-   android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp"/>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+   android:orientation="horizontal" android:baselineAligned="false">
+  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.26" android:text=""/>
+  <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.48"
+   android:orientation="vertical">
+  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text=""/>
+  <TextView android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.15" android:text="KALAN SÜRE" android:textSize="9sp" android:textColor="#607481"
+   android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+  <Chronometer android:id="@+id/widget_ring_premium_countdown" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.42" android:text="--:--" android:textSize="31sp" android:textColor="#91652D" android:textStyle="bold" android:fontFamily="sans-serif-condensed"
+   android:gravity="center" android:singleLine="true" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="18sp" android:autoSizeMaxTextSize="52sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_premium_next" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.25" android:text="Takvim" android:textSize="15sp" android:textColor="#163045" android:textStyle="bold"
+   android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="26sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_premium_time" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.18" android:text="Saat --:--" android:textSize="11sp" android:textColor="#607481"
+   android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text=""/>
+  </LinearLayout>
+  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.26" android:text=""/>
   </LinearLayout>
  </FrameLayout>
-<LinearLayout android:layout_width="match_parent" android:layout_height="47dp"
- android:layout_marginTop="4dp" android:background="@drawable/widget_chip_light"
- android:paddingStart="2dp" android:paddingEnd="2dp" android:orientation="horizontal"
- android:gravity="center_vertical" android:baselineAligned="false">
- <LinearLayout android:id="@+id/widget_ring_premium_cell_0"
- android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
- android:gravity="center" android:orientation="vertical" android:padding="1dp"
- android:background="@drawable/widget_row_clear">
-  <TextView android:id="@+id/widget_ring_premium_label_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="İmsak" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
-  <TextView android:id="@+id/widget_ring_premium_clock_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="10sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp" android:textStyle="bold"/>
-
+ <LinearLayout android:layout_width="match_parent" android:layout_height="46dp" android:layout_weight="0.06"
+  android:background="@drawable/widget_chip_light" android:paddingStart="3dp" android:paddingEnd="3dp"
+  android:orientation="horizontal" android:gravity="center_vertical" android:baselineAligned="false">
+ <LinearLayout android:id="@+id/widget_ring_premium_cell_0" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:gravity="center" android:orientation="vertical"
+  android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
+  android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_ring_premium_label_0" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.8" android:text="İmsak" android:textColor="#607481" android:textSize="9sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_premium_clock_0" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+   android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_ring_premium_cell_1"
- android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
- android:gravity="center" android:orientation="vertical" android:padding="1dp"
- android:background="@drawable/widget_row_clear">
-  <TextView android:id="@+id/widget_ring_premium_label_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Güneş" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
-  <TextView android:id="@+id/widget_ring_premium_clock_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="10sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_ring_premium_cell_1" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:gravity="center" android:orientation="vertical"
+  android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
+  android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_ring_premium_label_1" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.8" android:text="Güneş" android:textColor="#607481" android:textSize="9sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_premium_clock_1" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+   android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_ring_premium_cell_2"
- android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
- android:gravity="center" android:orientation="vertical" android:padding="1dp"
- android:background="@drawable/widget_row_clear">
-  <TextView android:id="@+id/widget_ring_premium_label_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Öğle" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
-  <TextView android:id="@+id/widget_ring_premium_clock_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="10sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_ring_premium_cell_2" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:gravity="center" android:orientation="vertical"
+  android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
+  android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_ring_premium_label_2" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.8" android:text="Öğle" android:textColor="#607481" android:textSize="9sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_premium_clock_2" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+   android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_ring_premium_cell_3"
- android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
- android:gravity="center" android:orientation="vertical" android:padding="1dp"
- android:background="@drawable/widget_row_clear">
-  <TextView android:id="@+id/widget_ring_premium_label_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="İkindi" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
-  <TextView android:id="@+id/widget_ring_premium_clock_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="10sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_ring_premium_cell_3" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:gravity="center" android:orientation="vertical"
+  android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
+  android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_ring_premium_label_3" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.8" android:text="İkindi" android:textColor="#607481" android:textSize="9sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_premium_clock_3" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+   android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_ring_premium_cell_4"
- android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
- android:gravity="center" android:orientation="vertical" android:padding="1dp"
- android:background="@drawable/widget_row_clear">
-  <TextView android:id="@+id/widget_ring_premium_label_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Akşam" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
-  <TextView android:id="@+id/widget_ring_premium_clock_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="10sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_ring_premium_cell_4" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:gravity="center" android:orientation="vertical"
+  android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
+  android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_ring_premium_label_4" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.8" android:text="Akşam" android:textColor="#607481" android:textSize="9sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_premium_clock_4" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+   android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_ring_premium_cell_5"
- android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
- android:gravity="center" android:orientation="vertical" android:padding="1dp"
- android:background="@drawable/widget_row_clear">
-  <TextView android:id="@+id/widget_ring_premium_label_5" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Yatsı" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
-  <TextView android:id="@+id/widget_ring_premium_clock_5" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="10sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_ring_premium_cell_5" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:gravity="center" android:orientation="vertical"
+  android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
+  android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_ring_premium_label_5" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.8" android:text="Yatsı" android:textColor="#607481" android:textSize="9sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_premium_clock_5" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+   android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-
  </LinearLayout>
 </LinearLayout>

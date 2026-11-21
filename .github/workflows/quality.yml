@@ -38,6 +38,8 @@ jobs:
         run: node scripts/verify-widget3-contracts.mjs
       - name: Verify nine countdown-first widgets including fixed 2×2 circle
         run: node scripts/verify-widget-designs.mjs
+      - name: Verify light widget layouts are generated from their dark sources
+        run: node scripts/sync-widget-light-layouts.mjs --check
       - name: Verify exact owner-supplied brand icon is unchanged
         run: node scripts/verify-brand-symbol.mjs
       - name: Verify all 27 gallery originals, full-frame preview and row alignment

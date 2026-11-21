@@ -103,14 +103,16 @@ for(const suffix of ['', '_light']){
     element(strip,'widget_strip_time_'+i);
     element(premium,'widget_ring_premium_clock_'+i);
   }
-  assert.match(strip,/android:layout_height="45dp"/);
+  // Footer = 40dp floor + weighted growth (tall cells enlarge the countdown).
+  assert.match(element(strip,'widget_strip_remaining_row'),
+    /android:layout_height="40dp" android:layout_weight="0\.25"/);
   const day=read(p+'widget_prayer_day'+suffix+'.xml');
   for(let i=0;i<6;i++){
     element(day,'widget_day_row_'+i);
     element(day,'widget_day_label_'+i);
     element(day,'widget_day_time_'+i);
   }
-  assert.match(day,/android:layout_height="41dp"/);
+  assert.match(day,/android:layout_height="38dp" android:layout_weight="0\.25"/);
   const slim=read(p+'widget_slim_prayer'+suffix+'.xml');
   assert.match(slim,/KALAN SÜRE/);
   assert.doesNotMatch(slim,/android:textSize="24sp"/,
@@ -133,7 +135,47 @@ assert.match(pipe,/dirty\[8\]&&installed\[8\]\.length>0/);
 assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,224\)/);
 assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,432\)/);
 const ring=read(p+'PrayerRingBitmapRenderer.java');
-assert.match(ring,/size==224\?\.376f:\.346f/);
+assert.match(ring,/size==224\?\.43f:\.44f/);
+// Ring + outer rim (r+.043) and active halo must stay inside the bitmap.
+for(const r of [.43,.44])assert.ok(r+.043<.5&&r+.0345<.5,'ring exceeds bitmap at r='+r);
+
+// Widget Design 8.0 — adaptive space: content scales with the launcher cell.
+for(const kind of variants){
+  for(const suffix of ['','_light']){
+    const xml=read(p+kind+suffix+'.xml');
+    // Every countdown autosizes into a definite box: a wrap_content
+    // Chronometer was what ellipsized "7:58:…" in the 1×2 widget.
+    const hero=element(xml,clocks[kind]);
+    assert.match(hero,/android:autoSizeTextType="uniform"/,kind+suffix+' countdown must autosize');
+    assert.match(hero,/android:layout_width="(match_parent|0dp)"/,kind+suffix+' countdown needs a definite width');
+    assert.match(hero,/android:layout_height="(match_parent|0dp)"/,kind+suffix+' countdown needs a definite height');
+    const max=Number(hero.match(/autoSizeMaxTextSize="(\d+)sp"/)[1]);
+    assert.ok(max>font(xml,clocks[kind]),kind+suffix+' countdown must be able to grow');
+    // Countdown-first must hold at EVERY size, not only at default sp.
+    const secondMax=Number(element(xml,secondary[kind])
+      .match(/autoSizeMaxTextSize="(\d+)sp"/)?.[1]??font(xml,secondary[kind]));
+    assert.ok(max>secondMax,kind+suffix+' secondary text may outgrow the countdown ('+
+      secondMax+' vs '+max+')');
+    // Every autosized view has a definite box and a single line.
+    for(const tag of xml.match(/<(TextView|Chronometer)\b[^<>]*autoSizeTextType[^<>]*>/g)??[]){
+      assert.doesNotMatch(tag,/android:layout_(width|height)="wrap_content"/,
+        'autosize needs fixed/weighted bounds: '+kind+suffix);
+      assert.match(tag,/android:(maxLines="1"|singleLine="true")/);
+      assert.doesNotMatch(tag,/android:ellipsize=/,'autosized text must shrink, not ellipsize');
+    }
+  }
+}
+// 1×2: "KALAN SÜRE" and HH:MM:SS shrink to the narrow column instead of "…".
+const slimXml=read(p+'widget_slim_prayer.xml');
+assert.match(slimXml,/android:text="KALAN SÜRE"[^>]*autoSizeTextType="uniform"/);
+// Ring centre text sits in a box proportional to the ring (weighted spacers),
+// so it scales with the ring instead of floating at a fixed sp size.
+for(const name of ['widget_ring_mini','widget_ring_square','widget_ring_premium']){
+  const xml=read(p+name+'.xml');
+  assert.match(xml,/<FrameLayout[^>]*android:layout_weight="1"/);
+  assert.ok((xml.match(/android:layout_weight="0\.\d+" android:text=""\/>/g)??[]).length>=4,
+    name+' needs proportional horizontal and vertical spacers around the centre text');
+}
 assert.match(ring,/sector\(canvas,pen,ring,0,boundaries\[0\],COLORS\[5\]/);
 assert.doesNotMatch(ring,/fetch\(|HttpURLConnection|WebView/);
-console.log('Widget Design 7.0: 9 variants, countdown-first hierarchy in light/dark themes, 4×2 day counter and fixed 2×2 ring validated');
+console.log('Widget Design 8.0: 9 variants, countdown-first hierarchy, autosized content that fills the launcher cell, ring-proportional centre text and light/dark parity validated');

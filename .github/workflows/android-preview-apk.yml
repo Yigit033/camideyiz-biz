@@ -22,6 +22,8 @@ on:
       - scripts/verify-widget-engine4.mjs
       - scripts/verify-widget-engine41.mjs
       - scripts/verify-widget-engine43.mjs
+      - scripts/sync-widget-light-layouts.mjs
+      - scripts/verify-widget-designs.mjs
       - scripts/verify-widget-headless-gate.mjs
       - packages/core/src/widgetCalendarCache*
       - scripts/verify-widget3-contracts.mjs
@@ -71,6 +73,7 @@ jobs:
           npm run typecheck
           node scripts/verify-widget3-contracts.mjs
           node scripts/verify-widget-designs.mjs
+          node scripts/sync-widget-light-layouts.mjs --check
           node scripts/verify-startup-performance.mjs
           node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
           node --experimental-strip-types scripts/verify-widget-native-runtime.mjs

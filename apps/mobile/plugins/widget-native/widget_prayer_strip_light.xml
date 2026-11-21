@@ -1,93 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- GENERATED from widget_prayer_strip.xml by scripts/sync-widget-light-layouts.mjs. Do not edit. 4×2 six-prayer strip. Cells and the countdown footer scale with the launcher cell; the footer keeps a 40dp floor. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
- android:id="@+id/widget_strip_root" android:layout_width="match_parent"
- android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical"
- android:background="@drawable/widget_bg_light" android:padding="8dp">
- <LinearLayout android:layout_width="match_parent" android:layout_height="29dp"
-  android:orientation="horizontal" android:gravity="center_vertical">
-  <ImageView android:layout_width="28dp" android:layout_height="28dp"
-   android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter"
-   android:contentDescription="Camideyiz Biz logosu"/>
-<TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="1dp" android:text=""/>
-  
-  <TextView android:id="@+id/widget_strip_city" android:layout_width="wrap_content"
-   android:layout_height="wrap_content" android:layout_marginStart="4dp" android:text="—"
-   android:textColor="#586F7D" android:textSize="10sp" android:singleLine="true"
-   android:ellipsize="end" android:includeFontPadding="false"/>
+ android:id="@+id/widget_strip_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:orientation="vertical" android:background="@drawable/widget_bg_light" android:padding="8dp">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center_vertical"
+  android:orientation="horizontal">
+ <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/widget_brand_lockup"
+  android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
+ <TextView android:id="@+id/widget_strip_city" android:layout_width="0dp" android:layout_height="wrap_content"
+  android:layout_weight="1" android:layout_marginStart="6dp" android:text="—" android:textSize="11sp"
+  android:textColor="#607481" android:gravity="end|center_vertical" android:maxLines="1"
+  android:ellipsize="end" android:includeFontPadding="false"/>
  </LinearLayout>
- <TextView android:layout_width="match_parent" android:layout_height="1dp"
-  android:text="" android:background="#D8E3E4" android:layout_marginTop="3dp"/>
- <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
-  android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
-  android:baselineAligned="false" android:layout_marginTop="2dp" android:layout_marginBottom="4dp">
- <LinearLayout android:id="@+id/widget_strip_cell_0" android:layout_width="0dp"
- android:layout_weight="1" android:layout_height="match_parent"
- android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
- android:gravity="center" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_strip_label_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="İmsak" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
- <TextView android:id="@+id/widget_strip_time_0" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
-
+ <TextView android:layout_width="match_parent" android:layout_height="1dp" android:text=""
+  android:background="#DAE3E6" android:layout_marginTop="4dp" android:layout_marginBottom="2dp"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:orientation="horizontal" android:baselineAligned="false" android:layout_marginBottom="5dp">
+ <LinearLayout android:id="@+id/widget_strip_cell_0" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
+  android:paddingTop="3dp" android:paddingBottom="3dp" android:orientation="vertical" android:gravity="center"
+  android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_0" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.8" android:text="İmsak" android:textColor="#607481" android:textSize="9sp"
+  android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_strip_time_0" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+  android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_strip_cell_1" android:layout_width="0dp"
- android:layout_weight="1" android:layout_height="match_parent"
- android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
- android:gravity="center" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_strip_label_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Güneş" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
- <TextView android:id="@+id/widget_strip_time_1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_strip_cell_1" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
+  android:paddingTop="3dp" android:paddingBottom="3dp" android:orientation="vertical" android:gravity="center"
+  android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_1" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.8" android:text="Güneş" android:textColor="#607481" android:textSize="9sp"
+  android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_strip_time_1" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+  android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_strip_cell_2" android:layout_width="0dp"
- android:layout_weight="1" android:layout_height="match_parent"
- android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
- android:gravity="center" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_strip_label_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Öğle" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
- <TextView android:id="@+id/widget_strip_time_2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_strip_cell_2" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
+  android:paddingTop="3dp" android:paddingBottom="3dp" android:orientation="vertical" android:gravity="center"
+  android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_2" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.8" android:text="Öğle" android:textColor="#607481" android:textSize="9sp"
+  android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_strip_time_2" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+  android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_strip_cell_3" android:layout_width="0dp"
- android:layout_weight="1" android:layout_height="match_parent"
- android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
- android:gravity="center" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_strip_label_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="İkindi" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
- <TextView android:id="@+id/widget_strip_time_3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_strip_cell_3" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
+  android:paddingTop="3dp" android:paddingBottom="3dp" android:orientation="vertical" android:gravity="center"
+  android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_3" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.8" android:text="İkindi" android:textColor="#607481" android:textSize="9sp"
+  android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_strip_time_3" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+  android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_strip_cell_4" android:layout_width="0dp"
- android:layout_weight="1" android:layout_height="match_parent"
- android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
- android:gravity="center" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_strip_label_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Akşam" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
- <TextView android:id="@+id/widget_strip_time_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_strip_cell_4" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
+  android:paddingTop="3dp" android:paddingBottom="3dp" android:orientation="vertical" android:gravity="center"
+  android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_4" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.8" android:text="Akşam" android:textColor="#607481" android:textSize="9sp"
+  android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_strip_time_4" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+  android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
-<LinearLayout android:id="@+id/widget_strip_cell_5" android:layout_width="0dp"
- android:layout_weight="1" android:layout_height="match_parent"
- android:paddingStart="1dp" android:paddingEnd="1dp" android:orientation="vertical"
- android:gravity="center" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_strip_label_5" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Yatsı" android:textColor="#586F7D" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" />
-
- <TextView android:id="@+id/widget_strip_time_5" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#152C3D" android:textSize="12sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp" android:textStyle="bold"/>
-
+ <LinearLayout android:id="@+id/widget_strip_cell_5" android:layout_width="0dp" android:layout_weight="1"
+  android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
+  android:paddingTop="3dp" android:paddingBottom="3dp" android:orientation="vertical" android:gravity="center"
+  android:background="@drawable/widget_row_clear">
+ <TextView android:id="@+id/widget_strip_label_5" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.8" android:text="Yatsı" android:textColor="#607481" android:textSize="9sp"
+  android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_strip_time_5" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#163045"
+  android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  </LinearLayout>
- <LinearLayout android:id="@+id/widget_strip_remaining_row"
-  android:layout_width="match_parent" android:layout_height="45dp"
-  android:background="@drawable/widget_chip_light" android:orientation="horizontal"
-  android:paddingStart="12dp" android:paddingEnd="12dp" android:gravity="center_vertical">
-  <TextView android:id="@+id/widget_strip_next" android:layout_width="0dp"
-   android:layout_weight="1" android:layout_height="wrap_content"
-   android:text="Takvim bekleniyor" android:textColor="#586F7D"
-   android:textSize="11sp" android:singleLine="true" android:ellipsize="end"
-   android:includeFontPadding="false"/>
-  <Chronometer android:id="@+id/widget_strip_countdown"
-   android:layout_width="wrap_content" android:layout_height="wrap_content"
-   android:layout_marginStart="8dp" android:text="--:--" android:textColor="#91652D"
-   android:textSize="24sp" android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:singleLine="true"
-   android:includeFontPadding="false"/>
+ <LinearLayout android:id="@+id/widget_strip_remaining_row" android:layout_width="match_parent"
+  android:layout_height="40dp" android:layout_weight="0.25" android:background="@drawable/widget_chip_light"
+  android:orientation="horizontal" android:paddingStart="12dp" android:paddingEnd="12dp"
+  android:gravity="center_vertical" android:baselineAligned="false">
+  <TextView android:id="@+id/widget_strip_next" android:layout_width="0dp" android:layout_weight="1"
+   android:layout_height="match_parent" android:text="Takvim bekleniyor" android:textColor="#607481"
+   android:textSize="11sp" android:gravity="start|center_vertical" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+  <Chronometer android:id="@+id/widget_strip_countdown" android:layout_width="0dp" android:layout_weight="1.1"
+   android:layout_height="match_parent" android:layout_marginStart="8dp" android:text="--:--"
+   android:textColor="#91652D" android:textSize="24sp" android:textStyle="bold"
+   android:fontFamily="sans-serif-condensed" android:gravity="end|center_vertical" android:singleLine="true"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="16sp" android:autoSizeMaxTextSize="44sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
 </LinearLayout>

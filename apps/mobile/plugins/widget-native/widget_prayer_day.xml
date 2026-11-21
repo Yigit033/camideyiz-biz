@@ -1,107 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 4×2 daily. Rows share the body height and their text autosizes; the footer keeps a 38dp floor and grows with the widget, so tall cells enlarge the countdown. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_day_root" android:layout_width="match_parent" android:layout_height="match_parent"
- android:background="@drawable/widget_bg" android:padding="7dp" android:orientation="vertical" android:gravity="center_vertical">
- <LinearLayout android:layout_width="match_parent" android:layout_height="27dp"
-  android:gravity="center_vertical" android:orientation="horizontal">
- <ImageView android:layout_width="27dp" android:layout_height="27dp"
-  android:src="@drawable/widget_brand_lockup" android:contentDescription="Camideyiz.biz" android:scaleType="fitCenter"/>
+ android:background="@drawable/widget_bg" android:padding="8dp" android:orientation="vertical">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center_vertical"
+  android:orientation="horizontal">
+ <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/widget_brand_lockup"
+  android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <TextView android:id="@+id/widget_day_city" android:layout_width="0dp" android:layout_height="wrap_content"
-  android:layout_weight="1" android:text="Konum" android:textColor="#AFC5D4" android:textSize="11sp"
-  android:gravity="right|center_vertical" android:layout_marginStart="8dp"
-  android:ellipsize="end" android:maxLines="1" android:includeFontPadding="false"/>
+  android:layout_weight="1" android:layout_marginStart="6dp" android:text="Konum" android:textSize="11sp"
+  android:textColor="#AFC5D4" android:gravity="end|center_vertical" android:maxLines="1"
+  android:ellipsize="end" android:includeFontPadding="false"/>
  </LinearLayout>
  <TextView android:layout_width="match_parent" android:layout_height="1dp" android:text=""
-  android:background="#31566D" android:layout_marginTop="3dp" android:layout_marginBottom="4dp"/>
- <LinearLayout android:layout_width="match_parent" android:layout_height="0dp"
-  android:layout_weight="1" android:baselineAligned="false" android:orientation="horizontal">
-  <LinearLayout android:layout_width="0dp" android:layout_weight="1"
-  android:layout_height="match_parent" android:orientation="vertical">
+  android:background="#31566D" android:layout_marginTop="4dp" android:layout_marginBottom="3dp"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:baselineAligned="false" android:orientation="horizontal">
+  <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
+   android:orientation="vertical">
   <LinearLayout android:id="@+id/widget_day_row_0" android:layout_width="match_parent"
- android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
- android:paddingStart="4dp" android:paddingEnd="4dp" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_day_icon_0" android:layout_width="15dp" android:layout_height="wrap_content"
-  android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_label_0" android:layout_width="0dp" android:layout_height="wrap_content"
-  android:layout_weight="1" android:text="İmsak" android:textSize="10sp" android:textColor="#F1F7F8"
-  android:ellipsize="end" android:maxLines="1" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_time_0" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:text="--:--" android:textSize="11sp" android:textStyle="bold" android:textColor="#F1F7F8"
-  android:includeFontPadding="false"/>
-</LinearLayout><LinearLayout android:id="@+id/widget_day_row_1" android:layout_width="match_parent"
- android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
- android:paddingStart="4dp" android:paddingEnd="4dp" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_day_icon_1" android:layout_width="15dp" android:layout_height="wrap_content"
-  android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_label_1" android:layout_width="0dp" android:layout_height="wrap_content"
-  android:layout_weight="1" android:text="Güneş" android:textSize="10sp" android:textColor="#F1F7F8"
-  android:ellipsize="end" android:maxLines="1" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_time_1" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:text="--:--" android:textSize="11sp" android:textStyle="bold" android:textColor="#F1F7F8"
-  android:includeFontPadding="false"/>
-</LinearLayout><LinearLayout android:id="@+id/widget_day_row_2" android:layout_width="match_parent"
- android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
- android:paddingStart="4dp" android:paddingEnd="4dp" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_day_icon_2" android:layout_width="15dp" android:layout_height="wrap_content"
-  android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_label_2" android:layout_width="0dp" android:layout_height="wrap_content"
-  android:layout_weight="1" android:text="Öğle" android:textSize="10sp" android:textColor="#F1F7F8"
-  android:ellipsize="end" android:maxLines="1" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_time_2" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:text="--:--" android:textSize="11sp" android:textStyle="bold" android:textColor="#F1F7F8"
-  android:includeFontPadding="false"/>
-</LinearLayout>
- </LinearLayout>
+   android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal"
+   android:gravity="center_vertical" android:paddingStart="5dp" android:paddingEnd="6dp"
+   android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_day_icon_0" android:layout_width="15dp" android:layout_height="wrap_content"
+   android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center"
+   android:includeFontPadding="false"/>
+  <TextView android:id="@+id/widget_day_label_0" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="1" android:text="İmsak" android:textSize="10sp" android:textColor="#F1F7F8"
+   android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_day_time_0" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
+   android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
+  </LinearLayout>
+  <LinearLayout android:id="@+id/widget_day_row_1" android:layout_width="match_parent"
+   android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal"
+   android:gravity="center_vertical" android:paddingStart="5dp" android:paddingEnd="6dp"
+   android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_day_icon_1" android:layout_width="15dp" android:layout_height="wrap_content"
+   android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center"
+   android:includeFontPadding="false"/>
+  <TextView android:id="@+id/widget_day_label_1" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="1" android:text="Güneş" android:textSize="10sp" android:textColor="#F1F7F8"
+   android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_day_time_1" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
+   android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
+  </LinearLayout>
+  <LinearLayout android:id="@+id/widget_day_row_2" android:layout_width="match_parent"
+   android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal"
+   android:gravity="center_vertical" android:paddingStart="5dp" android:paddingEnd="6dp"
+   android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_day_icon_2" android:layout_width="15dp" android:layout_height="wrap_content"
+   android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center"
+   android:includeFontPadding="false"/>
+  <TextView android:id="@+id/widget_day_label_2" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="1" android:text="Öğle" android:textSize="10sp" android:textColor="#F1F7F8"
+   android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_day_time_2" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
+   android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
+  </LinearLayout>
+  </LinearLayout>
   <TextView android:layout_width="1dp" android:layout_height="match_parent" android:text=""
-   android:background="#31566D" android:layout_marginStart="4dp" android:layout_marginEnd="4dp"/>
-  <LinearLayout android:layout_width="0dp" android:layout_weight="1"
-  android:layout_height="match_parent" android:orientation="vertical">
+   android:background="#31566D" android:layout_marginStart="5dp" android:layout_marginEnd="5dp"/>
+  <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
+   android:orientation="vertical">
   <LinearLayout android:id="@+id/widget_day_row_3" android:layout_width="match_parent"
- android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
- android:paddingStart="4dp" android:paddingEnd="4dp" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_day_icon_3" android:layout_width="15dp" android:layout_height="wrap_content"
-  android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_label_3" android:layout_width="0dp" android:layout_height="wrap_content"
-  android:layout_weight="1" android:text="İkindi" android:textSize="10sp" android:textColor="#F1F7F8"
-  android:ellipsize="end" android:maxLines="1" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_time_3" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:text="--:--" android:textSize="11sp" android:textStyle="bold" android:textColor="#F1F7F8"
-  android:includeFontPadding="false"/>
-</LinearLayout><LinearLayout android:id="@+id/widget_day_row_4" android:layout_width="match_parent"
- android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
- android:paddingStart="4dp" android:paddingEnd="4dp" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_day_icon_4" android:layout_width="15dp" android:layout_height="wrap_content"
-  android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_label_4" android:layout_width="0dp" android:layout_height="wrap_content"
-  android:layout_weight="1" android:text="Akşam" android:textSize="10sp" android:textColor="#F1F7F8"
-  android:ellipsize="end" android:maxLines="1" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_time_4" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:text="--:--" android:textSize="11sp" android:textStyle="bold" android:textColor="#F1F7F8"
-  android:includeFontPadding="false"/>
-</LinearLayout><LinearLayout android:id="@+id/widget_day_row_5" android:layout_width="match_parent"
- android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical"
- android:paddingStart="4dp" android:paddingEnd="4dp" android:background="@drawable/widget_row_clear">
- <TextView android:id="@+id/widget_day_icon_5" android:layout_width="15dp" android:layout_height="wrap_content"
-  android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_label_5" android:layout_width="0dp" android:layout_height="wrap_content"
-  android:layout_weight="1" android:text="Yatsı" android:textSize="10sp" android:textColor="#F1F7F8"
-  android:ellipsize="end" android:maxLines="1" android:includeFontPadding="false"/>
- <TextView android:id="@+id/widget_day_time_5" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:text="--:--" android:textSize="11sp" android:textStyle="bold" android:textColor="#F1F7F8"
-  android:includeFontPadding="false"/>
-</LinearLayout>
+   android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal"
+   android:gravity="center_vertical" android:paddingStart="5dp" android:paddingEnd="6dp"
+   android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_day_icon_3" android:layout_width="15dp" android:layout_height="wrap_content"
+   android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center"
+   android:includeFontPadding="false"/>
+  <TextView android:id="@+id/widget_day_label_3" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="1" android:text="İkindi" android:textSize="10sp" android:textColor="#F1F7F8"
+   android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_day_time_3" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
+   android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
+  </LinearLayout>
+  <LinearLayout android:id="@+id/widget_day_row_4" android:layout_width="match_parent"
+   android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal"
+   android:gravity="center_vertical" android:paddingStart="5dp" android:paddingEnd="6dp"
+   android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_day_icon_4" android:layout_width="15dp" android:layout_height="wrap_content"
+   android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center"
+   android:includeFontPadding="false"/>
+  <TextView android:id="@+id/widget_day_label_4" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="1" android:text="Akşam" android:textSize="10sp" android:textColor="#F1F7F8"
+   android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_day_time_4" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
+   android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
+  </LinearLayout>
+  <LinearLayout android:id="@+id/widget_day_row_5" android:layout_width="match_parent"
+   android:layout_height="0dp" android:layout_weight="1" android:orientation="horizontal"
+   android:gravity="center_vertical" android:paddingStart="5dp" android:paddingEnd="6dp"
+   android:background="@drawable/widget_row_clear">
+  <TextView android:id="@+id/widget_day_icon_5" android:layout_width="15dp" android:layout_height="wrap_content"
+   android:text="·" android:textSize="10sp" android:textColor="#F4D392" android:gravity="center"
+   android:includeFontPadding="false"/>
+  <TextView android:id="@+id/widget_day_label_5" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="1" android:text="Yatsı" android:textSize="10sp" android:textColor="#F1F7F8"
+   android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_day_time_5" android:layout_width="0dp" android:layout_height="match_parent"
+   android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
+   android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"/>
+  </LinearLayout>
+  </LinearLayout>
  </LinearLayout>
- </LinearLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="41dp"
-  android:layout_marginTop="5dp" android:paddingStart="9dp" android:paddingEnd="10dp"
-  android:background="@drawable/widget_chip_dark" android:orientation="horizontal" android:gravity="center_vertical">
-  <TextView android:id="@+id/widget_day_footer" android:layout_width="0dp"
-   android:layout_weight="1" android:layout_height="wrap_content"
-   android:text="Sıradaki vakte kalan" android:textSize="10sp" android:textColor="#AFC5D4"
-   android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"/>
-  <Chronometer android:id="@+id/widget_day_countdown" android:layout_width="wrap_content"
-   android:layout_height="wrap_content" android:text="--:--" android:textSize="23sp"
-   android:textStyle="bold" android:fontFamily="sans-serif-medium" android:textColor="#F4D392"
-   android:includeFontPadding="false" android:singleLine="true"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="38dp" android:layout_weight="0.25"
+  android:layout_marginTop="5dp" android:paddingStart="12dp" android:paddingEnd="12dp"
+  android:background="@drawable/widget_chip_dark" android:orientation="horizontal" android:gravity="center_vertical"
+  android:baselineAligned="false">
+  <TextView android:id="@+id/widget_day_footer" android:layout_width="0dp" android:layout_weight="1"
+   android:layout_height="match_parent" android:text="Sıradaki vakte kalan" android:textSize="10sp"
+   android:textColor="#AFC5D4" android:gravity="start|center_vertical" android:maxLines="1"
+   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
+  <Chronometer android:id="@+id/widget_day_countdown" android:layout_width="0dp" android:layout_weight="1.1"
+   android:layout_height="match_parent" android:text="--:--" android:textSize="23sp" android:textStyle="bold"
+   android:fontFamily="sans-serif-medium" android:textColor="#F4D392" android:gravity="end|center_vertical"
+   android:includeFontPadding="false" android:singleLine="true" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="16sp" android:autoSizeMaxTextSize="44sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
 </LinearLayout>

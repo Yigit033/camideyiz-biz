@@ -118,8 +118,10 @@ public final class PrayerRingBitmapRenderer {
     long renderAt=SystemClock.elapsedRealtime();
     Bitmap bitmap=Bitmap.createBitmap(size,size,Bitmap.Config.ARGB_8888);
     Canvas canvas=new Canvas(bitmap);
-    // Use more of the square footprint without sacrificing central text.
-    float mid=size*.5f,radius=size*(size==224?.376f:.346f);
+    // Ring fills the bitmap: outer rim at r+.043 and the active halo at
+    // r+.035 stay inside the edge, so no transparent margin is wasted on the
+    // home screen. Centre text lives in a ring-proportional layout box.
+    float mid=size*.5f,radius=size*(size==224?.43f:.44f);
     RectF ring=new RectF(mid-radius,mid-radius,mid+radius,mid+radius);
     Paint pen=new Paint(Paint.ANTI_ALIAS_FLAG);
     pen.setStyle(Paint.Style.STROKE);

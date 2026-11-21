@@ -58,6 +58,20 @@ Native Java, XML, `values-night` ve manifest değiştiği için **yeni APK şart
 7. **Regresyon:** İlçe değişimi, reboot, saat dilimi değişimi, uçak modu, hızlı ekle/kaldır, gece yarısı. Eski ilçe saatleri geri gelmemeli; `nativeRenderQueueRejected` 0 kalmalı.
 8. **Performans:** Widget'lar kuruluyken 5 soğuk açılış, ön plana dönüş ve kaydırma; Engine raporundaki kuyruk bekleme süreleri 4.2 ile karşılaştırılmalı.
 
+## Widget Tasarım 8.0: alanı dolduran düzen
+
+İlk cihaz testinde (ColorOS, açık tema) içerik, launcher'ın verdiği hücreden bağımsız sabit sp boyutlarında kaldı. 4×2 odak ve 2×2 widget'larda büyük boş bantlar oluştu, 1×2 dikeyde "KALAN SÜ…" ve "7:58:…" kesildi.
+
+- **Otomatik yazı boyutu:** Geri sayımlar ve ana metinler `autoSizeTextType="uniform"` ile, ağırlıklı (kesin boyutlu) kutularına sığacak kadar büyür veya küçülür. Kesilme (`…`) yerine küçülme uygulanır. Android 8+ gerekir; Android 7'de varsayılan sp boyutları kullanılır.
+- **Taban + büyüme:** Sayaç şeritleri sabit yükseklik yerine "en az X dp + ağırlık" kullanır. Küçük launcher'da hiçbir şey ezilmez, büyük hücrede sayaç büyür. Örneğin günlük şerit 38dp + 0,25, altı vakit şeridi 40dp + 0,25, mini çember 30dp + 0,12, premium alt şerit 46dp + 0,06.
+- **Çember içi yazılar:** Çember içindeki yazılar, çember çerçevesinin sabit bir **oranı** olan bir kutuda (ağırlıklı boşluklarla) ölçeklenir. Çember büyüdükçe yazı da büyür ve çemberin iç halkasında kalır.
+- **Daha büyük çember:** Bitmap içindeki saydam kenar azaltıldı. Çember yarıçapı 224px'te 0,376 → 0,43, 432px'te 0,346 → 0,44 oldu; dış halka ve aktif hale bitmap içinde kalır.
+- **Hiyerarşi her boyutta korunur:** Hiçbir ikincil yazının üst boyut sınırı geri sayımınkini geçemez (`verify-widget-designs.mjs`).
+- **Tek kaynaklı tema:** Açık layout'lar artık `scripts/sync-widget-light-layouts.mjs` ile koyu layout'tan, tek renk token tablosuyla **üretilir**. CI, Windows APK betiği ve Android iş akışı `--check` ile farkı reddeder. Yeni bir renk eklenirse açık karşılığı tabloya tanımlanmadıkça betik hata verir.
+- **Logo:** Sahibinin verdiği widget logosu (SHA kilitli) koyu, opak bir kare görseldir. Açık temada koyu bir rozet gibi görünür. Daha zarif bir açık tema için aynı logonun şeffaf arka planlı sürümü sağlanmalıdır; görsel izinsiz değiştirilmedi.
+
+Cihazda bakılacaklar: 1×1, 1×2, 2×2 ve 4×2 widget'ları launcher'da en küçük ve büyütülmüş hâlleriyle dene. Hiçbir metin `…` ile kesilmemeli. Geri sayım her boyutta en baskın öğe olmalı. Çember içi yazı halkaya değmemeli. Büyük hücrede üst/alt boş bant kalmamalı.
+
 ## Bilinen sınırlar
 
 - Kesin alarm Android 12+ cihazda kullanıcının verdiği "Alarmlar ve hatırlatıcılar" iznine bağlıdır. Bazı üreticilerin (MIUI, ColorOS) agresif pil yönetimi alarmları yine geciktirebilir.
