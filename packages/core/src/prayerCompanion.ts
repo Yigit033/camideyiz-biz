@@ -7,6 +7,10 @@ import {assertISODate} from './diyanet.ts';
 export const PRAYER_TIMEZONE='Europe/Istanbul' as const;
 export const ALERT_MAX_EVENTS=60; // iOS only retains up to 64 pending local notifications.
 export const ALERT_MAX_DAYS=7;
+// Android has no 64-request ceiling: a longer verified horizon keeps alerts
+// (and ezan) on time even if the app is not opened for over a week.
+export const ANDROID_ALERT_MAX_EVENTS=120;
+export const ANDROID_ALERT_MAX_DAYS=10;
 export const ALERT_LEADS=[0,5,10,15,30,45,60] as const;
 export type AlertLead=typeof ALERT_LEADS[number];
 export type AlertSound='default'|'silent'|'adhan';
@@ -15,15 +19,33 @@ export type PrayerAlertRule={
   atTime:boolean;
   minutesBefore:AlertLead; // 0 disables the earlier reminder.
 };
+/** The five ezan times. Güneş doğuşu is never an ezan. */
+export const ADHAN_PRAYERS=['imsak','ogle','ikindi','aksam','yatsi'] as const;
+export type AdhanPrayer=typeof ADHAN_PRAYERS[number];
+/** The bundled recording is an öğle ezanı (Uşşak). The sabah ezanı adds
+ * "es-salâtü hayrun mine'n-nevm", so playing this recording at İmsak would be
+ * religiously wrong. İmsak stays a notification until a dedicated, licensed
+ * sabah ezanı recording is bundled and this flag is flipped. */
+export const SABAH_EZANI_AVAILABLE=false;
 export type PrayerAlertSettings={
   enabled:boolean;
   sound:AlertSound;
+  /** Android: deliver via AlarmManager.setAlarmClock, which OEM battery
+   * savers never defer (shows the system alarm icon). */
+  precise:boolean;
+  /** With sound 'adhan': which prayers play the full ezan instead of a notification. */
+  adhanFor:Record<AdhanPrayer,boolean>;
   rules:Record<PrayerKey,PrayerAlertRule>;
 };
 const ordinary=():PrayerAlertRule=>({enabled:true,atTime:true,minutesBefore:0});
+const DEFAULT_ADHAN_FOR:Readonly<Record<AdhanPrayer,boolean>>={
+  imsak:SABAH_EZANI_AVAILABLE,ogle:true,ikindi:true,aksam:true,yatsi:true,
+};
 export const DEFAULT_ALERT_SETTINGS:Readonly<PrayerAlertSettings>={
   enabled:false,
   sound:'default',
+  precise:true,
+  adhanFor:{...DEFAULT_ADHAN_FOR},
   rules:{
     imsak:ordinary(),
     gunes:{enabled:false,atTime:true,minutesBefore:0},
@@ -34,6 +56,8 @@ export const DEFAULT_ALERT_SETTINGS:Readonly<PrayerAlertSettings>={
   },
 };
 
+/** Settings saved by older app versions lack `precise`/`adhanFor`; they get
+ * the safe defaults instead of being rejected (which would reset the user). */
 export function validateAlertSettings(value:unknown):PrayerAlertSettings{
   if(!value||typeof value!=='object'||Array.isArray(value))
     throw new RangeError('Invalid notification settings');
@@ -41,6 +65,8 @@ export function validateAlertSettings(value:unknown):PrayerAlertSettings{
   if(typeof input.enabled!=='boolean'||(input.sound!=='default'&&input.sound!=='silent'&&input.sound!=='adhan')||
      !input.rules||typeof input.rules!=='object')
     throw new RangeError('Invalid global notification settings');
+  if(input.precise!==undefined&&typeof input.precise!=='boolean')
+    throw new RangeError('Invalid delivery precision');
   const rules={} as Record<PrayerKey,PrayerAlertRule>;
   for(const key of PRAYER_KEYS){
     const rule=input.rules[key];
@@ -49,7 +75,27 @@ export function validateAlertSettings(value:unknown):PrayerAlertSettings{
       throw new RangeError('Invalid prayer preference: '+key);
     rules[key]={enabled:rule.enabled,atTime:rule.atTime,minutesBefore:rule.minutesBefore};
   }
-  return {enabled:input.enabled,sound:input.sound,rules};
+  const adhanFor={...DEFAULT_ADHAN_FOR};
+  if(input.adhanFor!==undefined){
+    if(!input.adhanFor||typeof input.adhanFor!=='object'||Array.isArray(input.adhanFor))
+      throw new RangeError('Invalid ezan prayer selection');
+    for(const key of ADHAN_PRAYERS){
+      const chosen=input.adhanFor[key];
+      if(chosen===undefined)continue;
+      if(typeof chosen!=='boolean')throw new RangeError('Invalid ezan selection: '+key);
+      adhanFor[key]=chosen;
+    }
+  }
+  if(!SABAH_EZANI_AVAILABLE)adhanFor.imsak=false;
+  return {enabled:input.enabled,sound:input.sound,precise:input.precise??true,adhanFor,rules};
+}
+
+/** True when this event is voiced by the native full ezan INSTEAD of a
+ * notification. The single source of truth for both schedulers. */
+export function playsFullAdhan(event:PrayerAlertEvent,settings:PrayerAlertSettings):boolean{
+  return settings.sound==='adhan'&&event.kind==='atTime'&&
+    (ADHAN_PRAYERS as readonly string[]).includes(event.prayer)&&
+    settings.adhanFor[event.prayer as AdhanPrayer]===true;
 }
 function plusDays(dateISO:string,days:number):string{
   const base=Date.parse(assertISODate(dateISO)+'T12:00:00Z');
@@ -78,15 +124,17 @@ export type PrayerAlertEvent={
 };
 export function createPrayerAlertPlan(
   days:readonly PrayerSchedule[], settings:PrayerAlertSettings, nowMs:number,
-  maxEvents=ALERT_MAX_EVENTS,
+  maxEvents=ALERT_MAX_EVENTS, maxDays=ALERT_MAX_DAYS,
 ):PrayerAlertEvent[]{
   const prefs=validateAlertSettings(settings);
   if(!prefs.enabled)return [];
-  if(!Number.isFinite(nowMs)||!Number.isInteger(maxEvents)||maxEvents<1||maxEvents>ALERT_MAX_EVENTS)
+  if(!Number.isFinite(nowMs)||!Number.isInteger(maxEvents)||maxEvents<1||
+     maxEvents>ANDROID_ALERT_MAX_EVENTS||!Number.isInteger(maxDays)||maxDays<1||
+     maxDays>ANDROID_ALERT_MAX_DAYS)
     throw new RangeError('Invalid notification planning bounds');
   if(!days.length)return [];
   const currentDate=zonedClock(new Date(nowMs),PRAYER_TIMEZONE).dateISO;
-  const latest=plusDays(currentDate,ALERT_MAX_DAYS-1);
+  const latest=plusDays(currentDate,maxDays-1);
   const byDate=new Map<string,PrayerSchedule>();
   for(const day of days){
     if(day.isDemo||day.timezone!==PRAYER_TIMEZONE||day.dateISO<currentDate||
@@ -105,7 +153,7 @@ export function createPrayerAlertPlan(
   if(byDate.size===0)return [];
   // If any intermediate day is absent do not schedule speculative dates beyond it.
   const ordered:PrayerSchedule[]=[];
-  for(let index=0;index<ALERT_MAX_DAYS;index++){
+  for(let index=0;index<maxDays;index++){
     const day=byDate.get(plusDays(currentDate,index));
     if(!day)break;
     ordered.push(day);

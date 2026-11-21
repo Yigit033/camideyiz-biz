@@ -3,9 +3,29 @@ import {Platform} from 'react-native';
 import {hasAndroidNativeWidgetBridge,isExpoGoRuntime} from '../native/nativeRuntime';
 import {clearNativeAdhan,nativeAdhanStatus,scheduleNativeAdhan} from './nativeAdhan';
 import {
-  createPrayerAlertPlan,
+  createPrayerAlertPlan,playsFullAdhan,
+  ALERT_MAX_EVENTS,ALERT_MAX_DAYS,ANDROID_ALERT_MAX_EVENTS,ANDROID_ALERT_MAX_DAYS,
   type PrayerAlertEvent,type PrayerAlertSettings,type PrayerSchedule,
 } from '@camideyiz/core';
+
+/** Android 12+: exact alarms need the user-granted "Alarms & reminders"
+ * access. Without it the OS may deliver prayer reminders minutes late.
+ * null = not applicable (iOS / Android 11-) — delivery is already exact. */
+export async function getExactAlarmAccess():Promise<boolean|null>{
+  if(Platform.OS!=='android')return null;
+  try{
+    const result=await Notifications.getExactAlarmPermissionsAsync();
+    return result.granted;
+  }catch{return null;}
+}
+/** Opens the system "Alarms & reminders" screen; resolves on return. */
+export async function requestExactAlarmAccess():Promise<boolean|null>{
+  if(Platform.OS!=='android')return null;
+  try{
+    const result=await Notifications.requestExactAlarmPermissionsAsync();
+    return result.granted;
+  }catch{return getExactAlarmAccess();}
+}
 
 const KIND='camideyiz-prayer-v2'; // Keep v2 to reconcile old installed APK requests.
 export const PRAYER_ALERT_PREFERENCES_KEY='@camideyiz/prayer-alert-prefs/v2';
@@ -16,6 +36,10 @@ export type NotificationSyncReport={
   permission:'granted'|'denied'|'unknown';
   scheduled:number;nextAt:number|null;
   error:string|null;
+  /** Android only: whether reminders are armed as exact alarms right now. */
+  exactAlarms?:boolean|null;
+  /** Count of prayers voiced by the full ezan instead of a notification. */
+  adhanScheduled?:number;
 };
 export type NativePrayerEvent={
   id:string;eventKey:string;title:string;body:string;receivedAt:number;
@@ -60,7 +84,10 @@ export async function requestPrayerPermission():Promise<boolean>{
   });
   return permissionAllowed(next);
 }
-export function alertContent(event:PrayerAlertEvent,cityId:number,sound:'default'|'silent'){
+export type AlertDelivery='bestEffort'|'alarmClock';
+export type ArmedDelivery=AlertDelivery|'inexact';
+export function alertContent(event:PrayerAlertEvent,cityId:number,sound:'default'|'silent',
+  armedAs:ArmedDelivery='bestEffort'){
   const early=event.kind==='before';
   const title=early
     ?event.label+' vaktine '+event.leadMinutes+' dakika'
@@ -75,7 +102,7 @@ export function alertContent(event:PrayerAlertEvent,cityId:number,sound:'default
     priority:Notifications.AndroidNotificationPriority.HIGH,
     data:{
       kind:KIND,eventKey:event.key,cityId,localTime:event.localTime,
-      dateISO:event.dateISO,prayer:event.prayer,soundMode:sound,
+      dateISO:event.dateISO,prayer:event.prayer,soundMode:sound,delivery:armedAs,
     },
     color:'#0C6752',
   };
@@ -94,7 +121,20 @@ export async function reconcilePrayerNotifications(
     const ours=all.filter(r=>owned(r));
     const enabled=settings.enabled&&permission==='granted';
     if(enabled)await setPrayerChannels();
-    const desired=enabled?createPrayerAlertPlan(days,settings,nowMs):[];
+    const android=Platform.OS==='android';
+    const desired=enabled?createPrayerAlertPlan(days,settings,nowMs,
+      android?ANDROID_ALERT_MAX_EVENTS:ALERT_MAX_EVENTS,
+      android?ANDROID_ALERT_MAX_DAYS:ALERT_MAX_DAYS):[];
+    const exactAlarms=await getExactAlarmAccess();
+    // setAlarmClock is never deferred by OEM battery savers (ColorOS, MIUI…);
+    // it needs exact-alarm access, otherwise Expo falls back to bestEffort.
+    const delivery:AlertDelivery=android&&settings.precise&&exactAlarms!==false
+      ?'alarmClock':'bestEffort';
+    // Expo picks exact vs inexact AlarmManager APIs when a request is ARMED.
+    // Tag requests with how they were armed, so granting "Alarms & reminders"
+    // later re-arms every inexact reminder as exact on the next reconcile.
+    const armedAs:ArmedDelivery=exactAlarms===false?'inexact':delivery;
+    const voiced=desired.filter(event=>playsFullAdhan(event,settings));
 
     // Full ezan is Android-only native playback, never a notification sound.
     // A standard audible OS alert is retained as a fallback if special alarm
@@ -103,13 +143,13 @@ export async function reconcilePrayerNotifications(
     let nativeReady=false;
     let nativeCount=0;
     let nativeError:string|null=null;
-    if(enabled&&settings.sound==='adhan'&&Platform.OS==='android'){
+    if(enabled&&voiced.length>0&&android){
       try{
         const status=await nativeAdhanStatus();
         if(!status.supported)throw Error('Bu APK yerel ezan alarmlarını desteklemiyor.');
         if(!status.exactPermission)
           throw Error('Ezan için Android kesin alarm iznini vermen gerekiyor.');
-        const scheduled=await scheduleNativeAdhan(desired);
+        const scheduled=await scheduleNativeAdhan(voiced,settings.precise);
         nativeReady=true;
         nativeCount=scheduled.scheduled;
       }catch(error){
@@ -120,8 +160,11 @@ export async function reconcilePrayerNotifications(
       await clearNativeAdhan().catch(()=>undefined);
     }
 
-    const notifications=desired.filter(event=>
-      !(nativeReady && event.kind==='atTime' && event.prayer!=='gunes'));
+    // Ezan REPLACES the at-time notification only when the native alarm is
+    // armed; otherwise the user still gets an audible reminder (never lost).
+    const notifications=nativeReady
+      ?desired.filter(event=>!playsFullAdhan(event,settings))
+      :desired;
     const effectiveSound=(_event:PrayerAlertEvent):'default'|'silent'=>
       settings.sound==='silent'?'silent':'default';
     const existingByKey=new Map(ours.map(r=>[String(r.content.data?.eventKey),r]));
@@ -130,10 +173,12 @@ export async function reconcilePrayerNotifications(
     for(const old of ours){
       const key=String(old.content.data?.eventKey);
       const next=notifications.find(e=>e.key===key);
-      const expected=next?alertContent(next,cityId,effectiveSound(next)):null;
+      const expected=next?alertContent(next,cityId,effectiveSound(next),armedAs):null;
       const correct=Boolean(next&&expected&&
         old.content.data?.cityId===cityId &&
         old.content.data?.soundMode===effectiveSound(next!) &&
+        // Switching precision re-arms requests with the other AlarmManager API.
+        (old.content.data?.delivery??'bestEffort')===armedAs &&
         old.content.data?.localTime===next.localTime &&
         old.content.title===expected.title &&
         old.content.body===expected.body);
@@ -146,14 +191,14 @@ export async function reconcilePrayerNotifications(
       if(existingByKey.has(event.key))continue;
       const mode=effectiveSound(event);
       await Notifications.scheduleNotificationAsync({
-        content:alertContent(event,cityId,mode),
+        content:alertContent(event,cityId,mode,armedAs),
         trigger:{
           type:Notifications.SchedulableTriggerInputTypes.DATE,
           date:new Date(event.fireAt),
           ...((isExpoGoRuntime()&&!hasAndroidNativeWidgetBridge())?{}:{
             channelId:mode==='silent'?CHANNEL_SILENT:CHANNEL_AUDIBLE,
           }),
-          delivery:'bestEffort',
+          delivery,
         },
       });
     }
@@ -161,6 +206,7 @@ export async function reconcilePrayerNotifications(
     return {
       permission,scheduled:actual.filter(r=>owned(r)).length+nativeCount,
       nextAt:desired.length?desired[0].fireAt:null,error:nativeError,
+      exactAlarms,adhanScheduled:nativeReady?nativeCount:0,
     };
   }catch(error){
     return {permission:'unknown',scheduled:0,nextAt:null,

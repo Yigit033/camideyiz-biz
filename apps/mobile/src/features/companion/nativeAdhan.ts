@@ -45,12 +45,21 @@ export async function requestNativeAdhanPermission():Promise<boolean>{
   if(!bridge)return false;
   return bridge.requestExactAlarmPermission();
 }
-export async function scheduleNativeAdhan(events:readonly PrayerAlertEvent[]):Promise<NativeAdhanStatus>{
+/** `events` must already be filtered with core `playsFullAdhan`, so the native
+ * ezan set and the suppressed notification set can never diverge. Time and
+ * place travel with each alarm: if the ezan cannot be voiced (silent phone,
+ * call in progress, late delivery) Android posts "X vakti girdi" instead. */
+export async function scheduleNativeAdhan(
+  events:readonly PrayerAlertEvent[],precise:boolean,
+):Promise<NativeAdhanStatus>{
   if(!bridge)throw Error('Bu sürüm Android kesin ezan alarmını desteklemiyor.');
-  const eligible=events.filter(e=>e.kind==='atTime'&&e.prayer!=='gunes');
-  const raw=await bridge.syncAlarms(JSON.stringify(eligible.map(e=>({
-    id:e.key,at:e.fireAt,label:e.label,
-  }))));
+  const raw=await bridge.syncAlarms(JSON.stringify({
+    precise,
+    events:events.map(e=>({
+      id:e.key,at:e.fireAt,label:e.label,time:e.localTime,
+      place:e.locationName.slice(0,80),
+    })),
+  }));
   return parseStatus(raw);
 }
 export async function clearNativeAdhan():Promise<void>{

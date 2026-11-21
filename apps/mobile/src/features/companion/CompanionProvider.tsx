@@ -8,11 +8,12 @@ import * as Notifications from 'expo-notifications';
 import {router} from 'expo-router';
 import {
   DEFAULT_ALERT_SETTINGS,validateAlertSettings,
-  type AlertSound,type PrayerAlertSettings,type PrayerKey,type PrayerSchedule,
+  type AdhanPrayer,type AlertSound,type PrayerAlertSettings,type PrayerKey,type PrayerSchedule,
 } from '@camideyiz/core';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {getPrayerPermission,requestPrayerPermission,reconcilePrayerNotifications,
   toInboxEvent,prunePrayerNotifications,PRAYER_ALERT_PREFERENCES_KEY,
+  getExactAlarmAccess,requestExactAlarmAccess,
   type NativePrayerEvent,type NotificationSyncReport} from './notificationService';
 import {clearNativeAdhan} from './nativeAdhan';
 import {useAnnouncementSubscription,type AnnouncementState}
@@ -72,6 +73,11 @@ type CompanionContextValue={
   announcement:AnnouncementState;
   setEnabled:(next:boolean)=>Promise<boolean>;
   setSound:(next:AlertSound)=>void;
+  setPrecise:(next:boolean)=>void;
+  setAdhanFor:(key:AdhanPrayer,next:boolean)=>void;
+  /** Android 12+ "Alarms & reminders" access; null where not applicable. */
+  exactAlarms:boolean|null;
+  requestExactAlarms:()=>Promise<boolean|null>;
   setEzanAtTimeForAll:(next:boolean)=>void;
   setRule:(key:PrayerKey,changes:Partial<PrayerAlertSettings['rules'][PrayerKey]>)=>void;
   refresh:()=>void;refreshWidgets:()=>Promise<WidgetSyncResult>;
@@ -108,6 +114,7 @@ export function CompanionProvider({children}:PropsWithChildren){
   const [syncing,setSyncing]=useState(false);
   const [sequence,setSequence]=useState(0);
   const [permission,setPermission]=useState<'granted'|'denied'|'unknown'>('unknown');
+  const [exactAlarms,setExactAlarms]=useState<boolean|null>(null);
   const lastForegroundSync=useRef(0);
   const returnedFromBackground=useRef(false);
   const syncVersion=useRef(0);
@@ -188,6 +195,9 @@ export function CompanionProvider({children}:PropsWithChildren){
         source.retry();
       }
       getPrayerPermission().then(setPermission).catch(()=>undefined);
+      // Returning from Android settings: a newly granted "Alarms & reminders"
+      // access must re-arm reminders as exact alarms right away.
+      getExactAlarmAccess().then(setExactAlarms).catch(()=>undefined);
     });
     return ()=>{received.remove();response.remove();appState.remove();};
   },[source.retry]);
@@ -338,6 +348,7 @@ export function CompanionProvider({children}:PropsWithChildren){
         const report=await reconcilePrayerNotifications(days,cityId,settings);
         if(active&&id===syncVersion.current){
           setSync(report);setPermission(report.permission);
+          if(report.exactAlarms!==undefined)setExactAlarms(report.exactAlarms);
         }
       }finally{
         recordStartupOperation('notification-reconcile',reconcileAt);
@@ -373,6 +384,27 @@ export function CompanionProvider({children}:PropsWithChildren){
   },[]);
   const setSound=useCallback((next:AlertSound)=>
     setSettings(old=>({...old,sound:next})),[]);
+  const setPrecise=useCallback((next:boolean)=>
+    setSettings(old=>({...old,precise:next})),[]);
+  const setAdhanFor=useCallback((key:AdhanPrayer,next:boolean)=>
+    // validateAlertSettings keeps İmsak off until a sabah ezanı is bundled.
+    setSettings(old=>validateAlertSettings({...old,adhanFor:{...old.adhanFor,[key]:next}})),[]);
+  const requestExactAlarms=useCallback(async()=>{
+    const granted=await requestExactAlarmAccess();
+    setExactAlarms(granted);
+    return granted;
+  },[]);
+  // Access granted (here or in system settings) → re-arm every reminder with
+  // the exact AlarmManager API on the next serialized reconcile.
+  const previousExact=useRef<boolean|null>(null);
+  useEffect(()=>{
+    if(previousExact.current===false&&exactAlarms===true)setSequence(n=>n+1);
+    previousExact.current=exactAlarms;
+  },[exactAlarms]);
+  useEffect(()=>{
+    if(!maintenanceReady)return;
+    getExactAlarmAccess().then(setExactAlarms).catch(()=>undefined);
+  },[maintenanceReady]);
   const setEzanAtTimeForAll=useCallback((next:boolean)=>{
     setSettings(old=>{
       const rules={...old.rules};
@@ -450,11 +482,13 @@ export function CompanionProvider({children}:PropsWithChildren){
   },[rememberDeletion]);
   const value=useMemo(()=>({
     settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
-    lastWidgetTransfer,announcement,
-    setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox,
+    lastWidgetTransfer,announcement,exactAlarms,
+    setEnabled,setSound,setPrecise,setAdhanFor,requestExactAlarms,
+    setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox,
   }),[settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
-       lastWidgetTransfer,announcement,
-      setEnabled,setSound,setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox]);
+       lastWidgetTransfer,announcement,exactAlarms,
+      setEnabled,setSound,setPrecise,setAdhanFor,requestExactAlarms,
+      setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 export function useCompanion():CompanionContextValue{

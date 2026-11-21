@@ -18,6 +18,10 @@ jobs:
       - run: npm run typecheck
       - name: Verify background ezan playback and exact selected recording
         run: node scripts/verify-adhan-playback-contracts.mjs
+      - name: Verify on-time prayer alerts, ezan-instead-of-notification and guaranteed fallback
+        run: |
+          node scripts/verify-prayer-alerts.mjs
+          node scripts/build-notification-icon.mjs --check
       - name: Reproduce and prevent false Expo Go detection on native Android APK
         run: node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
       - name: Verify nonblocking cold-start cache, audio and native maintenance architecture

@@ -194,6 +194,13 @@ try {
     Invoke-Checked 'Verify light widget layouts match their dark design sources' {
       & node scripts/sync-widget-light-layouts.mjs --check
     }
+    Invoke-Checked 'Verify on-time prayer alerts and ezan fallback contracts' {
+      & node scripts/verify-prayer-alerts.mjs
+      if ($LASTEXITCODE -ne 0) { return }
+      & node scripts/verify-adhan-playback-contracts.mjs
+      if ($LASTEXITCODE -ne 0) { return }
+      & node scripts/build-notification-icon.mjs --check
+    }
     Invoke-Checked 'Verify brand splash hand-off and owner-icon derivation' {
       & node scripts/verify-splash.mjs
       if ($LASTEXITCODE -ne 0) { return }

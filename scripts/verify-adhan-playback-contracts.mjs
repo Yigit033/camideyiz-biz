@@ -32,7 +32,7 @@ assert.match(scheduler,/lastPlanThisProcess=null/,
   'clearing alarms must reset in-process dedupe');
 assert.doesNotMatch(scheduler,/normalized\.equals\(local\.getString\(EVENTS/,
   'force-stop removes OS alarms, persisted plan alone cannot suppress reinstallation');
-assert.match(scheduler,/schedulePending\(app, input\)/,
+assert.match(scheduler,/schedulePending\(app, input, precise\)/,
   'fresh process must schedule every published prayer alarm');
 assert.doesNotMatch(service,/camideyiz_user_adhan\.mp3/);
 assert.match(android,/assets','audio','camideyiz-biz-ezan\.mp3/);

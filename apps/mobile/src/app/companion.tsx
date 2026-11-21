@@ -1,20 +1,20 @@
 import {useEffect,useMemo,useState} from 'react';
 import {
-  Alert,AppState,Linking,Platform,Pressable,ScrollView,StyleSheet,Switch,Text,View,
+  Alert,Linking,Platform,Pressable,ScrollView,StyleSheet,Switch,Text,View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
-import {PRAYER_KEYS,buildPrayerWidgetSnapshot,type PrayerKey,type PrayerSchedule}
-  from '@camideyiz/core';
+import {PRAYER_KEYS,ADHAN_PRAYERS,SABAH_EZANI_AVAILABLE,buildPrayerWidgetSnapshot,
+  type PrayerKey,type PrayerSchedule} from '@camideyiz/core';
 import {Atmosphere} from '@/components/LuxuryArtwork';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {useCompanion} from '@/features/companion/CompanionProvider';
 import {CHANNEL_AUDIBLE,CHANNEL_SILENT,setPrayerChannels} from '@/features/companion/notificationService';
 import {isExpoGoRuntime} from '@/features/native/nativeRuntime';
-import {nativeAdhanSupported,nativeAdhanStatus,requestNativeAdhanPermission,testNativeAdhan}
+import {nativeAdhanSupported,nativeAdhanStatus,testNativeAdhan}
   from '@/features/companion/nativeAdhan';
 import {Widget3Diagnostics} from '@/features/widgets/Widget3Diagnostics';
 
@@ -130,47 +130,28 @@ export default function CompanionScreen(){
       minute:'2-digit',
     }):null;
   const [working,setWorking]=useState(false);
-  const [exactAllowed,setExactAllowed]=useState<boolean|null>(null);
-  useEffect(()=>{
-    let live=true;
-    const probe=()=>{
-      if(!nativeAdhanSupported)return;
-      nativeAdhanStatus().then(s=>{if(live)setExactAllowed(s.exactPermission);})
-        .catch(()=>{if(live)setExactAllowed(false);});
-    };
-    probe();
-    const sub=AppState.addEventListener('change',state=>{
-      if(state==='active'&&settings.sound==='adhan'){
-        probe();
-        // Exact permission is granted in Android system settings. Returning
-        // to the app must replan the native alarm without waiting for a new day.
-        companion.refresh();
-      }
-    });
-    return ()=>{live=false;sub.remove();};
-  },[settings.sound,companion.refresh]);
-  const selectSound=async(choice:'default'|'silent'|'adhan')=>{
+  // One source of truth: the provider tracks Android "Alarms & reminders"
+  // access, refreshes it on return from Settings and re-arms reminders.
+  const exactAlarms=companion.exactAlarms;
+  const exactMissing=Platform.OS==='android'&&exactAlarms===false;
+  const askExactAlarms=(reason:'notifications'|'adhan')=>{
+    Alert.alert('Dakikası dakikasına teslim',
+      reason==='adhan'
+        ?'Ezanın telefon kilitliyken vakit girdiği anda okunması için Android’in “Alarmlar ve hatırlatıcılar” iznini açmalısın. İzin verilmezse ezan yerine normal vakit bildirimi gelir.'
+        :'Android bu izin olmadan vakit bildirimlerini pil tasarrufu için birkaç dakika geciktirebilir. “Alarmlar ve hatırlatıcılar” iznini açarsan bildirim tam vaktinde gelir.',
+      [{text:'Daha sonra',style:'cancel'},
+       {text:'İzni aç',onPress:()=>void companion.requestExactAlarms().catch(()=>
+         Alert.alert('Ayar açılamadı','Android uygulama izinlerinden “Alarmlar ve hatırlatıcılar” iznini aç.'))}]);
+  };
+  const selectSound=(choice:'default'|'silent'|'adhan')=>{
     if(choice!=='adhan'){companion.setSound(choice);return;}
     if(!nativeAdhanSupported){
-      Alert.alert('Tam ezan yalnızca Android sürümünde',
-        'Bu cihazda otomatik tam ezan desteklenmiyor. Ana sayfadan ezanı elle dinleyebilirsin.');
+      Alert.alert('Ezan sesi yalnızca Android sürümünde',
+        'Bu cihazda vakitte otomatik ezan desteklenmiyor. Ana sayfadan ezanı elle dinleyebilirsin.');
       return;
     }
     companion.setSound('adhan');
-    try{
-      const current=await nativeAdhanStatus();
-      setExactAllowed(current.exactPermission);
-      if(!current.exactPermission){
-        Alert.alert('Kesin alarm izni gerekli',
-          'Telefon kilitliyken ezanın zamanında başlaması için Android’in “Alarmlar ve hatırlatıcılar” özel iznini açmalısın. Bu izin verilmeden tam ezan otomatik çalmaz.',
-          [{text:'Daha sonra',style:'cancel'},
-           {text:'İzin ayarlarını aç',onPress:()=>void requestNativeAdhanPermission().catch(()=>
-             Alert.alert('Ayar açılamadı','Android uygulama izinlerinden Alarmlar ve hatırlatıcılar iznini aç.'))}]);
-      }
-    }catch{
-      Alert.alert('İzin kontrol edilemedi',
-        'Tam ezan ayarı kaydedildi ancak sistem izinleri doğrulanamadı.');
-    }
+    if(exactMissing)askExactAlarms('adhan');
   };
 
   const toggleMaster=async(next:boolean)=>{
@@ -180,21 +161,20 @@ export default function CompanionScreen(){
       if(!ok)Alert.alert('Bildirim izni gerekli',
         'Namaz vakti hatırlatmaları için telefon ayarlarından bildirim izni vermen gerekir.',
         [{text:'Kapat'}, {text:'Sistem ayarları',onPress:()=>void Linking.openSettings()}]);
+      else if(next&&exactMissing)askExactAlarms('notifications');
     }finally{setWorking(false);}
   };
   const test=async()=>{
     if(settings.sound==='adhan'&&nativeAdhanSupported){
       try{
         const current=await nativeAdhanStatus();
-        setExactAllowed(current.exactPermission);
         if(!current.exactPermission){
-          Alert.alert('Kesin alarm izni gerekli',
-            'Ezan testi için önce Android’in özel kesin alarm iznini etkinleştir.');
+          askExactAlarms('adhan');
           return;
         }
         await testNativeAdhan();
         Alert.alert('Ezan testi ayarlandı',
-          'Yaklaşık 10 saniye sonra yerel ezan kaydı otomatik başlayacak. Telefonu kilitleyerek dene. Durdurmak için sistemdeki “Ezanı durdur” kontrolünü kullan.');
+          'Yaklaşık 10 saniye sonra ezan otomatik başlayacak; telefonu kilitleyerek dene. Durdurmak için bildirimdeki “Ezanı durdur”u kullan.');
       }catch{
         Alert.alert('Ezan testi yapılamadı',
           'Kesin alarm iznini ve bu sürümün native ezan desteğini kontrol et.');
@@ -362,10 +342,10 @@ export default function CompanionScreen(){
             {id:'default',label:'Bildirim sesi',icon:'bell'},
             {id:'silent',label:'Sessiz',icon:'volume-x'},
             ...(Platform.OS==='android'&&!isExpoGoRuntime()
-              ?[{id:'adhan',label:'Tam ezan',icon:'music'} as const]:[]),
+              ?[{id:'adhan',label:'Ezan okunsun',icon:'music'} as const]:[]),
           ] as const).map(option=><Pressable key={option.id}
             accessibilityRole="button" accessibilityState={{selected:settings.sound===option.id}}
-            onPress={()=>void selectSound(option.id)}
+            onPress={()=>selectSound(option.id)}
             style={[styles.soundOption,{flex:1,minWidth:90,
               backgroundColor:settings.sound===option.id?colors.accentStrong:colors.soft,
               borderColor:settings.sound===option.id?colors.gold:colors.border}]}>
@@ -376,32 +356,71 @@ export default function CompanionScreen(){
           </Pressable>)}
         </View>
         <Text style={{fontSize:10,color:colors.muted,lineHeight:17}}>
-          Tam ezan seçeneği Android'de vakit girince uygulamaya gömülü MP3'ü
-          otomatik çalmak üzere kesin alarm kurar. Erken hatırlatmalar standart
-          bildirim olarak kalır. Sessiz seçeneğinde ses çıkmaz. Ezan yalnızca beş namaz
-          vaktinde çalar; güneş doğuşu ve erken hatırlatmalarda çalmaz.
+          {settings.sound==='adhan'
+            ?'Seçtiğin vakitlerde bildirim yerine ezan okunur; erken hatırlatmalar bildirim olarak kalır. Telefon sessiz veya titreşimdeyse, görüşme sürüyorsa ya da medya sesi kapalıysa ezan çalmaz ve yerine “vakti girdi” bildirimi gelir.'
+            :settings.sound==='silent'
+              ?'Bildirimler ses çıkarmadan gelir.'
+              :'Vakit girdiğinde telefonun bildirim sesiyle uyarılırsın.'}
         </Text>
-        {settings.sound==='adhan'&&nativeAdhanSupported? <View style={[styles.note,{
-          backgroundColor:colors.soft,borderColor:exactAllowed?colors.border:'#CE8C67',
+        {settings.sound==='adhan'&&nativeAdhanSupported?<View style={{gap:7}}>
+          <Text style={{fontSize:11,color:colors.text,fontWeight:'800'}}>Ezan okunacak vakitler</Text>
+          <View style={{flexDirection:'row',flexWrap:'wrap',gap:6}}>
+            {ADHAN_PRAYERS.map(key=>{
+              const locked=key==='imsak'&&!SABAH_EZANI_AVAILABLE;
+              const on=settings.adhanFor[key]&&!locked;
+              return <Pressable key={key} accessibilityRole="checkbox"
+                accessibilityState={{checked:on,disabled:locked}}
+                accessibilityLabel={NAMES[key]+' vaktinde ezan'+(locked?' — sabah ezanı kaydı henüz yok':'')}
+                disabled={locked} onPress={()=>companion.setAdhanFor(key,!on)}
+                style={[styles.lead,{flexDirection:'row',alignItems:'center',gap:5,
+                  opacity:locked?.45:1,
+                  borderColor:on?colors.gold:colors.border,
+                  backgroundColor:on?colors.accentStrong:colors.surface}]}>
+                <Feather name={on?'check':locked?'lock':'plus'} size={12}
+                  color={on?'#FFFFFF':colors.gold}/>
+                <Text style={{fontSize:11,fontWeight:'800',color:on?'#FFFFFF':colors.text}}>
+                  {NAMES[key]}
+                </Text>
+              </Pressable>;
+            })}
+          </View>
+          {!SABAH_EZANI_AVAILABLE?<Text style={{fontSize:10,color:colors.muted,lineHeight:16}}>
+            Sabah ezanı “es-salâtü hayrun mine’n-nevm” ifadesiyle diğerlerinden ayrılır.
+            Uygulamadaki kayıt öğle ezanı olduğu için imsakta ezan yerine bildirim gelir.
+          </Text>:null}
+        </View>:null}
+        {Platform.OS==='android'&&!isExpoGoRuntime()?<View style={[styles.note,{
+          backgroundColor:colors.soft,borderColor:exactMissing?'#CE8C67':colors.border,
         }]}>
-          <Feather name={exactAllowed?'check-circle':'alert-triangle'} size={18}
-            color={exactAllowed?colors.emerald:'#C68049'}/>
-          <View style={{flex:1,gap:5}}>
+          <Feather name={exactMissing?'alert-triangle':'clock'} size={18}
+            color={exactMissing?'#C68049':colors.emerald}/>
+          <View style={{flex:1,gap:6}}>
             <Text style={{color:colors.text,fontSize:11,fontWeight:'800'}}>
-              {exactAllowed?'Android kesin alarm izni açık':'Kesin alarm izni gerekiyor'}
+              {exactMissing?'Bildirimler birkaç dakika gecikebilir':'Zamanında teslim'}
             </Text>
             <Text style={{color:colors.muted,fontSize:10,lineHeight:16}}>
-              Ezanın arka planda çalması cihazın sistem ayarlarına bağlıdır.
-              Pil kısıtlamaları ve ses düzeyi yine etkileyebilir.
+              {exactMissing
+                ?'Android “Alarmlar ve hatırlatıcılar” izni olmadan pil tasarrufu için bildirimleri erteleyebilir. Ezan için bu izin zorunludur.'
+                :settings.precise
+                  ?'Vakitler alarm saati önceliğiyle kurulur; pil tasarrufu modları dahil sistem erteleyemez. Bu yüzden durum çubuğunda alarm simgesi görünür.'
+                  :'Kesin alarm kullanılır. Bazı telefonlar (ör. ColorOS, MIUI) yine de birkaç dakika erteleyebilir.'}
             </Text>
-            {!exactAllowed?<Pressable accessibilityRole="button"
-              onPress={()=>void requestNativeAdhanPermission().catch(()=>
-                Alert.alert('Ayar açılamadı','Özel alarm iznini Android ayarlarından aç.'))}
-              style={{paddingVertical:8}}>
+            {exactMissing?<Pressable accessibilityRole="button"
+              onPress={()=>askExactAlarms(settings.sound==='adhan'?'adhan':'notifications')}
+              style={{paddingVertical:6}}>
               <Text style={{color:colors.emerald,fontSize:11,fontWeight:'800'}}>
                 Alarmlar ve hatırlatıcılar iznini aç
               </Text>
-            </Pressable>:null}
+            </Pressable>:<View style={{flexDirection:'row',alignItems:'center',gap:8}}>
+              <Text style={{flex:1,color:colors.text,fontSize:11,fontWeight:'700'}}>
+                Dakikası dakikasına (önerilir)
+              </Text>
+              <Switch value={settings.precise} disabled={!settings.enabled}
+                accessibilityLabel="Bildirimleri alarm saati önceliğiyle dakikası dakikasına kur"
+                onValueChange={v=>companion.setPrecise(v)}
+                trackColor={{false:colors.border,true:colors.emerald}}
+                thumbColor={settings.precise?'#F4D49C':'#FFFFFF'}/>
+            </View>}
           </View>
         </View>:null}
         {Platform.OS==='ios'?<Text style={{fontSize:10,color:colors.muted,lineHeight:17}}>

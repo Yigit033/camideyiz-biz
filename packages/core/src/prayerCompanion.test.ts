@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DEMO_SCHEDULE,PRAYER_KEYS} from './prayer.ts';
 import {DEFAULT_ALERT_SETTINGS,prayerInstant,validateAlertSettings,
-  createPrayerAlertPlan,buildPrayerWidgetSnapshot,buildPrayerWidgetTimeline} from './prayerCompanion.ts';
+  createPrayerAlertPlan,buildPrayerWidgetSnapshot,buildPrayerWidgetTimeline,
+  playsFullAdhan,ANDROID_ALERT_MAX_EVENTS,ANDROID_ALERT_MAX_DAYS,
+  SABAH_EZANI_AVAILABLE} from './prayerCompanion.ts';
 const base={...DEMO_SCHEDULE,isDemo:false,dateISO:'2026-11-14',locationName:'İstanbul',
   times:DEMO_SCHEDULE.times.map((x,i)=>({...x,time:
     ['06:15','07:43','12:53','15:30','17:54','19:17'][i]}))};
@@ -53,6 +55,48 @@ test('7 day horizon and 60 event OS cap are enforced',()=>{
  assert.equal(plan.length,60);
  assert.equal(plan[0].dateISO,'2026-11-14');
  assert.ok(plan.every(p=>p.dateISO<='2026-11-20'));
+});
+test('settings saved by older versions load with precise delivery and safe ezan defaults',()=>{
+ const legacy={enabled:true,sound:'adhan',rules:DEFAULT_ALERT_SETTINGS.rules};
+ const loaded=validateAlertSettings(legacy);
+ assert.equal(loaded.precise,true);
+ assert.deepEqual(loaded.adhanFor,{imsak:SABAH_EZANI_AVAILABLE,ogle:true,ikindi:true,aksam:true,yatsi:true});
+ assert.equal(validateAlertSettings({...legacy,precise:false}).precise,false);
+ assert.throws(()=>validateAlertSettings({...legacy,precise:'yes'}));
+ assert.throws(()=>validateAlertSettings({...legacy,adhanFor:{ogle:1}}));
+});
+test('öğle recording never plays at İmsak while no sabah ezanı is bundled',()=>{
+ const config=validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true,sound:'adhan',
+   adhanFor:{imsak:true,ogle:true,ikindi:false,aksam:true,yatsi:true}});
+ assert.equal(config.adhanFor.imsak,SABAH_EZANI_AVAILABLE);
+ const events=createPrayerAlertPlan([base,next],config,prayerInstant('2026-11-14','00:00'));
+ const voiced=events.filter(e=>playsFullAdhan(e,config)).map(e=>e.prayer);
+ if(!SABAH_EZANI_AVAILABLE)assert.ok(!voiced.includes('imsak'));
+ assert.ok(voiced.includes('ogle')&&voiced.includes('aksam'));
+ assert.ok(!voiced.includes('ikindi'),'user de-selected ikindi ezanı');
+ assert.ok(!voiced.includes('gunes'));
+});
+test('full ezan only replaces the at-time alert, never early reminders or other sounds',()=>{
+ const config=validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true,sound:'adhan',rules:{
+   ...DEFAULT_ALERT_SETTINGS.rules,ogle:{enabled:true,atTime:true,minutesBefore:10}}});
+ const events=createPrayerAlertPlan([base,next],config,prayerInstant('2026-11-14','12:00'));
+ const early=events.find(e=>e.key==='2026-11-14:ogle:before:10')!;
+ const atTime=events.find(e=>e.key==='2026-11-14:ogle:atTime:0')!;
+ assert.equal(playsFullAdhan(early,config),false);
+ assert.equal(playsFullAdhan(atTime,config),true);
+ assert.equal(playsFullAdhan(atTime,{...config,sound:'default'}),false);
+});
+test('Android horizon keeps ten verified days within its larger cap',()=>{
+ const days=Array.from({length:16},(_,i)=>({
+   ...base,dateISO:new Date(Date.UTC(2026,10,14+i)).toISOString().slice(0,10),
+ }));
+ const config=validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true});
+ const plan=createPrayerAlertPlan(days,config,prayerInstant('2026-11-14','00:00'),
+   ANDROID_ALERT_MAX_EVENTS,ANDROID_ALERT_MAX_DAYS);
+ assert.equal(plan.length,50,'5 prayers × 10 days');
+ assert.equal(plan.at(-1)?.dateISO,'2026-11-23');
+ assert.throws(()=>createPrayerAlertPlan(days,config,0,ANDROID_ALERT_MAX_EVENTS+1));
+ assert.throws(()=>createPrayerAlertPlan(days,config,0,60,ANDROID_ALERT_MAX_DAYS+1));
 });
 test('missing intermediate day truncates plan instead of scheduling gaps',()=>{
  const config=validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true});

@@ -9,6 +9,7 @@ const FILES=[
   'AdhanAlarmScheduler.java',
   'AdhanAlarmReceiver.java',
   'AdhanPlaybackService.java',
+  'AdhanNotifier.java',
   'CamideyizAdhanBridge.java',
   'CamideyizAdhanPackage.java',
 ];
