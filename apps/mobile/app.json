@@ -30,6 +30,19 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-mark.png",
+          "imageWidth": 150,
+          "resizeMode": "contain",
+          "backgroundColor": "#050A1D",
+          "dark": {
+            "image": "./assets/splash-mark.png",
+            "backgroundColor": "#050A1D"
+          }
+        }
+      ],
       "expo-location",
       "expo-notifications",
       [

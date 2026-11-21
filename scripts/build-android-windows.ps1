@@ -194,6 +194,11 @@ try {
     Invoke-Checked 'Verify light widget layouts match their dark design sources' {
       & node scripts/sync-widget-light-layouts.mjs --check
     }
+    Invoke-Checked 'Verify brand splash hand-off and owner-icon derivation' {
+      & node scripts/verify-splash.mjs
+      if ($LASTEXITCODE -ne 0) { return }
+      & node scripts/build-splash-mark.mjs --check
+    }
     Invoke-Checked 'Test fast and safe widget headless health gate' {
       & node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
     }

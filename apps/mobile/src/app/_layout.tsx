@@ -1,5 +1,7 @@
 import '@/features/performance/startupMetrics'; // JS boot timing starts before other app imports.
 import '@/features/widgets/widgetTaskRegistration'; // Lightweight synchronous headless task registration.
+// Imported early: holds the native splash until the identical JS frame is drawn.
+import {BrandSplash} from '@/features/brand/BrandSplash';
 import {Stack} from 'expo-router';
 import {StatusBar} from 'expo-status-bar';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -32,7 +34,11 @@ export default function RootLayout(){
         <PrayerSourceProvider>
           <KerahatSettingsProvider>
             <AdhanPlaybackProvider>
-              <CompanionProvider><Navigation/></CompanionProvider>
+              <CompanionProvider>
+                <Navigation/>
+                {/* Last child: overlays every route while Home renders beneath. */}
+                <BrandSplash/>
+              </CompanionProvider>
             </AdhanPlaybackProvider>
           </KerahatSettingsProvider>
         </PrayerSourceProvider>

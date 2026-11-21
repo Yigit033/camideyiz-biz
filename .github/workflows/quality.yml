@@ -42,6 +42,10 @@ jobs:
         run: node scripts/sync-widget-light-layouts.mjs --check
       - name: Verify exact owner-supplied brand icon is unchanged
         run: node scripts/verify-brand-symbol.mjs
+      - name: Verify seamless native/JS brand splash and Android 12 icon mask fit
+        run: |
+          node scripts/verify-splash.mjs
+          node scripts/build-splash-mark.mjs --check
       - name: Verify all 27 gallery originals, full-frame preview and row alignment
         run: npm run verify:gallery-assets
       - name: Verify home, gallery and kerahat visual regression contracts
