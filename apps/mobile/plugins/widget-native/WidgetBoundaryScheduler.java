@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
 import android.graphics.Color;
+import android.graphics.Bitmap;
 import android.widget.RemoteViews;
 import android.view.View;
 
@@ -62,6 +63,12 @@ public final class WidgetBoundaryScheduler {
   private static volatile long lastAlarmMs=0;
   private static volatile long skippedUnchangedRenders=0;
   private static volatile long renderedBatches=0;
+  private static volatile long dispatchedFamilies=0;
+  private static volatile long skippedFamilies=0;
+  private static volatile boolean renderPending=false;
+  private static volatile long latestGeneration=0;
+  private static volatile String pendingSignature="";
+  private static final int BRAND_VERSION=2;
   // AlarmManager state is not durable across force-stop or device reboot.
   // First widget engine operation in each process must explicitly rearm it.
   private static boolean alarmRearmRequiredThisProcess=true;
@@ -251,9 +258,16 @@ public final class WidgetBoundaryScheduler {
     refresh(context,"native:refresh");
   }
 
-  /** Safe recovery is idempotent and reads only the persisted verified timeline.
-   * Reasons are recorded for actionable support diagnostics, not pixel claims. */
-  public static synchronized void refresh(Context context,String reason) {
+  /** Snapshot, persistence, rendering, host IPC and alarm are separate
+   * phases. Never await Canvas or RemoteViews on the coordinator thread. */
+  public static synchronized void refresh(Context context,String reason){
+    refresh(context,reason,null);
+  }
+
+  /** Broadcast callers retain their goAsync result until the renderer either
+   * dispatches the current generation or explicitly drops stale work. */
+  public static synchronized void refresh(
+      Context context,String reason,Runnable onRendered){
     final long started=SystemClock.elapsedRealtime();
     Context app=context.getApplicationContext();
     SharedPreferences local=prefs(app);
@@ -264,6 +278,7 @@ public final class WidgetBoundaryScheduler {
     lastCommitMs=0;
     local.edit().putLong("lastAttemptAt",now)
         .putString("lastRefreshReason",reason).apply();
+    boolean scheduled=false;
     try {
       JSONObject selection=null;
       String raw=local.getString(CALENDAR,null);
@@ -294,20 +309,34 @@ public final class WidgetBoundaryScheduler {
       selection.put("nativeAppliedAt",now);
       WidgetInventory inventory=inspectWidgetInventory(app,selection);
       installed=inventory.count;
+      String[] keys=familyKeys(app,selection,inventory.ids);
+      boolean[] dirty=new boolean[NAMES.length];
+      boolean any=false;
       boolean force=forceFullRender(reason);
+      boolean globalForce=force&&!reason.startsWith("launcher:update:");
+      for(int i=0;i<NAMES.length;i++){
+        boolean requestedByLauncher=reason.startsWith("launcher:update:")&&
+            reason.endsWith(launcherShortName(i));
+        dirty[i]=inventory.ids[i].length>0&&(
+            globalForce||requestedByLauncher||
+            !keys[i].equals(local.getString("widgetFamilySignature"+i,""))||
+            !local.getString("lastError","").isEmpty());
+        any|=dirty[i];
+        if(inventory.ids[i].length>0&&!dirty[i])skippedFamilies++;
+      }
       boolean unchanged=!force&&local.getLong("lastAppliedAt",0)>0&&
           local.getString("lastError","").isEmpty()&&
           inventory.signature.equals(local.getString("lastRenderSignature",""));
-      if(unchanged){
-        // Chronometer already ticks inside the launcher. No duplicate bitmap,
-        // RemoteViews IPC, synchronous commit or JS wakeup is necessary.
+      if(unchanged&&!any){
         skippedUnchangedRenders++;
         local.edit().putLong("calendarEndsAt",calendarEndsAt)
             .putLong("calendarSourceAt",sourceAt).apply();
+      }else if(any&&renderPending&&inventory.signature.equals(pendingSignature)
+          &&!globalForce){
+        // A render for this same published snapshot is already in flight.
+        skippedUnchangedRenders++;
       }else{
         long committedAt=SystemClock.elapsedRealtime();
-        // Preserve old semantics: a successful native publish acknowledges the
-        // persisted data only after a successful full host dispatch.
         if(!local.edit().putLong("lastAppliedAt",now)
             .putLong("calendarEndsAt",calendarEndsAt)
             .putLong("calendarSourceAt",sourceAt)
@@ -320,28 +349,99 @@ public final class WidgetBoundaryScheduler {
             .remove("lastError").commit())
           throw new IllegalStateException("native snapshot commit failed");
         lastCommitMs=SystemClock.elapsedRealtime()-committedAt;
-        long renderAt=SystemClock.elapsedRealtime();
-        installed=renderWidgets(app,selection,inventory.ids);
-        lastRenderMs=SystemClock.elapsedRealtime()-renderAt;
-        renderedBatches++;
-        local.edit().putString("lastRenderSignature",inventory.signature)
-            .putInt("lastInstanceCount",installed)
-            .putLong("lastHostDispatchAt",installed>0?now:0).apply();
+        if(any){
+          latestGeneration++;
+          long requestGeneration=latestGeneration;
+          renderPending=true;
+          pendingSignature=inventory.signature;
+          // Snapshot and host IDs are immutable for this generation.
+          WidgetRenderPipeline.enqueue(app,new JSONObject(selection.toString()),
+              inventory.ids,dirty,keys,inventory.signature,requestGeneration,onRendered);
+          scheduled=true;
+          renderedBatches++;
+        }else{
+          // No pinned widgets: persist district/clock but never build a bitmap.
+          local.edit().putString("lastRenderSignature",inventory.signature)
+              .putInt("lastInstanceCount",0).apply();
+        }
       }
+      if(unchanged&&installed>0)skippedUnchangedRenders++;
     }catch(Exception error){
-      Log.e(TAG,"Native launcher widget update failed",error);
+      Log.e(TAG,"Native widget snapshot preparation failed",error);
       local.edit().putString("lastError",
           error.getClass().getSimpleName()+": "+error.getMessage()).apply();
       nextBoundary=0;
+    }finally{
+      long alarmAt=SystemClock.elapsedRealtime();
+      scheduleNext(app,installed>0?nextBoundary:0,now,forceAlarmRearm(reason));
+      lastAlarmMs=SystemClock.elapsedRealtime()-alarmAt;
+      lastRefreshMs=SystemClock.elapsedRealtime()-started;
+      if(lastRefreshMs>1500)
+        Log.w(TAG,"Slow coordinator stage "+lastRefreshMs+"ms, reason="+reason);
+      if(!scheduled&&onRendered!=null)onRendered.run();
     }
-    // No pinned widgets: no alarm. A reboot/time change MUST rearm alarms.
-    long alarmAt=SystemClock.elapsedRealtime();
-    scheduleNext(app,installed>0?nextBoundary:0,now,forceAlarmRearm(reason));
-    lastAlarmMs=SystemClock.elapsedRealtime()-alarmAt;
-    lastRefreshMs=SystemClock.elapsedRealtime()-started;
-    if(lastRefreshMs>1500)
-      Log.w(TAG,"Slow widget refresh "+lastRefreshMs+"ms, reason="+reason+
-          ", commit="+lastCommitMs+", render="+lastRenderMs+", alarm="+lastAlarmMs);
+  }
+
+  private static String launcherShortName(int index){
+    return new String[]{"next","day","compact","focus","strip",
+        "miniRing","premiumRing","slim"}[index];
+  }
+
+  /** Per-family signatures must not include the clock's moving seconds:
+   * the Android launcher Chronometer owns that part independently.
+   * Installation ID lists are included so replacing a pinned widget forces
+   * one clean initial draw even when its family count is unchanged.
+   */
+  private static String[] familyKeys(Context context,JSONObject props,int[][] ids){
+    String city=props.optString("city","");
+    String date=props.optString("dateISO","");
+    String next=props.optString("nextName","")+"|"+
+        props.optString("nextTime","")+"|"+props.optLong("nextAt",0);
+    String day=props.optJSONArray("times")==null?"[]":
+        props.optJSONArray("times").toString();
+    String locale=prefs(context).getInt("activeCityId",0)+"|"+
+        lightTheme(context)+"|"+props.optBoolean("ready",false)+"|";
+    String[] data={city+"|"+next,city+"|"+date+"|"+next+"|"+day,
+        next,city+"|"+next,city+"|"+date+"|"+next+"|"+day,
+        date+"|"+next+"|"+day,city+"|"+date+"|"+next+"|"+day,next};
+    String[] result=new String[NAMES.length];
+    for(int i=0;i<NAMES.length;i++){
+      int[] copy=ids[i].clone();
+      Arrays.sort(copy);
+      result[i]=BRAND_VERSION+"|"+locale+data[i]+"|"+Arrays.toString(copy);
+    }
+    return result;
+  }
+
+  static boolean isCurrentGeneration(long generation){
+    return generation==latestGeneration;
+  }
+
+  static synchronized void renderFinished(Context context,long generation,
+      String[] familyKeys,String signature,int dispatched,long duration){
+    if(!isCurrentGeneration(generation))return;
+    SharedPreferences local=prefs(context);
+    SharedPreferences.Editor edit=local.edit()
+        .putString("lastRenderSignature",signature)
+        .putLong("lastHostDispatchAt",System.currentTimeMillis())
+        .remove("lastError");
+    for(int i=0;i<NAMES.length;i++)
+      edit.putString("widgetFamilySignature"+i,familyKeys[i]);
+    edit.apply();
+    lastRenderMs=duration;
+    dispatchedFamilies+=dispatched;
+    renderPending=false;
+    pendingSignature="";
+  }
+
+  static synchronized void renderFailed(Context context,long generation,
+      Exception failure){
+    if(!isCurrentGeneration(generation))return;
+    Log.e(TAG,"Native widget render/dispatch failed",failure);
+    prefs(context).edit().putString("lastError",
+        "render: "+failure.getClass().getSimpleName()+": "+failure.getMessage()).apply();
+    renderPending=false;
+    pendingSignature="";
   }
 
   private static boolean forceAlarmRearm(String reason){
@@ -381,7 +481,8 @@ public final class WidgetBoundaryScheduler {
       manager.getAppWidgetIds(component(context,NAMES[7]))
     };
     StringBuilder key=new StringBuilder(600);
-    key.append(prefs(context).getInt("activeCityId",0)).append('|')
+    key.append(BRAND_VERSION).append('|')
+      .append(prefs(context).getInt("activeCityId",0)).append('|')
       .append(lightTheme(context)).append('|')
       .append(props.optBoolean("ready",false)).append('|')
       .append(props.optString("city","")).append('|')
@@ -460,8 +561,8 @@ public final class WidgetBoundaryScheduler {
         PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
   }
 
-  private static int renderWidgets(Context context,JSONObject props,int[][] widgetIds)
-      throws JSONException {
+  static int renderWidgets(Context context,JSONObject props,int[][] widgetIds,
+      boolean[] dirty,Bitmap[] prepared,long generation)throws JSONException {
     AppWidgetManager manager=AppWidgetManager.getInstance(context);
     boolean ready=props.optBoolean("ready",false);
     String city=props.optString("city","Konum seçilmedi");
@@ -478,7 +579,7 @@ public final class WidgetBoundaryScheduler {
 
     // 2×2: published prayer clock and a native, launcher-driven countdown.
     int[] small=widgetIds[0];
-    if(small.length>0){
+    if(small.length>0&&dirty[0]&&isCurrentGeneration(generation)){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_next_prayer_light:R.layout.widget_next_prayer);
       card.setTextViewText(R.id.widget_city,ready?city:"Takvim bekleniyor");
@@ -495,7 +596,7 @@ public final class WidgetBoundaryScheduler {
     // 4×2: six PUBLISHED hours, highlight the actual upcoming prayer.
     int[] day=widgetIds[1];
     JSONArray times=ready?props.getJSONArray("times"):new JSONArray();
-    if(day.length>0){
+    if(day.length>0&&dirty[1]&&isCurrentGeneration(generation)){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_prayer_day_light:R.layout.widget_prayer_day);
       card.setTextViewText(R.id.widget_day_city,ready?city:"Takvim bekleniyor");
@@ -537,7 +638,7 @@ public final class WidgetBoundaryScheduler {
 
     // 1×1: compact, native system countdown without waking React.
     int[] compact=widgetIds[2];
-    if(compact.length>0){
+    if(compact.length>0&&dirty[2]&&isCurrentGeneration(generation)){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_compact_prayer_light:R.layout.widget_compact_prayer);
       card.setTextViewText(R.id.widget_compact_name,ready?next:"Takvim");
@@ -552,7 +653,7 @@ public final class WidgetBoundaryScheduler {
 
     // 4×2: focus on the current interval and the remaining time to next.
     int[] focus=widgetIds[3];
-    if(focus.length>0){
+    if(focus.length>0&&dirty[3]&&isCurrentGeneration(generation)){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_prayer_focus_light:R.layout.widget_prayer_focus);
       int nextIndex=-1;
@@ -575,7 +676,7 @@ public final class WidgetBoundaryScheduler {
     // Responsive six-prayer strip: six published clocks and a single native
     // countdown (also usable on four-column launchers where 6×2 is impossible).
     int[] strip=widgetIds[4];
-    if(strip.length>0){
+    if(strip.length>0&&dirty[4]&&isCurrentGeneration(generation)){
       RemoteViews card=new RemoteViews(context.getPackageName(),
           light?R.layout.widget_prayer_strip_light:R.layout.widget_prayer_strip);
       int[] cells={R.id.widget_strip_cell_0,R.id.widget_strip_cell_1,
@@ -621,12 +722,12 @@ public final class WidgetBoundaryScheduler {
     // Only create bitmaps for actual installed ring widgets; no per-second JS.
     int[] miniRing=widgetIds[5];
     int[] premiumRing=widgetIds[6];
-    if(miniRing.length>0||premiumRing.length>0){
-      if(miniRing.length>0){
+    if((miniRing.length>0&&dirty[5])||(premiumRing.length>0&&dirty[6])){
+      if(miniRing.length>0&&dirty[5]&&isCurrentGeneration(generation)){
         RemoteViews card=new RemoteViews(context.getPackageName(),
             light?R.layout.widget_ring_mini_light:R.layout.widget_ring_mini);
         card.setImageViewBitmap(R.id.widget_ring_mini_art,
-            PrayerRingBitmapRenderer.render(times,now,false,224));
+            prepared[0]);
         card.setTextViewText(R.id.widget_ring_mini_next,ready?next:"Takvim");
         card.setTextViewText(R.id.widget_ring_mini_time,ready?time:"--:--");
         setCountdown(card,R.id.widget_ring_mini_countdown,nextAt,now);
@@ -634,11 +735,11 @@ public final class WidgetBoundaryScheduler {
         manager.updateAppWidget(miniRing,card);
         count+=miniRing.length;
       }
-      if(premiumRing.length>0){
+      if(premiumRing.length>0&&dirty[6]&&isCurrentGeneration(generation)){
         RemoteViews card=new RemoteViews(context.getPackageName(),
             light?R.layout.widget_ring_premium_light:R.layout.widget_ring_premium);
         card.setImageViewBitmap(R.id.widget_ring_premium_art,
-            PrayerRingBitmapRenderer.render(times,now,false,432));
+            prepared[1]);
         card.setTextViewText(R.id.widget_ring_premium_next,ready?next:"Takvim");
         card.setTextViewText(R.id.widget_ring_premium_time,ready?"Saat "+time:"--:--");
         card.setTextViewText(R.id.widget_ring_premium_city,ready?city:"Takvim bekleniyor");
@@ -679,7 +780,7 @@ public final class WidgetBoundaryScheduler {
     // Dedicated narrow 1×2 widget: larger type and no compression of the
     // countdown into the 1×1 minimum launcher footprint.
     int[] slim=widgetIds[7];
-    if(slim.length>0){
+    if(slim.length>0&&dirty[7]&&isCurrentGeneration(generation)){
       RemoteViews card=new RemoteViews(context.getPackageName(),
         light?R.layout.widget_slim_prayer_light:R.layout.widget_slim_prayer);
       card.setTextViewText(R.id.widget_slim_name,ready?next:"Takvim");
@@ -798,6 +899,11 @@ public final class WidgetBoundaryScheduler {
     result.put("nativeAlarmMs",lastAlarmMs);
     result.put("nativeSkippedRenders",skippedUnchangedRenders);
     result.put("nativeRenderedBatches",renderedBatches);
+    result.put("nativeDispatchedFamilies",dispatchedFamilies);
+    result.put("nativeSkippedFamilies",skippedFamilies);
+    result.put("nativeRenderPending",renderPending);
+    result.put("nativeGeneration",latestGeneration);
+    WidgetRenderPipeline.appendMetrics(result);
     WidgetBoundaryAsyncRefresh.appendMetrics(result);
     PrayerRingBitmapRenderer.appendMetrics(result);
     return result;
