@@ -57,8 +57,9 @@ const focusProvider=read('apps/mobile/plugins/widget-native/PrayerFocusWidgetPro
 const miniRingProvider=read('apps/mobile/plugins/widget-native/MiniPrayerRingWidgetProvider.java');
 const premiumRingProvider=read('apps/mobile/plugins/widget-native/PremiumPrayerRingWidgetProvider.java');
 const slimProvider=read('apps/mobile/plugins/widget-native/SlimPrayerWidgetProvider.java');
+const squareRingProvider=read('apps/mobile/plugins/widget-native/SquarePrayerRingWidgetProvider.java');
 for(const component of [receiver,nextProvider,dayProvider,compactProvider,focusProvider,
-  miniRingProvider,premiumRingProvider,slimProvider]){
+  miniRingProvider,premiumRingProvider,slimProvider,squareRingProvider]){
   assert.match(component,/WidgetBoundaryAsyncRefresh\.dispatch\(context,goAsync\(\),/,
     'every native widget broadcast must goAsync before doing calendar IO');
   assert.doesNotMatch(component,/WidgetBoundaryScheduler\.refresh\(/,
@@ -71,10 +72,12 @@ assert.match(focusProvider,/void onDisabled\(Context context\)/);
 assert.match(miniRingProvider,/void onDisabled\(Context context\)/);
 assert.match(premiumRingProvider,/void onDisabled\(Context context\)/);
 assert.match(slimProvider,/void onDisabled\(Context context\)/);
+assert.match(squareRingProvider,/void onDisabled\(Context context\)/);
 assert.match(configPlugin,/'SlimPrayerWidgetProvider'/);
 assert.match(configPlugin,/'PrayerRingBitmapRenderer.java'/);
 assert.match(configPlugin,/'MiniPrayerRingWidgetProvider'/);
 assert.match(configPlugin,/'PremiumPrayerRingWidgetProvider'/);
+assert.match(configPlugin,/'SquarePrayerRingWidgetProvider'/);
 assert.match(asyncRefresh,/ScheduledThreadPoolExecutor\(1,/,
   'native widget coordinator must be a single ordered worker');
 assert.match(asyncRefresh,/WORKER\.schedule\(\(\)->performBatch\(app\),DEBOUNCE_MS,TimeUnit\.MILLISECONDS\)/,

@@ -21,7 +21,7 @@ assert.match(plugin,/widget-brand-lockup\.png/);
 assert.match(plugin,/widget_brand_lockup\.png/);
 const base=['widget_compact_prayer','widget_next_prayer','widget_prayer_day',
   'widget_prayer_focus','widget_prayer_strip','widget_ring_mini',
-  'widget_ring_premium','widget_slim_prayer'];
+  'widget_ring_premium','widget_slim_prayer','widget_ring_square'];
 for(const variant of base)for(const suffix of ['','_light']){
   const xml=read(p+variant+suffix+'.xml');
   assert.match(xml,/@drawable\/widget_brand_lockup/);
@@ -38,17 +38,22 @@ assert.match(engine,/WidgetBoundaryScheduler\.renderFailed/);
 assert.match(sched,/WidgetRenderPipeline\.enqueue\(/);
 assert.match(sched,/private static String\[\] familyKeys\(/);
 assert.match(sched,/widgetFamilySignature/);
-assert.match(sched,/BRAND_VERSION=2/);
+assert.match(sched,/BRAND_VERSION=3/);
 assert.match(sched,/nativeRenderPending/);
 assert.match(sched,/reason\.endsWith\(launcherShortName\(i\)\)/);
 assert.match(sched,/"launcher:update:all"\.equals\(reason\)/);
 assert.match(asyncReceiver,/latestReason="launcher:update:all"/,
   'coalescing different providers must repaint ALL affected families');
 assert.match(sched,/latestGeneration\+\+/);
-for(let i=0;i<8;i++)
+assert.match(sched,/widget_day_countdown/);
+assert.match(sched,/widget_ring_square_countdown/);
+assert.match(engine,/dirty\[8\]&&installed\[8\]\.length>0/);
+assert.match(plugin,/SquarePrayerRingWidgetProvider/);
+assert.match(plugin,/widget_ring_square_info/);
+for(let i=0;i<9;i++)
   assert.match(sched,new RegExp('if\\([a-zA-Z]+\\.length>0&&dirty\\['+i+'\\]&&isCurrentGeneration\\(generation\\)\\)'));
 assert.match(asyncReceiver,/AtomicBoolean finished=new AtomicBoolean\(false\)/);
 assert.match(asyncReceiver,/WidgetBoundaryScheduler\.refresh\(app,reason,finish\)/);
 assert.match(asyncReceiver,/DEADLINE\.schedule\(\(\)->safeFinish\(pending\),8,TimeUnit\.SECONDS\)/);
 assert.match(asyncReceiver,/ACTIVE_RECEIPTS\.remove\(pending\)==null/);
-console.log('Widget 4.1: user-supplied full logo, 8 dirty families, 2 bounded workers, generation fencing, 8-second goAsync watchdog verified');
+console.log('Widget 4.2: nine independently dirty widget families, complete brand, bounded workers, fixed 2x2 ring, native countdown and goAsync watchdog verified');
