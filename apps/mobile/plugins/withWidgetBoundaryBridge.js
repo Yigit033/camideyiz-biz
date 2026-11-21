@@ -163,6 +163,12 @@ function withSources(config){
       path.join(__dirname,'..','assets','camideyiz-original-symbol.png'),
       path.join(logoTarget,'widget_brand_symbol.png'),
     );
+    // Complete user-supplied cyan 3D mark + integrated camideyiz.biz text.
+    // Preserve this widget-only asset as one image, never a TextView wordmark.
+    await fs.copyFile(
+      path.join(__dirname,'..','assets','widget-brand-lockup.png'),
+      path.join(logoTarget,'widget_brand_lockup.png'),
+    );
     for(const [dir,files] of Object.entries(RESOURCES)){
       const targetDir=path.join(srcRoot,'res',dir);
       await fs.mkdir(targetDir,{recursive:true});

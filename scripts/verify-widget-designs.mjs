@@ -25,9 +25,12 @@ for(const base of variants){
       'native initialLayout may never display invented prayer time/location samples');
     assert.doesNotMatch(layout,/<View\b/,
       'android.view.View is not an allowed RemoteViews XML child; use TextView dividers');
-    assert.ok(base==='widget_ring_mini'||
-      layout.includes('Camideyiz Biz')||layout.includes('widget_compact_mark'),
-      'the 2×2 ring intentionally reserves center for the countdown');
+    assert.match(layout,/@drawable\/widget_brand_lockup/,
+      'all eight widget families must show the supplied complete lockup');
+    assert.doesNotMatch(layout,/android:text="Camideyiz Biz"/,
+      'separate brand TextView duplicates the lettering inside supplied logo');
+    assert.doesNotMatch(layout,/@drawable\/widget_brand_symbol/,
+      'old standalone brand symbol is not permitted on widget faces');
     assert.ok(plugin.includes("'"+base+suffix+".xml'"),base+suffix+' missing from CNG');
   }
   assert.ok(plugin.includes("'"+base+"_info.xml'"),base+' missing from manifest');
@@ -98,7 +101,7 @@ assert.match(scheduler,/R\.layout\.widget_prayer_focus_light/);
  */
 for(const suffix of ['', '_light']){
   const strip=read(p+'widget_prayer_strip'+suffix+'.xml');
-  assert.match(strip,/android:layout_height="23dp"/);
+  assert.match(strip,/android:layout_height="35dp"/);
   assert.match(strip,/android:id="@\+id\/widget_strip_city"/);
   assert.match(strip,/android:layout_height="42dp"/);
   assert.match(strip,/android:layout_height="0dp"\s+android:layout_weight="1"/);
@@ -165,6 +168,6 @@ for(const suffix of ['', '_light']){
   assert.match(mini,/widget_ring_mini_countdown/);
   assert.match(premium,/widget_ring_premium_cell_0/);
   assert.match(premium,/widget_ring_premium_cell_5/);
-  assert.match(premium,/widget_brand_symbol/);
+  assert.match(premium,/widget_brand_lockup/);
 }
 console.log('Widget Design 6.2: eight native variants, clean 1x2, compact six-time strip, premium radial clock and validated daily times');
