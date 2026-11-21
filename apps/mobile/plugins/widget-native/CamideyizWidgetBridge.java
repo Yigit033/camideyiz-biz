@@ -5,6 +5,9 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import org.json.JSONObject;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * React Native methods enqueue onto the serialized native coordinator.
@@ -15,6 +18,11 @@ import org.json.JSONObject;
 public final class CamideyizWidgetBridge extends ReactContextBaseJavaModule {
   CamideyizWidgetBridge(ReactApplicationContext context){super(context);}
   @Override public String getName(){return "CamideyizWidgetBridge";}
+  private static final ExecutorService STATUS=Executors.newSingleThreadExecutor(job->{
+    Thread thread=new Thread(job,"CamideyizWidgetStatus");
+    thread.setPriority(Thread.NORM_PRIORITY-1);
+    return thread;
+  });
   private interface Work {void run()throws Exception;}
   private void submit(Promise promise,String code,Work work){
     if(!WidgetBoundaryAsyncRefresh.executeBridge(()->{
@@ -76,7 +84,17 @@ public final class CamideyizWidgetBridge extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void getStatus(Promise promise){
-    submit(promise,"WIDGET_NATIVE_STATUS",()->promise.resolve(
-        WidgetBoundaryScheduler.status(getReactApplicationContext()).toString()));
+    // Status is read-only and must not wait for a calendar publish or bitmap
+    // preparation queued on the native coordinator.
+    try{
+      STATUS.execute(()->{
+        try{
+          promise.resolve(WidgetBoundaryScheduler.status(
+              getReactApplicationContext()).toString());
+        }catch(Exception error){promise.reject("WIDGET_NATIVE_STATUS",error);}
+      });
+    }catch(RejectedExecutionException error){
+      promise.reject("WIDGET_NATIVE_STATUS",error);
+    }
   }
 }

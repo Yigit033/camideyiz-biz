@@ -13,6 +13,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Widget Engine 4.0 native coordinator:
@@ -130,16 +131,22 @@ public final class WidgetBoundaryAsyncRefresh {
     lastQueueWaitMs=Math.max(0,started-queuedAt);
     lastBatchSize=pending.size();
     refreshBatches.incrementAndGet();
-    try{
-      WidgetBoundaryScheduler.refresh(app,reason);
-    }catch(Throwable failure){
-      Log.e(TAG,"Native widget refresh failed: "+reason,failure);
-    }finally{
+    final AtomicBoolean finished=new AtomicBoolean(false);
+    Runnable finish=()->{
+      if(!finished.compareAndSet(false,true))return;
       long elapsed=SystemClock.elapsedRealtime()-started;
       lastBatchMs=elapsed;
       maxBatchMs=Math.max(maxBatchMs,elapsed);
       if(elapsed>2000)Log.w(TAG,"Slow native widget batch "+elapsed+"ms, reason="+reason);
       for(BroadcastReceiver.PendingResult item:pending)safeFinish(item);
+    };
+    try{
+      // goAsync results now survive until the bounded renderer/dispatcher
+      // finishes, not merely until the coordinator schedules the work.
+      WidgetBoundaryScheduler.refresh(app,reason,finish);
+    }catch(Throwable failure){
+      Log.e(TAG,"Native widget refresh failed: "+reason,failure);
+      finish.run();
     }
   }
 

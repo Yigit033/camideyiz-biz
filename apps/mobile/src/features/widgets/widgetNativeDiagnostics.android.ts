@@ -34,6 +34,10 @@ export type AndroidWidgetNativeStatus={
   nativeRefreshMs?:number;nativeCommitMs?:number;nativeRenderMs?:number;
   nativeAlarmMs?:number;nativeSkippedRenders?:number;nativeRenderedBatches?:number;
   nativeRingBitmapMs?:number;nativeRingMaxBitmapMs?:number;
+  nativeRenderQueueWaitMs?:number;nativeDispatchQueueWaitMs?:number;
+  nativeStaleRenderDrops?:number;nativeRenderQueueRejected?:number;
+  nativeRenderPending?:boolean;nativeDispatchedFamilies?:number;
+  nativeSkippedFamilies?:number;brandAssetVersion?:number;
   nativeRingCacheHits?:number;nativeRingCacheMisses?:number;
 };
 

@@ -350,6 +350,7 @@ public final class WidgetBoundaryScheduler {
           throw new IllegalStateException("native snapshot commit failed");
         lastCommitMs=SystemClock.elapsedRealtime()-committedAt;
         if(any){
+          local.edit().putInt("lastInstanceCount",installed).apply();
           latestGeneration++;
           long requestGeneration=latestGeneration;
           renderPending=true;
@@ -365,8 +366,7 @@ public final class WidgetBoundaryScheduler {
               .putInt("lastInstanceCount",0).apply();
         }
       }
-      if(unchanged&&installed>0)skippedUnchangedRenders++;
-    }catch(Exception error){
+     }catch(Exception error){
       Log.e(TAG,"Native widget snapshot preparation failed",error);
       local.edit().putString("lastError",
           error.getClass().getSimpleName()+": "+error.getMessage()).apply();
@@ -903,6 +903,7 @@ public final class WidgetBoundaryScheduler {
     result.put("nativeSkippedFamilies",skippedFamilies);
     result.put("nativeRenderPending",renderPending);
     result.put("nativeGeneration",latestGeneration);
+    result.put("brandAssetVersion",BRAND_VERSION);
     WidgetRenderPipeline.appendMetrics(result);
     WidgetBoundaryAsyncRefresh.appendMetrics(result);
     PrayerRingBitmapRenderer.appendMetrics(result);

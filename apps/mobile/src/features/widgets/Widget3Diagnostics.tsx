@@ -31,6 +31,10 @@ type NativeWidgetHealth={
   nativeRefreshMs?:number;nativeCommitMs?:number;nativeRenderMs?:number;
   nativeAlarmMs?:number;nativeSkippedRenders?:number;nativeRenderedBatches?:number;
   nativeRingBitmapMs?:number;nativeRingMaxBitmapMs?:number;
+  nativeRenderQueueWaitMs?:number;nativeDispatchQueueWaitMs?:number;
+  nativeStaleRenderDrops?:number;nativeRenderQueueRejected?:number;
+  nativeRenderPending?:boolean;nativeDispatchedFamilies?:number;
+  nativeSkippedFamilies?:number;brandAssetVersion?:number;
   nativeRingCacheHits?:number;nativeRingCacheMisses?:number;
 };
 type WidgetBridge={
@@ -98,6 +102,9 @@ function displayState(status:NativeWidgetHealth|null,cityId:number|null){
     title:'Kayıtlı takvimin geçerli günü yok',
     description:'Yayımlanmış ileri tarihler için takvimi yeniden eşitle.',
     icon:'calendar' as const};
+  if(status.nativeRenderPending)return {title:'Doğrulanmış takvim hazırlanıyor',
+    description:'Vakitler kaydedildi; Android widget çizimi asenkron tamamlanacak.',
+    icon:'clock' as const};
   if(!status.persisted)return {title:'Native veri doğrulanamadı',
     description:'Android kayıt onayı eksik, rapordaki aktarım nedenini kontrol et.',
     icon:'alert-circle' as const};
@@ -241,6 +248,15 @@ export function Widget3Diagnostics(){
           health?.nativeRingBitmapMs??'—',health?.nativeRingMaxBitmapMs??'—'].join(' / ')],
         ['Çember bitmap önbelleği (isabet / üretim)',[
           health?.nativeRingCacheHits??'—',health?.nativeRingCacheMisses??'—'].join(' / ')],
+        ['Render / RemoteViews sıra bekleme (ms)',[
+          health?.nativeRenderQueueWaitMs??'—',
+          health?.nativeDispatchQueueWaitMs??'—'].join(' / ')],
+        ['Eski nesil çizim iptali',String(health?.nativeStaleRenderDrops??'—')],
+        ['Değişen / atlanan widget türleri',[
+          health?.nativeDispatchedFamilies??'—',
+          health?.nativeSkippedFamilies??'—'].join(' / ')],
+        ['Çizim işi devam ediyor',health?.nativeRenderPending?'Evet':'Hayır'],
+        ['Marka görsel sürümü',String(health?.brandAssetVersion??'—')],
         ['Aktarım aşaması',health?.lastTransferStage||'Başlamadı'],
         ['Son aktarım denemesi',clock(health?.lastTransferAttemptAt??0)],
         ['Son aktarım açıklaması',health?.lastTransferDetail||'—'],

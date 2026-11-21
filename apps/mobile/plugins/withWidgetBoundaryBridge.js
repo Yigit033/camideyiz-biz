@@ -12,6 +12,7 @@ const PERMISSION='android.permission.RECEIVE_BOOT_COMPLETED';
 const FILES=[
   'WidgetBoundaryScheduler.java',
   'WidgetBoundaryAsyncRefresh.java',
+  'WidgetRenderPipeline.java',
   'PrayerRingBitmapRenderer.java',
   'WidgetBoundaryReceiver.java',
   'CamideyizWidgetBridge.java',
