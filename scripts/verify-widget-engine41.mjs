@@ -13,7 +13,7 @@ const plugin=read('apps/mobile/plugins/withWidgetBoundaryBridge.js');
 // Theme marks are pixel derivations of the approved icon (build-widget-marks.mjs).
 const MARK_SHA={
   dark:'232ffef37b07ffb55b14bdb0f6109a2deb37dcd10b8e262b11d45da049cc28cd',
-  light:'17ba24c395f2408741d70ac7d86bb30eb353d99da36d03d59796f9e44b1b0e84',
+  light:'a794b0dc3b12bbb1c60af553085661df4ef4f4e4d1c5b410ec6f30efc0309678',
 };
 for(const theme of ['dark','light']){
   const logo=readFileSync(resolve(root,'apps/mobile/assets/widget-mark-'+theme+'.png'));

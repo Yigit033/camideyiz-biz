@@ -19,9 +19,14 @@ const SOURCE=resolve(assets,'splash-mark.png');
 export const OUTPUTS={dark:resolve(assets,'widget-mark-dark.png'),
   light:resolve(assets,'widget-mark-light.png')};
 const WIDTH=256; // ≥ 4× the largest on-widget logo box (~56dp at xxxhdpi)
-// Light tone map: shadows → deep azure, highlights → brand azure.
-const LIGHT_SHADOW=[0x07,0x35,0x6B],LIGHT_HIGHLIGHT=[0x13,0x7F,0xD6];
-const LIGHT_ALPHA_FLOOR=0.32; // drop the soft glow that only works on navy
+// Light tone map on the app's own brand blues (src/theme/tokens.ts):
+// shadows → accentStrong #0C76B4, highlights → logo cyan #20B6EB. The
+// wordmark lands near the shadow end, keeping ~4:1 contrast on ivory.
+const LIGHT_SHADOW=[0x0C,0x76,0xB4],LIGHT_HIGHLIGHT=[0x20,0xB6,0xEB];
+// The icon's glow is a ~20px soft ramp at the arch apex; on ivory it reads
+// as a blurry band. A smoothstep edge keeps the silhouette and drops the halo.
+const LIGHT_EDGE=[0.55,0.9];
+const smoothstep=(lo,hi,v)=>{const t=Math.max(0,Math.min(1,(v-lo)/(hi-lo)));return t*t*(3-2*t);};
 // Widget cards are lighter than the #050A1D splash field: faint field pixels
 // would read as a darker box there, so keep only the real glow and mark.
 const DARK_ALPHA_FLOOR=0.2;
@@ -41,7 +46,7 @@ for(let i=0;i<data.length;i+=4){
   const l=lum(i);minL=Math.min(minL,l);maxL=Math.max(maxL,l);
 }
 for(let i=0;i<data.length;i+=4){
-  const a=Math.max(0,(data[i+3]/255-LIGHT_ALPHA_FLOOR)/(1-LIGHT_ALPHA_FLOOR));
+  const a=smoothstep(LIGHT_EDGE[0],LIGHT_EDGE[1],data[i+3]/255);
   if(a<=0)continue;
   const t=Math.max(0,Math.min(1,(lum(i)-minL)/Math.max(1e-6,maxL-minL)));
   for(let c=0;c<3;c++)
