@@ -1,45 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
- android:id="@+id/widget_ring_premium_root"
- android:layout_width="match_parent" android:layout_height="match_parent"
- android:background="@drawable/widget_bg" android:orientation="vertical"
- android:padding="11dp">
- <LinearLayout android:layout_width="match_parent" android:layout_height="42dp"
- android:gravity="center_vertical" android:orientation="horizontal">
-  <ImageView android:layout_width="39dp" android:layout_height="39dp"
+ android:id="@+id/widget_ring_premium_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:background="@drawable/widget_bg" android:orientation="vertical" android:padding="9dp">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="33dp"
+  android:gravity="center_vertical" android:orientation="horizontal">
+  <ImageView android:layout_width="32dp" android:layout_height="32dp"
    android:src="@drawable/widget_brand_lockup" android:scaleType="fitCenter"
-   android:contentDescription="Camideyiz Biz orijinal logosu"/>
-<TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="1dp" android:text=""/>
-  
-  <TextView android:id="@+id/widget_ring_premium_city"
-   android:layout_width="wrap_content" android:layout_height="wrap_content"
-   android:layout_marginStart="5dp" android:text="Takvim bekleniyor"
-   android:textColor="#B2C6D6" android:textSize="10sp" android:maxLines="1"
-   android:ellipsize="end"/>
+   android:contentDescription="Camideyiz.biz"/>
+  <TextView android:id="@+id/widget_ring_premium_city" android:layout_width="0dp"
+   android:layout_weight="1" android:layout_height="wrap_content" android:layout_marginStart="8dp"
+   android:text="Konum" android:textSize="11sp" android:textColor="#B2C6D6"
+   android:gravity="right|center_vertical" android:ellipsize="end"
+   android:maxLines="1" android:includeFontPadding="false"/>
  </LinearLayout>
  <FrameLayout android:layout_width="match_parent" android:layout_height="0dp"
-  android:layout_weight="1" android:layout_marginTop="3dp">
-  <ImageView android:id="@+id/widget_ring_premium_art"
-   android:layout_width="match_parent" android:layout_height="match_parent"
-   android:scaleType="fitCenter" android:layout_gravity="center"
-   android:contentDescription="Altı vaktin gerçek sürelere göre orantılı çemberi"/>
+  android:layout_weight="1" android:layout_marginTop="2dp">
+  <ImageView android:id="@+id/widget_ring_premium_art" android:layout_width="match_parent"
+   android:layout_height="match_parent" android:scaleType="fitCenter"
+   android:contentDescription="Vakit aralıklarını gösteren premium zaman çemberi"/>
   <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-   android:layout_gravity="center" android:gravity="center"
-   android:orientation="vertical" android:paddingStart="65dp" android:paddingEnd="65dp">
-   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="SIRADAKİ VAKİT" android:textColor="#B2C6D6" android:textSize="9sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:letterSpacing=".08"/>
-
-   <TextView android:id="@+id/widget_ring_premium_next" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Takvim" android:textColor="#D8BF8D" android:textSize="19sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="4dp" android:textStyle="bold"/>
-
-   <Chronometer android:id="@+id/widget_ring_premium_countdown"
-    android:layout_width="wrap_content" android:layout_height="wrap_content"
-    android:layout_marginTop="7dp" android:text="--:--"
-    android:textColor="#F2F7FB" android:textSize="24sp" android:textStyle="bold"
-    android:singleLine="true" android:includeFontPadding="false"/>
-   <TextView android:id="@+id/widget_ring_premium_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="--:--" android:textColor="#B2C6D6" android:textSize="11sp" android:gravity="center" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="5dp"/>
-
+   android:layout_gravity="center" android:orientation="vertical" android:gravity="center"
+   android:paddingStart="52dp" android:paddingEnd="52dp">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+   android:text="KALAN SÜRE" android:textSize="9sp" android:textColor="#B2C6D6"
+   android:gravity="center" android:includeFontPadding="false"/>
+  <Chronometer android:id="@+id/widget_ring_premium_countdown" android:layout_width="wrap_content"
+   android:layout_height="wrap_content" android:layout_marginTop="4dp"
+   android:text="--:--" android:textSize="33sp" android:textStyle="bold"
+   android:fontFamily="sans-serif-medium" android:textColor="#F4D392"
+   android:singleLine="true" android:includeFontPadding="false"/>
+  <TextView android:id="@+id/widget_ring_premium_next" android:layout_width="match_parent"
+   android:layout_height="wrap_content" android:text="Takvim" android:textSize="15sp"
+   android:textStyle="bold" android:textColor="#F2F7FB" android:gravity="center"
+   android:maxLines="1" android:ellipsize="end" android:layout_marginTop="5dp" android:includeFontPadding="false"/>
+  <TextView android:id="@+id/widget_ring_premium_time" android:layout_width="match_parent"
+   android:layout_height="wrap_content" android:text="Saat --:--" android:textSize="11sp"
+   android:textColor="#B2C6D6" android:gravity="center" android:maxLines="1"
+   android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="3dp"/>
   </LinearLayout>
  </FrameLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="48dp"
+<LinearLayout android:layout_width="match_parent" android:layout_height="47dp"
  android:layout_marginTop="4dp" android:background="@drawable/widget_chip_dark"
  android:paddingStart="2dp" android:paddingEnd="2dp" android:orientation="horizontal"
  android:gravity="center_vertical" android:baselineAligned="false">
