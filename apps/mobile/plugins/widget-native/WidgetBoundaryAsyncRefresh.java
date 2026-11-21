@@ -14,6 +14,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Widget Engine 4.0 native coordinator:
@@ -36,6 +37,16 @@ public final class WidgetBoundaryAsyncRefresh {
         return thread;
       });
   static {WORKER.setRemoveOnCancelPolicy(true);}
+  // A goAsync broadcast has a real Android deadline. This separate tiny
+  // watchdog MUST finish receipts even if the coordinator/render queue stalls.
+  private static final ScheduledThreadPoolExecutor DEADLINE=
+      new ScheduledThreadPoolExecutor(1,task->{
+        Thread t=new Thread(task,"CamideyizBroadcastDeadline");
+        t.setDaemon(true);
+        return t;
+      });
+  private static final ConcurrentHashMap<BroadcastReceiver.PendingResult,Boolean>
+      ACTIVE_RECEIPTS=new ConcurrentHashMap<>();
 
   private static final ArrayList<BroadcastReceiver.PendingResult> PENDING=
       new ArrayList<>();
@@ -82,6 +93,10 @@ public final class WidgetBoundaryAsyncRefresh {
    */
   public static void dispatch(Context context,
       BroadcastReceiver.PendingResult pending,String reason){
+    ACTIVE_RECEIPTS.put(pending,Boolean.TRUE);
+    // Android's broadcast execution window is bounded. We never use this
+    // deadline to abandon render integrity; only the OS receiver receipt.
+    DEADLINE.schedule(()->safeFinish(pending),8,TimeUnit.SECONDS);
     enqueueRefresh(context,pending,reason);
   }
 
@@ -151,8 +166,9 @@ public final class WidgetBoundaryAsyncRefresh {
   }
 
   private static void safeFinish(BroadcastReceiver.PendingResult pending){
+    if(ACTIVE_RECEIPTS.remove(pending)==null)return;
     try{pending.finish();}
-    catch(RuntimeException error){Log.w(TAG,"Pending widget broadcast already finished",error);}
+    catch(RuntimeException error){Log.w(TAG,"Pending widget broadcast finish failed",error);}
   }
 
   /** Read-only, process-local native performance diagnostics; no PII or IO. */
