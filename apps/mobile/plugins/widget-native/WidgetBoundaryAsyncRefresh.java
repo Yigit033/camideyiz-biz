@@ -132,7 +132,8 @@ public final class WidgetBoundaryAsyncRefresh {
 
   private static boolean needsAlarmRearm(String reason){
     return reason.contains("BOOT_COMPLETED")||reason.contains("TIME_SET")||
-        reason.contains("TIMEZONE_CHANGED")||reason.contains("MY_PACKAGE_REPLACED");
+        reason.contains("TIMEZONE_CHANGED")||reason.contains("MY_PACKAGE_REPLACED")||
+        reason.contains("SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED");
   }
 
   private static void performBatch(Context app){
@@ -179,7 +180,7 @@ public final class WidgetBoundaryAsyncRefresh {
   /** Read-only, process-local native performance diagnostics; no PII or IO. */
   public static void appendMetrics(JSONObject output)throws JSONException{
     output.put("engineVersion",4);
-    output.put("engineRevision","4.2");
+    output.put("engineRevision","4.3");
     output.put("nativeQueueWaitMs",lastQueueWaitMs);
     output.put("nativeBridgeQueueWaitMs",lastBridgeQueueWaitMs);
     output.put("nativeBatchMs",lastBatchMs);

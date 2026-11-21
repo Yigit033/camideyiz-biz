@@ -69,7 +69,15 @@ public final class WidgetBoundaryScheduler {
   private static volatile boolean renderPending=false;
   private static volatile long latestGeneration=0;
   private static volatile String pendingSignature="";
-  private static final int BRAND_VERSION=3;
+  // 4: day/night-aware layouts and light ring designs. Forces one clean
+  // repaint of every pinned widget after the APK upgrade.
+  private static final int BRAND_VERSION=4;
+  // The boundary alarm fires AT the published prayer minute. A delivery
+  // that lands a moment early/late must already present the new interval,
+  // so the launcher Chronometer never shows a negative "−00:01" countdown.
+  private static final long BOUNDARY_LEAD_MS=1500;
+  private static final String EXACT_ALARM_STATE=
+      "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED";
   // AlarmManager state is not durable across force-stop or device reboot.
   // First widget engine operation in each process must explicitly rearm it.
   private static boolean alarmRearmRequiredThisProcess=true;
@@ -104,6 +112,38 @@ public final class WidgetBoundaryScheduler {
     if("dark".equals(mode))return false;
     return (context.getResources().getConfiguration().uiMode &
         Configuration.UI_MODE_NIGHT_MASK)!=Configuration.UI_MODE_NIGHT_YES;
+  }
+
+  /**
+   * Widget appearance for one render pass.
+   * auto (Android 12+, app theme = "system"): the LAUNCHER resolves the
+   * values/values-night aliases and RemoteViews.setColorInt day/night pairs
+   * at inflation time, so a system dark-mode switch (including scheduled
+   * sunset switches) repaints instantly without waking this app.
+   * Otherwise the app's explicit light/dark choice is applied directly.
+   */
+  private static final class Look{
+    final boolean auto,light;
+    Look(boolean auto,boolean light){this.auto=auto;this.light=light;}
+    int pick(int lightId,int darkId,int autoId){
+      return auto?autoId:(light?lightId:darkId);
+    }
+  }
+  private static Look look(Context context){
+    boolean auto=Build.VERSION.SDK_INT>=Build.VERSION_CODES.S&&
+        "system".equals(prefs(context).getString("appearance","system"));
+    return new Look(auto,lightTheme(context));
+  }
+  private static String themeKey(Context context){
+    Look value=look(context);
+    return value.auto?"auto":(value.light?"light":"dark");
+  }
+  private static void ink(RemoteViews card,Look look,int viewId,int lightColor,int darkColor){
+    if(look.auto&&Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
+      card.setColorInt(viewId,"setTextColor",lightColor,darkColor);
+    }else{
+      card.setTextColor(viewId,look.light?lightColor:darkColor);
+    }
   }
 
   /**
@@ -301,7 +341,7 @@ public final class WidgetBoundaryScheduler {
           for(int i=0;i<entries.length();i++){
             JSONObject item=entries.getJSONObject(i);
             long at=item.getLong("at");
-            if(at<=now)selection=item.getJSONObject("props");
+            if(at<=now+BOUNDARY_LEAD_MS)selection=item.getJSONObject("props");
             else {nextBoundary=at;break;}
           }
           long expiresAt=Math.min(sourceAt+MAX_AGE,calendarEndsAt);
@@ -413,8 +453,10 @@ public final class WidgetBoundaryScheduler {
         props.optString("nextTime","")+"|"+props.optLong("nextAt",0);
     String day=props.optJSONArray("times")==null?"[]":
         props.optJSONArray("times").toString();
+    // "auto" stays constant across system day/night switches: the launcher
+    // re-resolves resources itself, so no redundant repaint is queued.
     String locale=prefs(context).getInt("activeCityId",0)+"|"+
-        lightTheme(context)+"|"+props.optBoolean("ready",false)+"|";
+        themeKey(context)+"|"+props.optBoolean("ready",false)+"|";
     String[] data={city+"|"+next,city+"|"+date+"|"+next+"|"+day,
         next,city+"|"+next,city+"|"+date+"|"+next+"|"+day,
         date+"|"+next+"|"+day,city+"|"+date+"|"+next+"|"+day,next,
@@ -461,7 +503,8 @@ public final class WidgetBoundaryScheduler {
 
   private static boolean forceAlarmRearm(String reason){
     return reason.contains("BOOT_COMPLETED")||reason.contains("TIME_SET")||
-        reason.contains("TIMEZONE_CHANGED")||reason.contains("MY_PACKAGE_REPLACED");
+        reason.contains("TIMEZONE_CHANGED")||reason.contains("MY_PACKAGE_REPLACED")||
+        reason.contains(EXACT_ALARM_STATE);
   }
 
   private static boolean forceFullRender(String reason){
@@ -499,7 +542,7 @@ public final class WidgetBoundaryScheduler {
     StringBuilder key=new StringBuilder(600);
     key.append(BRAND_VERSION).append('|')
       .append(prefs(context).getInt("activeCityId",0)).append('|')
-      .append(lightTheme(context)).append('|')
+      .append(themeKey(context)).append('|')
       .append(props.optBoolean("ready",false)).append('|')
       .append(props.optString("city","")).append('|')
       .append(props.optString("dateISO","")).append('|')
@@ -590,14 +633,15 @@ public final class WidgetBoundaryScheduler {
     boolean nextInCurrentDay=ready&&
         props.optString("dateISO","").equals(isoDate(nextAt));
     long now=System.currentTimeMillis();
-    boolean light=lightTheme(context);
+    Look look=look(context);
     int count=0;
 
     // 2×2: published prayer clock and a native, launcher-driven countdown.
     int[] small=widgetIds[0];
     if(small.length>0&&dirty[0]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),
-          light?R.layout.widget_next_prayer_light:R.layout.widget_next_prayer);
+      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+          R.layout.widget_next_prayer_light,R.layout.widget_next_prayer,
+          R.layout.widget_next_prayer_auto));
       card.setTextViewText(R.id.widget_city,ready?city:"Takvim bekleniyor");
       card.setTextViewText(R.id.widget_next_label,ready?"SIRADAKİ VAKİT":"TAKVİM BEKLENİYOR");
       card.setTextViewText(R.id.widget_next_name,ready?next:"—");
@@ -613,8 +657,9 @@ public final class WidgetBoundaryScheduler {
     int[] day=widgetIds[1];
     JSONArray times=ready?props.getJSONArray("times"):new JSONArray();
     if(day.length>0&&dirty[1]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),
-          light?R.layout.widget_prayer_day_light:R.layout.widget_prayer_day);
+      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+          R.layout.widget_prayer_day_light,R.layout.widget_prayer_day,
+          R.layout.widget_prayer_day_auto));
       card.setTextViewText(R.id.widget_day_city,ready?city:"Takvim bekleniyor");
       int[] rows={R.id.widget_day_row_0,R.id.widget_day_row_1,
           R.id.widget_day_row_2,R.id.widget_day_row_3,
@@ -629,8 +674,10 @@ public final class WidgetBoundaryScheduler {
           R.id.widget_day_time_2,R.id.widget_day_time_3,
           R.id.widget_day_time_4,R.id.widget_day_time_5};
       String[] symbols={"◒","☀","☼","☀","◓","☾"};
-      int normal=Color.parseColor(light?"#123D34":"#F8F4E9");
-      int highlight=Color.parseColor(light?"#976B2F":"#F0CB8B");
+      int normalLight=Color.parseColor("#123D34"),normalDark=Color.parseColor("#F8F4E9");
+      int highlightLight=Color.parseColor("#976B2F"),highlightDark=Color.parseColor("#F0CB8B");
+      int activeRow=look.pick(R.drawable.widget_active_light,
+          R.drawable.widget_active_dark,R.drawable.widget_active_auto);
       for(int i=0;i<6;i++){
         JSONObject value=i<times.length()?times.getJSONObject(i):null;
         String label=value==null?"—":value.optString("label","—");
@@ -639,11 +686,12 @@ public final class WidgetBoundaryScheduler {
         card.setTextViewText(icons[i],symbols[i]);
         card.setTextViewText(labels[i],label);
         card.setTextViewText(clocks[i],clock);
-        card.setTextColor(labels[i],selected?highlight:normal);
-        card.setTextColor(clocks[i],selected?highlight:normal);
-        card.setInt(rows[i],"setBackgroundResource",selected?
-          (light?R.drawable.widget_active_light:R.drawable.widget_active_dark):
-          R.drawable.widget_row_clear);
+        ink(card,look,labels[i],selected?highlightLight:normalLight,
+            selected?highlightDark:normalDark);
+        ink(card,look,clocks[i],selected?highlightLight:normalLight,
+            selected?highlightDark:normalDark);
+        card.setInt(rows[i],"setBackgroundResource",
+            selected?activeRow:R.drawable.widget_row_clear);
       }
       card.setTextViewText(R.id.widget_day_footer,ready
           ?next+" vaktine kalan":"Takvim bekleniyor");
@@ -656,8 +704,9 @@ public final class WidgetBoundaryScheduler {
     // 1×1: compact, native system countdown without waking React.
     int[] compact=widgetIds[2];
     if(compact.length>0&&dirty[2]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),
-          light?R.layout.widget_compact_prayer_light:R.layout.widget_compact_prayer);
+      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+          R.layout.widget_compact_prayer_light,R.layout.widget_compact_prayer,
+          R.layout.widget_compact_prayer_auto));
       card.setTextViewText(R.id.widget_compact_name,ready?next:"Takvim");
       card.setTextViewText(R.id.widget_compact_time,ready?time:"--:--");
       setCountdown(card,R.id.widget_compact_countdown,nextAt,now);
@@ -671,8 +720,9 @@ public final class WidgetBoundaryScheduler {
     // 4×2: focus on the current interval and the remaining time to next.
     int[] focus=widgetIds[3];
     if(focus.length>0&&dirty[3]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),
-          light?R.layout.widget_prayer_focus_light:R.layout.widget_prayer_focus);
+      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+          R.layout.widget_prayer_focus_light,R.layout.widget_prayer_focus,
+          R.layout.widget_prayer_focus_auto));
       int nextIndex=-1;
       for(int i=0;i<times.length();i++){
         if(next.equals(times.getJSONObject(i).optString("label",""))){
@@ -694,8 +744,9 @@ public final class WidgetBoundaryScheduler {
     // countdown (also usable on four-column launchers where 6×2 is impossible).
     int[] strip=widgetIds[4];
     if(strip.length>0&&dirty[4]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),
-          light?R.layout.widget_prayer_strip_light:R.layout.widget_prayer_strip);
+      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+          R.layout.widget_prayer_strip_light,R.layout.widget_prayer_strip,
+          R.layout.widget_prayer_strip_auto));
       int[] cells={R.id.widget_strip_cell_0,R.id.widget_strip_cell_1,
         R.id.widget_strip_cell_2,R.id.widget_strip_cell_3,
         R.id.widget_strip_cell_4,R.id.widget_strip_cell_5};
@@ -705,9 +756,11 @@ public final class WidgetBoundaryScheduler {
       int[] clocks={R.id.widget_strip_time_0,R.id.widget_strip_time_1,
         R.id.widget_strip_time_2,R.id.widget_strip_time_3,
         R.id.widget_strip_time_4,R.id.widget_strip_time_5};
-      int ordinary=Color.parseColor(light?"#1B415B":"#F2F7FB");
-      int subdued=Color.parseColor(light?"#365C78":"#B2C6D6");
-      int selectedInk=Color.parseColor(light?"#152821":"#E5C88C");
+      int ordinaryLight=Color.parseColor("#1B415B"),ordinaryDark=Color.parseColor("#F2F7FB");
+      int subduedLight=Color.parseColor("#365C78"),subduedDark=Color.parseColor("#B2C6D6");
+      int selectedLight=Color.parseColor("#152821"),selectedDark=Color.parseColor("#E5C88C");
+      int selectedCell=look.pick(R.drawable.widget_strip_selected_light,
+          R.drawable.widget_strip_selected_dark,R.drawable.widget_strip_selected_auto);
       for(int i=0;i<6;i++){
         JSONObject value=i<times.length()?times.getJSONObject(i):null;
         String label=value==null?"—":value.optString("label","—");
@@ -717,11 +770,12 @@ public final class WidgetBoundaryScheduler {
         boolean selected=ready && (nextInCurrentDay?label.equals(next):i==5);
         card.setTextViewText(labels[i],label);
         card.setTextViewText(clocks[i],hour);
-        card.setTextColor(labels[i],selected?selectedInk:subdued);
-        card.setTextColor(clocks[i],selected?selectedInk:ordinary);
-        card.setInt(cells[i],"setBackgroundResource",selected?
-          (light?R.drawable.widget_strip_selected_light:R.drawable.widget_strip_selected_dark):
-          R.drawable.widget_row_clear);
+        ink(card,look,labels[i],selected?selectedLight:subduedLight,
+            selected?selectedDark:subduedDark);
+        ink(card,look,clocks[i],selected?selectedLight:ordinaryLight,
+            selected?selectedDark:ordinaryDark);
+        card.setInt(cells[i],"setBackgroundResource",
+            selected?selectedCell:R.drawable.widget_row_clear);
       }
       card.setTextViewText(R.id.widget_strip_city,ready?city:"");
       card.setTextViewText(R.id.widget_strip_next,
@@ -741,8 +795,9 @@ public final class WidgetBoundaryScheduler {
     int[] premiumRing=widgetIds[6];
     if((miniRing.length>0&&dirty[5])||(premiumRing.length>0&&dirty[6])){
       if(miniRing.length>0&&dirty[5]&&isCurrentGeneration(generation)){
-        RemoteViews card=new RemoteViews(context.getPackageName(),
-            light?R.layout.widget_ring_mini_light:R.layout.widget_ring_mini);
+        RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+            R.layout.widget_ring_mini_light,R.layout.widget_ring_mini,
+            R.layout.widget_ring_mini_auto));
         card.setImageViewBitmap(R.id.widget_ring_mini_art,
             prepared[0]);
         card.setTextViewText(R.id.widget_ring_mini_next,ready?next:"Takvim");
@@ -753,8 +808,9 @@ public final class WidgetBoundaryScheduler {
         count+=miniRing.length;
       }
       if(premiumRing.length>0&&dirty[6]&&isCurrentGeneration(generation)){
-        RemoteViews card=new RemoteViews(context.getPackageName(),
-            light?R.layout.widget_ring_premium_light:R.layout.widget_ring_premium);
+        RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+            R.layout.widget_ring_premium_light,R.layout.widget_ring_premium,
+            R.layout.widget_ring_premium_auto));
         card.setImageViewBitmap(R.id.widget_ring_premium_art,
             prepared[1]);
         card.setTextViewText(R.id.widget_ring_premium_next,ready?next:"Takvim");
@@ -771,9 +827,13 @@ public final class WidgetBoundaryScheduler {
         int[] hourCells={R.id.widget_ring_premium_cell_0,R.id.widget_ring_premium_cell_1,
           R.id.widget_ring_premium_cell_2,R.id.widget_ring_premium_cell_3,
           R.id.widget_ring_premium_cell_4,R.id.widget_ring_premium_cell_5};
-        int mainText=Color.parseColor("#F2F7FB");
-        int secondaryText=Color.parseColor("#B2C6D6");
-        int activeText=Color.parseColor("#E5C88C");
+        // Same day/night palette as the six-prayer strip; the premium ring now
+        // follows the selected app/system theme like every other widget.
+        int mainLight=Color.parseColor("#152C3D"),mainDark=Color.parseColor("#F2F7FB");
+        int secondaryLight=Color.parseColor("#586F7D"),secondaryDark=Color.parseColor("#B2C6D6");
+        int activeLight=Color.parseColor("#91652D"),activeDark=Color.parseColor("#E5C88C");
+        int activeCell=look.pick(R.drawable.widget_strip_selected_light,
+            R.drawable.widget_strip_selected_dark,R.drawable.widget_strip_selected_auto);
         for(int i=0;i<6;i++){
           JSONObject value=i<times.length()?times.getJSONObject(i):null;
           String prayer=value==null?"—":value.optString("label","—");
@@ -781,10 +841,12 @@ public final class WidgetBoundaryScheduler {
               (nextInCurrentDay?prayer.equals(next):i==5);
           card.setTextViewText(hourLabels[i],prayer);
           card.setTextViewText(hourClocks[i],value==null?"--:--":value.optString("time","--:--"));
-          card.setTextColor(hourLabels[i],highlighted?activeText:secondaryText);
-          card.setTextColor(hourClocks[i],highlighted?activeText:mainText);
-          card.setInt(hourCells[i],"setBackgroundResource",highlighted?
-              R.drawable.widget_strip_selected_dark:R.drawable.widget_row_clear);
+          ink(card,look,hourLabels[i],highlighted?activeLight:secondaryLight,
+              highlighted?activeDark:secondaryDark);
+          ink(card,look,hourClocks[i],highlighted?activeLight:mainLight,
+              highlighted?activeDark:mainDark);
+          card.setInt(hourCells[i],"setBackgroundResource",
+              highlighted?activeCell:R.drawable.widget_row_clear);
         }
         setCountdown(card,R.id.widget_ring_premium_countdown,nextAt,now);
         card.setOnClickPendingIntent(R.id.widget_ring_premium_root,launchAction(context,41024));
@@ -798,8 +860,9 @@ public final class WidgetBoundaryScheduler {
     // countdown into the 1×1 minimum launcher footprint.
     int[] slim=widgetIds[7];
     if(slim.length>0&&dirty[7]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),
-        light?R.layout.widget_slim_prayer_light:R.layout.widget_slim_prayer);
+      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+          R.layout.widget_slim_prayer_light,R.layout.widget_slim_prayer,
+          R.layout.widget_slim_prayer_auto));
       card.setTextViewText(R.id.widget_slim_name,ready?next:"Takvim");
       card.setTextViewText(R.id.widget_slim_time,ready?time:"--:--");
       setCountdown(card,R.id.widget_slim_countdown,nextAt,now);
@@ -812,8 +875,9 @@ public final class WidgetBoundaryScheduler {
     // Reuse the 224px ring bitmap (no extra JS timer or duplicate allocation).
     int[] squareRing=widgetIds[8];
     if(squareRing.length>0&&dirty[8]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),
-          light?R.layout.widget_ring_square_light:R.layout.widget_ring_square);
+      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+          R.layout.widget_ring_square_light,R.layout.widget_ring_square,
+          R.layout.widget_ring_square_auto));
       card.setImageViewBitmap(R.id.widget_ring_square_art,prepared[0]);
       card.setTextViewText(R.id.widget_ring_square_next,ready?next:"Takvim");
       card.setTextViewText(R.id.widget_ring_square_time,ready?"Saat "+time:"--:--");
@@ -831,26 +895,59 @@ public final class WidgetBoundaryScheduler {
         PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
   }
 
+  /** Exact delivery is possible on Android 6–11, and on 12+ only while the
+   * user-granted "Alarms & reminders" access (already requested for ezan)
+   * is active. Never assumes the permission. */
+  private static boolean exactAlarmAllowed(AlarmManager manager){
+    if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
+      return manager.canScheduleExactAlarms();
+    }
+    return true;
+  }
+
+  /**
+   * One boundary alarm for all nine widget families (about seven per day).
+   * Exact when permitted, so the widget switches to the next prayer at the
+   * published minute instead of minutes later under Doze/inexact batching.
+   * The inexact path remains a safe fallback; the launcher's 30 min
+   * updatePeriodMillis still bounds the worst-case delay.
+   */
   private static void scheduleNext(Context context,long next,long now,boolean force){
     SharedPreferences local=prefs(context);
     try{
       AlarmManager manager=(AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
       if(manager==null)throw new IllegalStateException("AlarmManager absent");
-      // Keep the existing inexact alarm if its boundary is already correct.
-      // Forced rearm is required after reboot, time change or app replacement.
+      boolean exact=exactAlarmAllowed(manager);
+      // Keep the existing alarm if its boundary and precision are unchanged.
+      // Forced rearm is required after reboot, time change, app replacement
+      // or an exact-alarm permission grant.
       if(!force&&!alarmRearmRequiredThisProcess&&
-          local.getLong("nextAlarmAt",-1)==next)return;
+          local.getLong("nextAlarmAt",-1)==next&&
+          local.getBoolean("nextAlarmExact",false)==exact)return;
       PendingIntent intent=alarmIntent(context);
       manager.cancel(intent);
       alarmRearmRequiredThisProcess=false;
       if(next<=now){
-        local.edit().putLong("nextAlarmAt",0).apply();
+        local.edit().putLong("nextAlarmAt",0).putBoolean("nextAlarmExact",false).apply();
         return;
       }
-      manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next+1200,intent);
-      local.edit().putLong("nextAlarmAt",next).apply();
+      boolean scheduledExact=false;
+      if(exact){
+        try{
+          manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next,intent);
+          scheduledExact=true;
+        }catch(SecurityException revoked){
+          // Permission revoked between the check and the call.
+          Log.w(TAG,"Exact widget alarm denied; using inexact fallback",revoked);
+        }
+      }
+      if(!scheduledExact){
+        manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,next,intent);
+      }
+      local.edit().putLong("nextAlarmAt",next)
+          .putBoolean("nextAlarmExact",scheduledExact).apply();
     }catch(Exception error){
-      local.edit().putLong("nextAlarmAt",0)
+      local.edit().putLong("nextAlarmAt",0).putBoolean("nextAlarmExact",false)
           .putString("lastError","alarm: "+error.getMessage()).apply();
     }
   }
@@ -870,10 +967,12 @@ public final class WidgetBoundaryScheduler {
     result.put("installedPremiumRing",counts[6]);
     result.put("installedSlim",counts[7]);
     result.put("installedSquareRing",counts[8]);
-    result.put("widgetTheme",lightTheme(context)?"light":"dark");
+    Look appearance=look(context);
+    result.put("widgetTheme",appearance.auto?"auto":(appearance.light?"light":"dark"));
     long last=local.getLong("lastAppliedAt",0);
     result.put("lastAppliedAt",last);
     result.put("nextAlarmAt",local.getLong("nextAlarmAt",0));
+    result.put("nextAlarmExact",local.getBoolean("nextAlarmExact",false));
     result.put("lastAttemptAt",local.getLong("lastAttemptAt",0));
     result.put("lastRefreshReason",local.getString("lastRefreshReason",""));
     result.put("lastHostDispatchAt",local.getLong("lastHostDispatchAt",0));

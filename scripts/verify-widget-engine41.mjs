@@ -38,7 +38,7 @@ assert.match(engine,/WidgetBoundaryScheduler\.renderFailed/);
 assert.match(sched,/WidgetRenderPipeline\.enqueue\(/);
 assert.match(sched,/private static String\[\] familyKeys\(/);
 assert.match(sched,/widgetFamilySignature/);
-assert.match(sched,/BRAND_VERSION=3/);
+assert.match(sched,/BRAND_VERSION=4/);
 assert.match(sched,/nativeRenderPending/);
 assert.match(sched,/reason\.endsWith\(launcherShortName\(i\)\)/);
 assert.match(sched,/"launcher:update:all"\.equals\(reason\)/);

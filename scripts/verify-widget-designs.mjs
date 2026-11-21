@@ -93,7 +93,7 @@ for(const suffix of ['', '_light']){
   assert.match(mini,/widget_ring_mini_art/);
   assert.match(premium,/widget_ring_premium_art/);
   assert.match(squared,/widget_ring_square_art/);
-  assert.match(squared,/android:background="@drawable\/widget_bg"/);
+  assert.match(squared,/android:background="@drawable\/widget_bg(_light)?"/);
   assert.match(premium,/widget_ring_premium_cell_0/);
   assert.match(premium,/widget_ring_premium_cell_5/);
   const strip=read(p+'widget_prayer_strip'+suffix+'.xml');
@@ -128,10 +128,10 @@ for(const token of ['widget_ring_square_root','widget_ring_square_art',
 assert.match(scheduler,/manager\.updateAppWidget\(squareRing,card\)/);
 assert.match(scheduler,/nextInCurrentDay\?label\.equals\(next\):i==5/,
   'After Yatsı do not highlight today’s expired İmsak');
-assert.match(scheduler,/BRAND_VERSION=3/);
+assert.match(scheduler,/BRAND_VERSION=4/);
 assert.match(pipe,/dirty\[8\]&&installed\[8\]\.length>0/);
-assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,false,224\)/);
-assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,false,432\)/);
+assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,224\)/);
+assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,432\)/);
 const ring=read(p+'PrayerRingBitmapRenderer.java');
 assert.match(ring,/size==224\?\.376f:\.346f/);
 assert.match(ring,/sector\(canvas,pen,ring,0,boundaries\[0\],COLORS\[5\]/);

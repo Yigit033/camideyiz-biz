@@ -81,8 +81,14 @@ public final class PrayerRingBitmapRenderer {
     }
   }
 
-  /** A single 224px / 432px bitmap is sent to each installed widget host. */
-  public static synchronized Bitmap render(JSONArray times,long nowMs,boolean light,int size)
+  // Translucent slate inks read correctly on BOTH the navy and the ivory card,
+  // so one bitmap serves light, dark and launcher-resolved day/night layouts.
+  private static final int TRACK=0x4D8FB3C8;
+  private static final int INNER_RIM=0x405F8196;
+  private static final int OUTER_RIM=0x335F8196;
+
+  /** A single theme-neutral 224px / 432px bitmap per installed ring host. */
+  public static synchronized Bitmap render(JSONArray times,long nowMs,int size)
       throws JSONException{
     if(size!=224&&size!=432)throw new IllegalArgumentException("Invalid ring size");
     int[] boundaries=new int[6];
@@ -101,7 +107,7 @@ public final class PrayerRingBitmapRenderer {
     if(ready){
       for(int i=0;i<6;i++)if(minuteNow>=boundaries[i])current=i;
     }
-    String key=size+"|"+light+"|"+ready+"|"+current+"|"+Arrays.toString(boundaries);
+    String key=size+"|"+ready+"|"+current+"|"+Arrays.toString(boundaries);
     Bitmap cached=CACHE.get(key);
     if(cached!=null&&!cached.isRecycled()){
       cacheHits++;
@@ -118,7 +124,7 @@ public final class PrayerRingBitmapRenderer {
     Paint pen=new Paint(Paint.ANTI_ALIAS_FLAG);
     pen.setStyle(Paint.Style.STROKE);
     pen.setStrokeCap(Paint.Cap.ROUND);
-    pen.setColor(light?0x443A6078:0xFF284658);
+    pen.setColor(TRACK);
     pen.setStrokeWidth(size*.051f);
     canvas.drawCircle(mid,mid,radius,pen);
     if(ready){
@@ -130,10 +136,10 @@ public final class PrayerRingBitmapRenderer {
     }
     // Subtle inner watch dial and outer rim; no crowded time labels or dots.
     pen.setStyle(Paint.Style.STROKE);
-    pen.setColor(light?0x333A6478:0x663E6076);
+    pen.setColor(INNER_RIM);
     pen.setStrokeWidth(size*.0027f);
     canvas.drawCircle(mid,mid,radius-size*.052f,pen);
-    pen.setColor(light?0x333A6478:0x442F536B);
+    pen.setColor(OUTER_RIM);
     canvas.drawCircle(mid,mid,radius+size*.043f,pen);
     CACHE.put(key,bitmap);
     lastBitmapMs=SystemClock.elapsedRealtime()-renderAt;

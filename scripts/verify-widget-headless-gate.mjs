@@ -4,16 +4,26 @@
  * incomplete published coverage; never trust "persisted" alone.
  */
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
 import {
-  shouldSkipWidgetHeadlessRefresh,
+  shouldSkipWidgetHeadlessRefresh,WIDGET_BRAND_ASSET_VERSION,
   HEADLESS_RECHECK_MS,HEADLESS_COVERAGE_MS,HEADLESS_MAX_SOURCE_AGE_MS,
 } from '../apps/mobile/src/features/widgets/widgetHealthPolicy.ts';
+
+// Lockstep: if native BRAND_VERSION drifts from the JS policy, every headless
+// run would silently load the heavy calendar engine (or skip a needed repaint).
+const scheduler=readFileSync(resolve(import.meta.dirname,'..',
+  'apps/mobile/plugins/widget-native/WidgetBoundaryScheduler.java'),'utf8');
+const nativeVersion=Number(scheduler.match(/BRAND_VERSION=(\d+);/)?.[1]);
+assert.equal(nativeVersion,WIDGET_BRAND_ASSET_VERSION,
+  'Java BRAND_VERSION and widgetHealthPolicy WIDGET_BRAND_ASSET_VERSION must match');
 
 const now=Date.parse('2026-11-21T08:00:00+03:00');
 const good={
   supported:true,persisted:true,hasTimeline:true,lastReady:true,
   nativeCityId:9545,activeCityId:9545,lastError:'',lastTransferError:'',
-  brandAssetVersion:3,nativeRenderPending:false,
+  brandAssetVersion:WIDGET_BRAND_ASSET_VERSION,nativeRenderPending:false,
   calendarSourceAt:now-10*60_000,lastSyncAt:now-15*60_000,
   calendarEndsAt:now+2*86_400_000,nextAlarmAt:now+2*60_000,
   installedNext:1,installedDay:0,installedCompact:1,installedFocus:0,
@@ -23,7 +33,7 @@ const good={
 assert.equal(shouldSkipWidgetHeadlessRefresh(good,now),true);
 for(const patch of [
   {supported:false},{persisted:false},{hasTimeline:false},{lastReady:false},
-  {brandAssetVersion:2},{nativeRenderPending:true},
+  {brandAssetVersion:WIDGET_BRAND_ASSET_VERSION-1},{nativeRenderPending:true},
   {nativeCityId:9541},{activeCityId:0},{lastError:'disk'},
   {lastTransferError:'district mismatch'},
   {calendarSourceAt:now-HEADLESS_MAX_SOURCE_AGE_MS-1},

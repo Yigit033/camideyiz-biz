@@ -8,6 +8,11 @@ import {useCompanion} from '@/features/companion/CompanionProvider';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {hasAndroidNativeWidgetBridge} from '@/features/native/nativeRuntime';
 import {readStartupDiagnostics} from '@/features/performance/startupMetrics';
+import {requestNativeAdhanPermission} from '@/features/companion/nativeAdhan';
+
+const THEME_LABEL:Record<string,string>={
+  auto:'Sistemle otomatik (gece/gündüz)',light:'Açık',dark:'Koyu',
+};
 
 type NativeWidgetHealth={
   supported:true;nativeCityId:number;activeCityId:number;
@@ -21,7 +26,7 @@ type NativeWidgetHealth={
   lastError:string;lastNextName:string;lastNextTime:string;lastDateISO:string;
   lastCity:string;lastAppliedAt:number;lastAttemptAt:number;
   lastHostDispatchAt:number;lastRefreshReason:string;
-  lastSyncAt:number;nextAlarmAt:number;
+  lastSyncAt:number;nextAlarmAt:number;nextAlarmExact?:boolean;
   calendarSourceAt:number;calendarEndsAt:number;sourceAgeHours:number;
   osRecoveryMinutes:number;
   engineVersion?:number;engineRevision?:string;
@@ -160,10 +165,18 @@ export function Widget3Diagnostics(){
       setError(e instanceof Error?e.message:'Widget onarma isteği başarısız');
     }finally{setBusy(false);}
   };
+  // Only meaningful once a boundary alarm exists; older APKs omit the field.
+  const approximateSwitch=installed>0&&!!health?.nextAlarmAt&&
+    health.nextAlarmExact===false;
+  const allowExactSwitch=async()=>{
+    try{await requestNativeAdhanPermission();}
+    catch{/* Settings screen unavailable; status stays approximate. */}
+    // AppState 'active' re-queries status after returning from Settings.
+  };
   const share=async()=>{
     try{
       await Share.share({message:
-        'Camideyiz Biz · Widget Engine 4.2 tanılama\n'+
+        'Camideyiz Biz · Widget Engine 4.3 tanılama\n'+
         JSON.stringify({
           time:new Date().toISOString(),
           selectedDistrictId:cityId,
@@ -186,7 +199,7 @@ export function Widget3Diagnostics(){
       </View>
       <View style={{flex:1,gap:5}}>
         <Text style={{fontFamily:'serif',fontSize:16,fontWeight:'700',color:colors.text}}>
-          Widget Engine 4.2 · Sistem Tanısı
+          Widget Durumu
         </Text>
         <Text style={{fontSize:12,color:colors.text,fontWeight:'800'}}>
           {description.title}
@@ -208,9 +221,21 @@ export function Widget3Diagnostics(){
         <Feather name="database" size={12}/> {' '+(selected&&health?.lastReady?'Takvim hazır':'Takvim bekliyor')}
       </Text>
       <Text style={[styles.indicator,{color:colors.muted}]}>
-        <Feather name="clock" size={12}/> {' '+(health?.nextAlarmAt?'Geçiş planlı':'Kontrol bekliyor')}
+        <Feather name="clock" size={12}/> {' '+(!health?.nextAlarmAt?'Kontrol bekliyor'
+          :health.nextAlarmExact?'Tam dakikada geçiş':'Geçiş planlı')}
       </Text>
     </View>
+    {approximateSwitch?<Pressable accessibilityRole="button"
+      accessibilityLabel="Widget'ın vakit geçişini tam dakikada yapması için alarm iznini aç"
+      onPress={()=>void allowExactSwitch()}
+      style={[styles.notice,{backgroundColor:colors.soft,borderColor:colors.border}]}>
+      <Feather name="bell" size={15} color={colors.gold}/>
+      <Text style={{flex:1,fontSize:11,lineHeight:16,color:colors.text}}>
+        Widget yeni vakte birkaç dakika gecikmeli geçebilir. Tam dakikada geçiş için
+        “Alarmlar ve hatırlatıcılar” iznini aç.
+      </Text>
+      <Feather name="chevron-right" size={16} color={colors.gold}/>
+    </Pressable>:null}
     {opened?<View style={[styles.detail,{borderColor:colors.border}]}>
       {([
         ['Seçili ilçe',source.place?.name??'Henüz seçilmedi'],
@@ -227,7 +252,9 @@ export function Widget3Diagnostics(){
             health?.installedStrip??0,health?.installedMiniRing??0,
             health?.installedPremiumRing??0,health?.installedSlim??0,
             health?.installedSquareRing??0].join(' / ')],
-        ['Widget teması',health?.widgetTheme??'Sistem'],
+        ['Widget teması',THEME_LABEL[health?.widgetTheme??'']??health?.widgetTheme??'Sistem'],
+        ['Vakit geçiş hassasiyeti',!health?.nextAlarmAt?'—':
+          health.nextAlarmExact?'Tam dakika (kesin alarm)':'Yaklaşık (sistem gecikebilir)'],
         ['Native takvim',health?.hasTimeline?'Kayıtlı':'Yok'],
         ['Son yayın',clock(health?.calendarSourceAt??0)],
         ['Takvim kapsamı',clock(health?.calendarEndsAt??0)],
@@ -307,6 +334,8 @@ const styles=StyleSheet.create({
   indicator:{fontSize:10.5},
   detail:{borderTopWidth:1,paddingTop:9,gap:9},
   detailRow:{flexDirection:'row',alignItems:'flex-start',gap:12,justifyContent:'space-between'},
+  notice:{flexDirection:'row',alignItems:'center',gap:9,borderWidth:1,
+    borderRadius:14,paddingVertical:10,paddingHorizontal:12},
   button:{minHeight:42,borderRadius:12,flexDirection:'row',alignItems:'center',
     justifyContent:'center',gap:5,paddingHorizontal:8},
 });

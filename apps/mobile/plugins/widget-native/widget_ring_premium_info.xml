@@ -2,7 +2,9 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
   android:minWidth="280dp" android:minHeight="280dp"
   android:targetCellWidth="4" android:targetCellHeight="4"
-  android:initialLayout="@layout/widget_ring_premium"
+  android:previewLayout="@layout/widget_ring_premium_auto"
+    android:description="@string/widget_ring_premium_description"
+    android:initialLayout="@layout/widget_ring_premium_auto"
   android:updatePeriodMillis="1800000"
   android:resizeMode="horizontal|vertical"
   android:widgetCategory="home_screen|keyguard"/>

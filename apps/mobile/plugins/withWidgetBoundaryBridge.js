@@ -58,6 +58,7 @@ const RESOURCES={
     'widget_strip_header_dark.xml','widget_strip_header_light.xml',
     'widget_strip_footer_dark.xml','widget_strip_footer_light.xml',
     'widget_strip_selected_dark.xml','widget_strip_selected_light.xml',
+    'widget_ring_track.xml',
   ],
   xml:[
     'widget_next_prayer_info.xml','widget_prayer_day_info.xml',
@@ -67,6 +68,14 @@ const RESOURCES={
     'widget_slim_prayer_info.xml','widget_ring_square_info.xml',
   ],
 };
+// Day/night aliases (`*_auto` layouts/drawables) and picker descriptions.
+// Android 12+ launchers resolve them at inflation, so a system dark-mode
+// switch repaints widgets without waking the app. Own file names avoid
+// clobbering the Expo-generated strings.xml/colors.xml.
+const QUALIFIED_VALUES=[
+  {from:'widget_values.xml',dir:'values',to:'camideyiz_widget.xml'},
+  {from:'widget_values_night.xml',dir:'values-night',to:'camideyiz_widget.xml'},
+];
 
 function withReceiver(config){
   return withAndroidManifest(config,async cfg=>{
@@ -84,6 +93,8 @@ function withReceiver(config){
         {'$':{'android:name':'android.intent.action.TIME_SET'}},
         {'$':{'android:name':'android.intent.action.TIMEZONE_CHANGED'}},
         {'$':{'android:name':'android.intent.action.MY_PACKAGE_REPLACED'}},
+        // Re-arm the boundary alarm as exact as soon as access is granted.
+        {'$':{'android:name':'android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED'}},
       ]},
     ];
     const entry=application.receiver.find(r=>r.$?.['android:name']===RECEIVER);
@@ -179,6 +190,12 @@ function withSources(config){
         await fs.copyFile(path.join(__dirname,'widget-native',file),
           path.join(targetDir,file));
       }
+    }
+    for(const item of QUALIFIED_VALUES){
+      const targetDir=path.join(srcRoot,'res',item.dir);
+      await fs.mkdir(targetDir,{recursive:true});
+      await fs.copyFile(path.join(__dirname,'widget-native',item.from),
+        path.join(targetDir,item.to));
     }
     return cfg;
   }]);
