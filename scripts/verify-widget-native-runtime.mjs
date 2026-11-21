@@ -90,12 +90,14 @@ const bridge=read('apps/mobile/plugins/widget-native/CamideyizWidgetBridge.java'
 assert.match(bridge,/WidgetBoundaryAsyncRefresh\.executeBridge\(/,
   'ReactMethods must not do native storage, canvas, or RemoteViews on RN module queue');
 for(const name of ['selectDistrict','reportTransfer','publishCalendar','refreshNow',
-  'setAppearance','getStatus']){
+  'setAppearance']){
   const at=bridge.indexOf('public void '+name+'(');
   assert.ok(at>0,'bridge entrypoint '+name);
   assert.match(bridge.slice(at,at+450),/submit\(promise,/,
     'all native bridge methods must enqueue onto serial coordinator: '+name);
 }
+assert.match(bridge,/STATUS\.execute\(\(\)->/,
+  'status read-only query must not queue behind bitmap and data writes');
 assert.match(nativeScheduler,/lastRenderSignature/);
 assert.match(nativeScheduler,/nativeSkippedRenders/);
 assert.match(nativeScheduler,/alarmRearmRequiredThisProcess/);

@@ -26,7 +26,17 @@ assert.match(worker,/finally\{[\s\S]*?for\(BroadcastReceiver\.PendingResult item
 assert.match(worker,/for\(BroadcastReceiver\.PendingResult item:PENDING\)safeFinish\(item\)/);
 assert.match(worker,/pending\.finish\(\)/);
 assert.match(bridge,/WidgetBoundaryAsyncRefresh\.executeBridge\(\(\)->/);
-for(const name of ['selectDistrict','reportTransfer','publishCalendar','refreshNow','setAppearance','getStatus']){
+assert.match(bridge,/STATUS\.execute\(\(\)->/,'read-only status should not wait behind render');
+const pipeline=read(root+'WidgetRenderPipeline.java');
+assert.match(pipeline,/new LinkedBlockingQueue<Runnable>\(3\)/);
+assert.match(pipeline,/CamideyizBitmapRender/);
+assert.match(pipeline,/CamideyizRemoteViewsDispatch/);
+assert.match(pipeline,/isCurrentGeneration\(generation\)/);
+assert.match(pipeline,/renderWidgets\(/);
+assert.match(pipeline,/renderFinished\(/);
+assert.match(worker,/WidgetBoundaryScheduler\.refresh\(app,reason,finish\)/,
+  'goAsync must complete after dispatch, not immediately after scheduling');
+for(const name of ['selectDistrict','reportTransfer','publishCalendar','refreshNow','setAppearance']){
   const at=bridge.indexOf('public void '+name+'(');
   assert.ok(at>=0,'Missing bridge method '+name);
   assert.match(bridge.slice(at,at+500),/submit\(promise,/,
@@ -36,10 +46,10 @@ assert.match(scheduler,/WidgetInventory inspectWidgetInventory\(/);
 assert.match(scheduler,/Arrays\.sort\(sorted\)/,
   'same widget count but different installed host IDs must invalidate render cache');
 assert.match(scheduler,/inventory\.signature\.equals\(local\.getString\("lastRenderSignature",""\)\)/);
-assert.match(scheduler,/if\(unchanged\)\{/);
+assert.match(scheduler,/if\(unchanged&&!any\)\{/);
 assert.match(scheduler,/skippedUnchangedRenders\+\+/);
-assert.match(scheduler,/installed=renderWidgets\(app,selection,inventory\.ids\)/);
-assert.match(scheduler,/local\.edit\(\)\.putString\("lastRenderSignature",inventory\.signature\)/);
+assert.match(scheduler,/WidgetRenderPipeline\.enqueue\(/);
+assert.match(scheduler,/\.putString\("lastRenderSignature",signature\)/);
 assert.match(scheduler,/reason\.startsWith\("launcher:update:"\)/,
   'host repaint after launcher reset may not use the unchanged snapshot fastpath');
 assert.match(scheduler,/alarmRearmRequiredThisProcess/,

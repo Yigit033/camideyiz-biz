@@ -85,8 +85,9 @@ assert.match(nativeRing,/Paint\.Cap\.ROUND/);
 assert.doesNotMatch(nativeRing,/canvas\.drawText\(clock,px,py|canvas\.drawCircle\(cx,cy/,
   'do not paint colliding labels or a static position marker onto the ring');
 assert.doesNotMatch(nativeRing,/fetch\(|HttpURLConnection|setInterval|WebView/);
-assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,false,224\)/);
-assert.match(scheduler,/PrayerRingBitmapRenderer\.render\(times,now,false,432\)/);
+const pipeline=read(p+'WidgetRenderPipeline.java');
+assert.match(pipeline,/PrayerRingBitmapRenderer\.render\(times,now,false,224\)/);
+assert.match(pipeline,/PrayerRingBitmapRenderer\.render\(times,now,false,432\)/);
 assert.match(scheduler,/R\.id\.widget_ring_premium_label_0/);
 assert.match(scheduler,/R\.id\.widget_ring_premium_clock_5/);
 assert.match(scheduler,/manager\.updateAppWidget\(slim,card\)/);
@@ -113,7 +114,7 @@ for(const suffix of ['', '_light']){
   }
   assert.match(strip,/android:id="@\+id\/widget_strip_next"/);
   assert.match(strip,/<Chronometer[\s\S]*?widget_strip_countdown/);
-  assert.match(strip,/@drawable\/widget_brand_symbol/);
+  assert.match(strip,/@drawable\/widget_brand_lockup/);
   assert.doesNotMatch(strip,/widget_strip_header_|widget_strip_footer_|Kerahat vaktine kalan/,
     'old empty-panel composition or unverified kerahat must not return');
 }
@@ -145,10 +146,16 @@ assert.match(appearance,/native\.setAppearance\(mode,resolved\)/);
 assert.match(plugin,/drawable-nodpi/);
 assert.match(plugin,/camideyiz-original-symbol\.png/);
 assert.match(plugin,/widget_brand_symbol\.png/);
+assert.match(plugin,/widget_brand_lockup\.png/);
+const originalLockup=readFileSync(resolve(import.meta.dirname,'..',
+  'apps/mobile/assets/widget-brand-lockup.png'));
+assert.equal(originalLockup.subarray(1,4).toString('ascii'),'PNG');
+assert.equal(originalLockup.readUInt32BE(16),128);
+assert.equal(originalLockup.readUInt32BE(20),128);
 for(const base of variants.filter(x=>x!=='widget_ring_mini')){
   const xml=read(p+base+'.xml');
-  assert.match(xml,/@drawable\/widget_brand_symbol/,
-    'branded widgets must use exact supplied 3D mark; mini ring favors readability');
+  assert.match(xml,/@drawable\/widget_brand_lockup/,
+    'branded widgets must use the user-supplied full mark with lettering embedded');
 }
 const tokens=read('apps/mobile/src/theme/tokens.ts');
 assert.match(tokens,/#071725/);
@@ -170,4 +177,4 @@ for(const suffix of ['', '_light']){
   assert.match(premium,/widget_ring_premium_cell_5/);
   assert.match(premium,/widget_brand_lockup/);
 }
-console.log('Widget Design 6.2: eight native variants, clean 1x2, compact six-time strip, premium radial clock and validated daily times');
+console.log('Widget Design 6.3: eight widgets use the user-supplied single-image brand, intact six-clock layout, and independent bounded ring renderer');
