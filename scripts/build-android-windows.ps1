@@ -25,6 +25,55 @@ function Invoke-Checked {
   }
 }
 
+# Gradle defaults to one worker per CPU (28 on an i7-14700HX). Each worker
+# runs javac/kotlinc or a Ninja/clang batch while Metro bundles with one Node
+# worker per CPU as well, so a 14 GB laptop exhausts RAM + page file and the
+# JVM dies with "insufficient memory ... malloc failed" (daemon disappeared).
+# Size parallelism to the memory that is actually free right now instead.
+function Get-BuildMemoryPlan {
+  param([int]$MaxWorkers = 8)
+  # "Available" (free + standby cache), not WMI FreePhysicalMemory, which
+  # ignores reclaimable cache. Perf classes are not localized (Turkish OS).
+  $mem = Get-CimInstance Win32_PerfFormattedData_PerfOS_Memory
+  $os = Get-CimInstance Win32_OperatingSystem
+  $freeRamGB = $mem.AvailableBytes / 1GB
+  $freeCommitGB = ($mem.CommitLimit - $mem.CommittedBytes) / 1GB   # RAM + page file headroom
+  $totalGB = $os.TotalVisibleMemorySize / 1MB
+  $cores = [Environment]::ProcessorCount
+  # ~4 GB for the Gradle JVM (heap + native) and Metro's main process; each
+  # further parallel worker needs roughly 1 GB.
+  $usable = [math]::Min($freeRamGB, $freeCommitGB) - 4
+  $workers = [int][math]::Floor($usable)
+  $workers = [math]::Max(2, [math]::Min($workers, [math]::Min($MaxWorkers, $cores)))
+  [pscustomobject]@{
+    Workers      = $workers
+    MetroWorkers = [math]::Min($workers, 6)
+    # In-process Kotlin needs heap room; only cap it when commit is scarce.
+    HeapGB       = if ($totalGB -ge 12 -and $freeCommitGB -ge 8) { 3 } else { 2 }
+    FreeRamGB    = [math]::Round($freeRamGB, 1)
+    FreeCommitGB = [math]::Round($freeCommitGB, 1)
+    TotalGB      = [math]::Round($totalGB, 1)
+  }
+}
+
+function Stop-IsolatedGradleDaemons {
+  param([string]$Gradlew)
+  # Best effort; affects only daemons under this script's GRADLE_USER_HOME.
+  try { & $Gradlew --stop *> $null } catch { }
+}
+
+function Invoke-GradleBuild {
+  param([string]$Gradlew, [string]$Task, $Plan, [string]$Label)
+  # Kotlin compiles inside the Gradle JVM: no second multi-GB Kotlin daemon.
+  $env:CAMIDEYIZ_METRO_MAX_WORKERS = "$($Plan.MetroWorkers)"
+  $jvm = "-Xmx$($Plan.HeapGB)g -XX:MaxMetaspaceSize=1g -XX:ReservedCodeCacheSize=256m -Dfile.encoding=UTF-8"
+  Invoke-Checked $Label {
+    & $Gradlew $Task --stacktrace --no-daemon "--max-workers=$($Plan.Workers)" `
+      "-Dorg.gradle.jvmargs=$jvm" '-Pkotlin.compiler.execution.strategy=in-process' `
+      '-PreactNativeArchitectures=arm64-v8a'
+  }
+}
+
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw 'Git is required.' }
 if (-not (Get-Command npm.cmd -ErrorAction SilentlyContinue)) { throw 'Node.js/npm is required.' }
 if (-not (Get-Command npx.cmd -ErrorAction SilentlyContinue)) { throw 'npx is required.' }
@@ -263,10 +312,38 @@ try {
     Push-Location $androidDir
     try {
       Write-Host "Gradle project root: $((Get-Location).Path)" -ForegroundColor Cyan
-      Invoke-Checked "Build native $Configuration APK (arm64)" {
-        & $gradlew $task --stacktrace '-PreactNativeArchitectures=arm64-v8a'
+      # Idle daemons from earlier builds (isolated GRADLE_USER_HOME C:\g only)
+      # each keep gigabytes resident; release them before sizing the build.
+      Stop-IsolatedGradleDaemons -Gradlew $gradlew
+      $plan = Get-BuildMemoryPlan
+      Write-Host ("Memory plan: {0} GB free RAM, {1} GB free commit of {2} GB -> {3} Gradle workers, {4} Metro workers, {5} GB heap" -f `
+        $plan.FreeRamGB, $plan.FreeCommitGB, $plan.TotalGB, $plan.Workers, $plan.MetroWorkers, $plan.HeapGB) -ForegroundColor Cyan
+      if ($plan.FreeRamGB -lt 6) {
+        $heavy = Get-Process | Group-Object Name | ForEach-Object {
+          [pscustomobject]@{ Name = $_.Name; GB = ($_.Group | Measure-Object PrivateMemorySize64 -Sum).Sum / 1GB }
+        } | Sort-Object GB -Descending | Select-Object -First 4
+        $list = ($heavy | ForEach-Object { '{0} {1:N1} GB' -f $_.Name, $_.GB }) -join ', '
+        Write-Warning "Only $($plan.FreeRamGB) GB RAM available; building with $($plan.Workers) workers (slower but safe). Largest users: $list. Closing extra VS Code windows, browsers or games speeds the build up."
+      }
+      $buildStarted = Get-Date
+      try {
+        Invoke-GradleBuild -Gradlew $gradlew -Task $task -Plan $plan `
+          -Label "Build native $Configuration APK (arm64)"
+      } catch {
+        # Retry ONLY a JVM out-of-memory crash (a fresh hs_err log); real
+        # compile errors fail immediately. Gradle resumes incrementally.
+        $crash = Get-ChildItem -Path $androidDir -Filter 'hs_err_pid*.log' -File -ErrorAction SilentlyContinue |
+          Where-Object { $_.LastWriteTime -ge $buildStarted }
+        if (-not $crash) { throw }
+        Write-Warning "Gradle JVM ran out of memory ($($crash[0].Name)). Retrying once with minimal parallelism."
+        Stop-IsolatedGradleDaemons -Gradlew $gradlew
+        $retry = Get-BuildMemoryPlan -MaxWorkers 2
+        $retry.MetroWorkers = 2
+        Invoke-GradleBuild -Gradlew $gradlew -Task $task -Plan $retry `
+          -Label "Retry native $Configuration APK (arm64, 2 workers)"
       }
     } finally {
+      Remove-Item Env:CAMIDEYIZ_METRO_MAX_WORKERS -ErrorAction SilentlyContinue
       Pop-Location
     }
     $output = Join-Path (Get-Location).Path ("android\app\build\outputs\apk\"+$Configuration.ToLowerInvariant())
