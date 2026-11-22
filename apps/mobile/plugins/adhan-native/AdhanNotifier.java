@@ -27,12 +27,14 @@ final class AdhanNotifier {
   private static final String TAG="CamideyizAdhan";
   private static final int BRAND_COLOR=Color.parseColor("#0C76B4");
 
+  /** `detail` is shown in the collapsed notification itself, so the user
+   * always sees WHY the ezan was not voiced and what to change. */
   enum Reason{
-    LATE("Telefon alarmı geç teslim ettiği için ezan çalınmadı."),
-    SILENT("Telefon sessiz veya titreşimde olduğu için ezan çalınmadı."),
-    MUTED("Medya ses düzeyi kapalı olduğu için ezan çalınmadı."),
-    BUSY("Başka bir ses (ör. telefon görüşmesi) sürdüğü için ezan çalınmadı."),
-    FAILED("Ezan başlatılamadı; vakit bildirimi gösteriliyor."),
+    LATE("Telefon vakti geç bildirdi; ezan yerine bildirim geldi."),
+    SILENT("Telefon sessiz, titreşimde veya Rahatsız Etmeyin modundaydı."),
+    MUTED("Alarm ses düzeyi kapalıydı."),
+    BUSY("Telefon görüşmesi sürüyordu."),
+    FAILED("Telefon ezanı başlatmaya izin vermedi."),
     COMPLETED("Ezan okundu."),
     STOPPED("Ezan durduruldu.");
     final String detail;
@@ -107,7 +109,9 @@ final class AdhanNotifier {
       builder.setSmallIcon(smallIcon(context))
           .setColor(BRAND_COLOR)
           .setContentTitle(prayer+" vakti girdi")
-          .setContentText(where.length()>0?where.toString():reason.detail)
+          // A fallback leads with its reason; a quiet record with place · time.
+          .setContentText(reason.audible()||where.length()==0
+              ?reason.detail:where.toString())
           .setStyle(new Notification.BigTextStyle().bigText(body))
           .setCategory(reason.audible()?Notification.CATEGORY_REMINDER:Notification.CATEGORY_STATUS)
           .setVisibility(Notification.VISIBILITY_PUBLIC)
@@ -123,6 +127,32 @@ final class AdhanNotifier {
     }catch(Exception error){
       // POST_NOTIFICATIONS revoked or channel blocked by the user.
       Log.w(TAG,"Prayer-entered notification could not be posted",error);
+    }
+  }
+
+  /** "Ezanı test et" runs the exact same checks as a real prayer; when one
+   * blocks the ezan the test says so instead of playing anyway. */
+  static void testBlocked(Context context,Reason reason){
+    try{
+      ensureChannels(context);
+      NotificationManager manager=(NotificationManager)
+          context.getSystemService(Context.NOTIFICATION_SERVICE);
+      if(manager==null)return;
+      Notification.Builder builder=Build.VERSION.SDK_INT>=Build.VERSION_CODES.O
+          ?new Notification.Builder(context,CHANNEL_AUDIBLE)
+          :new Notification.Builder(context);
+      builder.setSmallIcon(smallIcon(context))
+          .setColor(BRAND_COLOR)
+          .setContentTitle("Ezan testi · ezan okunmadı")
+          .setContentText(reason.detail)
+          .setStyle(new Notification.BigTextStyle().bigText(reason.detail))
+          .setCategory(Notification.CATEGORY_REMINDER)
+          .setAutoCancel(true);
+      PendingIntent open=openApp(context,748035);
+      if(open!=null)builder.setContentIntent(open);
+      manager.notify(748036,builder.build());
+    }catch(Exception error){
+      Log.w(TAG,"Test result notification could not be posted",error);
     }
   }
 }

@@ -25,7 +25,7 @@ assert.match(player,/assets\/audio\/camideyiz-biz-ezan\.mp3/);
 assert.match(card,/useAdhanPlayback/);
 assert.doesNotMatch(card,/MP3 seç|MP3.ü değiştir|Varsayılana dön|importRecording/);
 assert.doesNotMatch(player,/pickFileAsync|importRecording|personalRecording/);
-assert.match(service,/MediaPlayer\.create\(this,R\.raw\.camideyiz_adhan\)/);
+assert.match(service,/MediaPlayer\.create\(this,R\.raw\.camideyiz_adhan,EZAN_AUDIO,/);
 assert.match(scheduler,/normalized\.equals\(lastPlanThisProcess\)/,
   'same-process duplicate alarm plan must not churn Android AlarmManager');
 assert.match(scheduler,/lastPlanThisProcess=null/,

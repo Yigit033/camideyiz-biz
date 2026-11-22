@@ -33,6 +33,12 @@ public final class CamideyizAdhanBridge extends ReactContextBaseJavaModule {
       promise.resolve(true);
     }catch(Exception error){promise.reject("ADHAN_CLEAR",error);}
   }
+  @ReactMethod public void openAppSettings(Promise promise){
+    try{
+      AdhanAlarmScheduler.openAppSettings(getReactApplicationContext());
+      promise.resolve(true);
+    }catch(Exception error){promise.reject("ADHAN_SETTINGS",error);}
+  }
   @ReactMethod public void testEzan(Promise promise){
     try{
       AdhanAlarmScheduler.scheduleTest(getReactApplicationContext());

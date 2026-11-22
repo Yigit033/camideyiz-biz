@@ -64,6 +64,10 @@ test('settings saved by older versions load with precise delivery and safe ezan 
  assert.equal(validateAlertSettings({...legacy,precise:false}).precise,false);
  assert.throws(()=>validateAlertSettings({...legacy,precise:'yes'}));
  assert.throws(()=>validateAlertSettings({...legacy,adhanFor:{ogle:1}}));
+ // A silenced phone keeps the notification unless the user opts in.
+ assert.equal(loaded.adhanInSilent,false);
+ assert.equal(validateAlertSettings({...legacy,adhanInSilent:true}).adhanInSilent,true);
+ assert.throws(()=>validateAlertSettings({...legacy,adhanInSilent:'yes'}));
 });
 test('öğle recording never plays at İmsak while no sabah ezanı is bundled',()=>{
  const config=validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true,sound:'adhan',

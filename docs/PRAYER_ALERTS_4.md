@@ -62,7 +62,23 @@ Bunlar CI, Android APK iş akışı ve Windows APK betiğinde çalışır.
    - Ekran kilitliyken ezan vaktinde başlamalı.
    - "Ezanı durdur" çalışmalı.
    - Ezandan sonra bildirim alanında sessiz "vakti girdi" kaydı kalmalı.
-4. **Ezan çalamazsa:** Telefonu titreşime al; vakitte ezan çalmamalı, sesli/titreşimli "vakti girdi — telefon sessizde…" bildirimi gelmeli. Medya sesi 0 iken ve görüşme sırasında da tekrarla.
+4. **Ezan çalamazsa:** Telefonu titreşime al; vakitte ezan çalmamalı, sesli/titreşimli "vakti girdi — Telefon sessiz, titreşimde…" bildirimi gelmeli ve "Son ezan" satırında aynı neden yazmalı. "Sessiz moddayken de oku" açıkken aynı testte ezan alarm sesiyle okunmalı. Medya sesi 0 iken ezan **okunmalı** (alarm sesi kullanılır); görüşme sırasında okunmamalı.
+
+## 4.1 — "Ezan açık ama sadece bildirim geldi" düzeltmesi
+
+Ezan, sessizce bildirime düşen beş yoldan geçiyordu ve "Ezanı test et" bu kontrollerin hiçbirini yapmıyordu. Bu yüzden test başarılıyken gerçek vakitte yalnızca bildirim gelebiliyordu.
+
+| Yol | Önce | Şimdi |
+|---|---|---|
+| Medya sesi 0 | Bildirime düşüyordu | Ezan **alarm** ses akışında; medya sesi önemsiz |
+| Sessiz/titreşim/Rahatsız Etmeyin | Her zaman bildirim | Varsayılan bildirim; "Sessiz moddayken de oku" ile ezan. Tam sessizlikte her zaman bildirim |
+| Ses odağı alınamadı | Bildirime düşüyordu | Yalnız telefon görüşmesinde bildirim; diğer durumlarda ezan okunur, müzik ezandan sonra devam eder (geçici odak) |
+| Vakitten birkaç saniye önce eşitleme | Tüm ezan planı reddediliyor, hepsi bildirime düşüyordu | Yaklaşan vakit atlanır, plan kurulur |
+| Alıcıdan servise geçiş | Cihaz arada uyuyabilirdi | 20 sn'lik uyandırma kilidi |
+
+- **Test = gerçek yol:** Test aynı ses kontrollerinden ve aynı AlarmManager API'sinden (`setAlarmClock`) geçer. Okunamazsa nedeni bildirimde yazar.
+- **Görünür sonuç:** Her ezan ya da test sonucu (okundu, okunuyor, durduruldu ya da neden) native tarafta kaydedilir. "Ezan durumu" kartı sıradaki ezanı, son sonucu ve gerekiyorsa pil kısıtlaması uyarısını gösterir.
+- **Yedek bildirimler nedeni söyler:** Native yedek bildirim kapalı görünümde nedeni gösterir. Ezan kurulamadıysa Expo bildirimi "Ezanın okunması için uygulamayı aç" der.
 5. **İmsak:** Ezan seçiliyken imsakta bildirim gelmeli, ezan çalmamalı.
 6. **Kesinti:** Ezan sırasında bir navigasyon anonsu ya da kısa ses çal; ezan durup devam etmeli.
 7. **Sistem olayları:** Yeniden başlatma, saat dilimi değişimi ve ilçe değişiminden sonra alarmlar yeniden kurulmalı; eski ilçenin vakitleri gelmemeli.

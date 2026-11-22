@@ -21,8 +21,9 @@ import biz.camideyiz.app.R;
 
 /**
  * Native foreground playback; works without React JS execution and never
- * fetches audio from a network. Respects ringer mode and media volume (the
- * receiver checks both first) and always exposes a system STOP action.
+ * fetches audio from a network. Plays on the ALARM stream (alarm volume, like
+ * an alarm clock; the receiver checks ringer, Do Not Disturb and alarm volume
+ * first) and always exposes a system STOP action.
  *
  * Every outcome leaves the prayer entry visible: a quiet "vakti girdi"
  * record after the ezan ends or is stopped, an audible fallback if it could
@@ -108,20 +109,23 @@ public final class AdhanPlaybackService extends Service {
     else startForeground(NOTIFICATION_ID,notification);
   }
 
+  /** Alarm usage: follows the alarm volume and is not muted by a silenced
+   * media stream; transient focus lets the user's music resume afterwards. */
+  static final AudioAttributes EZAN_AUDIO=new AudioAttributes.Builder()
+      .setUsage(AudioAttributes.USAGE_ALARM)
+      .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build();
+
   private boolean acquireFocus(){
     audioManager=(AudioManager)getSystemService(AUDIO_SERVICE);
     if(audioManager==null)return false;
     if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O){
-      AudioAttributes attr=new AudioAttributes.Builder()
-          .setUsage(AudioAttributes.USAGE_MEDIA)
-          .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build();
-      focusRequest=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-          .setAudioAttributes(attr).setWillPauseWhenDucked(true)
+      focusRequest=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+          .setAudioAttributes(EZAN_AUDIO).setWillPauseWhenDucked(true)
           .setOnAudioFocusChangeListener(focusListener).build();
       return audioManager.requestAudioFocus(focusRequest)==AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
     }
     return audioManager.requestAudioFocus(focusListener,
-        AudioManager.STREAM_MUSIC,AudioManager.AUDIOFOCUS_GAIN)
+        AudioManager.STREAM_ALARM,AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
         ==AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
   }
 
@@ -147,7 +151,9 @@ public final class AdhanPlaybackService extends Service {
     finished=true;
     releaseResources();
     try{stopForeground(STOP_FOREGROUND_REMOVE);}catch(Exception ignored){}
+    AdhanAlarmScheduler.recordOutcome(this,label,outcome.name(),test);
     if(!test)AdhanNotifier.prayerEntered(this,alarmId,label,time,place,outcome);
+    else if(outcome.audible())AdhanNotifier.testBlocked(this,outcome);
     stopSelf();
   }
 
@@ -177,12 +183,17 @@ public final class AdhanPlaybackService extends Service {
       finish(AdhanNotifier.Reason.FAILED);
       return START_NOT_STICKY;
     }
-    if(!acquireFocus()){
+    // Focus is a courtesy to other audio, not a gate: only a live call (which
+    // is the one real reason it is refused) turns the ezan into a notification.
+    if(!acquireFocus()&&audioManager!=null&&AdhanAlarmReceiver.inCall(audioManager)){
       finish(AdhanNotifier.Reason.BUSY);
       return START_NOT_STICKY;
     }
     try{
-      player=MediaPlayer.create(this,R.raw.camideyiz_adhan);
+      AudioManager audio=(AudioManager)getSystemService(AUDIO_SERVICE);
+      int session=audio!=null?audio.generateAudioSessionId():AudioManager.ERROR;
+      player=MediaPlayer.create(this,R.raw.camideyiz_adhan,EZAN_AUDIO,
+          session>0?session:0);
       if(player==null)throw new IllegalStateException("Paketlenmiş MP3 bulunamadı");
       player.setWakeMode(this,PowerManager.PARTIAL_WAKE_LOCK);
       player.setOnCompletionListener(media->finish(AdhanNotifier.Reason.COMPLETED));
@@ -192,6 +203,7 @@ public final class AdhanPlaybackService extends Service {
         return true;
       });
       player.start();
+      AdhanAlarmScheduler.recordOutcome(this,label,"STARTED",test);
     }catch(Exception error){
       Log.e(TAG,"Ezan çalma başarısız",error);
       finish(AdhanNotifier.Reason.FAILED);

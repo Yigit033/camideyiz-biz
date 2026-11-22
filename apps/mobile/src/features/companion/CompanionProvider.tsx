@@ -75,6 +75,7 @@ type CompanionContextValue={
   setSound:(next:AlertSound)=>void;
   setPrecise:(next:boolean)=>void;
   setAdhanFor:(key:AdhanPrayer,next:boolean)=>void;
+  setAdhanInSilent:(next:boolean)=>void;
   /** Android 12+ "Alarms & reminders" access; null where not applicable. */
   exactAlarms:boolean|null;
   requestExactAlarms:()=>Promise<boolean|null>;
@@ -389,6 +390,8 @@ export function CompanionProvider({children}:PropsWithChildren){
   const setAdhanFor=useCallback((key:AdhanPrayer,next:boolean)=>
     // validateAlertSettings keeps İmsak off until a sabah ezanı is bundled.
     setSettings(old=>validateAlertSettings({...old,adhanFor:{...old.adhanFor,[key]:next}})),[]);
+  const setAdhanInSilent=useCallback((next:boolean)=>
+    setSettings(old=>({...old,adhanInSilent:next})),[]);
   const requestExactAlarms=useCallback(async()=>{
     const granted=await requestExactAlarmAccess();
     setExactAlarms(granted);
@@ -483,11 +486,11 @@ export function CompanionProvider({children}:PropsWithChildren){
   const value=useMemo(()=>({
     settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
     lastWidgetTransfer,announcement,exactAlarms,
-    setEnabled,setSound,setPrecise,setAdhanFor,requestExactAlarms,
+    setEnabled,setSound,setPrecise,setAdhanFor,setAdhanInSilent,requestExactAlarms,
     setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox,
   }),[settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
        lastWidgetTransfer,announcement,exactAlarms,
-      setEnabled,setSound,setPrecise,setAdhanFor,requestExactAlarms,
+      setEnabled,setSound,setPrecise,setAdhanFor,setAdhanInSilent,requestExactAlarms,
       setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

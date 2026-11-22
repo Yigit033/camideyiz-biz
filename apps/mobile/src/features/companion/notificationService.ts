@@ -86,8 +86,10 @@ export async function requestPrayerPermission():Promise<boolean>{
 }
 export type AlertDelivery='bestEffort'|'alarmClock';
 export type ArmedDelivery=AlertDelivery|'inexact';
+/** `ezanMissing`: the user chose the ezan for this prayer but it could not be
+ * armed on this phone, so the notification says how to fix it. */
 export function alertContent(event:PrayerAlertEvent,cityId:number,sound:'default'|'silent',
-  armedAs:ArmedDelivery='bestEffort'){
+  armedAs:ArmedDelivery='bestEffort',ezanMissing=false){
   const early=event.kind==='before';
   const title=early
     ?event.label+' vaktine '+event.leadMinutes+' dakika'
@@ -95,7 +97,9 @@ export function alertContent(event:PrayerAlertEvent,cityId:number,sound:'default
   const body=early
     ?event.locationName+' · '+event.localTime+' için hatırlatma'
     :event.locationName+' · '+event.localTime+
-      (event.prayer==='gunes'?' · Güneş doğuşu':' · Ezan vakti hatırlatması');
+      (event.prayer==='gunes'?' · Güneş doğuşu'
+        :ezanMissing?' · Ezanın okunması için uygulamayı aç'
+          :' · Ezan vakti hatırlatması');
   return {
     title:title.trim(),body,
     sound:sound==='silent'?false:'default' as const,
@@ -149,7 +153,7 @@ export async function reconcilePrayerNotifications(
         if(!status.supported)throw Error('Bu APK yerel ezan alarmlarını desteklemiyor.');
         if(!status.exactPermission)
           throw Error('Ezan için Android kesin alarm iznini vermen gerekiyor.');
-        const scheduled=await scheduleNativeAdhan(voiced,settings.precise);
+        const scheduled=await scheduleNativeAdhan(voiced,settings.precise,settings.adhanInSilent);
         nativeReady=true;
         nativeCount=scheduled.scheduled;
       }catch(error){
@@ -167,13 +171,16 @@ export async function reconcilePrayerNotifications(
       :desired;
     const effectiveSound=(_event:PrayerAlertEvent):'default'|'silent'=>
       settings.sound==='silent'?'silent':'default';
+    const ezanMissing=(event:PrayerAlertEvent)=>
+      !nativeReady&&android&&playsFullAdhan(event,settings);
     const existingByKey=new Map(ours.map(r=>[String(r.content.data?.eventKey),r]));
     const wanted=new Set(notifications.map(e=>e.key));
     // Reconcile ONLY our own pending prayer requests. Announcements untouched.
     for(const old of ours){
       const key=String(old.content.data?.eventKey);
       const next=notifications.find(e=>e.key===key);
-      const expected=next?alertContent(next,cityId,effectiveSound(next),armedAs):null;
+      const expected=next
+        ?alertContent(next,cityId,effectiveSound(next),armedAs,ezanMissing(next)):null;
       const correct=Boolean(next&&expected&&
         old.content.data?.cityId===cityId &&
         old.content.data?.soundMode===effectiveSound(next!) &&
@@ -191,7 +198,7 @@ export async function reconcilePrayerNotifications(
       if(existingByKey.has(event.key))continue;
       const mode=effectiveSound(event);
       await Notifications.scheduleNotificationAsync({
-        content:alertContent(event,cityId,mode,armedAs),
+        content:alertContent(event,cityId,mode,armedAs,ezanMissing(event)),
         trigger:{
           type:Notifications.SchedulableTriggerInputTypes.DATE,
           date:new Date(event.fireAt),

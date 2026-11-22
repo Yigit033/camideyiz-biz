@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
+import android.os.PowerManager;
 import android.provider.Settings;
 
 import org.json.JSONArray;
@@ -26,6 +27,11 @@ public final class AdhanAlarmScheduler {
   static final String PREFS = "camideyiz.adhan.alarms.v1";
   static final String EVENTS = "events";
   static final String PRECISE = "precise";
+  /** User opt-in: voice the ezan even on silent/vibrate/Do Not Disturb. */
+  static final String PLAY_IN_SILENT = "playInSilent";
+  /** What happened at the most recent ezan (or test): shown in the app so
+   * "only a notification came" is never a mystery. */
+  static final String LAST_OUTCOME = "lastOutcome";
   // 5 ezan × 10 verified days (core ANDROID_ALERT_MAX_DAYS) with headroom.
   private static final int MAX_EVENTS = 60;
   private static final long MAX_AHEAD = 11L * 24L * 60L * 60L * 1000L;
@@ -89,6 +95,9 @@ public final class AdhanAlarmScheduler {
     if (trimmed.startsWith("{")) {
       JSONObject plan = new JSONObject(trimmed);
       precise = plan.optBoolean(PRECISE, false);
+      // Playback policy only; it never needs the alarms re-armed, so it is
+      // stored before the same-plan shortcut below.
+      prefs(app).edit().putBoolean(PLAY_IN_SILENT, plan.optBoolean(PLAY_IN_SILENT, false)).apply();
       input = plan.getJSONArray(EVENTS);
     } else {
       input = new JSONArray(trimmed);
@@ -102,8 +111,11 @@ public final class AdhanAlarmScheduler {
       String label = item.optString("label", "");
       String time = item.optString("time", "");
       String place = item.optString("place", "");
+      // A prayer that became imminent while JS was planning is NOT an invalid
+      // plan: rejecting it would turn every ezan into a notification.
+      // schedulePending simply skips instants that are already due.
       if (!id.matches("\\d{4}-\\d{2}-\\d{2}:(imsak|ogle|ikindi|aksam|yatsi):atTime:0") ||
-          at < now + 5000 || at > now + MAX_AHEAD ||
+          at < now - 60_000 || at > now + MAX_AHEAD ||
           label.isEmpty() || label.length() > 40 ||
           (!time.isEmpty() && !time.matches("([01]\\d|2[0-3]):[0-5]\\d")) ||
           place.length() > 80) {
@@ -230,14 +242,51 @@ public final class AdhanAlarmScheduler {
       if(at>System.currentTimeMillis() && (next==0||at<next))next=at;
     }
     result.put("nextAt",next);
+    result.put(PLAY_IN_SILENT,prefs(context).getBoolean(PLAY_IN_SILENT,false));
+    result.put("batteryUnrestricted",batteryUnrestricted(context));
+    String last=prefs(context).getString(LAST_OUTCOME,null);
+    if(last!=null){
+      try{result.put(LAST_OUTCOME,new JSONObject(last));}catch(JSONException ignored){}
+    }
     return result;
   }
 
+  static boolean batteryUnrestricted(Context context){
+    PowerManager power=(PowerManager)context.getSystemService(Context.POWER_SERVICE);
+    return power!=null&&power.isIgnoringBatteryOptimizations(context.getPackageName());
+  }
+
+  /** STARTED, COMPLETED, STOPPED or the fallback reason, for the app UI. */
+  static void recordOutcome(Context context,String label,String outcome,boolean test){
+    try{
+      JSONObject record=new JSONObject()
+          .put("label",label==null?"":label)
+          .put("outcome",outcome)
+          .put("at",System.currentTimeMillis())
+          .put("test",test);
+      prefs(context).edit().putString(LAST_OUTCOME,record.toString()).apply();
+    }catch(JSONException ignored){}
+  }
+
+  /** The test travels the same AlarmManager API and receiver checks as a
+   * real prayer, so a passing test means the real ezan will be voiced. */
   static void scheduleTest(Context context){
     if(!canExact(context))throw new SecurityException("Kesin alarm izni gerekli");
     AlarmManager mgr=manager(context);
     if(mgr==null)throw new IllegalStateException("AlarmManager is unavailable");
-    mgr.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
-        System.currentTimeMillis()+10_000,testAlarm(context));
+    long at=System.currentTimeMillis()+10_000;
+    PendingIntent show=prefs(context).getBoolean(PRECISE,false)
+        ?AdhanNotifier.openApp(context,748034):null;
+    if(show!=null)mgr.setAlarmClock(new AlarmManager.AlarmClockInfo(at,show),testAlarm(context));
+    else mgr.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,at,testAlarm(context));
+  }
+
+  /** App info page: on ColorOS/MIUI the battery entry there holds "allow
+   * background activity", which keeps the alarm receiver from being frozen. */
+  static void openAppSettings(Context context){
+    Intent intent=new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+    intent.setData(Uri.parse("package:"+context.getPackageName()));
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    context.startActivity(intent);
   }
 }

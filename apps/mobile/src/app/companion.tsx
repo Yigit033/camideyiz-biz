@@ -16,6 +16,7 @@ import {CHANNEL_AUDIBLE,CHANNEL_SILENT,setPrayerChannels} from '@/features/compa
 import {isExpoGoRuntime} from '@/features/native/nativeRuntime';
 import {nativeAdhanSupported,nativeAdhanStatus,testNativeAdhan}
   from '@/features/companion/nativeAdhan';
+import {AdhanStatusCard} from '@/features/companion/AdhanStatusCard';
 import {Widget3Diagnostics} from '@/features/widgets/Widget3Diagnostics';
 import {WidgetPreview} from '@/features/widgets/WidgetPreview';
 
@@ -114,7 +115,7 @@ export default function CompanionScreen(){
         }
         await testNativeAdhan();
         Alert.alert('Ezan testi ayarlandı',
-          'Yaklaşık 10 saniye sonra ezan otomatik başlayacak; telefonu kilitleyerek dene. Durdurmak için bildirimdeki “Ezanı durdur”u kullan.');
+          'Yaklaşık 10 saniye sonra ezan, gerçek vakitteki kontrollerle başlar. Telefonu kilitleyip bekle; okunmazsa nedeni bildirimde ve “Son test” satırında yazar.');
       }catch{
         Alert.alert('Ezan testi yapılamadı',
           '“Alarmlar ve hatırlatıcılar” iznini kontrol edip tekrar dene.');
@@ -291,7 +292,7 @@ export default function CompanionScreen(){
         </View>
         <Text style={{fontSize:10,color:colors.muted,lineHeight:17}}>
           {settings.sound==='adhan'
-            ?'Seçtiğin vakitlerde bildirim yerine ezan okunur. Telefon sessizdeyse ezan yerine bildirim gelir.'
+            ?'Seçtiğin vakitlerde bildirim yerine ezan, telefonun alarm ses düzeyinde okunur.'
             :settings.sound==='silent'
               ?'Bildirimler sessiz gelir.'
               :'Bildirimler telefonun bildirim sesiyle gelir.'}
@@ -321,6 +322,8 @@ export default function CompanionScreen(){
           {!SABAH_EZANI_AVAILABLE?<Text style={{fontSize:10,color:colors.muted,lineHeight:16}}>
             İmsakta ezan yerine bildirim gelir.
           </Text>:null}
+          {settings.enabled?<AdhanStatusCard exactMissing={exactMissing}
+            onAskExact={()=>askExactAlarms('adhan')}/>:null}
         </View>:null}
         {Platform.OS==='android'&&!isExpoGoRuntime()?<View style={[styles.note,{
           backgroundColor:colors.soft,borderColor:exactMissing?'#CE8C67':colors.border,

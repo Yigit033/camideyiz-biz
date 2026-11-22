@@ -7,9 +7,18 @@ type NativeBridge={
   syncAlarms:(json:string)=>Promise<string>;
   clearAlarms:()=>Promise<boolean>;
   testEzan:()=>Promise<boolean>;
+  /** Added later; an older installed APK may lack it. */
+  openAppSettings?:()=>Promise<boolean>;
 };
+/** What happened at the last ezan or test, as recorded by the native side. */
+export type AdhanOutcome=
+  'STARTED'|'COMPLETED'|'STOPPED'|'LATE'|'SILENT'|'MUTED'|'BUSY'|'FAILED';
 export type NativeAdhanStatus={
   supported:boolean;exactPermission:boolean;scheduled:number;nextAt:number|null;
+  playInSilent:boolean;
+  /** null when this APK cannot tell. */
+  batteryUnrestricted:boolean|null;
+  lastOutcome:{label:string;outcome:AdhanOutcome;at:number;test:boolean}|null;
 };
 // A compiled native module is the reliable capability check: some standalone
 // Android builds expose Expo runtime markers that resemble Expo Go.
@@ -24,6 +33,18 @@ const bridge:NativeBridge|null=
   typeof candidate.testEzan==='function'
     ?candidate as NativeBridge:null;
 
+const OUTCOMES:readonly AdhanOutcome[]=
+  ['STARTED','COMPLETED','STOPPED','LATE','SILENT','MUTED','BUSY','FAILED'];
+function parseOutcome(value:unknown):NativeAdhanStatus['lastOutcome']{
+  if(!value||typeof value!=='object')return null;
+  const data=value as Record<string,unknown>;
+  if(typeof data.outcome!=='string'||!OUTCOMES.includes(data.outcome as AdhanOutcome)||
+     typeof data.at!=='number'||!Number.isFinite(data.at))return null;
+  return {
+    label:typeof data.label==='string'?data.label:'',
+    outcome:data.outcome as AdhanOutcome,at:data.at,test:data.test===true,
+  };
+}
 function parseStatus(raw:string):NativeAdhanStatus{
   const value:unknown=JSON.parse(raw);
   if(!value||typeof value!=='object')throw Error('Invalid native alarm status');
@@ -35,10 +56,16 @@ function parseStatus(raw:string):NativeAdhanStatus{
     supported:true,exactPermission:data.exactPermission,
     scheduled:data.scheduled,
     nextAt:data.nextAt>0?data.nextAt:null,
+    playInSilent:data.playInSilent===true,
+    batteryUnrestricted:typeof data.batteryUnrestricted==='boolean'
+      ?data.batteryUnrestricted:null,
+    lastOutcome:parseOutcome(data.lastOutcome),
   };
 }
+const UNSUPPORTED:NativeAdhanStatus={supported:false,exactPermission:false,scheduled:0,
+  nextAt:null,playInSilent:false,batteryUnrestricted:null,lastOutcome:null};
 export async function nativeAdhanStatus():Promise<NativeAdhanStatus>{
-  if(!bridge)return {supported:false,exactPermission:false,scheduled:0,nextAt:null};
+  if(!bridge)return UNSUPPORTED;
   return parseStatus(await bridge.getStatus());
 }
 export async function requestNativeAdhanPermission():Promise<boolean>{
@@ -50,11 +77,11 @@ export async function requestNativeAdhanPermission():Promise<boolean>{
  * place travel with each alarm: if the ezan cannot be voiced (silent phone,
  * call in progress, late delivery) Android posts "X vakti girdi" instead. */
 export async function scheduleNativeAdhan(
-  events:readonly PrayerAlertEvent[],precise:boolean,
+  events:readonly PrayerAlertEvent[],precise:boolean,playInSilent:boolean,
 ):Promise<NativeAdhanStatus>{
   if(!bridge)throw Error('Bu sürüm Android kesin ezan alarmını desteklemiyor.');
   const raw=await bridge.syncAlarms(JSON.stringify({
-    precise,
+    precise,playInSilent,
     events:events.map(e=>({
       id:e.key,at:e.fireAt,label:e.label,time:e.localTime,
       place:e.locationName.slice(0,80),
@@ -68,5 +95,9 @@ export async function clearNativeAdhan():Promise<void>{
 export async function testNativeAdhan():Promise<void>{
   if(!bridge)throw Error('Tam ezan testi için Android uygulama sürümünü aç.');
   await bridge.testEzan();
+}
+export async function openNativeAppSettings():Promise<boolean>{
+  if(typeof bridge?.openAppSettings!=='function')return false;
+  return bridge.openAppSettings();
 }
 export const nativeAdhanSupported=bridge!==null;

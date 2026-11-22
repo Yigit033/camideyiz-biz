@@ -35,6 +35,10 @@ export type PrayerAlertSettings={
   precise:boolean;
   /** With sound 'adhan': which prayers play the full ezan instead of a notification. */
   adhanFor:Record<AdhanPrayer,boolean>;
+  /** Android: voice the ezan on the alarm stream even when the phone is on
+   * silent/vibrate or Do Not Disturb (like an alarm clock). Off by default:
+   * a silenced phone gets the "vakti girdi" notification instead. */
+  adhanInSilent:boolean;
   rules:Record<PrayerKey,PrayerAlertRule>;
 };
 const ordinary=():PrayerAlertRule=>({enabled:true,atTime:true,minutesBefore:0});
@@ -46,6 +50,7 @@ export const DEFAULT_ALERT_SETTINGS:Readonly<PrayerAlertSettings>={
   sound:'default',
   precise:true,
   adhanFor:{...DEFAULT_ADHAN_FOR},
+  adhanInSilent:false,
   rules:{
     imsak:ordinary(),
     gunes:{enabled:false,atTime:true,minutesBefore:0},
@@ -67,6 +72,8 @@ export function validateAlertSettings(value:unknown):PrayerAlertSettings{
     throw new RangeError('Invalid global notification settings');
   if(input.precise!==undefined&&typeof input.precise!=='boolean')
     throw new RangeError('Invalid delivery precision');
+  if(input.adhanInSilent!==undefined&&typeof input.adhanInSilent!=='boolean')
+    throw new RangeError('Invalid silent-mode ezan preference');
   const rules={} as Record<PrayerKey,PrayerAlertRule>;
   for(const key of PRAYER_KEYS){
     const rule=input.rules[key];
@@ -87,7 +94,8 @@ export function validateAlertSettings(value:unknown):PrayerAlertSettings{
     }
   }
   if(!SABAH_EZANI_AVAILABLE)adhanFor.imsak=false;
-  return {enabled:input.enabled,sound:input.sound,precise:input.precise??true,adhanFor,rules};
+  return {enabled:input.enabled,sound:input.sound,precise:input.precise??true,adhanFor,
+    adhanInSilent:input.adhanInSilent??false,rules};
 }
 
 /** True when this event is voiced by the native full ezan INSTEAD of a
