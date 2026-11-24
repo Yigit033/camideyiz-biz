@@ -56,8 +56,8 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
   const actionSize=small?42:45;
   const timeSize=small?67:76;
   return <View style={{gap:compact?6:7,paddingTop:compact?0:2,marginBottom:2}}>
-    <View style={{alignItems:'center',justifyContent:'center',minHeight:compact?55:63}}>
-      <CamideyizBrandLogo compact={compact} horizontal/>
+    <View style={{alignItems:'center',justifyContent:'center',height:compact?78:92}}>
+      <CamideyizBrandLogo compact={compact}/>
     </View>
 
     <View style={{flexDirection:'row',alignItems:'center',gap:small?5:7}}>

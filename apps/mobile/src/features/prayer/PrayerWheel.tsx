@@ -1,6 +1,6 @@
 import {useEffect, useMemo, useRef, type ComponentProps} from 'react';
 import {StyleSheet,Text,View} from 'react-native';
-import Svg, {Circle, Defs, Ellipse, G, Line, LinearGradient, Path, RadialGradient, Stop} from 'react-native-svg';
+import Svg, {Circle, Defs, Ellipse, G, Line, LinearGradient, Path, RadialGradient, Rect, Stop} from 'react-native-svg';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {GestureDetector, usePanGesture} from 'react-native-gesture-handler';
 import Animated, {
@@ -33,6 +33,10 @@ export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
 const CENTER = 180;
 const RADIUS = 139;
 const DIAMETER = 360;
+/** The centre stack is specified in px on a 366pt dial and scales with it. */
+const CENTER_DESIGN_DIAL = 366;
+/** One gap above and below each ornament line in the centre stack. */
+const CENTER_GAP = 8;
 function blendHex(a:string,b:string,alpha:number):string {
   const extract=(s:string,n:number)=>parseInt(s.slice(n,n+2),16);
   const mix=(x:number,y:number)=>Math.round(x*(1-alpha)+y*alpha).toString(16).padStart(2,'0');
@@ -47,6 +51,79 @@ const PRAYER_ICONS: Record<PrayerTime['key'], ComponentProps<typeof MaterialComm
   ikindi:'timer-sand',aksam:'weather-sunset-down',yatsi:'weather-night',
 };
 type PrayerArc = PrayerTime & {from: number; to: number};
+
+/** Gold leaf for the minaret: the dark field's luminous gold, and a deeper
+ * antique gold on ivory where the pale highlights would wash out. */
+const MINARET_GOLD={
+  dark:['#B8995E','#F3DFB0','#E2C88F','#A88A55'],
+  light:['#8C6B33','#C9A462','#B08B4C','#7A5C2A'],
+} as const;
+/** Short status under the live countdown while a kerahet window is active. */
+const KERAHET_LABEL_COLOR={dark:'#F2A54A',light:'#A64B0B'} as const;
+
+/**
+ * Classical Ottoman minaret (viewBox 40×96): alem crescent, pointed külah,
+ * two şerefe balconies on corbels and a stepped base. Openings are cut in
+ * the medallion colour so the shaft reads as solid gold on either theme.
+ */
+function OttomanMinaret({width,height,dark,cutout}:{
+  width:number;height:number;dark:boolean;cutout:string;
+}){
+  const gold=dark?MINARET_GOLD.dark:MINARET_GOLD.light;
+  return <View accessible accessibilityRole="image" accessibilityLabel="Osmanlı minaresi"
+    style={{width,height}}>
+    <Svg width={width} height={height} viewBox="0 0 40 96">
+      <Defs>
+        <LinearGradient id="minaretGold" x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0" stopColor={gold[0]}/>
+          <Stop offset=".38" stopColor={gold[1]}/>
+          <Stop offset=".62" stopColor={gold[2]}/>
+          <Stop offset="1" stopColor={gold[3]}/>
+        </LinearGradient>
+      </Defs>
+      <G fill="url(#minaretGold)">
+        <Path d="M17.4 3.2a2.6 2.6 0 0 0 5.2 0a3.1 3.1 0 0 1-5.2 0z"/>
+        <Rect x="19.4" y="5" width="1.2" height="7.5"/>
+        <Circle cx="20" cy="8.2" r="1.25"/>
+        <Circle cx="20" cy="10.8" r="1"/>
+        <Path d="M20 11.5L25 33.5H15Z"/>
+        <Rect x="13.8" y="33.3" width="12.4" height="2" rx=".5"/>
+        <Rect x="15.3" y="35.3" width="9.4" height="8.4"/>
+        <Rect x="10.6" y="43.7" width="18.8" height="3.3" rx=".6"/>
+        <Path d="M10.6 47H29.4L25.4 51.2H14.6Z"/>
+        <Rect x="14.6" y="51.2" width="10.8" height="14.6"/>
+        <Rect x="9.8" y="65.8" width="20.4" height="3.4" rx=".6"/>
+        <Path d="M9.8 69.2H30.2L26.1 73.6H13.9Z"/>
+        <Path d="M13.9 73.6H26.1L26.6 88H13.4Z"/>
+        <Rect x="11.2" y="88" width="17.6" height="4.2" rx=".4"/>
+        <Rect x="9.6" y="92.2" width="20.8" height="3.6" rx=".7"/>
+      </G>
+      <G fill={cutout}>
+        <Rect x="19.2" y="37.6" width="1.6" height="4" rx=".8"/>
+        <Rect x="19.2" y="54.6" width="1.6" height="6" rx=".8"/>
+        <Rect x="19.2" y="77" width="1.6" height="7" rx=".8"/>
+        {[12.4,14.8,17.2,19.6,22,24.4,26.8].map(x=>
+          <Rect key={'s1-'+x} x={x} y="44.4" width=".9" height="1.9"/>)}
+        {[11.6,14,16.4,18.8,21.2,23.6,26,28.4].map(x=>
+          <Rect key={'s2-'+x} x={x} y="66.5" width=".9" height="2"/>)}
+      </G>
+      <Path d="M12.8 49.1H27.2M12.1 71.4H27.9M11.2 92.2H28.8"
+        stroke={cutout} strokeWidth=".55" strokeOpacity=".75" fill="none"/>
+    </Svg>
+  </View>;
+}
+
+/** line ✦ line ornament of the centre medallion. */
+function CenterOrnament({unit,color}:{unit:number;color:string}){
+  const rule={width:54*unit,height:1,backgroundColor:color,opacity:.7};
+  return <View style={{flexDirection:'row',alignItems:'center',
+    gap:6*unit,height:10*unit}}>
+    <View style={rule}/>
+    <MaterialCommunityIcons name="star-four-points-outline"
+      size={10*unit} color={color}/>
+    <View style={rule}/>
+  </View>;
+}
 
 /** Published prayer period length / 24-hour clock. No nonlinear decoration. */
 export function segmentAngles(times:readonly PrayerTime[]):PrayerArc[] {
@@ -167,7 +244,6 @@ export function PrayerWheel({
   const active = useSharedValue(false);
   const prevTouch = useSharedValue(0);
   const hasTouch = useSharedValue(false);
-  const scale = size / DIAMETER;
   const centerPt = size / 2;
   const sectorBounds = useMemo(
     () => sectors.map(({from, to}) => ({from, to})), [sectors],
@@ -293,6 +369,9 @@ export function PrayerWheel({
   const kerahatApproaching=ringWindows.some(window=>window.state==='approaching');
   // Distinct high-contrast status colours; no change to kerahet intervals.
   const warningTint=kerahatActive?'#9B3546':kerahatApproaching?'#C78A38':null;
+  // The live countdown gains a "Kerahet" line; exploring a prayer hides it.
+  const showKerahet=!preview&&!isManualSelection&&kerahatActive;
+  const unit=size/CENTER_DESIGN_DIAL;
   const kerahatArcs=ringWindows.flatMap(window=>{
     const from=clockSecondsToVisualAngle(window.startSeconds,times,sectors);
     const to=clockSecondsToVisualAngle(window.endSeconds,times,sectors);
@@ -461,49 +540,45 @@ export function PrayerWheel({
             fill={colors.gold} opacity={colors.isDark?.44:.42}/>;
         })}
       </Svg>
-      {/* Fixed "pin": the mosque dome almost touches the INSIDE edge
-          of the medallion; only the outer prayer dial rotates beneath it.
-          Size/position scale with the wheel, avoiding a detached top pin. */}
-      <View style={{position:'absolute',top:4*scale,left:0,right:0,
-        alignItems:'center',justifyContent:'center'}}>
-        <MaterialCommunityIcons name="mosque" size={36*scale}
-          color={colors.gold} accessibilityLabel="Sabit mescit zaman göstergesi"/>
-      </View>
-      <View style={[styles.center,{width:size*.57,gap:5}]}>
-        <View style={{flexDirection:'row',alignItems:'center',gap:5}}>
-          <View style={{width:23*scale,height:1,backgroundColor:colors.gold,opacity:.7}}/>
-          <MaterialCommunityIcons name="star-four-points-outline"
-            size={10*scale} color={colors.gold}/>
-          <View style={{width:23*scale,height:1,backgroundColor:colors.gold,opacity:.7}}/>
+      {/* Stationary centre stack (outside the rotating dial), top to bottom:
+          minaret, ornament, "<vakit>a Kalan", countdown, [Kerahet], ornament,
+          location. The four gaps around the ornaments are one CENTER_GAP.
+          Every size is in mockup px at a 366pt dial × unit, and texts do not
+          font-scale, so the stack keeps its fit inside the medallion. */}
+      <View style={[styles.center,{width:180*unit,gap:CENTER_GAP*unit}]}>
+        <OttomanMinaret width={18*unit} height={44*unit}
+          dark={colors.isDark} cutout={colors.isDark?'#08253C':'#FEF7EA'}/>
+        <CenterOrnament unit={unit} color={colors.gold}/>
+        <View style={{alignItems:'center',alignSelf:'stretch'}}>
+          <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit
+            style={[styles.prayerName,{color:colors.text,
+              fontSize:18*unit,lineHeight:21*unit}]}>
+            {preview?'Takvim Bekleniyor'
+              :isManualSelection?(selected?.label??'Vakit')
+                :PRAYER_COUNTDOWN_LABELS[nextKey]}
+          </Text>
+          <Text allowFontScaling={false} numberOfLines={1} adjustsFontSizeToFit
+            style={[styles.countdown,{color:colors.emerald,
+              fontSize:32*unit,lineHeight:36*unit,marginTop:unit}]}>
+            {preview?'--:--':isManualSelection?selected?.time??'--:--':countdown}
+          </Text>
+          {showKerahet?<Text allowFontScaling={false} numberOfLines={1}
+            style={[styles.kerahet,{
+              color:colors.isDark?KERAHET_LABEL_COLOR.dark:KERAHET_LABEL_COLOR.light,
+              fontSize:14*unit,lineHeight:16*unit,
+            }]}>Kerahet</Text>:null}
         </View>
-        <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.kicker,{
-          color:!preview&&!isManualSelection&&kerahatActive
-            ?(colors.isDark?'#FFB9B7':'#932B43')
-            :!preview&&!isManualSelection&&kerahatApproaching
-              ?(colors.isDark?'#F4CB7B':'#9B651F'):colors.muted,
-          fontWeight:kerahatActive||kerahatApproaching?'900':'800',
-        }]}>
-          {preview?'NAMAZ VAKİTLERİ':isManualSelection?'SEÇİLEN VAKİT'
-            :kerahatActive?'KERAHET VAKTİ'
-              :kerahatApproaching?'KERAHET YAKLAŞIYOR':'SIRADAKİ VAKİT'}
-        </Text>
-        <Text numberOfLines={1} adjustsFontSizeToFit
-          style={[styles.prayerName,{color:colors.text}]}>
-          {preview?'Takvim Bekleniyor'
-            :isManualSelection?(selected?.label??'Vakit')
-              :PRAYER_COUNTDOWN_LABELS[nextKey]}
-        </Text>
-        <Text numberOfLines={1} adjustsFontSizeToFit
-          style={[styles.countdown,{color:colors.emerald}]}>
-          {preview?'--:--':isManualSelection?selected?.time??'--:--':countdown}
-        </Text>
-        <View style={{height:1,width:'62%',backgroundColor:colors.gold,
-          opacity:.55,marginVertical:2}}/>
+        <CenterOrnament unit={unit} color={colors.gold}/>
+        {/* Width = the medallion's chord at the row's lowest glyphs, which
+            sit lower while the Kerahet line is shown. */}
         <View style={{flexDirection:'row',alignItems:'center',justifyContent:'center',
-          gap:4,maxWidth:'100%'}}>
-          <MaterialCommunityIcons name="map-marker-outline" size={13} color={colors.gold}/>
-          <Text numberOfLines={1} adjustsFontSizeToFit
-            style={[styles.caption,{color:colors.muted,flexShrink:1}]}>
+          gap:4*unit,height:16*unit,maxWidth:(showKerahet?86:112)*unit}}>
+          <MaterialCommunityIcons name="map-marker-outline"
+            size={13*unit} color={colors.gold}/>
+          <Text allowFontScaling={false} numberOfLines={1}
+            adjustsFontSizeToFit minimumFontScale={.6}
+            style={[styles.caption,{color:colors.muted,flexShrink:1,
+              fontSize:12*unit,lineHeight:16*unit}]}>
             {preview?'Konum takvimi bekleniyor':locationName??'İlçe seçilmedi'}
           </Text>
         </View>
@@ -516,9 +591,13 @@ const styles=StyleSheet.create({
   sectorLabel:{position:'absolute',alignItems:'center',justifyContent:'center'},
   sectorStartClock:{position:'absolute',alignItems:'center',justifyContent:'center',
     borderWidth:.8},
-  center:{alignItems:'center',justifyContent:'center',gap:3},
-  kicker:{fontSize:9,fontWeight:'800',letterSpacing:1.15,textAlign:'center'},
-  prayerName:{fontFamily:'serif',fontSize:17,fontWeight:'800',textAlign:'center'},
-  countdown:{fontSize:31,fontWeight:'800',fontFamily:'serif',fontVariant:['tabular-nums'],letterSpacing:-.8},
-  caption:{fontSize:10.5,fontFamily:'serif',textAlign:'center'},
+  center:{alignItems:'center',justifyContent:'center'},
+  prayerName:{fontFamily:'serif',fontWeight:'800',textAlign:'center',
+    includeFontPadding:false,textAlignVertical:'center'},
+  countdown:{fontWeight:'800',fontFamily:'serif',fontVariant:['tabular-nums'],letterSpacing:-.8,
+    textAlign:'center',includeFontPadding:false,textAlignVertical:'center'},
+  kerahet:{fontFamily:'serif',fontWeight:'800',letterSpacing:.3,textAlign:'center',
+    includeFontPadding:false,textAlignVertical:'center'},
+  caption:{fontFamily:'serif',textAlign:'center',
+    includeFontPadding:false,textAlignVertical:'center'},
 });

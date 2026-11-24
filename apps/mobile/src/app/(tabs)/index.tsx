@@ -32,6 +32,8 @@ const ICONS={
   yatsi:'weather-night',
 } as const;
 
+/** Identical space on both sides of the Hijri | Gregorian rule. */
+const DATE_RULE_GAP=9;
 function formatHijri(now:Date){
   try {
     return new Intl.DateTimeFormat('tr-TR-u-ca-islamic',{
@@ -47,17 +49,17 @@ function DateDivider({now,timezone,hijriDate}:{
     weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone,
   }).format(now);
   const hijri=hijriDate??formatHijri(now);
-  // Equal flexible halves ensure the vertical rule is at the actual screen
-  // centre, independent of the very different lengths of Hijri/Gregorian dates.
+  // Equal flexible halves keep the vertical rule at the actual screen centre.
+  // Each date hugs the rule (Hijri right-aligned, Gregorian left-aligned), so
+  // both text-to-rule gaps are exactly the rule's equal side margins.
   return <View style={styles.dateSection}
     accessible accessibilityLabel={hijri?hijri+'; '+date:date}>
     {hijri?<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.67}
-      style={[styles.dateText,{color:colors.text}]}>{hijri}</Text>:null}
-    {hijri?<View pointerEvents="none" style={{
-      width:1,height:18,marginHorizontal:7,backgroundColor:colors.gold,opacity:.85,
-    }}/>:null}
+      style={[styles.dateText,styles.dateHijri,{color:colors.text}]}>{hijri}</Text>:null}
+    {hijri?<View pointerEvents="none"
+      style={[styles.dateRule,{backgroundColor:colors.gold}]}/>:null}
     <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.67}
-      style={[styles.dateText,{color:colors.text}]}>{date}</Text>
+      style={[styles.dateText,hijri?styles.dateGregorian:null,{color:colors.text}]}>{date}</Text>
   </View>;
 }
 /** A card is coloured only for the current published prayer period.
@@ -282,28 +284,6 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
           <Feather name="rotate-cw" size={13} color={colors.gold}/>
           <Text style={{fontSize:9,color:colors.muted,textAlign:'right'}}>Çevirerek{'\n'}keşfet</Text>
         </View>
-      </View>
-
-      <View style={styles.tinyActions}>
-        <View style={{flexDirection:'row',alignItems:'center',gap:6,flex:1}}>
-          <View style={{height:7,width:7,borderRadius:4,backgroundColor:accented}}/>
-          <Text numberOfLines={1} adjustsFontSizeToFit
-            style={{fontSize:10.2,color:restriction||approachingKerahat?accented:colors.muted,
-              fontWeight:restriction||approachingKerahat?'800':'600',flexShrink:1}}>
-            {restriction
-              ? 'KERAHET · '+restriction.title
-              : approachingKerahat?'Kerahete '+kerahatMinutes+' dk'
-              : nafileOnly ? 'İmsak sonrası · Nafile namaz bilgisi'
-              : phase.next.label+' vaktine '+remainingText}
-          </Text>
-        </View>
-        {manualIndex!==null
-          ?<View accessible accessibilityLabel="Çember kısa süre sonra otomatik canlı vakte döner"
-            style={{minHeight:28,flexDirection:'row',alignItems:'center',gap:5}}>
-            <Feather name="rotate-ccw" size={12} color={colors.emerald}/>
-            <Text style={{fontSize:10,color:colors.muted}}>Otomatik canlıya döner</Text>
-          </View>
-          :null}
       </View>
 
       <View style={[styles.chipsContainer,{
@@ -531,9 +511,12 @@ const styles=StyleSheet.create({
   dateSection:{alignItems:'center',justifyContent:'center',alignSelf:'stretch',flexDirection:'row',paddingHorizontal:4,marginTop:1,minHeight:24},
   dateLine:{width:27,height:1,opacity:.65},
   dateText:{fontFamily:'serif',fontSize:12.6,fontWeight:'600',flex:1,minWidth:0,lineHeight:21,textAlign:'center'},
-  wheelStage:{alignItems:'center',justifyContent:'center',position:'relative',marginTop:-2,marginBottom:-12},
+  dateHijri:{textAlign:'right'},
+  dateGregorian:{textAlign:'left'},
+  dateRule:{width:1,height:18,marginHorizontal:DATE_RULE_GAP,opacity:.85},
+  // With the content gap this leaves 12pt between the dial and the prayer cards.
+  wheelStage:{alignItems:'center',justifyContent:'center',position:'relative',marginTop:-2,marginBottom:4},
   halo:{position:'absolute',height:235,width:235,borderRadius:118},
-  tinyActions:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingHorizontal:7,minHeight:26},
   chipsContainer:{borderWidth:1.2,borderRadius:20,padding:3,shadowColor:'#746B5C',
     shadowOpacity:.1,shadowRadius:8,shadowOffset:{height:3,width:0},elevation:2},
   chipsRow:{flexDirection:'row',justifyContent:'space-between',gap:1},
