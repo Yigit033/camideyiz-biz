@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 1×1 light. Same structure as the dark layout on the ivory card: deep
-     azure mark and outlines, emerald-black text, orange outline in kerahet. -->
+<!-- 1×1. Large brand mark, the next prayer and its clock on ONE outlined line,
+     and an outlined "Kalan" box whose outline turns orange during kerahet.
+     Every line autosizes into a weighted slot so HH:MM:SS never clips. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_compact_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg_light" android:padding="5dp" android:gravity="center" android:orientation="vertical">
@@ -11,13 +12,13 @@
   android:paddingStart="4dp" android:paddingEnd="4dp" android:orientation="horizontal" android:gravity="center"
   android:background="@drawable/widget_box_light">
  <TextView android:id="@+id/widget_compact_name" android:layout_width="0dp" android:layout_height="match_parent"
-  android:layout_weight="0.55" android:text="Sıradaki" android:textSize="12sp" android:textColor="#152821"
+  android:layout_weight="0.55" android:text="Sıradaki" android:textSize="12sp" android:textColor="#163045"
   android:textStyle="bold" android:gravity="center_vertical|end" android:maxLines="1"
   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp"
   android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
  <TextView android:id="@+id/widget_compact_time" android:layout_width="0dp" android:layout_height="match_parent"
   android:layout_weight="0.45" android:layout_marginStart="4dp" android:text="--:--" android:textSize="12sp"
-  android:textColor="#152821" android:textStyle="bold" android:gravity="center_vertical|start" android:maxLines="1"
+  android:textColor="#163045" android:textStyle="bold" android:gravity="center_vertical|start" android:maxLines="1"
   android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp"
   android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>

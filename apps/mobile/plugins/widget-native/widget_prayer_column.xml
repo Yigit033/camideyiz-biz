@@ -26,10 +26,10 @@
   android:src="@drawable/widget_ic_imsak" android:tint="#F0C97F" android:scaleType="fitCenter"
   android:contentDescription="İmsak"/>
  <TextView android:id="@+id/widget_col_label_0" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:layout_marginStart="3dp" android:text="İmsak" android:textSize="12sp" android:textColor="#FFFFFF"
+  android:layout_marginStart="3dp" android:text="İmsak" android:textSize="12sp" android:textColor="#F1F7F8"
   android:textStyle="bold" android:maxLines="1" android:includeFontPadding="false"/>
  </LinearLayout>
- <TextView android:id="@+id/widget_col_time_0" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_col_time_0" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_col_cell_1" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="4dp" android:paddingStart="3dp" android:paddingEnd="3dp"
@@ -40,10 +40,10 @@
   android:src="@drawable/widget_ic_gunes" android:tint="#F0C97F" android:scaleType="fitCenter"
   android:contentDescription="Güneş"/>
  <TextView android:id="@+id/widget_col_label_1" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:layout_marginStart="3dp" android:text="Güneş" android:textSize="12sp" android:textColor="#FFFFFF"
+  android:layout_marginStart="3dp" android:text="Güneş" android:textSize="12sp" android:textColor="#F1F7F8"
   android:textStyle="bold" android:maxLines="1" android:includeFontPadding="false"/>
  </LinearLayout>
- <TextView android:id="@+id/widget_col_time_1" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_col_time_1" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_col_cell_2" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="4dp" android:paddingStart="3dp" android:paddingEnd="3dp"
@@ -54,10 +54,10 @@
   android:src="@drawable/widget_ic_ogle" android:tint="#F0C97F" android:scaleType="fitCenter"
   android:contentDescription="Öğle"/>
  <TextView android:id="@+id/widget_col_label_2" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:layout_marginStart="3dp" android:text="Öğle" android:textSize="12sp" android:textColor="#FFFFFF"
+  android:layout_marginStart="3dp" android:text="Öğle" android:textSize="12sp" android:textColor="#F1F7F8"
   android:textStyle="bold" android:maxLines="1" android:includeFontPadding="false"/>
  </LinearLayout>
- <TextView android:id="@+id/widget_col_time_2" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_col_time_2" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_col_cell_3" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="4dp" android:paddingStart="3dp" android:paddingEnd="3dp"
@@ -68,10 +68,10 @@
   android:src="@drawable/widget_ic_ikindi" android:tint="#F0C97F" android:scaleType="fitCenter"
   android:contentDescription="İkindi"/>
  <TextView android:id="@+id/widget_col_label_3" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:layout_marginStart="3dp" android:text="İkindi" android:textSize="12sp" android:textColor="#FFFFFF"
+  android:layout_marginStart="3dp" android:text="İkindi" android:textSize="12sp" android:textColor="#F1F7F8"
   android:textStyle="bold" android:maxLines="1" android:includeFontPadding="false"/>
  </LinearLayout>
- <TextView android:id="@+id/widget_col_time_3" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_col_time_3" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_col_cell_4" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="4dp" android:paddingStart="3dp" android:paddingEnd="3dp"
@@ -82,10 +82,10 @@
   android:src="@drawable/widget_ic_aksam" android:tint="#F0C97F" android:scaleType="fitCenter"
   android:contentDescription="Akşam"/>
  <TextView android:id="@+id/widget_col_label_4" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:layout_marginStart="3dp" android:text="Akşam" android:textSize="12sp" android:textColor="#FFFFFF"
+  android:layout_marginStart="3dp" android:text="Akşam" android:textSize="12sp" android:textColor="#F1F7F8"
   android:textStyle="bold" android:maxLines="1" android:includeFontPadding="false"/>
  </LinearLayout>
- <TextView android:id="@+id/widget_col_time_4" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_col_time_4" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_col_cell_5" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="4dp" android:paddingStart="3dp" android:paddingEnd="3dp"
@@ -96,15 +96,15 @@
   android:src="@drawable/widget_ic_yatsi" android:tint="#F0C97F" android:scaleType="fitCenter"
   android:contentDescription="Yatsı"/>
  <TextView android:id="@+id/widget_col_label_5" android:layout_width="wrap_content" android:layout_height="wrap_content"
-  android:layout_marginStart="3dp" android:text="Yatsı" android:textSize="12sp" android:textColor="#FFFFFF"
+  android:layout_marginStart="3dp" android:text="Yatsı" android:textSize="12sp" android:textColor="#F1F7F8"
   android:textStyle="bold" android:maxLines="1" android:includeFontPadding="false"/>
  </LinearLayout>
- <TextView android:id="@+id/widget_col_time_5" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_col_time_5" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.54" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_col_remaining" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1.8" android:layout_marginTop="4dp" android:padding="3dp" android:orientation="vertical"
   android:gravity="center" android:background="@drawable/widget_box_dark" android:visibility="gone">
- <TextView android:id="@+id/widget_col_next" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.27" android:text="" android:textSize="11sp" android:textColor="#FFFFFF" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_col_next" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.27" android:text="" android:textSize="11sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.23" android:text="Kalan" android:textSize="10sp" android:textColor="#D6F1FC" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
  <Chronometer android:id="@+id/widget_col_countdown" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="0.5" android:text="--:--" android:textSize="16sp" android:textColor="#3CC8F5"

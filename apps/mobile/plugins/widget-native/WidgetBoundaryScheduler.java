@@ -1047,7 +1047,8 @@ public final class WidgetBoundaryScheduler {
    * prayer colour except Yatsı's violet, which takes white. */
   private static void paintCells(RemoteViews card,Look look,Strip data,
       int[] cells,int[] icons,int[] labels,int[] clocks){
-    int textLight=Color.parseColor("#152821"),textDark=Color.WHITE;
+    // Same inks as the layouts (scripts/sync-widget-light-layouts.mjs tokens).
+    int textLight=Color.parseColor("#163045"),textDark=Color.parseColor("#F1F7F8");
     int iconLight=Color.parseColor("#A88A5C"),iconDark=Color.parseColor("#F0C97F");
     int plain=look.pick(R.drawable.widget_cell_light,R.drawable.widget_cell_dark,
         R.drawable.widget_cell_auto);

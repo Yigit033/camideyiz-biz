@@ -13,6 +13,7 @@
     "admin": "npm run dev --workspace @camideyiz/admin",
     "test": "node --experimental-strip-types --test packages/core/src/*.test.ts",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "verify:release": "node scripts/verify-release-gates.mjs",
     "verify:kerahat-posters": "node scripts/verify-kerahat-posters.mjs",
     "verify:gallery-assets": "node scripts/verify-gallery-assets.mjs",
     "prepare:adhan": "node scripts/prepare-adhan-audio.mjs",
