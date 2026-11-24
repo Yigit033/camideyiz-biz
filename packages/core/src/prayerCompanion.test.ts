@@ -4,7 +4,8 @@ import {DEMO_SCHEDULE,PRAYER_KEYS} from './prayer.ts';
 import {DEFAULT_ALERT_SETTINGS,prayerInstant,validateAlertSettings,
   createPrayerAlertPlan,buildPrayerWidgetSnapshot,buildPrayerWidgetTimeline,
   playsFullAdhan,ANDROID_ALERT_MAX_EVENTS,ANDROID_ALERT_MAX_DAYS,
-  SABAH_EZANI_AVAILABLE} from './prayerCompanion.ts';
+  SABAH_EZANI_AVAILABLE,adhanPrayerOn,voicedAdhanPrayers,withAdhanPrayer,withAdhanSound,
+  adhanBlockers} from './prayerCompanion.ts';
 const base={...DEMO_SCHEDULE,isDemo:false,dateISO:'2026-11-14',locationName:'İstanbul',
   times:DEMO_SCHEDULE.times.map((x,i)=>({...x,time:
     ['06:15','07:43','12:53','15:30','17:54','19:17'][i]}))};
@@ -89,6 +90,71 @@ test('full ezan only replaces the at-time alert, never early reminders or other 
  assert.equal(playsFullAdhan(early,config),false);
  assert.equal(playsFullAdhan(atTime,config),true);
  assert.equal(playsFullAdhan(atTime,{...config,sound:'default'}),false);
+});
+test('a ticked ezan chip always means an ezan: it needs (and turns on) the at-time alert',()=>{
+ // A prayer ticked for the ezan whose at-time alert was off used to look on
+ // while nothing could ever play at that prayer.
+ const config=validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true,sound:'adhan',rules:{
+   ...DEFAULT_ALERT_SETTINGS.rules,ikindi:{enabled:true,atTime:false,minutesBefore:15},
+   yatsi:{enabled:false,atTime:true,minutesBefore:0}}});
+ assert.equal(config.adhanFor.ikindi,true);
+ assert.equal(adhanPrayerOn(config,'ikindi'),false);
+ assert.equal(adhanPrayerOn(config,'yatsi'),false);
+ assert.deepEqual(voicedAdhanPrayers(config),['ogle','aksam']);
+ const events=createPrayerAlertPlan([base,next],config,prayerInstant('2026-11-14','00:00'));
+ const voiced=new Set(events.filter(e=>playsFullAdhan(e,config)).map(e=>e.prayer));
+ assert.deepEqual([...voiced].sort(),[...voicedAdhanPrayers(config)].sort(),
+   'what the chips show is exactly what the scheduler voices');
+ const on=withAdhanPrayer(config,'ikindi',true);
+ assert.deepEqual(on.rules.ikindi,{enabled:true,atTime:true,minutesBefore:15},
+   'the early reminder choice is kept');
+ assert.equal(adhanPrayerOn(on,'ikindi'),true);
+ const off=withAdhanPrayer(on,'ogle',false);
+ assert.equal(adhanPrayerOn(off,'ogle'),false);
+ assert.equal(off.rules.ogle.atTime,true,'turning the ezan off keeps the notification');
+ // İmsak stays locked while no sabah ezanı is bundled, and its rule is untouched.
+ const imsak=withAdhanPrayer(config,'imsak',true);
+ assert.equal(adhanPrayerOn(imsak,'imsak'),SABAH_EZANI_AVAILABLE);
+ if(!SABAH_EZANI_AVAILABLE)assert.deepEqual(imsak.rules.imsak,config.rules.imsak);
+ assert.deepEqual(voicedAdhanPrayers({...config,sound:'default'}),[]);
+});
+test('choosing the ezan always leads to an ezan',()=>{
+ const none=validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true,
+   adhanFor:{imsak:false,ogle:false,ikindi:false,aksam:false,yatsi:false}});
+ const chosen=withAdhanSound(none);
+ assert.equal(chosen.sound,'adhan');
+ assert.deepEqual(voicedAdhanPrayers(chosen),['ogle','ikindi','aksam','yatsi']);
+ // A user's own selection is kept as is.
+ const mine=withAdhanSound(withAdhanPrayer(none,'aksam',true));
+ assert.deepEqual(voicedAdhanPrayers(mine),['aksam']);
+ assert.equal(withAdhanSound({...none,enabled:false}).enabled,false,
+   'reminders need the OS notification permission: the app turns them on, not core');
+});
+test('ezan blockers: one actionable reason each, most fundamental first',()=>{
+ const ready={notifications:'granted',exactAlarms:true,ringer:'normal',interruption:'all',
+   alarmVolume:5,batteryUnrestricted:true,backgroundRisk:false} as const;
+ const adhan=withAdhanSound(validateAlertSettings({...DEFAULT_ALERT_SETTINGS,enabled:true}));
+ assert.deepEqual(adhanBlockers(adhan,ready),[]);
+ assert.deepEqual(adhanBlockers({...adhan,sound:'default'},{...ready,exactAlarms:false}),[],
+   'no ezan chosen, nothing to fix');
+ assert.deepEqual(adhanBlockers({...adhan,enabled:false},ready),['alerts-off'],
+   'the ezan was chosen while reminders were off: the most common "nothing happens"');
+ assert.deepEqual(adhanBlockers(adhan,{...ready,notifications:'denied'}),['notifications']);
+ assert.deepEqual(adhanBlockers(adhan,{...ready,exactAlarms:false}),['exact-alarm']);
+ assert.deepEqual(adhanBlockers(adhan,{...ready,ringer:'vibrate'}),['silent-mode']);
+ assert.deepEqual(adhanBlockers({...adhan,adhanInSilent:true},{...ready,ringer:'vibrate'}),[],
+   'opted in: plays on vibrate like an alarm clock');
+ assert.deepEqual(adhanBlockers(adhan,{...ready,interruption:'priority'}),['silent-mode']);
+ assert.deepEqual(adhanBlockers({...adhan,adhanInSilent:true},{...ready,interruption:'none'}),
+   ['total-silence'],'total silence mutes alarms even with the opt-in');
+ assert.deepEqual(adhanBlockers(adhan,{...ready,alarmVolume:0}),['alarm-muted']);
+ assert.deepEqual(adhanBlockers(adhan,{...ready,batteryUnrestricted:false,backgroundRisk:true}),
+   ['battery','background']);
+ assert.deepEqual(adhanBlockers(adhan,{...ready,exactAlarms:null,ringer:null,interruption:null,
+   alarmVolume:null,batteryUnrestricted:null}),[],'unknown is not a blocker');
+ const nothing=validateAlertSettings({...adhan,
+   adhanFor:{imsak:false,ogle:false,ikindi:false,aksam:false,yatsi:false}});
+ assert.deepEqual(adhanBlockers(nothing,ready),['no-prayer']);
 });
 test('Android horizon keeps ten verified days within its larger cap',()=>{
  const days=Array.from({length:16},(_,i)=>({

@@ -16,9 +16,13 @@ const FILES=[
 const PERMISSIONS=[
   'android.permission.SCHEDULE_EXACT_ALARM',
   'android.permission.FOREGROUND_SERVICE',
+  // Android 14+: required to start the mediaPlayback-typed playback service.
   'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
   'android.permission.WAKE_LOCK',
   'android.permission.RECEIVE_BOOT_COMPLETED',
+  // REQUEST_IGNORE_BATTERY_OPTIMIZATIONS is deliberately NOT requested
+  // (Play policy). The battery row opens App info, where ColorOS/MIUI keep
+  // "Pil kullanımı" (background activity + auto launch).
 ];
 
 function withAdhanManifest(config){
@@ -35,6 +39,7 @@ function withAdhanManifest(config){
     const receiver=PACKAGE+'.AdhanAlarmReceiver';
     const filter={'action':[
       'android.intent.action.BOOT_COMPLETED',
+      'android.intent.action.QUICKBOOT_POWERON',
       'android.intent.action.TIME_SET',
       'android.intent.action.TIMEZONE_CHANGED',
       'android.intent.action.MY_PACKAGE_REPLACED',

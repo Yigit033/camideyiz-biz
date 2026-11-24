@@ -40,6 +40,9 @@ export type NotificationSyncReport={
   exactAlarms?:boolean|null;
   /** Count of prayers voiced by the full ezan instead of a notification. */
   adhanScheduled?:number;
+  /** Why the chosen ezan could not be armed (its at-time notification is
+   * kept instead). Shown inside the ezan panel, next to the fix. */
+  adhanError?:string|null;
 };
 export type NativePrayerEvent={
   id:string;eventKey:string;title:string;body:string;receivedAt:number;
@@ -150,14 +153,15 @@ export async function reconcilePrayerNotifications(
     if(enabled&&voiced.length>0&&android){
       try{
         const status=await nativeAdhanStatus();
-        if(!status.supported)throw Error('Bu APK yerel ezan alarmlarını desteklemiyor.');
+        if(!status.supported)throw Error('Ezan için uygulamayı güncelle.');
         if(!status.exactPermission)
-          throw Error('Ezan için Android kesin alarm iznini vermen gerekiyor.');
+          throw Error('Ezan için “Alarmlar ve hatırlatıcılar” iznini aç.');
         const scheduled=await scheduleNativeAdhan(voiced,settings.precise,settings.adhanInSilent);
         nativeReady=true;
         nativeCount=scheduled.scheduled;
       }catch(error){
-        nativeError=error instanceof Error?error.message:'Ezan alarmı kurulamadı';
+        nativeError=error instanceof Error&&/^Ezan için/.test(error.message)
+          ?error.message:'Ezan kurulamadı; “Vakitleri eşitle”ye dokun.';
         await clearNativeAdhan().catch(()=>undefined);
       }
     }else{
@@ -212,8 +216,8 @@ export async function reconcilePrayerNotifications(
     const actual=await Notifications.getAllScheduledNotificationsAsync();
     return {
       permission,scheduled:actual.filter(r=>owned(r)).length+nativeCount,
-      nextAt:desired.length?desired[0].fireAt:null,error:nativeError,
-      exactAlarms,adhanScheduled:nativeReady?nativeCount:0,
+      nextAt:desired.length?desired[0].fireAt:null,error:null,
+      exactAlarms,adhanScheduled:nativeReady?nativeCount:0,adhanError:nativeError,
     };
   }catch(error){
     return {permission:'unknown',scheduled:0,nextAt:null,

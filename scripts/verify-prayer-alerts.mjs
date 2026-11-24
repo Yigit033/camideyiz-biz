@@ -12,7 +12,9 @@ const service=read('apps/mobile/src/features/companion/notificationService.ts');
 const bridge=read('apps/mobile/src/features/companion/nativeAdhan.ts');
 const provider=read('apps/mobile/src/features/companion/CompanionProvider.tsx');
 const screen=read('apps/mobile/src/app/companion.tsx');
+const panel=read('apps/mobile/src/features/companion/AdhanPanel.tsx');
 const core=read('packages/core/src/prayerCompanion.ts');
+const bridgeJava=read('apps/mobile/plugins/adhan-native/CamideyizAdhanBridge.java');
 const scheduler=read(n+'AdhanAlarmScheduler.java');
 const receiver=read(n+'AdhanAlarmReceiver.java');
 const playback=read(n+'AdhanPlaybackService.java');
@@ -46,6 +48,11 @@ assert.match(service,/getExactAlarmPermissionsAsync\(\)/);
 assert.match(service,/requestExactAlarmPermissionsAsync\(\)/);
 assert.match(provider,/previousExact\.current===false&&exactAlarms===true\)setSequence/);
 assert.match(scheduler,/mgr\.setAlarmClock\(new AlarmManager\.AlarmClockInfo\(at,show\),fire\)/);
+// The ezan is ALWAYS an alarm clock: a deferred setExactAndAllowWhileIdle
+// alarm misses the 3-minute play window on ColorOS and becomes a notification.
+assert.match(scheduler,/PendingIntent show=AdhanNotifier\.openApp\(context,748034\);\s*int armed=0;/);
+assert.doesNotMatch(scheduler,/precise\?AdhanNotifier\.openApp|precise&&show!=null/,
+  'the notification precision switch must not downgrade the ezan alarm');
 assert.match(scheduler,/String normalized=\(precise\?"precise:":"exact:"\)\+input\.toString\(\);/);
 assert.match(scheduler,/MAX_EVENTS = 60;/);
 assert.match(screen,/Dakikası dakikasına \(önerilir\)/);
@@ -82,7 +89,7 @@ assert.match(playback,/recordOutcome\(this,label,outcome\.name\(\),test\)/);
 assert.match(scheduler,/result\.put\(LAST_OUTCOME,/);
 assert.match(scheduler,/at < now - 60_000 \|\| at > now \+ MAX_AHEAD/,
   'an imminent prayer must not reject (and silence) the whole ezan plan');
-assert.match(screen,/<AdhanStatusCard /);
+assert.match(screen,/<AdhanPanel /);
 assert.match(service,/ezanMissing\?' · Ezanın okunması için uygulamayı aç'/,
   'a fallback notification says how to restore the ezan');
 assert.match(playback,/AUDIOFOCUS_LOSS_TRANSIENT[\s\S]*?player\.pause\(\);pausedByFocus=true;/);
@@ -107,5 +114,63 @@ assert.match(plugin,/'AdhanNotifier\.java'/);
 const expoNotifications=app.plugins.find(p=>Array.isArray(p)&&p[0]==='expo-notifications');
 assert.equal(expoNotifications?.[1]?.icon,'./assets/notification-icon.png');
 assert.equal(expoNotifications?.[1]?.color,'#0C76B4');
-assert.match(screen,/Ezan okunacak vakitler/);
-console.log('Prayer alerts 4.0: one ezan rule, exact/alarm-clock delivery with re-arm on grant, 10-day Android horizon, ringer-aware ezan and a guaranteed "vakti girdi" fallback verified');
+assert.match(panel,/Ezan okunacak vakitler/);
+
+// 5. "Ezan seçtim ama hiçbir şey olmadı" (4.2): choosing the ezan always
+// leads to an armed ezan, or to a one-tap fix for what blocks it.
+// 5a. Choosing the ezan turns reminders on (with the OS permission prompt).
+assert.match(provider,/const chooseAdhan=useCallback\(async\(\)=>\{[\s\S]*?requestPrayerPermission\(\)[\s\S]*?withAdhanSound\(\{\.\.\.old,enabled:true\}\)/);
+assert.match(screen,/if\(!await companion\.chooseAdhan\(\)\)/);
+assert.match(screen,/if\(native\?\.supported&&!native\.exactPermission\)askExactAlarms\('adhan'\)/,
+  'the one permission the ezan cannot work without is asked for right away');
+// 5b. A ticked chip always means an ezan: it turns on the at-time alert.
+assert.match(core,/export function withAdhanPrayer\(/);
+assert.match(core,/if\(on\)rules\[key\]=\{\.\.\.rules\[key\],enabled:true,atTime:true\};/);
+assert.match(core,/export function withAdhanSound\(/);
+assert.match(provider,/setSettings\(old=>withAdhanPrayer\(old,key,next\)\)/);
+assert.match(panel,/const on=adhanPrayerOn\(settings,key\);/);
+// 5c. Every blocker has a row with a one-tap fix.
+assert.match(core,/export function adhanBlockers\(/);
+for(const blocker of ['alerts-off','notifications','no-prayer','exact-alarm','total-silence',
+  'silent-mode','alarm-muted','battery','background']){
+  assert.match(core,new RegExp("'"+blocker+"'"));
+  assert.match(panel,new RegExp("'"+blocker+"':\\{icon:"),'no row for blocker '+blocker);
+}
+assert.match(bridge,/export async function openAdhanSettings\(target:AdhanSettingsTarget\)/);
+assert.match(bridgeJava,/@ReactMethod public void openSettings\(String kind,Promise promise\)/);
+for(const kind of ['exact','notifications','background','sound','dnd'])
+  assert.match(scheduler,new RegExp('"'+kind+'"\\.equals\\(kind\\)'));
+assert.match(scheduler,/if\(!opened\)openAppSettings\(context\);/,'every fix falls back to App info');
+assert.match(scheduler,/setStreamVolume\(AudioManager\.STREAM_ALARM,target,AudioManager\.FLAG_SHOW_UI\)/);
+// 5d. Live device state is the receiver's own checks, read ahead of time.
+for(const field of ['ringer','alarmVolume','interruption','backgroundManaged','playing','nextLabel'])
+  assert.match(scheduler,new RegExp('result\\.put\\("'+field+'"'));
+// 5e. An ezan the OS dropped while the phone was running is named (ColorOS).
+assert.match(scheduler,/static final long MISSED_AFTER_MS = 10L \* 60L \* 1000L;/);
+assert.match(scheduler,/long bootedAt=now-SystemClock\.elapsedRealtime\(\);/);
+assert.match(scheduler,/if\(at<=bootedAt\+60_000L\|\|at>now-MISSED_AFTER_MS/,
+  'a prayer that passed while the phone was off is not the app\'s fault');
+assert.match(scheduler,/Context app = context\.getApplicationContext\(\);\s*\/\/[^\n]*\n\s*detectMissed\(app\);/,
+  'missed ezans are detected before a new plan overwrites the old one');
+assert.match(bridge,/'MISSED'/);
+assert.match(panel,/MISSED:'/);
+// 5f. Listen in-app, try the real path, stop from the app.
+assert.match(panel,/useAdhanPlayback\(\)/);
+assert.match(panel,/onPress=\{\(\)=>void preview\.toggle\(\)\}/);
+assert.match(panel,/await testNativeAdhan\(\);/);
+assert.match(panel,/Vakitteki gibi dene/);
+assert.match(bridgeJava,/@ReactMethod public void stopEzan\(Promise promise\)/);
+// 5g. An offline / GPS-resolving reload of the SAME district keeps the ezan.
+assert.match(provider,/settings\.sound==='adhan'&&cityId>0&&\s*adhanCity\.current!==null&&adhanCity\.current!==cityId/);
+// 5h. Android 8-16 service + boot plumbing; no Play-restricted permissions.
+assert.match(plugin,/'android\.permission\.FOREGROUND_SERVICE_MEDIA_PLAYBACK'/);
+assert.match(plugin,/'android:foregroundServiceType':'mediaPlayback'/);
+assert.match(playback,/startForeground\(NOTIFICATION_ID,notification,\s*ServiceInfo\.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK\)/);
+assert.match(plugin,/'android\.intent\.action\.QUICKBOOT_POWERON'/);
+assert.match(receiver,/"android\.intent\.action\.QUICKBOOT_POWERON"\.equals\(action\)/);
+assert.doesNotMatch(plugin,/'android\.permission\.(USE_EXACT_ALARM|REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)'/);
+assert.match(scheduler,/catch\(SecurityException error\)\{[\s\S]*?return -1;/,
+  'a revoked exact permission never crashes the boot receiver');
+// 5i. Early reminders never play the ezan (religious correctness).
+assert.match(core,/Only the at-time event ever plays the ezan/);
+console.log('Prayer alerts 4.2: choosing the ezan turns reminders on, chips mean an ezan, every blocker has a one-tap fix, missed ezans are named, listen/test/stop in-app, always alarm-clock ezan, 10-day horizon and a guaranteed "vakti girdi" fallback verified');

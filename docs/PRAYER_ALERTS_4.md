@@ -83,3 +83,34 @@ Ezan, sessizce bildirime düşen beş yoldan geçiyordu ve "Ezanı test et" bu k
 6. **Kesinti:** Ezan sırasında bir navigasyon anonsu ya da kısa ses çal; ezan durup devam etmeli.
 7. **Sistem olayları:** Yeniden başlatma, saat dilimi değişimi ve ilçe değişiminden sonra alarmlar yeniden kurulmalı; eski ilçenin vakitleri gelmemeli.
 8. **Simge:** Bildirim simgesi amblem silueti, rengi marka mavisi olmalı.
+
+## 4.2 — "Ezanı seçiyorum ama hiçbir şey olmuyor" düzeltmesi
+
+Ezan seçimi kaydediliyordu ama aşağıdaki yolların her birinde ezan hiç kurulmuyor ya da vakitte bildirime dönüşüyordu. Kullanıcı bunu ekranda göremiyordu.
+
+| Yol | Önce | Şimdi |
+|---|---|---|
+| Hatırlatmalar kapalıyken "Ezan" seçildi | Plan boş kalıyordu, ezan kartı gizliydi | "Ezan" seçmek hatırlatmaları açar (bildirim izni istenir) |
+| Vakit çipi seçili ama "Vakit girdiğinde" kapalı | Çip açık görünüyor, ezan hiç çalmıyordu | Çip yalnız gerçekten okunacaksa açık görünür; açmak vakit uyarısını da açar (`withAdhanPrayer`) |
+| Hiç vakit seçili değil | Sessizce bildirim | "Ezan" seçimi varsayılan dört vakti açar; panelde "Ezan için vakit seç" satırı |
+| "Alarmlar ve hatırlatıcılar" izni yok (Android 14+ yeni kurulumda kapalı) | Küçük "Uyarı:" yazısı | Seçim anında sorulur; panelde tek dokunuşla izin satırı |
+| Telefon titreşimde/sessizde/Rahatsız Etmeyin | Vakitte bildirim, öncesinde işaret yok | Panel canlı durumu okur: "Telefon titreşimde · Yine de oku" |
+| Alarm sesi 0 | Vakitte bildirim | "Alarm sesi kapalı · Sesi aç" (alarm sesini açar, ses panelini gösterir) |
+| ColorOS / MIUI arka planda uygulamayı durdurdu | Ezan hiç gelmiyor, iz yok | Kaçan ezan `MISSED` olarak kaydedilir ("Telefon uygulamayı durdurdu"); "Arka planda çalışmaya izin ver · Aç" |
+| "Dakikası dakikasına" kapalı | Ezan `setExactAndAllowWhileIdle` ile kurulup ColorOS'ta gecikebiliyordu | Ezan her zaman `setAlarmClock` ile kurulur |
+| İlçe aynıyken takvim yeniden yükleniyor (çevrimdışı, GPS) | Kurulu ezanlar siliniyordu | Yalnız başka ilçeye geçişte silinir |
+| Vakitten saniyeler önce eşitleme | O vaktin alarmı iptal edilebiliyordu | Aynı ilçede kurulu ve saniyeler içinde çalacak alarm korunur |
+
+- **Erken hatırlatmalar ezan değildir:** "N dakika önce" hatırlatması her zaman bildirim sesidir. Ezan vaktin girdiğini ilan eder; vakitten önce (kısa bir parçası bile) okunursa duyanları vaktinden önce namaza ya da akşam ezanında oruç açmaya yöneltebilir.
+- **Dinle / Vakitteki gibi dene / Durdur:** Panelde uygulama içi dinleme, 10 sn sonra gerçek yoldan geçen deneme ve çalan ezanı uygulamadan durdurma bulunur.
+- **Ayarlara tek dokunuş:** Her engel satırı ilgili sistem ekranını açar (`openSettings`: exact, notifications, battery, background, sound, dnd). Açılamazsa uygulama bilgisi açılır. `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` ve `USE_EXACT_ALARM` istenmez (Play politikası).
+
+### 4.2 cihaz testi (ColorOS)
+
+1. Temiz kurulum → "Ezan" seç: bildirim izni ve "Alarmlar ve hatırlatıcılar" sorulmalı; panelde "Sıradaki ezan · Öğle 12:54" görünmeli.
+2. Telefonu titreşime al → panelde "Telefon titreşimde · Yine de oku" görünmeli.
+3. "Arka planda çalışmaya izin ver · Aç" → Uygulama bilgisi → Pil kullanımı → "Arka planda etkinliğe izin ver" ve "Otomatik başlatmaya izin ver" açılır.
+4. "Vakitteki gibi dene" → ekranı kilitle → 10 sn sonra ezan alarm sesiyle başlamalı; panelden "Ezanı durdur" çalışmalı.
+5. Uygulamayı son uygulamalardan kaydırıp kapat, ekranı kilitle, gerçek vakti bekle: ezan okunmalı.
+6. Telefonu yeniden başlat, uygulamayı açmadan gerçek vakti bekle: ezan okunmalı (otomatik başlatma izni gerekir).
+7. Bir ezan kaçarsa uygulamayı aç: "Son ezan · … · Telefon uygulamayı durdurdu" ve arka plan satırı görünmeli.

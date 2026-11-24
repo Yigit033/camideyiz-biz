@@ -6,17 +6,17 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
-import {PRAYER_KEYS,ADHAN_PRAYERS,SABAH_EZANI_AVAILABLE,buildPrayerWidgetSnapshot,
-  type PrayerKey,type PrayerSchedule} from '@camideyiz/core';
+import {PRAYER_KEYS,voicedAdhanPrayers,
+  type AlertSound,type PrayerKey,type PrayerSchedule} from '@camideyiz/core';
 import {Atmosphere} from '@/components/LuxuryArtwork';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
 import {useCompanion} from '@/features/companion/CompanionProvider';
 import {CHANNEL_AUDIBLE,CHANNEL_SILENT,setPrayerChannels} from '@/features/companion/notificationService';
 import {isExpoGoRuntime} from '@/features/native/nativeRuntime';
-import {nativeAdhanSupported,nativeAdhanStatus,testNativeAdhan}
+import {nativeAdhanSupported,nativeAdhanStatus,openAdhanSettings}
   from '@/features/companion/nativeAdhan';
-import {AdhanStatusCard} from '@/features/companion/AdhanStatusCard';
+import {AdhanPanel} from '@/features/companion/AdhanPanel';
 import {Widget3Diagnostics} from '@/features/widgets/Widget3Diagnostics';
 import {WidgetPreview} from '@/features/widgets/WidgetPreview';
 
@@ -27,6 +27,11 @@ const ICONS:Record<PrayerKey,keyof typeof Feather.glyphMap>={
   imsak:'moon',gunes:'sunrise',ogle:'sun',ikindi:'clock',aksam:'sunset',yatsi:'moon',
 };
 const LEADS=[0,5,10,15,30,45,60] as const;
+const SOUND_OPTIONS:readonly {id:AlertSound;label:string;icon:keyof typeof Feather.glyphMap}[]=[
+  {id:'default',label:'Bildirim sesi',icon:'bell'},
+  {id:'adhan',label:'Ezan',icon:'volume-2'},
+  {id:'silent',label:'Sessiz',icon:'volume-x'},
+];
 
 function InfoPill({text,icon}:{
   text:string;icon:keyof typeof Feather.glyphMap;
@@ -75,24 +80,38 @@ export default function CompanionScreen(){
   // access, refreshes it on return from Settings and re-arms reminders.
   const exactAlarms=companion.exactAlarms;
   const exactMissing=Platform.OS==='android'&&exactAlarms===false;
+  // The full ezan is native Android playback; Expo Go and iOS never offer it.
+  const adhanAvailable=Platform.OS==='android'&&!isExpoGoRuntime();
+  const voicedNow=new Set<PrayerKey>(voicedAdhanPrayers(settings));
+  const openExactAccess=()=>void companion.requestExactAlarms().catch(()=>
+    openAdhanSettings('exact').catch(()=>
+      Alert.alert('Ayar açılamadı','Uygulama izinlerinden “Alarmlar ve hatırlatıcılar” iznini aç.')));
   const askExactAlarms=(reason:'notifications'|'adhan')=>{
-    Alert.alert('Dakikası dakikasına teslim',
+    Alert.alert(reason==='adhan'?'Ezan için bir izin kaldı':'Dakikası dakikasına teslim',
       reason==='adhan'
-        ?'Ezanın telefon kilitliyken vakit girdiği anda okunması için Android’in “Alarmlar ve hatırlatıcılar” iznini açmalısın. İzin verilmezse ezan yerine normal vakit bildirimi gelir.'
-        :'Android bu izin olmadan vakit bildirimlerini pil tasarrufu için birkaç dakika geciktirebilir. “Alarmlar ve hatırlatıcılar” iznini açarsan bildirim tam vaktinde gelir.',
-      [{text:'Daha sonra',style:'cancel'},
-       {text:'İzni aç',onPress:()=>void companion.requestExactAlarms().catch(()=>
-         Alert.alert('Ayar açılamadı','Android uygulama izinlerinden “Alarmlar ve hatırlatıcılar” iznini aç.'))}]);
+        ?'Ezanın vaktinde okunması için “Alarmlar ve hatırlatıcılar” iznini aç.'
+        :'Bildirimlerin tam vaktinde gelmesi için “Alarmlar ve hatırlatıcılar” iznini aç.',
+      [{text:'Daha sonra',style:'cancel'},{text:'İzni aç',onPress:openExactAccess}]);
   };
-  const selectSound=(choice:'default'|'silent'|'adhan')=>{
+  const selectSound=async(choice:AlertSound)=>{
     if(choice!=='adhan'){companion.setSound(choice);return;}
     if(!nativeAdhanSupported){
-      Alert.alert('Ezan sesi yalnızca Android sürümünde',
-        'Bu cihazda vakitte otomatik ezan desteklenmiyor.');
+      Alert.alert('Ezan bu cihazda okunamıyor','Bildirim sesini seçebilirsin.');
       return;
     }
-    companion.setSound('adhan');
-    if(exactMissing)askExactAlarms('adhan');
+    // Choosing the ezan turns reminders on: an ezan chosen while they were
+    // off used to change nothing that could ever play.
+    if(!await companion.chooseAdhan()){
+      Alert.alert('Bildirim izni gerekli','Ezan için bildirim iznini aç.',
+        [{text:'Kapat',style:'cancel'},
+         {text:'Ayarları aç',onPress:()=>void openAdhanSettings('notifications')
+           .catch(()=>Linking.openSettings())}]);
+      return;
+    }
+    // Ask right away when the one permission the ezan cannot work without
+    // is missing (Android 14+ denies it by default on a fresh install).
+    const native=await nativeAdhanStatus().catch(()=>null);
+    if(native?.supported&&!native.exactPermission)askExactAlarms('adhan');
   };
 
   const toggleMaster=async(next:boolean)=>{
@@ -105,23 +124,9 @@ export default function CompanionScreen(){
       else if(next&&exactMissing)askExactAlarms('notifications');
     }finally{setWorking(false);}
   };
+  // The ezan has its own "Vakitteki gibi dene" in the ezan panel; this one
+  // checks the notification path (early reminders, İmsak, fallbacks).
   const test=async()=>{
-    if(settings.sound==='adhan'&&nativeAdhanSupported){
-      try{
-        const current=await nativeAdhanStatus();
-        if(!current.exactPermission){
-          askExactAlarms('adhan');
-          return;
-        }
-        await testNativeAdhan();
-        Alert.alert('Ezan testi ayarlandı',
-          'Yaklaşık 10 saniye sonra ezan, gerçek vakitteki kontrollerle başlar. Telefonu kilitleyip bekle; okunmazsa nedeni bildirimde ve “Son test” satırında yazar.');
-      }catch{
-        Alert.alert('Ezan testi yapılamadı',
-          '“Alarmlar ve hatırlatıcılar” iznini kontrol edip tekrar dene.');
-      }
-      return;
-    }
     if(permission!=='granted'){
       Alert.alert('İzin gerekli','Önce bildirimleri etkinleştir.');return;
     }
@@ -186,6 +191,39 @@ export default function CompanionScreen(){
         <Text style={{fontSize:11,color:colors.muted,lineHeight:18}}>
           Vakit girdiğinde ya da 5–60 dakika önce hatırlatma al.
         </Text>
+        <View style={{gap:8}}>
+          <Text style={{fontSize:12,color:colors.text,fontWeight:'800'}}>Vakit geldiğinde</Text>
+          <View accessibilityRole="radiogroup"
+            style={[styles.segment,{backgroundColor:colors.soft,borderColor:colors.border}]}>
+            {SOUND_OPTIONS.filter(option=>option.id!=='adhan'||adhanAvailable).map(option=>{
+              const selected=settings.sound===option.id;
+              return <Pressable key={option.id}
+                accessibilityRole="radio" accessibilityState={{selected}}
+                accessibilityLabel={option.label}
+                onPress={()=>void selectSound(option.id)}
+                style={[styles.soundOption,{
+                  backgroundColor:selected?colors.accentStrong:'transparent',
+                  borderColor:selected?colors.gold:'transparent'}]}>
+                {option.id==='adhan'
+                  ?<MaterialCommunityIcons name="mosque" size={17}
+                    color={selected?'#FFFFFF':colors.gold}/>
+                  :<Feather name={option.icon} size={16}
+                    color={selected?'#FFFFFF':colors.gold}/>}
+                <Text style={{fontSize:12,fontWeight:'800',
+                  color:selected?'#FFFFFF':colors.text}}>{option.label}</Text>
+              </Pressable>;
+            })}
+          </View>
+          <Text style={{fontSize:10.5,color:colors.muted,lineHeight:16}}>
+            {settings.sound==='adhan'
+              ?'Seçtiğin vakitlerde bildirim yerine ezan okunur.'
+              :settings.sound==='silent'
+                ?'Bildirimler sessiz gelir.'
+                :'Bildirimler telefonun bildirim sesiyle gelir.'}
+          </Text>
+          {settings.sound==='adhan'&&nativeAdhanSupported
+            ?<AdhanPanel onAskExact={openExactAccess}/>:null}
+        </View>
         <View style={[styles.note,{backgroundColor:colors.soft,borderColor:colors.border}]}>
           <MaterialCommunityIcons name="mosque" size={21} color={colors.gold}/>
           <View style={{flex:1,gap:7}}>
@@ -232,7 +270,7 @@ export default function CompanionScreen(){
                 <View style={{flex:1,gap:3}}>
                   <Text style={{color:colors.text,fontSize:14,fontWeight:'800'}}>{label}</Text>
                   <Text style={{color:colors.muted,fontSize:10}}>
-                    {key==='gunes'?'Güneş doğuşu (ezan değil)':'Vakit uyarısı'}
+                    {key==='gunes'?'Güneş doğuşu (ezan değil)':voicedNow.has(key)?'Vakitte ezan':'Vakit uyarısı'}
                   </Text>
                 </View>
                 <Switch
@@ -248,7 +286,7 @@ export default function CompanionScreen(){
                   style={{flexDirection:'row',alignItems:'center',gap:8}}>
                   <Feather name={rule.atTime?'check-square':'square'}
                     size={18} color={colors.emerald}/>
-                  <Text style={{color:colors.text,fontSize:12,fontWeight:'700'}}>Vakit girdiğinde hatırlat</Text>
+                  <Text style={{color:colors.text,fontSize:12,fontWeight:'700'}}>{voicedNow.has(key)?'Vakit girdiğinde ezan okunsun':'Vakit girdiğinde hatırlat'}</Text>
                 </Pressable>
                 <Text style={{color:colors.muted,fontSize:10}}>Ek erken hatırlatma</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -271,60 +309,6 @@ export default function CompanionScreen(){
             </View>;
           })}
         </View>
-        <Text style={{fontSize:12,color:colors.text,fontWeight:'800'}}>Vakit geldiğinde</Text>
-        <View style={{flexDirection:'row',gap:7,flexWrap:'wrap'}}>
-          {([
-            {id:'default',label:'Bildirim sesi',icon:'bell'},
-            {id:'silent',label:'Sessiz',icon:'volume-x'},
-            ...(Platform.OS==='android'&&!isExpoGoRuntime()
-              ?[{id:'adhan',label:'Ezan okunsun',icon:'music'} as const]:[]),
-          ] as const).map(option=><Pressable key={option.id}
-            accessibilityRole="button" accessibilityState={{selected:settings.sound===option.id}}
-            onPress={()=>selectSound(option.id)}
-            style={[styles.soundOption,{flex:1,minWidth:90,
-              backgroundColor:settings.sound===option.id?colors.accentStrong:colors.soft,
-              borderColor:settings.sound===option.id?colors.gold:colors.border}]}>
-            <Feather name={option.icon} size={16}
-              color={settings.sound===option.id?'#FFFFFF':colors.gold}/>
-            <Text style={{fontSize:11,fontWeight:'800',
-              color:settings.sound===option.id?'#FFFFFF':colors.text}}>{option.label}</Text>
-          </Pressable>)}
-        </View>
-        <Text style={{fontSize:10,color:colors.muted,lineHeight:17}}>
-          {settings.sound==='adhan'
-            ?'Seçtiğin vakitlerde bildirim yerine ezan, telefonun alarm ses düzeyinde okunur.'
-            :settings.sound==='silent'
-              ?'Bildirimler sessiz gelir.'
-              :'Bildirimler telefonun bildirim sesiyle gelir.'}
-        </Text>
-        {settings.sound==='adhan'&&nativeAdhanSupported?<View style={{gap:7}}>
-          <Text style={{fontSize:11,color:colors.text,fontWeight:'800'}}>Ezan okunacak vakitler</Text>
-          <View style={{flexDirection:'row',flexWrap:'wrap',gap:6}}>
-            {ADHAN_PRAYERS.map(key=>{
-              const locked=key==='imsak'&&!SABAH_EZANI_AVAILABLE;
-              const on=settings.adhanFor[key]&&!locked;
-              return <Pressable key={key} accessibilityRole="checkbox"
-                accessibilityState={{checked:on,disabled:locked}}
-                accessibilityLabel={NAMES[key]+' vaktinde ezan'+(locked?' — sabah ezanı kaydı henüz yok':'')}
-                disabled={locked} onPress={()=>companion.setAdhanFor(key,!on)}
-                style={[styles.lead,{flexDirection:'row',alignItems:'center',gap:5,
-                  opacity:locked?.45:1,
-                  borderColor:on?colors.gold:colors.border,
-                  backgroundColor:on?colors.accentStrong:colors.surface}]}>
-                <Feather name={on?'check':locked?'lock':'plus'} size={12}
-                  color={on?'#FFFFFF':colors.gold}/>
-                <Text style={{fontSize:11,fontWeight:'800',color:on?'#FFFFFF':colors.text}}>
-                  {NAMES[key]}
-                </Text>
-              </Pressable>;
-            })}
-          </View>
-          {!SABAH_EZANI_AVAILABLE?<Text style={{fontSize:10,color:colors.muted,lineHeight:16}}>
-            İmsakta ezan yerine bildirim gelir.
-          </Text>:null}
-          {settings.enabled?<AdhanStatusCard exactMissing={exactMissing}
-            onAskExact={()=>askExactAlarms('adhan')}/>:null}
-        </View>:null}
         {Platform.OS==='android'&&!isExpoGoRuntime()?<View style={[styles.note,{
           backgroundColor:colors.soft,borderColor:exactMissing?'#CE8C67':colors.border,
         }]}>
@@ -371,7 +355,7 @@ export default function CompanionScreen(){
             onPress={()=>void test()} style={[styles.action,{flex:1,backgroundColor:colors.soft,
               opacity:permission!=='granted'?.5:1,borderWidth:1,borderColor:colors.border}]}>
             <Feather name="send" color={colors.gold} size={16}/>
-            <Text style={{fontWeight:'800',fontSize:12,color:colors.text}}>{settings.sound==='adhan'?'Ezanı test et':'Test bildirimi'}</Text>
+            <Text style={{fontWeight:'800',fontSize:12,color:colors.text}}>Test bildirimi</Text>
           </Pressable>
         </View>
       </View>
@@ -476,8 +460,9 @@ const styles=StyleSheet.create({
   prayerIcon:{width:33,height:33,borderRadius:12,alignItems:'center',justifyContent:'center'},
   lead:{borderWidth:1,borderRadius:13,paddingHorizontal:11,minHeight:32,
     justifyContent:'center',alignItems:'center'},
-  soundOption:{borderWidth:1,minHeight:45,borderRadius:13,flexDirection:'row',
-    alignItems:'center',justifyContent:'center',gap:8},
+  segment:{borderWidth:1,borderRadius:15,padding:4,flexDirection:'row',gap:4},
+  soundOption:{flex:1,borderWidth:1,minHeight:44,borderRadius:12,flexDirection:'row',
+    alignItems:'center',justifyContent:'center',gap:6,paddingHorizontal:6},
   action:{minHeight:45,borderRadius:13,flexDirection:'row',gap:7,
     alignItems:'center',justifyContent:'center'},
   inboxRow:{borderWidth:1,borderRadius:14,padding:11,

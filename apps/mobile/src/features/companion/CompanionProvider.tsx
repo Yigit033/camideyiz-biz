@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import {router} from 'expo-router';
 import {
-  DEFAULT_ALERT_SETTINGS,validateAlertSettings,
+  DEFAULT_ALERT_SETTINGS,validateAlertSettings,withAdhanPrayer,withAdhanSound,
   type AdhanPrayer,type AlertSound,type PrayerAlertSettings,type PrayerKey,type PrayerSchedule,
 } from '@camideyiz/core';
 import {useSharedPrayerSource} from '@/features/prayer/PrayerSourceProvider';
@@ -75,6 +75,10 @@ type CompanionContextValue={
   announcement:AnnouncementState;
   setEnabled:(next:boolean)=>Promise<boolean>;
   setSound:(next:AlertSound)=>void;
+  /** "Ezan" chosen: turns reminders on (asking for the notification
+   * permission if needed) and guarantees at least one ezan prayer.
+   * false = the permission was refused, nothing changed. */
+  chooseAdhan:()=>Promise<boolean>;
   setPrecise:(next:boolean)=>void;
   setAdhanFor:(key:AdhanPrayer,next:boolean)=>void;
   setAdhanInSilent:(next:boolean)=>void;
@@ -129,6 +133,11 @@ export function CompanionProvider({children}:PropsWithChildren){
   const widgetQueue=useRef<Promise<void>>(Promise.resolve());
   const syncQueue=useRef<Promise<void>>(Promise.resolve());
   const deletedIds=useRef<Set<string>>(new Set());
+  /** District whose ezan alarms are armed in this process (null = none or
+   * unknown). Only a switch to ANOTHER district clears them while its
+   * calendar loads; a same-district reload (offline, GPS still resolving,
+   * cold start) keeps the armed ezan instead of silently dropping it. */
+  const adhanCity=useRef<number|null>(null);
 
   useEffect(()=>{
     const id=setTimeout(()=>{
@@ -344,8 +353,13 @@ export function CompanionProvider({children}:PropsWithChildren){
         // If the upstream is temporarily offline, do not erase a user's
         // already scheduled valid reminders for the same district.
         if(days.length===0&&settings.enabled){
-          // Never keep an old district's native ezan ringing while calendars reload.
-          if(settings.sound==='adhan')await clearNativeAdhan().catch(()=>undefined);
+          // Never keep an old district's native ezan ringing while calendars
+          // reload, but never drop the current district's ezan either.
+          if(settings.sound==='adhan'&&cityId>0&&
+             adhanCity.current!==null&&adhanCity.current!==cityId){
+            await clearNativeAdhan().catch(()=>undefined);
+            adhanCity.current=null;
+          }
           // Remove previous-city alerts while keeping still-valid reminders
           // when only the data source is temporarily offline.
           if(cityId>0){
@@ -355,6 +369,9 @@ export function CompanionProvider({children}:PropsWithChildren){
           return;
         }
         const report=await reconcilePrayerNotifications(days,cityId,settings);
+        // A failed run (undefined) leaves the last known armed district.
+        if(report.adhanScheduled!==undefined)
+          adhanCity.current=report.adhanScheduled>0?cityId:null;
         if(active&&id===syncVersion.current){
           setSync(report);setPermission(report.permission);
           if(report.exactAlarms!==undefined)setExactAlarms(report.exactAlarms);
@@ -392,12 +409,26 @@ export function CompanionProvider({children}:PropsWithChildren){
     return true;
   },[]);
   const setSound=useCallback((next:AlertSound)=>
-    setSettings(old=>({...old,sound:next})),[]);
+    setSettings(old=>next==='adhan'?withAdhanSound(old):{...old,sound:next}),[]);
+  // Choosing the ezan while reminders were off used to change nothing that
+  // could ever play: the plan stayed empty and no ezan was armed.
+  const chooseAdhan=useCallback(async()=>{
+    try{
+      const allowed=await requestPrayerPermission();
+      setPermission(allowed?'granted':'denied');
+      if(!allowed)return false;
+    }catch{
+      setPermission('denied');return false;
+    }
+    setSettings(old=>withAdhanSound({...old,enabled:true}));
+    return true;
+  },[]);
   const setPrecise=useCallback((next:boolean)=>
     setSettings(old=>({...old,precise:next})),[]);
   const setAdhanFor=useCallback((key:AdhanPrayer,next:boolean)=>
-    // validateAlertSettings keeps İmsak off until a sabah ezanı is bundled.
-    setSettings(old=>validateAlertSettings({...old,adhanFor:{...old.adhanFor,[key]:next}})),[]);
+    // Turning a prayer's ezan on also turns on the at-time alert it replaces.
+    // core keeps İmsak off until a sabah ezanı is bundled.
+    setSettings(old=>withAdhanPrayer(old,key,next)),[]);
   const setAdhanInSilent=useCallback((next:boolean)=>
     setSettings(old=>({...old,adhanInSilent:next})),[]);
   const requestExactAlarms=useCallback(async()=>{
@@ -494,11 +525,11 @@ export function CompanionProvider({children}:PropsWithChildren){
   const value=useMemo(()=>({
     settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
     lastWidgetTransfer,announcement,exactAlarms,
-    setEnabled,setSound,setPrecise,setAdhanFor,setAdhanInSilent,requestExactAlarms,
+    setEnabled,setSound,chooseAdhan,setPrecise,setAdhanFor,setAdhanInSilent,requestExactAlarms,
     setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox,
   }),[settings,ready,permission,sync,widget,syncing,inbox,backgroundRegistered,backgroundReport,
        lastWidgetTransfer,announcement,exactAlarms,
-      setEnabled,setSound,setPrecise,setAdhanFor,setAdhanInSilent,requestExactAlarms,
+      setEnabled,setSound,chooseAdhan,setPrecise,setAdhanFor,setAdhanInSilent,requestExactAlarms,
       setEzanAtTimeForAll,setRule,refresh,refreshWidgets,clearInbox,deleteInbox]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

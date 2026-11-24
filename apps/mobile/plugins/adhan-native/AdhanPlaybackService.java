@@ -46,6 +46,10 @@ public final class AdhanPlaybackService extends Service {
   private String time="";
   private String place="";
   private boolean test=false;
+  /** True while an ezan is audible in this process; the app reads it to show
+   * an in-app "Durdur" next to the system notification's stop action. */
+  private static volatile boolean playing=false;
+  static boolean isPlaying(){return playing;}
 
   private final AudioManager.OnAudioFocusChangeListener focusListener=focus->{
     if(player==null)return;
@@ -149,6 +153,7 @@ public final class AdhanPlaybackService extends Service {
   private void finish(AdhanNotifier.Reason outcome){
     if(finished)return;
     finished=true;
+    playing=false;
     releaseResources();
     try{stopForeground(STOP_FOREGROUND_REMOVE);}catch(Exception ignored){}
     AdhanAlarmScheduler.recordOutcome(this,label,outcome.name(),test);
@@ -203,6 +208,7 @@ public final class AdhanPlaybackService extends Service {
         return true;
       });
       player.start();
+      playing=true;
       AdhanAlarmScheduler.recordOutcome(this,label,"STARTED",test);
     }catch(Exception error){
       Log.e(TAG,"Ezan çalma başarısız",error);
@@ -218,6 +224,7 @@ public final class AdhanPlaybackService extends Service {
   @Override public void onDestroy(){
     // System-initiated destroy mid-ezan still leaves the prayer record.
     if(player!=null&&!finished)finish(AdhanNotifier.Reason.STOPPED);
+    playing=false;
     releaseResources();
     try{stopForeground(STOP_FOREGROUND_REMOVE);}catch(Exception ignored){}
     super.onDestroy();

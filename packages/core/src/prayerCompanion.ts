@@ -100,11 +100,86 @@ export function validateAlertSettings(value:unknown):PrayerAlertSettings{
 }
 
 /** True when this event is voiced by the native full ezan INSTEAD of a
- * notification. The single source of truth for both schedulers. */
+ * notification. The single source of truth for both schedulers.
+ *
+ * Only the at-time event ever plays the ezan. An early ("N dakika önce")
+ * reminder always stays a notification: the ezan announces that the time
+ * HAS entered, so voicing it (or a fragment of it) early would tell everyone
+ * in earshot to pray, or break the fast at Akşam, before the time. */
 export function playsFullAdhan(event:PrayerAlertEvent,settings:PrayerAlertSettings):boolean{
   return settings.sound==='adhan'&&event.kind==='atTime'&&
     (ADHAN_PRAYERS as readonly string[]).includes(event.prayer)&&
     settings.adhanFor[event.prayer as AdhanPrayer]===true;
+}
+
+/** A prayer's ezan toggle as the user sees it: ticked AND its at-time alert
+ * is on (the at-time event is what the ezan replaces). A ticked chip whose
+ * at-time alert was off used to look on while nothing could ever play. */
+export function adhanPrayerOn(settings:PrayerAlertSettings,key:AdhanPrayer):boolean{
+  if(key==='imsak'&&!SABAH_EZANI_AVAILABLE)return false;
+  const rule=settings.rules[key];
+  return settings.adhanFor[key]===true&&rule.enabled&&rule.atTime;
+}
+/** The prayers that will really be voiced with the ezan (empty unless the
+ * ezan sound is chosen). Mirrors playsFullAdhan for at-time events. */
+export function voicedAdhanPrayers(settings:PrayerAlertSettings):AdhanPrayer[]{
+  if(settings.sound!=='adhan')return [];
+  return ADHAN_PRAYERS.filter(key=>adhanPrayerOn(settings,key));
+}
+/** Turning a prayer's ezan on also turns on the at-time alert it replaces;
+ * turning it off keeps that alert as a normal notification. */
+export function withAdhanPrayer(settings:PrayerAlertSettings,key:AdhanPrayer,
+  on:boolean):PrayerAlertSettings{
+  if(key==='imsak'&&!SABAH_EZANI_AVAILABLE)return validateAlertSettings(settings);
+  const rules={...settings.rules};
+  if(on)rules[key]={...rules[key],enabled:true,atTime:true};
+  return validateAlertSettings({...settings,rules,adhanFor:{...settings.adhanFor,[key]:on}});
+}
+/** Choosing the ezan must always lead to an ezan: if no prayer would be
+ * voiced, the default ezan prayers are switched on with their at-time alert. */
+export function withAdhanSound(settings:PrayerAlertSettings):PrayerAlertSettings{
+  let next=validateAlertSettings({...settings,sound:'adhan'});
+  if(voicedAdhanPrayers(next).length>0)return next;
+  for(const key of ADHAN_PRAYERS)
+    if(DEFAULT_ADHAN_FOR[key])next=withAdhanPrayer(next,key,true);
+  return next;
+}
+
+/** What can stop the chosen ezan on this phone, most fundamental first.
+ * The app shows one actionable row per blocker. */
+export type AdhanBlocker=
+  'alerts-off'|'notifications'|'no-prayer'|'exact-alarm'|'total-silence'|
+  'silent-mode'|'alarm-muted'|'battery'|'background';
+export type AdhanDeviceState={
+  notifications:'granted'|'denied'|'unknown';
+  /** Android 12+ "Alarms & reminders"; null when unknown / not applicable. */
+  exactAlarms:boolean|null;
+  ringer:'normal'|'vibrate'|'silent'|null;
+  /** Do Not Disturb state; null when unknown. */
+  interruption:'all'|'priority'|'alarms'|'none'|null;
+  alarmVolume:number|null;
+  batteryUnrestricted:boolean|null;
+  /** The OEM is known to stop background apps (ColorOS…) or an ezan alarm
+   * was already lost while the phone was running. */
+  backgroundRisk:boolean;
+};
+export function adhanBlockers(settings:PrayerAlertSettings,
+  device:AdhanDeviceState):AdhanBlocker[]{
+  if(settings.sound!=='adhan')return [];
+  const result:AdhanBlocker[]=[];
+  if(!settings.enabled)result.push('alerts-off');
+  else if(device.notifications==='denied')result.push('notifications');
+  if(voicedAdhanPrayers(settings).length===0)result.push('no-prayer');
+  if(device.exactAlarms===false)result.push('exact-alarm');
+  if(device.interruption==='none')result.push('total-silence');
+  else if(!settings.adhanInSilent&&(
+    (device.ringer!==null&&device.ringer!=='normal')||
+    device.interruption==='priority'||device.interruption==='alarms'))
+    result.push('silent-mode');
+  if(device.alarmVolume===0)result.push('alarm-muted');
+  if(device.batteryUnrestricted===false)result.push('battery');
+  if(device.backgroundRisk)result.push('background');
+  return result;
 }
 function plusDays(dateISO:string,days:number):string{
   const base=Date.parse(assertISODate(dateISO)+'T12:00:00Z');
