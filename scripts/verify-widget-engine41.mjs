@@ -12,12 +12,13 @@ const bridge=read(p+'CamideyizWidgetBridge.java');
 const plugin=read('apps/mobile/plugins/withWidgetBoundaryBridge.js');
 // Theme marks are pixel derivations of the approved icon (build-widget-marks.mjs).
 const MARK_SHA={
-  dark:'232ffef37b07ffb55b14bdb0f6109a2deb37dcd10b8e262b11d45da049cc28cd',
-  light:'a794b0dc3b12bbb1c60af553085661df4ef4f4e4d1c5b410ec6f30efc0309678',
+  dark:'5157cd96e2211b333728e800d95c1f8fe0f103102d4cffffb0cbbadef0dd0892',
+  light:'5a8387ae25419bb04c134f50c0e752423105f18e62c440de36a72335babf1c90',
 };
 for(const theme of ['dark','light']){
   const logo=readFileSync(resolve(root,'apps/mobile/assets/widget-mark-'+theme+'.png'));
-  assert.equal(logo.readUInt32BE(16),256,'widget mark width');
+  // 384px: sharp at the larger ~96dp logo boxes on xxxhdpi launchers.
+  assert.equal(logo.readUInt32BE(16),384,'widget mark width');
   assert.equal(createHash('sha256').update(logo).digest('hex'),MARK_SHA[theme],
     'widget-mark-'+theme+'.png must be the build-widget-marks.mjs derivation');
 }
@@ -27,7 +28,8 @@ assert.match(plugin,/'widget_brand_mark_'\+theme\+'\.png'/);
 assert.doesNotMatch(plugin,/widget_brand_lockup/,'opaque square badge logo is retired');
 const base=['widget_compact_prayer','widget_next_prayer','widget_prayer_day',
   'widget_prayer_focus','widget_prayer_strip','widget_ring_mini',
-  'widget_ring_premium','widget_slim_prayer','widget_ring_square'];
+  'widget_ring_premium','widget_slim_prayer','widget_ring_square',
+  'widget_prayer_row','widget_prayer_column'];
 for(const variant of base)for(const suffix of ['','_light']){
   const xml=read(p+variant+suffix+'.xml');
   assert.match(xml,/@drawable\/widget_brand_mark_(dark|light)"/);
@@ -44,7 +46,7 @@ assert.match(engine,/WidgetBoundaryScheduler\.renderFailed/);
 assert.match(sched,/WidgetRenderPipeline\.enqueue\(/);
 assert.match(sched,/private static String\[\] familyKeys\(/);
 assert.match(sched,/widgetFamilySignature/);
-assert.match(sched,/BRAND_VERSION=5;/);
+assert.match(sched,/BRAND_VERSION=6;/);
 assert.match(sched,/nativeRenderPending/);
 assert.match(sched,/reason\.endsWith\(launcherShortName\(i\)\)/);
 assert.match(sched,/"launcher:update:all"\.equals\(reason\)/);
@@ -56,10 +58,12 @@ assert.match(sched,/widget_ring_square_countdown/);
 assert.match(engine,/dirty\[8\]&&installed\[8\]\.length>0/);
 assert.match(plugin,/SquarePrayerRingWidgetProvider/);
 assert.match(plugin,/widget_ring_square_info/);
-for(let i=0;i<9;i++)
+assert.match(plugin,/PrayerRowWidgetProvider/);
+assert.match(plugin,/PrayerColumnWidgetProvider/);
+for(let i=0;i<11;i++)
   assert.match(sched,new RegExp('if\\([a-zA-Z]+\\.length>0&&dirty\\['+i+'\\]&&isCurrentGeneration\\(generation\\)\\)'));
 assert.match(asyncReceiver,/AtomicBoolean finished=new AtomicBoolean\(false\)/);
 assert.match(asyncReceiver,/WidgetBoundaryScheduler\.refresh\(app,reason,finish\)/);
 assert.match(asyncReceiver,/DEADLINE\.schedule\(\(\)->safeFinish\(pending\),8,TimeUnit\.SECONDS\)/);
 assert.match(asyncReceiver,/ACTIVE_RECEIPTS\.remove\(pending\)==null/);
-console.log('Widget 4.2: nine independently dirty widget families, complete brand, bounded workers, fixed 2x2 ring, native countdown and goAsync watchdog verified');
+console.log('Widget 4.2: eleven independently dirty widget families, complete brand, bounded workers, fixed 2x2 ring, native countdown and goAsync watchdog verified');

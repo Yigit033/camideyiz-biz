@@ -7,7 +7,7 @@ export type WidgetSyncResult={
   installedNext?:number;installedDay?:number;
   installedCompact?:number;installedFocus?:number;installedStrip?:number;
   installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;
-  installedSquareRing?:number;
+  installedSquareRing?:number;installedRow?:number;installedColumn?:number;
   lastNativeWriteAt?:number;nextNativeAlarmAt?:number;
   nativePersisted?:boolean;launcherConfirmed?:false;
 };
@@ -15,6 +15,7 @@ export type PrayerWidgetProps={
   ready:boolean;city:string;dateISO:string;nextName:string;nextTime:string;
   nextAt:number;updatedAt:number;remainingMinutes:number;updatedClock:string;
   times:{key:string;label:string;time:string}[];
+  kerahat:boolean;hijriDate:string;
 };
 export function toWidgetProps(source:PrayerWidgetSnapshot):PrayerWidgetProps{
   const seconds=zonedClock(new Date(source.updatedAt),'Europe/Istanbul').secondsOfDay;
@@ -26,5 +27,6 @@ export function toWidgetProps(source:PrayerWidgetSnapshot):PrayerWidgetProps{
     nextAt:source.nextAt,updatedAt:source.updatedAt,
     remainingMinutes:source.remainingMinutes,
     times:source.times.map(t=>({...t})),
+    kerahat:source.kerahat,hijriDate:source.hijriDate,
   };
 }

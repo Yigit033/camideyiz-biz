@@ -14,6 +14,7 @@ const variants=[
   'widget_compact_prayer','widget_next_prayer','widget_prayer_day',
   'widget_prayer_focus','widget_prayer_strip','widget_ring_mini',
   'widget_ring_premium','widget_slim_prayer','widget_ring_square',
+  'widget_prayer_row','widget_prayer_column',
 ];
 const clocks={
   widget_compact_prayer:'widget_compact_countdown',
@@ -25,6 +26,8 @@ const clocks={
   widget_ring_premium:'widget_ring_premium_countdown',
   widget_slim_prayer:'widget_slim_countdown',
   widget_ring_square:'widget_ring_square_countdown',
+  widget_prayer_row:'widget_row_countdown',
+  widget_prayer_column:'widget_col_countdown',
 };
 const secondary={
  widget_compact_prayer:'widget_compact_time',
@@ -36,6 +39,8 @@ const secondary={
  widget_slim_prayer:'widget_slim_time',
  widget_ring_square:'widget_ring_square_next',
  widget_prayer_day:'widget_day_time_0',
+ widget_prayer_row:'widget_row_time_0',
+ widget_prayer_column:'widget_col_time_0',
 };
 function element(xml,id){
   const tags=[...xml.matchAll(/<(TextView|Chronometer|LinearLayout|ImageView)\b[^<>]*\/?>/g)].map(x=>x[0]);
@@ -78,7 +83,8 @@ for(const kind of variants){
 }
 const comp=read(p+'widget_compact_prayer.xml');
 assert.ok(font(comp,clocks.widget_compact_prayer)>=15);
-assert.ok(font(comp,'widget_compact_time')<=11);
+// Next prayer + clock now share one outlined line; still below the countdown.
+assert.ok(font(comp,'widget_compact_time')<=13);
 assert.match(read(p+'widget_compact_prayer_info.xml'),/targetCellWidth="1"/);
 assert.match(read(p+'widget_compact_prayer_info.xml'),/targetCellHeight="1"/);
 assert.match(read(p+'widget_slim_prayer_info.xml'),/targetCellWidth="1"/);
@@ -136,7 +142,7 @@ for(const token of ['widget_ring_square_root','widget_ring_square_art',
 assert.match(scheduler,/manager\.updateAppWidget\(squareRing,card\)/);
 assert.match(scheduler,/nextInCurrentDay\?label\.equals\(next\):i==5/,
   'After Yatsı do not highlight today’s expired İmsak');
-assert.match(scheduler,/BRAND_VERSION=5;/);
+assert.match(scheduler,/BRAND_VERSION=6;/);
 assert.match(pipe,/dirty\[8\]&&installed\[8\]\.length>0/);
 assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,224\)/);
 assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,432\)/);
@@ -184,4 +190,38 @@ for(const name of ['widget_ring_mini','widget_ring_square','widget_ring_premium'
 }
 assert.match(ring,/sector\(canvas,pen,ring,0,boundaries\[0\],COLORS\[5\]/);
 assert.doesNotMatch(ring,/fetch\(|HttpURLConnection|WebView/);
-console.log('Widget Design 8.0: 9 variants, countdown-first hierarchy, autosized content that fills the launcher cell, ring-proportional centre text and light/dark parity validated');
+// Widget Design 9.0 — owner-approved: large mark, outlined 1×1, kerahet outline,
+// resizable six-prayer row and column.
+for(const suffix of ['','_light']){
+  const compact=read(p+'widget_compact_prayer'+suffix+'.xml');
+  const mark=element(compact,'widget_compact_next_row');
+  assert.match(mark,/android:background="@drawable\/widget_box_(dark|light)"/);
+  assert.match(element(compact,'widget_compact_remaining_row'),
+    /android:background="@drawable\/widget_box_(dark|light)"/);
+  assert.match(compact,/<ImageView[^>]*android:layout_weight="0\.40"[^>]*widget_brand_mark_/,
+    '1×1 brand mark is the largest slot');
+  for(const name of ['widget_prayer_row','widget_prayer_column']){
+    const xml=read(p+name+suffix+'.xml');
+    const short=name==='widget_prayer_row'?'row':'col';
+    for(const id of ['logo','brand','remaining'])element(xml,'widget_'+short+'_'+id);
+    assert.match(element(xml,'widget_'+short+'_brand'),/android:visibility="gone"/);
+    assert.match(element(xml,'widget_'+short+'_remaining'),/android:visibility="gone"/);
+    for(let i=0;i<6;i++)element(xml,'widget_'+short+'_icon_'+i);
+  }
+}
+assert.match(read(p+'widget_prayer_row_info.xml'),/targetCellWidth="4"[^>]*targetCellHeight="1"/);
+assert.match(read(p+'widget_prayer_row_info.xml'),/resizeMode="horizontal"/);
+assert.match(read(p+'widget_prayer_column_info.xml'),/targetCellWidth="1"[^>]*targetCellHeight="4"/);
+assert.match(read(p+'widget_prayer_column_info.xml'),/resizeMode="vertical"/);
+// Kerahet: ONLY the 1×1 "Kalan" outline changes; it follows the app's rule.
+assert.match(scheduler,/setInt\(R\.id\.widget_compact_remaining_row,"setBackgroundResource",kerahat/);
+assert.match(scheduler,/boolean kerahat=ready&&props\.optBoolean\("kerahat",false\)/);
+assert.match(scheduler,/next\+"\|"\+kerahat/,'1×1 repaints when kerahet starts or ends');
+// Responsive buckets: Android 12+ size map, options fallback below it.
+assert.match(scheduler,/new RemoteViews\(sizes\)/);
+assert.match(scheduler,/OPTION_APPWIDGET_MIN_WIDTH/);
+assert.match(scheduler,/OPTION_APPWIDGET_MAX_HEIGHT/);
+// The row/column highlight the CURRENT period, like the home screen.
+assert.match(scheduler,/current=!ready\?-1:!nextInCurrentDay\?5:nextIndex<0\?-1:\(nextIndex\+5\)%6/);
+console.log('Widget Design 9.0: large brand mark, outlined 1×1 with kerahet outline, resizable six-prayer row and column');
+console.log('Widget Design 8.0: 11 variants, countdown-first hierarchy, autosized content that fills the launcher cell, ring-proportional centre text and light/dark parity validated');

@@ -95,7 +95,7 @@ assert.match(service,/current\.id!==place\.id\|\|current\.source!==source/,
   'after network fetch, recheck district before publishing');
 assert.match(companion,/fetchAndPublishVerifiedWidgetCalendar\(place,selectedSource\)/,
   'refresh button must call the dedicated verified publisher fallback');
-assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!source\.place\)return/,
+assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!kerahatReady\|\|!source\.place\)return/,
   'startup must wait for first paint and a real GPS district before native writes');
 assert.match(panel,/if\(!result\.updated\)\{\s*setFailure\(result\.detail\);\s*setError\('Widget güncellenemedi/,
   'manual repair must not claim success before native publish');

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   buildPrayerWidgetSnapshot,makeWidgetCalendarCache,parseWidgetCalendarCache,
   WIDGET_NETWORK_REFRESH_MS,zonedClock,
-  type PrayerSchedule,type WidgetCalendarCache,validateAlertSettings,
+  type KerahatSettings,type PrayerSchedule,type WidgetCalendarCache,validateAlertSettings,
 } from '@camideyiz/core';
 import {getMirrorPrayerTriplet,getPrayerTriplet,
   type PrayerPlaceSelection} from '../prayer/prayerApi';
@@ -153,6 +153,7 @@ export async function syncForegroundWidgetCalendar(
   days:readonly PrayerSchedule[],
   publishedAt:number|null,
   now=Date.now(),
+  kerahat?:KerahatSettings,
 ):Promise<import('./widgetSyncShared').WidgetSyncResult>{
   if(!enabled())return syncPrayerWidgets(days,now);
   // Native selection is atomic and independent of provider availability.
@@ -191,7 +192,7 @@ export async function syncForegroundWidgetCalendar(
   let result:import('./widgetSyncShared').WidgetSyncResult;
   if(selected.length>0){
     result=await syncPrayerWidgets(selected,now,place.id,
-      verifiedCache?.fetchedAt??now);
+      verifiedCache?.fetchedAt??now,kerahat);
   }else{
     const reason=days.length>=2
       ?'Yayımlanmış takvim doğrulanamadı: tarih, ilçe ve kaynak zamanı kontrol edilmeli.'

@@ -8,6 +8,9 @@ export type PrayerSchedule = {
   dateISO: string;
   isDemo: boolean;
   times: readonly PrayerTime[];
+  /** Published Hijri date for this day ("13 Cemaziyelahir 1448"), when the
+   * source provides one. Never calculated locally for widgets. */
+  hijriDate?: string | null;
 };
 /** DEMO ONLY: NOT VALID RELIGIOUS PRAYER TIMES. */
 export const DEMO_SCHEDULE: PrayerSchedule = {

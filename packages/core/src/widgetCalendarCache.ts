@@ -25,8 +25,12 @@ export function makeWidgetCalendarCache(
     days:days.slice(0,WIDGET_CACHE_MAX_DAYS).map(d=>({
       dateISO:d.dateISO,timezone:d.timezone,locationName:d.locationName,
       isDemo:d.isDemo,times:d.times.map(t=>({...t})),
+      ...(validHijri(d.hijriDate)?{hijriDate:d.hijriDate}:{}),
     }))};
 }
+
+const validHijri=(value:unknown):value is string=>
+  typeof value==='string'&&value.trim().length>0&&value.length<=120;
 
 /** Parse untrusted on-device storage defensively. Reject fake times, wrong
  * cities, stale timestamps, wrong zones, and any non-consecutive date. */
@@ -74,7 +78,8 @@ export function parseWidgetCalendarCache(
         if(Date.parse(dateISO+'T12:00:00Z')!==prior+86400_000)return null;
       }
       days.push({dateISO,locationName:d.locationName as string,
-        timezone:'Europe/Istanbul',isDemo:false,times});
+        timezone:'Europe/Istanbul',isDemo:false,times,
+        ...(validHijri(d.hijriDate)?{hijriDate:d.hijriDate}:{})});
     }
     return {version:1,cityId:expectedCityId,cityName:obj.cityName as string,
       source:obj.source as WidgetCalendarCache['source'],fetchedAt,days};

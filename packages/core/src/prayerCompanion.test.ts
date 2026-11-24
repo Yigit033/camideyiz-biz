@@ -168,3 +168,37 @@ test('Android next-boundary plan never skips times after multiple delayed wakeup
   assert.equal(nativeAt(prayerInstant('2026-11-15','20:00'))?.status,'no-data',
     'without a third verified day the widget must not invent tomorrow’s Imsak');
 });
+
+test('widget kerahet follows the home-screen rule and adds on-time boundaries',()=>{
+  const settings={mode:'custom' as const,sunriseMinutes:45,preNoonMinutes:30,preSunsetMinutes:45};
+  const now=prayerInstant('2026-11-14','06:05');
+  const plain=buildPrayerWidgetTimeline([base,next],now,160);
+  const entries=buildPrayerWidgetTimeline([base,next],now,160,settings);
+  assert.ok(plain.every(e=>!e.snapshot.kerahat),'no settings: never a kerahet look');
+  // Güneş 07:43 → +45; Öğle 12:53 → −30; Akşam 17:54 → −45.
+  for(const [time,inside] of [
+    ['07:43',true],['08:28',false],['12:23',true],['12:53',false],
+    ['17:09',true],['17:54',false],
+  ] as const){
+    const entry=entries.find(e=>e.date===prayerInstant('2026-11-14',time));
+    assert.ok(entry,'missing kerahet boundary at '+time);
+    assert.equal(entry.snapshot.kerahat,inside,'kerahet at '+time);
+  }
+  // A kerahet edge is not a prayer: the next prayer and its clock stay put.
+  const sunset=entries.find(e=>e.date===prayerInstant('2026-11-14','17:09'))!;
+  assert.equal(sunset.snapshot.nextName,'Akşam');
+  assert.equal(sunset.snapshot.nextAt,prayerInstant('2026-11-14','17:54'));
+  assert.equal(entries.length,plain.length+6,'three extra edges per remaining day');
+  const hidden=buildPrayerWidgetTimeline([base,next],now,160,{...settings,mode:'hidden'});
+  assert.equal(hidden.length,plain.length);
+  assert.ok(hidden.every(e=>!e.snapshot.kerahat));
+});
+
+test('widget carries the published Hijri date of the current day only',()=>{
+  const at=prayerInstant('2026-11-14','10:00');
+  const snapshot=buildPrayerWidgetSnapshot(
+    [{...base,hijriDate:' 13 Cemaziyelevvel 1448 '},{...next,hijriDate:'14 Cemaziyelevvel 1448'}],at);
+  assert.equal(snapshot.hijriDate,'13 Cemaziyelevvel 1448');
+  assert.equal(buildPrayerWidgetSnapshot([base,next],at).hijriDate,'',
+    'no published Hijri date: the widget hides the line instead of computing one');
+});

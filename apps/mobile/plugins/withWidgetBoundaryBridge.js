@@ -37,6 +37,10 @@ const PROVIDERS=[
     info:'widget_slim_prayer_info'},
   {name:'SquarePrayerRingWidgetProvider',title:'Kalan Süre Çemberi 2×2',
     info:'widget_ring_square_info'},
+  {name:'PrayerRowWidgetProvider',title:'Yatay Vakit Şeridi',
+    info:'widget_prayer_row_info'},
+  {name:'PrayerColumnWidgetProvider',title:'Dikey Vakit Şeridi',
+    info:'widget_prayer_column_info'},
 ];
 const RESOURCES={
   layout:[
@@ -49,6 +53,8 @@ const RESOURCES={
     'widget_ring_premium.xml','widget_ring_premium_light.xml',
     'widget_slim_prayer.xml','widget_slim_prayer_light.xml',
     'widget_ring_square.xml','widget_ring_square_light.xml',
+    'widget_prayer_row.xml','widget_prayer_row_light.xml',
+    'widget_prayer_column.xml','widget_prayer_column_light.xml',
   ],
   drawable:[
     'widget_bg.xml','widget_bg_light.xml',
@@ -59,6 +65,13 @@ const RESOURCES={
     'widget_strip_footer_dark.xml','widget_strip_footer_light.xml',
     'widget_strip_selected_dark.xml','widget_strip_selected_light.xml',
     'widget_ring_track.xml',
+    'widget_box_dark.xml','widget_box_light.xml',
+    'widget_box_kerahet_dark.xml','widget_box_kerahet_light.xml',
+    'widget_cell_dark.xml','widget_cell_light.xml',
+    'widget_cell_on_imsak.xml','widget_cell_on_gunes.xml','widget_cell_on_ogle.xml',
+    'widget_cell_on_ikindi.xml','widget_cell_on_aksam.xml','widget_cell_on_yatsi.xml',
+    'widget_ic_imsak.xml','widget_ic_gunes.xml','widget_ic_ogle.xml',
+    'widget_ic_ikindi.xml','widget_ic_aksam.xml','widget_ic_yatsi.xml',
   ],
   xml:[
     'widget_next_prayer_info.xml','widget_prayer_day_info.xml',
@@ -66,6 +79,7 @@ const RESOURCES={
     'widget_prayer_strip_info.xml',
     'widget_ring_mini_info.xml','widget_ring_premium_info.xml',
     'widget_slim_prayer_info.xml','widget_ring_square_info.xml',
+    'widget_prayer_row_info.xml','widget_prayer_column_info.xml',
   ],
 };
 // Day/night aliases (`*_auto` layouts/drawables) and picker descriptions.

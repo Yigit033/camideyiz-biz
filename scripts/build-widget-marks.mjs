@@ -18,7 +18,7 @@ const assets=resolve(import.meta.dirname,'..','apps/mobile/assets');
 const SOURCE=resolve(assets,'splash-mark.png');
 export const OUTPUTS={dark:resolve(assets,'widget-mark-dark.png'),
   light:resolve(assets,'widget-mark-light.png')};
-const WIDTH=256; // ≥ 4× the largest on-widget logo box (~56dp at xxxhdpi)
+const WIDTH=384; // ≥ 4× the largest on-widget logo box (~96dp at xxxhdpi)
 // Light tone map on the app's own brand blues (src/theme/tokens.ts):
 // shadows → accentStrong #0C76B4, highlights → logo cyan #20B6EB. The
 // wordmark lands near the shadow end, keeping ~4:1 contrast on ivory.

@@ -136,3 +136,13 @@ test('Widget 3.1: 20:44 local after Yatsı still has a real upcoming next-day İ
   assert.equal(parseWidgetCalendarCache(cache,now,9740),null,
     'Tuzla must never be reused under Karataş or another district');
 });
+
+test('published Hijri dates survive the widget cache; anything else is dropped',()=>{
+ const withHijri=makeWidgetCalendarCache(9541,today.locationName,'idamedya-diyanet-republished',
+   [{...today,hijriDate:'4 Cemaziyelahir 1448'},{...tomorrow,hijriDate:'x'.repeat(121)}],now-30_000);
+ const restored=parseWidgetCalendarCache(JSON.parse(JSON.stringify(withHijri)),now,9541);
+ assert.equal(restored?.days[0].hijriDate,'4 Cemaziyelahir 1448');
+ assert.equal(restored?.days[1].hijriDate,undefined,'oversized text is not a date');
+ const forged={...withHijri,days:[{...withHijri.days[0],hijriDate:42},withHijri.days[1]]};
+ assert.equal(parseWidgetCalendarCache(forged,now,9541)?.days[0].hijriDate,undefined);
+});

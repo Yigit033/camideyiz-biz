@@ -10,6 +10,11 @@
   <item name="widget_ring_premium_auto" type="layout">@layout/widget_ring_premium_light</item>
   <item name="widget_slim_prayer_auto" type="layout">@layout/widget_slim_prayer_light</item>
   <item name="widget_ring_square_auto" type="layout">@layout/widget_ring_square_light</item>
+  <item name="widget_prayer_row_auto" type="layout">@layout/widget_prayer_row_light</item>
+  <item name="widget_prayer_column_auto" type="layout">@layout/widget_prayer_column_light</item>
+  <item name="widget_box_auto" type="drawable">@drawable/widget_box_light</item>
+  <item name="widget_box_kerahet_auto" type="drawable">@drawable/widget_box_kerahet_light</item>
+  <item name="widget_cell_auto" type="drawable">@drawable/widget_cell_light</item>
   <item name="widget_active_auto" type="drawable">@drawable/widget_active_light</item>
   <item name="widget_strip_selected_auto" type="drawable">@drawable/widget_strip_selected_light</item>
   <string name="widget_next_prayer_description">Sıradaki vakit, saati ve canlı kalan süre</string>
@@ -21,4 +26,6 @@
   <string name="widget_ring_premium_description">Büyük vakit çemberi, kalan süre ve altı vakit</string>
   <string name="widget_slim_prayer_description">Dar alanda dikey sıradaki vakit ve kalan süre</string>
   <string name="widget_ring_square_description">Merkezinde kalan süre olan kare vakit çemberi</string>
+  <string name="widget_prayer_row_description">Altı vakit yatay şeritte; genişledikçe kalan süre ve tarih eklenir</string>
+  <string name="widget_prayer_column_description">Altı vakit dikey şeritte; uzadıkça kalan süre ve tarih eklenir</string>
 </resources>

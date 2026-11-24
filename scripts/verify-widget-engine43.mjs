@@ -17,7 +17,8 @@ const coordinator=read(p+'WidgetBoundaryAsyncRefresh.java');
 const plugin=read('apps/mobile/plugins/withWidgetBoundaryBridge.js');
 const families=['widget_next_prayer','widget_prayer_day','widget_compact_prayer',
   'widget_prayer_focus','widget_prayer_strip','widget_ring_mini',
-  'widget_ring_premium','widget_slim_prayer','widget_ring_square'];
+  'widget_ring_premium','widget_slim_prayer','widget_ring_square',
+  'widget_prayer_row','widget_prayer_column'];
 const EXACT='android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED';
 
 // 1. On-time prayer switch: exact when permitted, safe inexact fallback,
@@ -53,7 +54,7 @@ for(const name of families){
   assert.match(info,new RegExp('android:previewLayout="@layout/'+name+'_auto"'));
   assert.match(info,new RegExp('android:description="@string/'+name+'_description"'));
 }
-for(const d of ['widget_active','widget_strip_selected']){
+for(const d of ['widget_active','widget_strip_selected','widget_box','widget_box_kerahet','widget_cell']){
   assert.ok(day.includes('@drawable/'+d+'_light')&&night.includes('@drawable/'+d+'_dark'));
 }
 assert.doesNotMatch(night,/<string /,'strings belong to the default values file only');
@@ -86,7 +87,9 @@ assert.doesNotMatch(ring,/light\?/,'ring bitmap must be theme-neutral');
 // 4. Picker previews show prayer NAMES only, never fabricated clocks.
 for(const [name,prefix] of [['widget_prayer_day','widget_day_label_'],
     ['widget_prayer_strip','widget_strip_label_'],
-    ['widget_ring_premium','widget_ring_premium_label_']]){
+    ['widget_ring_premium','widget_ring_premium_label_'],
+    ['widget_prayer_row','widget_row_label_'],
+    ['widget_prayer_column','widget_col_label_']]){
   for(const suffix of ['','_light']){
     const xml=read(p+name+suffix+'.xml');
     ['İmsak','Güneş','Öğle','İkindi','Akşam','Yatsı'].forEach((label,i)=>{

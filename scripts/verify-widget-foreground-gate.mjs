@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   widgetNeedsForegroundPublish,FOREGROUND_REPUBLISH_INTERVAL_MS,
+  widgetContentKey,WIDGET_PAYLOAD_REVISION,
 } from '../apps/mobile/src/features/widgets/widgetForegroundGate.ts';
 
 const NOW=1_795_063_000_000;
@@ -31,4 +32,14 @@ assert.equal(widgetNeedsForegroundPublish({...current,lastSyncAt:NOW-FOREGROUND_
 assert.equal(widgetNeedsForegroundPublish({...current,lastSyncAt:NOW-FOREGROUND_REPUBLISH_INTERVAL_MS},9545,NOW),true);
 assert.equal(widgetNeedsForegroundPublish(current,0,NOW),false,
   'GPS unresolved must not clear existing district');
+// Content key: a timeline from an older app or other kerahet settings is
+// republished at once instead of waiting for the 6-hour refresh.
+const key=widgetContentKey({mode:'custom',sunriseMinutes:45,preNoonMinutes:30,preSunsetMinutes:45});
+assert.equal(key,'p'+WIDGET_PAYLOAD_REVISION+'|custom|45|30|45');
+assert.equal(widgetNeedsForegroundPublish({...current,calendarContentKey:key},9545,NOW,key),false);
+assert.equal(widgetNeedsForegroundPublish(current,9545,NOW,key),true,
+  'calendar published before kerahet/Hijri support must be replaced');
+assert.equal(widgetNeedsForegroundPublish({...current,calendarContentKey:key},9545,NOW,
+  widgetContentKey({mode:'hidden',sunriseMinutes:45,preNoonMinutes:30,preSunsetMinutes:45})),true,
+  'changing the kerahet preference republishes the widget timeline');
 console.log('Widget foreground health gate: healthy installed Pendik widgets skip startup write; old/wrong/missing data republished safely');

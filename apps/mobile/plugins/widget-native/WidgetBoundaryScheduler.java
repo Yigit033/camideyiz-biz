@@ -9,8 +9,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
+import android.util.SizeF;
 import android.graphics.Color;
 import android.graphics.Bitmap;
 import android.widget.RemoteViews;
@@ -25,6 +27,8 @@ import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -49,7 +53,7 @@ public final class WidgetBoundaryScheduler {
     "NextPrayerWidget","PrayerDayWidget","CompactPrayerWidget",
     "PrayerFocusWidget","PrayerStripWidget",
     "MiniPrayerRingWidget","PremiumPrayerRingWidget","SlimPrayerWidget",
-    "SquarePrayerRingWidget"
+    "SquarePrayerRingWidget","PrayerRowWidget","PrayerColumnWidget"
   };
   // Published days may remain valid offline up to their 16-day coverage.
   // Do not erase a still-valid published timetable after only 72 hours.
@@ -69,9 +73,10 @@ public final class WidgetBoundaryScheduler {
   private static volatile boolean renderPending=false;
   private static volatile long latestGeneration=0;
   private static volatile String pendingSignature="";
-  // 5: theme-specific transparent brand marks (4: day/night layouts, light
-  // rings). Forces one clean repaint of every pinned widget after upgrade.
-  private static final int BRAND_VERSION=5;
+  // 6: larger brand marks, outlined 1×1 with the kerahet outline, six-prayer
+  // row/column families (5: theme-specific marks; 4: day/night layouts).
+  // Forces one clean repaint of every pinned widget after upgrade.
+  private static final int BRAND_VERSION=6;
   // The boundary alarm fires AT the published prayer minute. A delivery
   // that lands a moment early/late must already present the new interval,
   // so the launcher Chronometer never shows a negative "−00:01" countdown.
@@ -179,8 +184,11 @@ public final class WidgetBoundaryScheduler {
         now - sourceAt > MAX_AGE)
       throw new JSONException("outdated widget source or sync request");
     JSONArray entries = root.optJSONArray("entries");
-    if (entries == null || entries.length() < 1 || entries.length() > 110)
+    // Six prayers, midnight and up to six kerahet edges per published day.
+    if (entries == null || entries.length() < 1 || entries.length() > 170)
       throw new JSONException("invalid prayer boundary count");
+    if (root.optString("contentKey","").length() > 80)
+      throw new JSONException("invalid widget content key");
     long last = -1;
     for (int i = 0; i < entries.length(); i++) {
       JSONObject entry = entries.getJSONObject(i);
@@ -438,7 +446,7 @@ public final class WidgetBoundaryScheduler {
 
   private static String launcherShortName(int index){
     return new String[]{"next","daily","compact","focus","strip",
-        "ring:mini","ring:premium","slim","ring:square"}[index];
+        "ring:mini","ring:premium","slim","ring:square","row","column"}[index];
   }
 
   /** Per-family signatures must not include the clock's moving seconds:
@@ -457,10 +465,12 @@ public final class WidgetBoundaryScheduler {
     // re-resolves resources itself, so no redundant repaint is queued.
     String locale=prefs(context).getInt("activeCityId",0)+"|"+
         themeKey(context)+"|"+props.optBoolean("ready",false)+"|";
+    String kerahat=String.valueOf(props.optBoolean("kerahat",false));
+    String dated=date+"|"+props.optString("hijriDate","")+"|"+next+"|"+day;
     String[] data={city+"|"+next,city+"|"+date+"|"+next+"|"+day,
-        next,city+"|"+next,city+"|"+date+"|"+next+"|"+day,
+        next+"|"+kerahat,city+"|"+next,city+"|"+date+"|"+next+"|"+day,
         date+"|"+next+"|"+day,city+"|"+date+"|"+next+"|"+day,next,
-        date+"|"+next+"|"+day};
+        date+"|"+next+"|"+day,dated,dated};
     String[] result=new String[NAMES.length];
     for(int i=0;i<NAMES.length;i++){
       int[] copy=ids[i].clone();
@@ -521,7 +531,7 @@ public final class WidgetBoundaryScheduler {
     }
   }
 
-  /** Only nine binder inventory reads per refresh, including a widget-ID
+  /** Only eleven binder inventory reads per refresh, including a widget-ID
    * fingerprint: replacing one 1×1 instance without changing count still
    * triggers its initial render.
    */
@@ -537,7 +547,9 @@ public final class WidgetBoundaryScheduler {
       manager.getAppWidgetIds(component(context,NAMES[5])),
       manager.getAppWidgetIds(component(context,NAMES[6])),
       manager.getAppWidgetIds(component(context,NAMES[7])),
-      manager.getAppWidgetIds(component(context,NAMES[8]))
+      manager.getAppWidgetIds(component(context,NAMES[8])),
+      manager.getAppWidgetIds(component(context,NAMES[9])),
+      manager.getAppWidgetIds(component(context,NAMES[10]))
     };
     StringBuilder key=new StringBuilder(600);
     key.append(BRAND_VERSION).append('|')
@@ -549,6 +561,8 @@ public final class WidgetBoundaryScheduler {
       .append(props.optString("nextName","")).append('|')
       .append(props.optString("nextTime","")).append('|')
       .append(props.optLong("nextAt",0)).append('|')
+      .append(props.optBoolean("kerahat",false)).append('|')
+      .append(props.optString("hijriDate","")).append('|')
       .append(props.optJSONArray("times")==null?"[]":props.optJSONArray("times").toString());
     int count=0;
     for(int[] category:ids){
@@ -634,6 +648,7 @@ public final class WidgetBoundaryScheduler {
         props.optString("dateISO","").equals(isoDate(nextAt));
     long now=System.currentTimeMillis();
     Look look=look(context);
+    boolean kerahat=ready&&props.optBoolean("kerahat",false);
     int count=0;
 
     // 2×2: published prayer clock and a native, launcher-driven countdown.
@@ -712,6 +727,12 @@ public final class WidgetBoundaryScheduler {
       setCountdown(card,R.id.widget_compact_countdown,nextAt,now);
       card.setViewVisibility(R.id.widget_compact_remaining_row,
           ready?View.VISIBLE:View.GONE);
+      // Kerahet: only the "Kalan" box outline turns orange; nothing else moves.
+      card.setInt(R.id.widget_compact_remaining_row,"setBackgroundResource",kerahat
+          ?look.pick(R.drawable.widget_box_kerahet_light,R.drawable.widget_box_kerahet_dark,
+              R.drawable.widget_box_kerahet_auto)
+          :look.pick(R.drawable.widget_box_light,R.drawable.widget_box_dark,
+              R.drawable.widget_box_auto));
       card.setOnClickPendingIntent(R.id.widget_compact_root,launchAction(context,41020));
       manager.updateAppWidget(compact,card);
       count+=compact.length;
@@ -886,7 +907,209 @@ public final class WidgetBoundaryScheduler {
       manager.updateAppWidget(squareRing,card);
       count+=squareRing.length;
     }
+
+    // Six-prayer row (4×1 → 6×1) and column (1×4 → 1×6): one layout per
+    // theme and three size buckets. Android 12+ launchers pick the bucket
+    // that fits from a responsive map; older launchers get it from options.
+    int[] row=widgetIds[9];
+    if(row.length>0&&dirty[9]&&isCurrentGeneration(generation)){
+      Strip data=new Strip(props,times,ready,next,nextInCurrentDay,nextAt,now);
+      if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
+        Map<SizeF,RemoteViews> sizes=new HashMap<>();
+        for(int bucket=0;bucket<3;bucket++)
+          sizes.put(new SizeF(ROW_WIDTHS[bucket],40f),rowCard(context,look,data,bucket));
+        manager.updateAppWidget(row,new RemoteViews(sizes));
+      }else{
+        for(int id:row){
+          Bundle options=manager.getAppWidgetOptions(id);
+          int width=options==null?0:options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,0);
+          manager.updateAppWidget(id,rowCard(context,look,data,bucketFor(width,ROW_WIDTHS)));
+        }
+      }
+      count+=row.length;
+    }
+    int[] column=widgetIds[10];
+    if(column.length>0&&dirty[10]&&isCurrentGeneration(generation)){
+      Strip data=new Strip(props,times,ready,next,nextInCurrentDay,nextAt,now);
+      if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
+        Map<SizeF,RemoteViews> sizes=new HashMap<>();
+        for(int bucket=0;bucket<3;bucket++)
+          sizes.put(new SizeF(40f,COLUMN_HEIGHTS[bucket]),columnCard(context,look,data,bucket));
+        manager.updateAppWidget(column,new RemoteViews(sizes));
+      }else{
+        for(int id:column){
+          Bundle options=manager.getAppWidgetOptions(id);
+          int height=options==null?0:options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,0);
+          manager.updateAppWidget(id,columnCard(context,look,data,bucketFor(height,COLUMN_HEIGHTS)));
+        }
+      }
+      count+=column.length;
+    }
     return count;
+  }
+
+  // Size buckets (dp): logo + six prayers; + remaining time; + dates.
+  private static final float[] ROW_WIDTHS={150f,330f,395f};
+  private static final float[] COLUMN_HEIGHTS={200f,400f,480f};
+  private static final String[] DEFAULT_LABELS={"İmsak","Güneş","Öğle","İkindi","Akşam","Yatsı"};
+  private static final int[] ACTIVE_CELLS={R.drawable.widget_cell_on_imsak,
+    R.drawable.widget_cell_on_gunes,R.drawable.widget_cell_on_ogle,
+    R.drawable.widget_cell_on_ikindi,R.drawable.widget_cell_on_aksam,
+    R.drawable.widget_cell_on_yatsi};
+  private static final int[] ROW_CELLS={R.id.widget_row_cell_0,R.id.widget_row_cell_1,
+    R.id.widget_row_cell_2,R.id.widget_row_cell_3,R.id.widget_row_cell_4,R.id.widget_row_cell_5};
+  private static final int[] ROW_ICONS={R.id.widget_row_icon_0,R.id.widget_row_icon_1,
+    R.id.widget_row_icon_2,R.id.widget_row_icon_3,R.id.widget_row_icon_4,R.id.widget_row_icon_5};
+  private static final int[] ROW_LABELS={R.id.widget_row_label_0,R.id.widget_row_label_1,
+    R.id.widget_row_label_2,R.id.widget_row_label_3,R.id.widget_row_label_4,R.id.widget_row_label_5};
+  private static final int[] ROW_TIMES={R.id.widget_row_time_0,R.id.widget_row_time_1,
+    R.id.widget_row_time_2,R.id.widget_row_time_3,R.id.widget_row_time_4,R.id.widget_row_time_5};
+  private static final int[] COL_CELLS={R.id.widget_col_cell_0,R.id.widget_col_cell_1,
+    R.id.widget_col_cell_2,R.id.widget_col_cell_3,R.id.widget_col_cell_4,R.id.widget_col_cell_5};
+  private static final int[] COL_ICONS={R.id.widget_col_icon_0,R.id.widget_col_icon_1,
+    R.id.widget_col_icon_2,R.id.widget_col_icon_3,R.id.widget_col_icon_4,R.id.widget_col_icon_5};
+  private static final int[] COL_LABELS={R.id.widget_col_label_0,R.id.widget_col_label_1,
+    R.id.widget_col_label_2,R.id.widget_col_label_3,R.id.widget_col_label_4,R.id.widget_col_label_5};
+  private static final int[] COL_TIMES={R.id.widget_col_time_0,R.id.widget_col_time_1,
+    R.id.widget_col_time_2,R.id.widget_col_time_3,R.id.widget_col_time_4,R.id.widget_col_time_5};
+
+  /** Unknown size (0) falls back to the middle bucket, the default 4×1/1×4. */
+  private static int bucketFor(int dp,float[] edges){
+    if(dp<=0)return 1;
+    return dp>=edges[2]?2:dp>=edges[1]?1:0;
+  }
+
+  /** Everything the row and column draw, read once per render pass. */
+  private static final class Strip{
+    final boolean ready;
+    final int current;
+    final String[] labels=new String[6],clocks=new String[6];
+    final String title,hijri,date,weekday;
+    final long nextAt,now;
+    Strip(JSONObject props,JSONArray times,boolean ready,String next,
+        boolean nextInCurrentDay,long nextAt,long now){
+      this.ready=ready;this.nextAt=nextAt;this.now=now;
+      int nextIndex=-1;
+      for(int i=0;i<6;i++){
+        JSONObject value=i<times.length()?times.optJSONObject(i):null;
+        labels[i]=value==null?DEFAULT_LABELS[i]:value.optString("label",DEFAULT_LABELS[i]);
+        clocks[i]=value==null?"--:--":value.optString("time","--:--");
+        if(ready&&labels[i].equals(next))nextIndex=i;
+      }
+      // Highlight the CURRENT prayer period, as on the app's home screen.
+      // After Yatsı the next İmsak is tomorrow, so the period is Yatsı.
+      current=!ready?-1:!nextInCurrentDay?5:nextIndex<0?-1:(nextIndex+5)%6;
+      title=remainingTitle(ready?next:"");
+      hijri=ready?props.optString("hijriDate","").trim():"";
+      String[] day=gregorian(props.optString("dateISO",""));
+      date=day[0];weekday=day[1];
+    }
+  }
+
+  private static String remainingTitle(String next){
+    switch(next){
+      case "İmsak":return "İmsağa Kalan";
+      case "Güneş":return "Güneşe Kalan";
+      case "Öğle":return "Öğleye Kalan";
+      case "İkindi":return "İkindiye Kalan";
+      case "Akşam":return "Akşama Kalan";
+      case "Yatsı":return "Yatsıya Kalan";
+      default:return "Kalan";
+    }
+  }
+
+  /** "22 Kasım 2026" and "Pazar" for a published Europe/Istanbul date. */
+  private static String[] gregorian(String dateISO){
+    try{
+      TimeZone zone=TimeZone.getTimeZone("Europe/Istanbul");
+      SimpleDateFormat parse=new SimpleDateFormat("yyyy-MM-dd",Locale.US);
+      parse.setTimeZone(zone);
+      Date day=parse.parse(dateISO);
+      Locale turkish=Locale.forLanguageTag("tr-TR");
+      SimpleDateFormat date=new SimpleDateFormat("d MMMM yyyy",turkish);
+      SimpleDateFormat week=new SimpleDateFormat("EEEE",turkish);
+      date.setTimeZone(zone);week.setTimeZone(zone);
+      return new String[]{date.format(day),week.format(day)};
+    }catch(Exception invalid){
+      return new String[]{"",""};
+    }
+  }
+
+  private static void tint(RemoteViews card,Look look,int viewId,int lightColor,int darkColor){
+    if(look.auto&&Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
+      card.setColorInt(viewId,"setColorFilter",lightColor,darkColor);
+    }else{
+      card.setInt(viewId,"setColorFilter",look.light?lightColor:darkColor);
+    }
+  }
+
+  /** Current period = the prayer's own colour; dark ink reads on every
+   * prayer colour except Yatsı's violet, which takes white. */
+  private static void paintCells(RemoteViews card,Look look,Strip data,
+      int[] cells,int[] icons,int[] labels,int[] clocks){
+    int textLight=Color.parseColor("#152821"),textDark=Color.WHITE;
+    int iconLight=Color.parseColor("#A88A5C"),iconDark=Color.parseColor("#F0C97F");
+    int plain=look.pick(R.drawable.widget_cell_light,R.drawable.widget_cell_dark,
+        R.drawable.widget_cell_auto);
+    for(int i=0;i<6;i++){
+      boolean on=i==data.current;
+      int onInk=i==5?Color.WHITE:Color.parseColor("#04121C");
+      card.setTextViewText(labels[i],data.labels[i]);
+      card.setTextViewText(clocks[i],data.clocks[i]);
+      card.setInt(cells[i],"setBackgroundResource",on?ACTIVE_CELLS[i]:plain);
+      ink(card,look,labels[i],on?onInk:textLight,on?onInk:textDark);
+      ink(card,look,clocks[i],on?onInk:textLight,on?onInk:textDark);
+      tint(card,look,icons[i],on?onInk:iconLight,on?onInk:iconDark);
+    }
+  }
+
+  private static RemoteViews rowCard(Context context,Look look,Strip data,int bucket){
+    RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+        R.layout.widget_prayer_row_light,R.layout.widget_prayer_row,
+        R.layout.widget_prayer_row_auto));
+    card.setViewVisibility(R.id.widget_row_logo,bucket==2?View.GONE:View.VISIBLE);
+    card.setViewVisibility(R.id.widget_row_brand,bucket==2?View.VISIBLE:View.GONE);
+    card.setViewVisibility(R.id.widget_row_remaining,
+        bucket>=1&&data.ready?View.VISIBLE:View.GONE);
+    if(bucket==2){
+      card.setTextViewText(R.id.widget_row_hijri,data.hijri);
+      card.setViewVisibility(R.id.widget_row_hijri,data.hijri.isEmpty()?View.GONE:View.VISIBLE);
+      card.setTextViewText(R.id.widget_row_date,
+          data.weekday.isEmpty()?data.date:data.date+" "+data.weekday);
+    }
+    paintCells(card,look,data,ROW_CELLS,ROW_ICONS,ROW_LABELS,ROW_TIMES);
+    card.setTextViewText(R.id.widget_row_next,data.title);
+    setCountdown(card,R.id.widget_row_countdown,data.nextAt,data.now);
+    card.setOnClickPendingIntent(R.id.widget_row_root,launchAction(context,41027));
+    return card;
+  }
+
+  private static RemoteViews columnCard(Context context,Look look,Strip data,int bucket){
+    RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+        R.layout.widget_prayer_column_light,R.layout.widget_prayer_column,
+        R.layout.widget_prayer_column_auto));
+    card.setViewVisibility(R.id.widget_col_logo,bucket==2?View.GONE:View.VISIBLE);
+    card.setViewVisibility(R.id.widget_col_brand,bucket==2?View.VISIBLE:View.GONE);
+    card.setViewVisibility(R.id.widget_col_remaining,
+        bucket>=1&&data.ready?View.VISIBLE:View.GONE);
+    if(bucket==2){
+      // A one-column card is narrow: "13 Cemaziyelahir" / "1448".
+      int split=data.hijri.lastIndexOf(' ');
+      String hijriDay=split>0?data.hijri.substring(0,split):data.hijri;
+      String hijriYear=split>0?data.hijri.substring(split+1):"";
+      card.setTextViewText(R.id.widget_col_hijri_day,hijriDay);
+      card.setTextViewText(R.id.widget_col_hijri_year,hijriYear);
+      card.setViewVisibility(R.id.widget_col_hijri_day,hijriDay.isEmpty()?View.GONE:View.VISIBLE);
+      card.setViewVisibility(R.id.widget_col_hijri_year,hijriYear.isEmpty()?View.GONE:View.VISIBLE);
+      card.setTextViewText(R.id.widget_col_date,data.date);
+      card.setTextViewText(R.id.widget_col_weekday,data.weekday);
+    }
+    paintCells(card,look,data,COL_CELLS,COL_ICONS,COL_LABELS,COL_TIMES);
+    card.setTextViewText(R.id.widget_col_next,data.title.endsWith(" Kalan")
+        ?data.title.substring(0,data.title.length()-" Kalan".length()):"");
+    setCountdown(card,R.id.widget_col_countdown,data.nextAt,data.now);
+    card.setOnClickPendingIntent(R.id.widget_col_root,launchAction(context,41028));
+    return card;
   }
 
   private static PendingIntent alarmIntent(Context context){
@@ -967,6 +1190,8 @@ public final class WidgetBoundaryScheduler {
     result.put("installedPremiumRing",counts[6]);
     result.put("installedSlim",counts[7]);
     result.put("installedSquareRing",counts[8]);
+    result.put("installedRow",counts[9]);
+    result.put("installedColumn",counts[10]);
     Look appearance=look(context);
     result.put("widgetTheme",appearance.auto?"auto":(appearance.light?"light":"dark"));
     long last=local.getLong("lastAppliedAt",0);
@@ -996,12 +1221,18 @@ public final class WidgetBoundaryScheduler {
     boolean hasTimeline=local.contains(CALENDAR);
     result.put("hasTimeline",hasTimeline);
     int nativeCityId=0;
+    String contentKey="";
     if(hasTimeline) {
       try {
-        nativeCityId=new JSONObject(local.getString(CALENDAR,"")).optInt("cityId",0);
+        JSONObject calendar=new JSONObject(local.getString(CALENDAR,""));
+        nativeCityId=calendar.optInt("cityId",0);
+        contentKey=calendar.optString("contentKey","");
       }catch(JSONException ignored){}
     }
     result.put("nativeCityId",nativeCityId);
+    // Payload revision + kerahet settings the timeline was built with; the
+    // app republishes when either differs from what it would publish now.
+    result.put("calendarContentKey",contentKey);
     result.put("activeCityId",local.getInt("activeCityId",0));
     result.put("lastTransferAttemptAt",local.getLong("lastTransferAttemptAt",0));
     result.put("lastTransferStage",local.getString("lastTransferStage","never-attempted"));

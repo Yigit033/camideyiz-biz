@@ -1,7 +1,9 @@
 import {NativeModules} from 'react-native';
 import {
-  buildPrayerWidgetTimeline,type PrayerSchedule,
+  buildPrayerWidgetTimeline,type KerahatSettings,type PrayerSchedule,
 } from '@camideyiz/core';
+import {loadKerahatSettings} from '../prayer/useKerahatSettings';
+import {widgetContentKey} from './widgetForegroundGate';
 import {toWidgetProps} from './widgetSyncShared';
 
 type NativeBridge={
@@ -16,7 +18,8 @@ export type AndroidWidgetNativeStatus={
   supported:boolean;installedNext:number;installedDay:number;
   installedCompact?:number;installedFocus?:number;installedStrip?:number;
   installedMiniRing?:number;installedPremiumRing?:number;installedSlim?:number;
-  installedSquareRing?:number;widgetTheme?:string;
+  installedSquareRing?:number;installedRow?:number;installedColumn?:number;
+  calendarContentKey?:string;widgetTheme?:string;
   lastAppliedAt:number;nextAlarmAt:number;lastSyncAt:number;
   lastError:string;lastNextName:string;lastNextTime:string;
   lastCity:string;lastDateISO:string;lastReady:boolean;
@@ -114,6 +117,7 @@ Promise<AndroidWidgetNativeStatus|null>{
  */
 export async function publishAndroidWidgetTimeline(
   days:readonly PrayerSchedule[],now:number,cityId:number,sourceAt:number,
+  kerahatSettings?:KerahatSettings,
 ):Promise<AndroidWidgetNativeStatus>{
   const native=bridge();
   if(!native)throw new Error(
@@ -124,13 +128,17 @@ export async function publishAndroidWidgetTimeline(
   if(!Number.isFinite(sourceAt)||sourceAt<=0||sourceAt>now+60_000||
      now-sourceAt>16*24*60*60_000)
     throw new Error('Kaynak takvimin yayın doğrulaması eskimiş');
-  const timeline=buildPrayerWidgetTimeline(days,now,100);
+  // Same kerahet preference as the home screen; headless callers read it
+  // from storage. Kerahet edges are extra boundaries (native cap: 170).
+  const kerahat=kerahatSettings??await loadKerahatSettings();
+  const timeline=buildPrayerWidgetTimeline(days,now,160,kerahat);
   if(!timeline.length||timeline[0].snapshot.status!=='ready')
     throw new Error('Doğrulanmış ileri tarihli namaz takvimi bulunamadı');
   // The native receiver does not calculate prayer times. Every boundary
   // already comes from published and structurally validated core schedules.
   const calendar={
     version:1,cityId,city:timeline[0].snapshot.city,generatedAt:now,sourceAt,
+    contentKey:widgetContentKey(kerahat),
     entries:timeline.map(({date,snapshot})=>({
       at:date,props:toWidgetProps(snapshot),
     })),

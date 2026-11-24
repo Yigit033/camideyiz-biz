@@ -1,4 +1,4 @@
-import type {PrayerSchedule} from '@camideyiz/core';
+import type {KerahatSettings,PrayerSchedule} from '@camideyiz/core';
 import {hasAndroidNativeWidgetBridge} from '../native/nativeRuntime';
 import type {WidgetSyncResult} from './widgetSyncShared';
 import {publishAndroidWidgetTimeline,repairPersistedAndroidWidget,
@@ -29,6 +29,7 @@ export async function recordWidgetTransferIssue(
 
 export async function syncPrayerWidgets(
   days:readonly PrayerSchedule[],nowMs:number,cityId=0,sourceAt=nowMs,
+  kerahat?:KerahatSettings,
 ):Promise<WidgetSyncResult>{
   if(!hasAndroidNativeWidgetBridge())return {
     available:false,updated:false,
@@ -39,12 +40,13 @@ export async function syncPrayerWidgets(
     detail:'Yayımlanmış takvim bekleniyor. Android’deki mevcut takvim silinmedi.',
   };
   try{
-    const native=await publishAndroidWidgetTimeline(days,nowMs,cityId,sourceAt);
+    const native=await publishAndroidWidgetTimeline(days,nowMs,cityId,sourceAt,kerahat);
     const total=native.installedNext+native.installedDay+
       (native.installedCompact??0)+(native.installedFocus??0)+
       (native.installedStrip??0)+
       (native.installedMiniRing??0)+(native.installedPremiumRing??0)+
-      (native.installedSlim??0)+(native.installedSquareRing??0);
+      (native.installedSlim??0)+(native.installedSquareRing??0)+
+      (native.installedRow??0)+(native.installedColumn??0);
     const result:WidgetSyncResult={
       available:true,
       updated:native.persisted&&native.lastReady&&
@@ -59,6 +61,7 @@ export async function syncPrayerWidgets(
       installedStrip:native.installedStrip,
       installedMiniRing:native.installedMiniRing,installedPremiumRing:native.installedPremiumRing,
       installedSlim:native.installedSlim,installedSquareRing:native.installedSquareRing,
+      installedRow:native.installedRow,installedColumn:native.installedColumn,
       lastNativeWriteAt:native.lastAppliedAt,
       nextNativeAlarmAt:native.nextAlarmAt,
       nativePersisted:native.persisted,
@@ -87,7 +90,8 @@ export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResu
       (status.installedCompact??0)+(status.installedFocus??0)+
       (status.installedStrip??0)+
       (status.installedMiniRing??0)+(status.installedPremiumRing??0)+
-      (status.installedSlim??0)+(status.installedSquareRing??0);
+      (status.installedSlim??0)+(status.installedSquareRing??0)+
+      (status.installedRow??0)+(status.installedColumn??0);
     return {
       available:true,updated:status.persisted&&status.lastReady&&!status.lastError,
       detail:status.lastError
@@ -100,6 +104,7 @@ export async function recoverPrayerWidgets(cityId:number):Promise<WidgetSyncResu
       installedStrip:status.installedStrip,
       installedMiniRing:status.installedMiniRing,installedPremiumRing:status.installedPremiumRing,
       installedSlim:status.installedSlim,installedSquareRing:status.installedSquareRing,
+      installedRow:status.installedRow,installedColumn:status.installedColumn,
       lastNativeWriteAt:status.lastAppliedAt,nextNativeAlarmAt:status.nextAlarmAt,
       nativePersisted:status.persisted,launcherConfirmed:false,
     };

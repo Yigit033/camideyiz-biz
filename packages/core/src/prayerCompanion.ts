@@ -3,6 +3,7 @@ import {
   type PrayerKey, type PrayerSchedule,
 } from './prayer.ts';
 import {assertISODate} from './diyanet.ts';
+import {getKerahatView,type KerahatSettings} from './kerahat.ts';
 
 export const PRAYER_TIMEZONE='Europe/Istanbul' as const;
 export const ALERT_MAX_EVENTS=60; // iOS only retains up to 64 pending local notifications.
@@ -196,15 +197,20 @@ export type PrayerWidgetSnapshot={
   nextName:string;nextTime:string;nextAt:number;
   remainingMinutes:number;updatedAt:number;
   times:{key:PrayerKey;label:string;time:string}[];
+  /** Inside a kerahet window, by the same rule as the home screen. */
+  kerahat:boolean;
+  /** Published Hijri date of the current day, '' when the source has none. */
+  hijriDate:string;
 };
 export function buildPrayerWidgetSnapshot(
   days:readonly PrayerSchedule[], nowMs:number,
+  kerahat?:KerahatSettings,
 ):PrayerWidgetSnapshot{
   const clock=zonedClock(new Date(nowMs),PRAYER_TIMEZONE);
   const fallback:PrayerWidgetSnapshot={
     status:'no-data',city:'Konum seçilmedi',dateISO:clock.dateISO,
     nextName:'Takvimi aç',nextTime:'',nextAt:0,remainingMinutes:0,
-    updatedAt:nowMs,times:[],
+    updatedAt:nowMs,times:[],kerahat:false,hijriDate:'',
   };
   if(!days.length)return fallback;
   // Only non-demo published days, never a local astronomical approximation.
@@ -227,15 +233,20 @@ export function buildPrayerWidgetSnapshot(
     remainingMinutes:Math.ceil((next.instant-nowMs)/60_000),
     updatedAt:nowMs,
     times:current.times.map(t=>({...t})),
+    kerahat:kerahat!==undefined&&
+      getKerahatView(current,clock.dateISO,clock.secondsOfDay,kerahat).active!==null,
+    hijriDate:typeof current.hijriDate==='string'?current.hijriDate.trim():'',
   };
 }
 /** iOS WidgetKit precomputed boundary updates. Countdown text is system-driven,
  * rather than scheduling a widget refresh every minute. Android snapshots only
  * update on app wake, and must not label a static number "live".
+ * With kerahet settings, each kerahet window start/end is a boundary too, so
+ * a widget enters and leaves the kerahet look on time without waking the app.
  */
 export function buildPrayerWidgetTimeline(
   days:readonly PrayerSchedule[], nowMs:number,
-  limit=60,
+  limit=60,kerahat?:KerahatSettings,
 ):{date:number;snapshot:PrayerWidgetSnapshot}[]{
   const events=new Set<number>([nowMs]);
   for(const day of days){
@@ -246,8 +257,15 @@ export function buildPrayerWidgetTimeline(
       const point=prayerInstant(day.dateISO,item.time);
       if(point>nowMs)events.add(point);
     }
+    if(kerahat===undefined)continue;
+    for(const window of getKerahatView(day,day.dateISO,0,kerahat).windows){
+      for(const seconds of [window.startSeconds,window.endSeconds]){
+        const point=prayerInstant(day.dateISO,'00:00')+seconds*1000;
+        if(point>nowMs)events.add(point);
+      }
+    }
   }
   return [...events].sort((a,b)=>a-b).slice(0,limit).map(date=>({
-    date,snapshot:buildPrayerWidgetSnapshot(days,date),
+    date,snapshot:buildPrayerWidgetSnapshot(days,date,kerahat),
   }));
 }

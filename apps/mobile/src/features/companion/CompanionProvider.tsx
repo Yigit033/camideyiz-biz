@@ -20,7 +20,9 @@ import {useAnnouncementSubscription,type AnnouncementState}
   from './useAnnouncementSubscription';
 import type {WidgetSyncResult} from '@/features/widgets/widgetSyncShared';
 import {markStartup,recordStartupOperation} from '@/features/performance/startupMetrics';
-import {widgetNeedsForegroundPublish,type NativeWidgetSummary} from '@/features/widgets/widgetForegroundGate';
+import {widgetContentKey,widgetNeedsForegroundPublish,type NativeWidgetSummary}
+  from '@/features/widgets/widgetForegroundGate';
+import {useKerahatSettings} from '@/features/prayer/KerahatSettingsProvider';
 import type {LastWidgetTransfer} from '@/features/widgets/widgetBackground';
 import {ensureWidgetBackgroundRefresh,readWidgetBackgroundReport,
   type WidgetBackgroundReport} from '@/features/widgets/widgetBackgroundRegistration';
@@ -101,6 +103,10 @@ function validInbox(value:unknown):NativePrayerEvent[]{
 export function CompanionProvider({children}:PropsWithChildren){
   const source=useSharedPrayerSource();
   const announcement=useAnnouncementSubscription();
+  // Widgets show kerahet with the same preference as the home screen; a
+  // change republishes the native timeline (its content key differs).
+  const {settings:kerahat,ready:kerahatReady}=useKerahatSettings();
+  const widgetKey=widgetContentKey(kerahat);
   const [settings,setSettings]=useState<PrayerAlertSettings>(DEFAULT_ALERT_SETTINGS);
   const [inbox,setInbox]=useState<NativePrayerEvent[]>([]);
   const [ready,setReady]=useState(false);
@@ -259,7 +265,7 @@ export function CompanionProvider({children}:PropsWithChildren){
   useEffect(()=>{
     // GPS start-up may temporarily have no place. Do not erase the already
     // verified native widget just because location is still resolving.
-    if(!ready||!maintenanceReady||!source.place)return;
+    if(!ready||!maintenanceReady||!kerahatReady||!source.place)return;
     // Avoid the full widget JS engine unless Android reports missing,
     // invalid, wrong-district or stale native calendar data.
     const version=++widgetVersion.current;
@@ -276,7 +282,7 @@ export function CompanionProvider({children}:PropsWithChildren){
         recordStartupOperation('widget-health-check',checkedAt);
         if(!active||version!==widgetVersion.current)return;
         if(Platform.OS==='android'&&
-           !widgetNeedsForegroundPublish(native,place.id,Date.now())){
+           !widgetNeedsForegroundPublish(native,place.id,Date.now(),widgetKey)){
           markStartup('widget-healthy-skip');
           setWidget({
             available:true,updated:false,
@@ -302,7 +308,7 @@ export function CompanionProvider({children}:PropsWithChildren){
           const engine=await loadWidgetEngine();
           if(!active||version!==widgetVersion.current)return;
           result=await engine.syncForegroundWidgetCalendar(
-            place,sourceKind,days,publishedAt,Date.now());
+            place,sourceKind,days,publishedAt,Date.now(),kerahat);
           if(active&&version===widgetVersion.current){
             setWidget(result);
             const record=await engine.readLastWidgetTransfer();
@@ -323,7 +329,9 @@ export function CompanionProvider({children}:PropsWithChildren){
     widgetQueue.current=widgetQueue.current.catch(()=>undefined)
       .then(()=>active?update():Promise.resolve());
     return ()=>{active=false;};
-  },[ready,maintenanceReady,days,cityId,source.officialConfigured]);
+  // widgetKey (not the settings object) keeps an unchanged preference from
+  // re-running this effect.
+  },[ready,maintenanceReady,kerahatReady,widgetKey,days,cityId,source.officialConfigured]);
 
   useEffect(()=>{
     if(!ready||!maintenanceReady)return;
@@ -447,7 +455,7 @@ export function CompanionProvider({children}:PropsWithChildren){
       try{
         const engine=await loadWidgetEngine();
         result=await engine.syncForegroundWidgetCalendar(
-          place,selectedSource,days,publishedAt,Date.now());
+          place,selectedSource,days,publishedAt,Date.now(),kerahat);
         if(!result.updated){
           // A user-requested repair must work even if the React hook never
           // supplied hours; fetch the selected district's verified calendar.
@@ -468,7 +476,7 @@ export function CompanionProvider({children}:PropsWithChildren){
     // Do not report "repainted" when no calendar was actually transferred.
     if(!result.updated)source.retry();
     return result;
-  },[ready,source.place,source.days,source.officialConfigured,days,source.retry]);
+  },[ready,source.place,source.days,source.officialConfigured,days,source.retry,kerahat]);
 
   const rememberDeletion=useCallback((ids:readonly string[])=>{
     const next=[...new Set([...deletedIds.current,...ids])].slice(-512);

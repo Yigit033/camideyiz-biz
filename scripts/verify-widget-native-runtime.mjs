@@ -58,8 +58,10 @@ const miniRingProvider=read('apps/mobile/plugins/widget-native/MiniPrayerRingWid
 const premiumRingProvider=read('apps/mobile/plugins/widget-native/PremiumPrayerRingWidgetProvider.java');
 const slimProvider=read('apps/mobile/plugins/widget-native/SlimPrayerWidgetProvider.java');
 const squareRingProvider=read('apps/mobile/plugins/widget-native/SquarePrayerRingWidgetProvider.java');
+const rowProvider=read('apps/mobile/plugins/widget-native/PrayerRowWidgetProvider.java');
+const columnProvider=read('apps/mobile/plugins/widget-native/PrayerColumnWidgetProvider.java');
 for(const component of [receiver,nextProvider,dayProvider,compactProvider,focusProvider,
-  miniRingProvider,premiumRingProvider,slimProvider,squareRingProvider]){
+  miniRingProvider,premiumRingProvider,slimProvider,squareRingProvider,rowProvider,columnProvider]){
   assert.match(component,/WidgetBoundaryAsyncRefresh\.dispatch\(context,goAsync\(\),/,
     'every native widget broadcast must goAsync before doing calendar IO');
   assert.doesNotMatch(component,/WidgetBoundaryScheduler\.refresh\(/,
@@ -73,6 +75,13 @@ assert.match(miniRingProvider,/void onDisabled\(Context context\)/);
 assert.match(premiumRingProvider,/void onDisabled\(Context context\)/);
 assert.match(slimProvider,/void onDisabled\(Context context\)/);
 assert.match(squareRingProvider,/void onDisabled\(Context context\)/);
+for(const resizable of [rowProvider,columnProvider]){
+  assert.match(resizable,/void onDisabled\(Context context\)/);
+  // Pre-Android 12 launchers report a resize only through options.
+  assert.match(resizable,/void onAppWidgetOptionsChanged\([^)]*\)\{\s*WidgetBoundaryAsyncRefresh\.dispatch\(context,goAsync\(\),/);
+}
+assert.match(configPlugin,/'PrayerRowWidgetProvider'/);
+assert.match(configPlugin,/'PrayerColumnWidgetProvider'/);
 assert.match(configPlugin,/'SlimPrayerWidgetProvider'/);
 assert.match(configPlugin,/'PrayerRingBitmapRenderer.java'/);
 assert.match(configPlugin,/'MiniPrayerRingWidgetProvider'/);

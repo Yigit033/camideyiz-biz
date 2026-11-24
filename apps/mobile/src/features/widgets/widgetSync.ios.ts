@@ -1,5 +1,5 @@
 import {
-  buildPrayerWidgetTimeline,type PrayerSchedule,
+  buildPrayerWidgetTimeline,type KerahatSettings,type PrayerSchedule,
 } from '@camideyiz/core';
 import {isExpoGoRuntime} from '../native/nativeRuntime';
 import {toWidgetProps,type WidgetSyncResult} from './widgetSyncShared';
@@ -10,7 +10,7 @@ declare const require:(path:string)=>unknown;
 
 export async function syncPrayerWidgets(
   days:readonly PrayerSchedule[],nowMs:number,
-  _cityId=0,_sourceAt=nowMs,
+  _cityId=0,_sourceAt=nowMs,_kerahat?:KerahatSettings,
 ):Promise<WidgetSyncResult>{
   if(isExpoGoRuntime())return {
     available:false,updated:false,

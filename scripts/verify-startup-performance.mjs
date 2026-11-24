@@ -70,8 +70,8 @@ assert.match(widgets,/export \{readWidgetBackgroundReport,ensureWidgetBackground
   'preserve public widget engine registration API for existing callers');
 assert.match(companion,/setTimeout\(\(\)=>\{[\s\S]*?setMaintenanceReady\(true\);[\s\S]*?\},1600\)/,
   'initial native maintenance must yield first paint');
-assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!source\.place\)return/);
-assert.match(companion,/widgetNeedsForegroundPublish\(native,place\.id,Date\.now\(\)\)/,
+assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!kerahatReady\|\|!source\.place\)return/);
+assert.match(companion,/widgetNeedsForegroundPublish\(native,place\.id,Date\.now\(\),widgetKey\)/,
   'native-ready widget must bypass full JS calendar writer on startup');
 assert.match(companion,/const native=await getNativeWidgetSummary\(\)/,
   'lightweight status must be read before heavy widget engine import');
