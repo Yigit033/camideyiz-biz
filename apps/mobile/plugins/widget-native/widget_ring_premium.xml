@@ -1,19 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 4×4 premium ring. Larger ring art, centre text proportional to the ring, and a six-hour footer with a 46dp floor that grows with the widget. -->
+<!-- 4×4 premium ring. Ring stage: centres an exact-square frame (sized per launcher cell on Android 12+) so the centre text box IS the ring on tall ColorOS cells. Six-hour footer below. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_ring_premium_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg" android:orientation="vertical" android:padding="10dp">
- <LinearLayout android:layout_width="match_parent" android:layout_height="30dp" android:gravity="center_vertical"
+ <LinearLayout android:layout_width="match_parent" android:layout_height="42dp" android:gravity="center_vertical"
   android:orientation="horizontal">
- <ImageView android:layout_width="30dp" android:layout_height="30dp" android:src="@drawable/widget_brand_mark_dark"
+ <ImageView android:layout_width="48dp" android:layout_height="42dp" android:src="@drawable/widget_brand_mark_dark"
   android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <TextView android:id="@+id/widget_ring_premium_city" android:layout_width="0dp" android:layout_height="wrap_content"
   android:layout_weight="1" android:layout_marginStart="6dp" android:text="Konum" android:textSize="12sp"
   android:textColor="#AFC5D4" android:gravity="end|center_vertical" android:maxLines="1"
   android:ellipsize="end" android:includeFontPadding="false"/>
  </LinearLayout>
- <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-  android:layout_marginTop="2dp" android:layout_marginBottom="4dp">
+ <LinearLayout android:id="@+id/widget_ring_premium_stage" android:layout_width="match_parent"
+  android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="2dp" android:layout_marginBottom="4dp"
+  android:gravity="center" android:orientation="vertical">
+ <FrameLayout android:id="@+id/widget_ring_premium_frame" android:layout_width="match_parent"
+  android:layout_height="match_parent">
   <ImageView android:id="@+id/widget_ring_premium_art" android:src="@drawable/widget_ring_track" android:layout_width="match_parent"
    android:layout_height="match_parent" android:scaleType="fitCenter"
    android:contentDescription="Vakit aralıklarını gösteren premium zaman çemberi"/>
@@ -33,14 +36,15 @@
    android:layout_weight="0.25" android:text="Takvim" android:textSize="15sp" android:textColor="#F1F7F8" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="26sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_ring_premium_time" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.18" android:text="Saat --:--" android:textSize="11sp" android:textColor="#AFC5D4"
+   android:layout_weight="0.18" android:text="Saat --:--" android:textSize="11sp" android:textColor="#F1F7F8" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text=""/>
   </LinearLayout>
   <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.26" android:text=""/>
   </LinearLayout>
  </FrameLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="46dp" android:layout_weight="0.06"
+ </LinearLayout>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="50dp"
   android:background="@drawable/widget_chip_dark" android:paddingStart="3dp" android:paddingEnd="3dp"
   android:orientation="horizontal" android:gravity="center_vertical" android:baselineAligned="false">
  <LinearLayout android:id="@+id/widget_ring_premium_cell_0" android:layout_width="0dp" android:layout_weight="1"

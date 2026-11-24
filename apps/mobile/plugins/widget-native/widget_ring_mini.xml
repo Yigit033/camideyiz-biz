@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 2×2 mini ring (resizable). Inner text lives in a box proportional to the ring; the countdown chip keeps a 30dp floor and grows with the widget. -->
+<!-- 2×2 mini ring (resizable). Ring stage: centres an exact-square frame (sized per launcher cell on Android 12+) so the centre text box IS the ring on tall ColorOS cells. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_ring_mini_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg" android:padding="6dp" android:orientation="vertical" android:gravity="center">
- <ImageView android:layout_width="match_parent" android:layout_height="20dp" android:src="@drawable/widget_brand_mark_dark"
+ <ImageView android:layout_width="match_parent" android:layout_height="30dp" android:src="@drawable/widget_brand_mark_dark"
   android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
- <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-  android:layout_marginTop="2dp">
+ <LinearLayout android:id="@+id/widget_ring_mini_stage" android:layout_width="match_parent"
+  android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="2dp" android:gravity="center"
+  android:orientation="vertical">
+ <FrameLayout android:id="@+id/widget_ring_mini_frame" android:layout_width="match_parent"
+  android:layout_height="match_parent">
   <ImageView android:id="@+id/widget_ring_mini_art" android:src="@drawable/widget_ring_track" android:layout_width="match_parent"
    android:layout_height="match_parent" android:scaleType="fitCenter"
    android:contentDescription="Yayımlanmış altı vakit için oranlı zaman çemberi"/>
@@ -23,18 +26,19 @@
    android:layout_weight="0.36" android:text="Vakit" android:textSize="11sp" android:textColor="#F4D392" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="24sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_ring_mini_time" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.26" android:text="--:--" android:textSize="9sp" android:textColor="#AFC5D4"
+   android:layout_weight="0.26" android:text="--:--" android:textSize="9sp" android:textColor="#F1F7F8" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="16sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text=""/>
   </LinearLayout>
   <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.27" android:text=""/>
   </LinearLayout>
  </FrameLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="30dp" android:layout_weight="0.12"
-  android:layout_marginTop="3dp" android:paddingStart="10dp" android:paddingEnd="10dp"
+ </LinearLayout>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="34dp"
+  android:layout_marginTop="4dp" android:paddingStart="12dp" android:paddingEnd="12dp"
   android:orientation="horizontal" android:gravity="center" android:background="@drawable/widget_chip_dark">
  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="KALAN"
-  android:textSize="8sp" android:textColor="#AFC5D4" android:maxLines="1" android:includeFontPadding="false"
+  android:textSize="9sp" android:textColor="#AFC5D4" android:textStyle="bold" android:maxLines="1" android:includeFontPadding="false"
   android:layout_marginEnd="6dp"/>
  <Chronometer android:id="@+id/widget_ring_mini_countdown" android:layout_width="0dp" android:layout_weight="1"
   android:layout_height="match_parent" android:text="--:--" android:textColor="#F4D392" android:textSize="18sp"

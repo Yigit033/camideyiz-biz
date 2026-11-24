@@ -5,9 +5,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_focus_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg" android:padding="10dp" android:orientation="vertical">
- <LinearLayout android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center_vertical"
+ <LinearLayout android:layout_width="match_parent" android:layout_height="36dp" android:gravity="center_vertical"
   android:orientation="horizontal">
- <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@drawable/widget_brand_mark_dark"
+ <ImageView android:layout_width="42dp" android:layout_height="36dp" android:src="@drawable/widget_brand_mark_dark"
   android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <TextView android:id="@+id/widget_focus_city" android:layout_width="0dp" android:layout_height="wrap_content"
   android:layout_weight="1" android:layout_marginStart="6dp" android:text="Konum" android:textSize="11sp"
@@ -51,7 +51,7 @@
    android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp"
    android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_focus_time" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.24" android:text="Saat --:--" android:textSize="9sp" android:textColor="#AFC5D4"
+   android:layout_weight="0.24" android:text="Saat --:--" android:textSize="9sp" android:textColor="#F1F7F8" android:textStyle="bold"
    android:gravity="start|top" android:maxLines="1" android:includeFontPadding="false"
    android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp"
    android:autoSizeStepGranularity="1sp"/>

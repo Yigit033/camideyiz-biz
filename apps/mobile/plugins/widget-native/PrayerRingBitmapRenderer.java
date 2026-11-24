@@ -87,10 +87,15 @@ public final class PrayerRingBitmapRenderer {
   private static final int INNER_RIM=0x405F8196;
   private static final int OUTER_RIM=0x335F8196;
 
-  /** A single theme-neutral 224px / 432px bitmap per installed ring host. */
+  /** Ring bitmaps are drawn at about the size the launcher shows them
+   * (2×2 ≈ 150dp, 4×4 ≈ 240dp on a 3× screen), so arcs stay crisp instead of
+   * being upscaled 2-3× from a small bitmap. */
+  public static final int SMALL=448,LARGE=720;
+
+  /** A single theme-neutral SMALL / LARGE bitmap per installed ring host. */
   public static synchronized Bitmap render(JSONArray times,long nowMs,int size)
       throws JSONException{
-    if(size!=224&&size!=432)throw new IllegalArgumentException("Invalid ring size");
+    if(size!=SMALL&&size!=LARGE)throw new IllegalArgumentException("Invalid ring size");
     int[] boundaries=new int[6];
     boolean ready=times!=null&&times.length()==6;
     if(ready){
@@ -121,7 +126,7 @@ public final class PrayerRingBitmapRenderer {
     // Ring fills the bitmap: outer rim at r+.043 and the active halo at
     // r+.035 stay inside the edge, so no transparent margin is wasted on the
     // home screen. Centre text lives in a ring-proportional layout box.
-    float mid=size*.5f,radius=size*(size==224?.43f:.44f);
+    float mid=size*.5f,radius=size*(size==SMALL?.43f:.44f);
     RectF ring=new RectF(mid-radius,mid-radius,mid+radius,mid+radius);
     Paint pen=new Paint(Paint.ANTI_ALIAS_FLAG);
     pen.setStyle(Paint.Style.STROKE);

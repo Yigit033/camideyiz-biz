@@ -75,7 +75,7 @@ assert.match(miniRingProvider,/void onDisabled\(Context context\)/);
 assert.match(premiumRingProvider,/void onDisabled\(Context context\)/);
 assert.match(slimProvider,/void onDisabled\(Context context\)/);
 assert.match(squareRingProvider,/void onDisabled\(Context context\)/);
-for(const resizable of [rowProvider,columnProvider]){
+for(const resizable of [rowProvider,columnProvider,miniRingProvider,premiumRingProvider,squareRingProvider]){
   assert.match(resizable,/void onDisabled\(Context context\)/);
   // Pre-Android 12 launchers report a resize only through options.
   assert.match(resizable,/void onAppWidgetOptionsChanged\([^)]*\)\{\s*WidgetBoundaryAsyncRefresh\.dispatch\(context,goAsync\(\),/);

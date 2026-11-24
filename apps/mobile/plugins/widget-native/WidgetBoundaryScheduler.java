@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.SizeF;
+import android.util.TypedValue;
 import android.graphics.Color;
 import android.graphics.Bitmap;
 import android.widget.RemoteViews;
@@ -25,9 +26,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -722,8 +725,8 @@ public final class WidgetBoundaryScheduler {
       RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
           R.layout.widget_compact_prayer_light,R.layout.widget_compact_prayer,
           R.layout.widget_compact_prayer_auto));
-      card.setTextViewText(R.id.widget_compact_name,ready?next:"Takvim");
-      card.setTextViewText(R.id.widget_compact_time,ready?time:"--:--");
+      // One line, one autosize pass: "İmsak 06:24" never splits or clips.
+      card.setTextViewText(R.id.widget_compact_name,ready?next+"  "+time:"Takvim");
       setCountdown(card,R.id.widget_compact_countdown,nextAt,now);
       card.setViewVisibility(R.id.widget_compact_remaining_row,
           ready?View.VISIBLE:View.GONE);
@@ -812,28 +815,34 @@ public final class WidgetBoundaryScheduler {
 
     // Arc bitmap generation is bounded, cached, and off the UI thread.
     // Only create bitmaps for actual installed ring widgets; no per-second JS.
+    // Every ring sits in an exact-square frame per launcher-reported size
+    // (Android 12+): ColorOS cells are taller than wide, and a frame-relative
+    // text box then spilled over the ring stroke.
     int[] miniRing=widgetIds[5];
     int[] premiumRing=widgetIds[6];
-    if((miniRing.length>0&&dirty[5])||(premiumRing.length>0&&dirty[6])){
-      if(miniRing.length>0&&dirty[5]&&isCurrentGeneration(generation)){
+    if(miniRing.length>0&&dirty[5]&&isCurrentGeneration(generation)){
+      updateRing(manager,miniRing,size->{
         RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
             R.layout.widget_ring_mini_light,R.layout.widget_ring_mini,
             R.layout.widget_ring_mini_auto));
-        card.setImageViewBitmap(R.id.widget_ring_mini_art,
-            prepared[0]);
+        squareRingFrame(card,R.id.widget_ring_mini_frame,size,MINI_CHROME_X,MINI_CHROME_Y);
+        card.setImageViewBitmap(R.id.widget_ring_mini_art,prepared[0]);
         card.setTextViewText(R.id.widget_ring_mini_next,ready?next:"Takvim");
         card.setTextViewText(R.id.widget_ring_mini_time,ready?time:"--:--");
         setCountdown(card,R.id.widget_ring_mini_countdown,nextAt,now);
         card.setOnClickPendingIntent(R.id.widget_ring_mini_root,launchAction(context,41023));
-        manager.updateAppWidget(miniRing,card);
-        count+=miniRing.length;
-      }
-      if(premiumRing.length>0&&dirty[6]&&isCurrentGeneration(generation)){
+        return card;
+      });
+      count+=miniRing.length;
+    }
+    if(premiumRing.length>0&&dirty[6]&&isCurrentGeneration(generation)){
+      updateRing(manager,premiumRing,size->{
         RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
             R.layout.widget_ring_premium_light,R.layout.widget_ring_premium,
             R.layout.widget_ring_premium_auto));
-        card.setImageViewBitmap(R.id.widget_ring_premium_art,
-            prepared[1]);
+        squareRingFrame(card,R.id.widget_ring_premium_frame,size,
+            PREMIUM_CHROME_X,PREMIUM_CHROME_Y);
+        card.setImageViewBitmap(R.id.widget_ring_premium_art,prepared[1]);
         card.setTextViewText(R.id.widget_ring_premium_next,ready?next:"Takvim");
         card.setTextViewText(R.id.widget_ring_premium_time,ready?"Saat "+time:"--:--");
         card.setTextViewText(R.id.widget_ring_premium_city,ready?city:"Takvim bekleniyor");
@@ -871,9 +880,9 @@ public final class WidgetBoundaryScheduler {
         }
         setCountdown(card,R.id.widget_ring_premium_countdown,nextAt,now);
         card.setOnClickPendingIntent(R.id.widget_ring_premium_root,launchAction(context,41024));
-        manager.updateAppWidget(premiumRing,card);
-        count+=premiumRing.length;
-      }
+        return card;
+      });
+      count+=premiumRing.length;
     }
 
 
@@ -893,18 +902,22 @@ public final class WidgetBoundaryScheduler {
     }
 
     // Fixed 2×2 square ring: the countdown is its central focal point.
-    // Reuse the 224px ring bitmap (no extra JS timer or duplicate allocation).
+    // Reuses the small ring bitmap (no extra JS timer or duplicate allocation).
     int[] squareRing=widgetIds[8];
     if(squareRing.length>0&&dirty[8]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
-          R.layout.widget_ring_square_light,R.layout.widget_ring_square,
-          R.layout.widget_ring_square_auto));
-      card.setImageViewBitmap(R.id.widget_ring_square_art,prepared[0]);
-      card.setTextViewText(R.id.widget_ring_square_next,ready?next:"Takvim");
-      card.setTextViewText(R.id.widget_ring_square_time,ready?"Saat "+time:"--:--");
-      setCountdown(card,R.id.widget_ring_square_countdown,nextAt,now);
-      card.setOnClickPendingIntent(R.id.widget_ring_square_root,launchAction(context,41026));
-      manager.updateAppWidget(squareRing,card);
+      updateRing(manager,squareRing,size->{
+        RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+            R.layout.widget_ring_square_light,R.layout.widget_ring_square,
+            R.layout.widget_ring_square_auto));
+        squareRingFrame(card,R.id.widget_ring_square_frame,size,
+            SQUARE_CHROME_X,SQUARE_CHROME_Y);
+        card.setImageViewBitmap(R.id.widget_ring_square_art,prepared[0]);
+        card.setTextViewText(R.id.widget_ring_square_next,ready?next:"Takvim");
+        card.setTextViewText(R.id.widget_ring_square_time,ready?"Saat "+time:"--:--");
+        setCountdown(card,R.id.widget_ring_square_countdown,nextAt,now);
+        card.setOnClickPendingIntent(R.id.widget_ring_square_root,launchAction(context,41026));
+        return card;
+      });
       count+=squareRing.length;
     }
 
@@ -946,6 +959,75 @@ public final class WidgetBoundaryScheduler {
       count+=column.length;
     }
     return count;
+  }
+
+  // Fixed chrome around each ring stage, in dp (padding, logo/header,
+  // margins, footer chip): the ring gets the largest square that remains.
+  private static final float MINI_CHROME_X=12f,MINI_CHROME_Y=82f;
+  private static final float SQUARE_CHROME_X=10f,SQUARE_CHROME_Y=39f;
+  private static final float PREMIUM_CHROME_X=20f,PREMIUM_CHROME_Y=118f;
+  /** Launcher sizes may round; keep the ring stroke off the stage edge. */
+  private static final float RING_SAFETY_DP=3f;
+
+  private interface RingCard{RemoteViews build(SizeF size)throws JSONException;}
+
+  /** Android 12+: one RemoteViews per launcher-reported size of THIS widget,
+   * each with an exact-square ring frame. Older launchers (and launchers that
+   * report no size) keep the weighted layout. */
+  private static void updateRing(AppWidgetManager manager,int[] ids,RingCard card)
+      throws JSONException{
+    if(Build.VERSION.SDK_INT<Build.VERSION_CODES.S){
+      manager.updateAppWidget(ids,card.build(null));
+      return;
+    }
+    for(int id:ids){
+      List<SizeF> sizes=reportedSizes(manager,id);
+      if(sizes.isEmpty()){
+        manager.updateAppWidget(id,card.build(null));
+        continue;
+      }
+      Map<SizeF,RemoteViews> views=new HashMap<>();
+      for(SizeF size:sizes)views.put(size,card.build(size));
+      manager.updateAppWidget(id,new RemoteViews(views));
+    }
+  }
+
+  /** Portrait and landscape sizes (dp) the launcher reported for a widget. */
+  @SuppressWarnings("deprecation")
+  private static List<SizeF> reportedSizes(AppWidgetManager manager,int id){
+    List<SizeF> sizes=new ArrayList<>();
+    Bundle options=manager.getAppWidgetOptions(id);
+    if(options==null)return sizes;
+    if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
+      ArrayList<SizeF> reported=
+          options.getParcelableArrayList(AppWidgetManager.OPTION_APPWIDGET_SIZES);
+      if(reported!=null){
+        for(SizeF size:reported){
+          // RemoteViews accepts at most 16 sized layouts.
+          if(size!=null&&size.getWidth()>0&&size.getHeight()>0&&sizes.size()<16)
+            sizes.add(size);
+        }
+      }
+    }
+    if(sizes.isEmpty()){
+      int portraitW=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,0);
+      int portraitH=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,0);
+      int landscapeW=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,0);
+      int landscapeH=options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,0);
+      if(portraitW>0&&portraitH>0)sizes.add(new SizeF(portraitW,portraitH));
+      if(landscapeW>0&&landscapeH>0)sizes.add(new SizeF(landscapeW,landscapeH));
+    }
+    return sizes;
+  }
+
+  /** Sizes the ring frame to the largest square inside its stage. */
+  private static void squareRingFrame(RemoteViews card,int frameId,SizeF size,
+      float chromeX,float chromeY){
+    if(size==null||Build.VERSION.SDK_INT<Build.VERSION_CODES.S)return;
+    float side=Math.min(size.getWidth()-chromeX,size.getHeight()-chromeY)-RING_SAFETY_DP;
+    if(side<48f)return; // too small to matter: keep the weighted fallback
+    card.setViewLayoutWidth(frameId,side,TypedValue.COMPLEX_UNIT_DIP);
+    card.setViewLayoutHeight(frameId,side,TypedValue.COMPLEX_UNIT_DIP);
   }
 
   // Size buckets (dp): logo + six prayers; + remaining time; + dates.

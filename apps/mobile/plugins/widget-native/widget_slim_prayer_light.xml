@@ -6,7 +6,7 @@
  android:orientation="vertical" android:background="@drawable/widget_bg_light" android:padding="6dp">
  <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
   android:orientation="vertical" android:gravity="center">
- <ImageView android:layout_width="match_parent" android:layout_height="24dp" android:layout_weight="0.9"
+ <ImageView android:layout_width="match_parent" android:layout_height="32dp" android:layout_weight="1.1"
   android:src="@drawable/widget_brand_mark_light" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.45"
   android:layout_marginTop="4dp" android:text="SIRADAKİ" android:textSize="8sp" android:textColor="#607481"
@@ -19,7 +19,7 @@
   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="20sp"
   android:autoSizeStepGranularity="1sp"/>
  <TextView android:id="@+id/widget_slim_time" android:layout_width="match_parent" android:layout_height="0dp"
-  android:layout_weight="0.7" android:text="--:--" android:textSize="12sp" android:textColor="#465E70"
+  android:layout_weight="0.7" android:text="--:--" android:textSize="12sp" android:textColor="#163045" android:textStyle="bold"
   android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="17sp"
   android:autoSizeStepGranularity="1sp"/>

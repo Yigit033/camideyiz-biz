@@ -86,9 +86,9 @@ final class WidgetRenderPipeline {
           // launcher-resolved day/night layouts alike.
           if((dirty[5]&&installed[5].length>0)||
               (dirty[8]&&installed[8].length>0))
-            frames[0]=PrayerRingBitmapRenderer.render(times,now,224);
+            frames[0]=PrayerRingBitmapRenderer.render(times,now,PrayerRingBitmapRenderer.SMALL);
           if(dirty[6]&&installed[6].length>0)
-            frames[1]=PrayerRingBitmapRenderer.render(times,now,432);
+            frames[1]=PrayerRingBitmapRenderer.render(times,now,PrayerRingBitmapRenderer.LARGE);
         }catch(Exception failure){
           WidgetBoundaryScheduler.renderFailed(app,generation,failure);
           complete(completed);

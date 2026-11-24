@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- GENERATED from widget_ring_square.xml by scripts/sync-widget-light-layouts.mjs. Do not edit. 2×2 fixed square ring. The countdown, next prayer and its clock autosize inside a box proportional to the ring. -->
+<!-- GENERATED from widget_ring_square.xml by scripts/sync-widget-light-layouts.mjs. Do not edit. 2×2 fixed square ring. Ring stage: centres an exact-square frame (sized per launcher cell on Android 12+) so the centre text box IS the ring on tall ColorOS cells. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_ring_square_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg_light" android:padding="5dp" android:orientation="vertical" android:gravity="center">
- <ImageView android:layout_width="match_parent" android:layout_height="18dp" android:src="@drawable/widget_brand_mark_light"
+ <ImageView android:layout_width="match_parent" android:layout_height="28dp" android:src="@drawable/widget_brand_mark_light"
   android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
- <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
-  android:layout_marginTop="1dp">
+ <LinearLayout android:id="@+id/widget_ring_square_stage" android:layout_width="match_parent"
+  android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="1dp" android:gravity="center"
+  android:orientation="vertical">
+ <FrameLayout android:id="@+id/widget_ring_square_frame" android:layout_width="match_parent"
+  android:layout_height="match_parent">
   <ImageView android:id="@+id/widget_ring_square_art" android:src="@drawable/widget_ring_track" android:layout_width="match_parent"
    android:layout_height="match_parent" android:scaleType="fitCenter"
    android:contentDescription="Altı gerçek namaz vaktini gösteren kare vakit çemberi"/>
@@ -26,11 +29,12 @@
    android:layout_weight="0.24" android:text="Sıradaki" android:textSize="11sp" android:textColor="#163045" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_ring_square_time" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.19" android:text="--:--" android:textSize="9sp" android:textColor="#607481"
+   android:layout_weight="0.19" android:text="--:--" android:textSize="9sp" android:textColor="#163045" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text=""/>
   </LinearLayout>
   <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.24" android:text=""/>
   </LinearLayout>
  </FrameLayout>
+ </LinearLayout>
 </LinearLayout>

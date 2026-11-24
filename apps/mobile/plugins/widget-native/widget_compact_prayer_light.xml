@@ -1,41 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 1×1. Large brand mark, the next prayer and its clock on ONE outlined line,
-     and an outlined "Kalan" box whose outline turns orange during kerahet.
-     Every line autosizes into a weighted slot so HH:MM:SS never clips. -->
+<!-- 1×1. Large brand mark, "İmsak 06:24" as ONE autosized line (two views
+     split the ~70dp cell and clipped the clock), and an outlined "Kalan" box
+     whose outline turns orange during kerahet. Inner padding keeps glyphs
+     clear of the rounded outline. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_compact_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg_light" android:padding="5dp" android:gravity="center" android:orientation="vertical">
- <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.40"
+ <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.34"
   android:src="@drawable/widget_brand_mark_light" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
  <LinearLayout android:id="@+id/widget_compact_next_row" android:layout_width="match_parent"
   android:layout_height="0dp" android:layout_weight="0.24" android:layout_marginTop="3dp"
-  android:paddingStart="4dp" android:paddingEnd="4dp" android:orientation="horizontal" android:gravity="center"
-  android:background="@drawable/widget_box_light">
- <TextView android:id="@+id/widget_compact_name" android:layout_width="0dp" android:layout_height="match_parent"
-  android:layout_weight="0.55" android:text="Sıradaki" android:textSize="12sp" android:textColor="#163045"
-  android:textStyle="bold" android:gravity="center_vertical|end" android:maxLines="1"
-  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp"
-  android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
- <TextView android:id="@+id/widget_compact_time" android:layout_width="0dp" android:layout_height="match_parent"
-  android:layout_weight="0.45" android:layout_marginStart="4dp" android:text="--:--" android:textSize="12sp"
-  android:textColor="#163045" android:textStyle="bold" android:gravity="center_vertical|start" android:maxLines="1"
-  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp"
-  android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+  android:paddingStart="7dp" android:paddingEnd="7dp" android:paddingTop="1dp" android:paddingBottom="1dp"
+  android:orientation="horizontal" android:gravity="center" android:background="@drawable/widget_box_light">
+ <TextView android:id="@+id/widget_compact_name" android:layout_width="match_parent" android:layout_height="match_parent"
+  android:text="Sıradaki" android:textSize="12sp" android:textColor="#163045" android:textStyle="bold"
+  android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="16sp"
+  android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_compact_remaining_row" android:layout_width="match_parent"
-  android:layout_height="0dp" android:layout_weight="0.36" android:layout_marginTop="3dp"
-  android:paddingStart="3dp" android:paddingEnd="3dp" android:orientation="vertical" android:gravity="center"
-  android:background="@drawable/widget_box_light">
- <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.34"
+  android:layout_height="0dp" android:layout_weight="0.42" android:layout_marginTop="3dp"
+  android:paddingStart="8dp" android:paddingEnd="8dp" android:paddingTop="2dp" android:paddingBottom="3dp"
+  android:orientation="vertical" android:gravity="center" android:background="@drawable/widget_box_light">
+ <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3"
   android:text="Kalan" android:textSize="9sp" android:textColor="#3F5A4E" android:textStyle="bold"
   android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="12sp"
   android:autoSizeStepGranularity="1sp"/>
  <Chronometer android:id="@+id/widget_compact_countdown" android:layout_width="match_parent"
-  android:layout_height="0dp" android:layout_weight="0.66" android:text="--:--" android:textColor="#0C76B4"
+  android:layout_height="0dp" android:layout_weight="0.7" android:text="--:--" android:textColor="#0C76B4"
   android:textSize="18sp" android:textStyle="bold" android:fontFamily="sans-serif-condensed"
   android:includeFontPadding="false" android:gravity="center" android:maxLines="1"
-  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="28sp"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="30sp"
   android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
 </LinearLayout>

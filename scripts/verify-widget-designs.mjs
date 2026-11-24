@@ -30,7 +30,7 @@ const clocks={
   widget_prayer_column:'widget_col_countdown',
 };
 const secondary={
- widget_compact_prayer:'widget_compact_time',
+ widget_compact_prayer:'widget_compact_name',
  widget_next_prayer:'widget_next_time',
  widget_prayer_focus:'widget_focus_current',
  widget_prayer_strip:'widget_strip_time_0',
@@ -83,8 +83,10 @@ for(const kind of variants){
 }
 const comp=read(p+'widget_compact_prayer.xml');
 assert.ok(font(comp,clocks.widget_compact_prayer)>=15);
-// Next prayer + clock now share one outlined line; still below the countdown.
-assert.ok(font(comp,'widget_compact_time')<=13);
+// "İmsak 06:24" is ONE autosized view: two views split the ~70dp cell and
+// clipped the clock ("06:2") on ColorOS.
+assert.doesNotMatch(comp,/widget_compact_time/);
+assert.match(scheduler,/R\.id\.widget_compact_name,ready\?next\+"  "\+time/);
 assert.match(read(p+'widget_compact_prayer_info.xml'),/targetCellWidth="1"/);
 assert.match(read(p+'widget_compact_prayer_info.xml'),/targetCellHeight="1"/);
 assert.match(read(p+'widget_slim_prayer_info.xml'),/targetCellWidth="1"/);
@@ -139,15 +141,17 @@ for(const [name,id] of Object.entries(clocks)){
 for(const token of ['widget_ring_square_root','widget_ring_square_art',
     'installedSquareRing','widget_day_footer','widget_day_countdown'])
   assert.match(scheduler,new RegExp(token));
-assert.match(scheduler,/manager\.updateAppWidget\(squareRing,card\)/);
+assert.match(scheduler,/updateRing\(manager,squareRing,/);
 assert.match(scheduler,/nextInCurrentDay\?label\.equals\(next\):i==5/,
   'After Yatsı do not highlight today’s expired İmsak');
 assert.match(scheduler,/BRAND_VERSION=6;/);
 assert.match(pipe,/dirty\[8\]&&installed\[8\]\.length>0/);
-assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,224\)/);
-assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,432\)/);
+assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,PrayerRingBitmapRenderer\.SMALL\)/);
+assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,PrayerRingBitmapRenderer\.LARGE\)/);
 const ring=read(p+'PrayerRingBitmapRenderer.java');
-assert.match(ring,/size==224\?\.43f:\.44f/);
+assert.match(ring,/size==SMALL\?\.43f:\.44f/);
+// Drawn near display size (2×2 ≈ 150dp, 4×4 ≈ 240dp at 3×): no 2-3× upscaling blur.
+assert.match(ring,/SMALL=448,LARGE=720/);
 // Ring + outer rim (r+.043) and active halo must stay inside the bitmap.
 for(const r of [.43,.44])assert.ok(r+.043<.5&&r+.0345<.5,'ring exceeds bitmap at r='+r);
 
@@ -184,7 +188,12 @@ assert.match(slimXml,/android:text="KALAN SÜRE"[^>]*autoSizeTextType="uniform"/
 // so it scales with the ring instead of floating at a fixed sp size.
 for(const name of ['widget_ring_mini','widget_ring_square','widget_ring_premium']){
   const xml=read(p+name+'.xml');
-  assert.match(xml,/<FrameLayout[^>]*android:layout_weight="1"/);
+  // The weighted stage centres an exact-square frame (Android 12+ sizes), so
+  // the centre text box is the ring itself on tall ColorOS cells.
+  const short=name.replace('widget_ring_','');
+  assert.match(element(xml,'widget_ring_'+short+'_stage'),/android:layout_weight="1"/);
+  assert.ok(xml.includes('<FrameLayout android:id="@+id/widget_ring_'+short+'_frame"'),name+' frame');
+  assert.ok(scheduler.includes('squareRingFrame(card,R.id.widget_ring_'+short+'_frame'),name+' sizing');
   assert.ok((xml.match(/android:layout_weight="0\.\d+" android:text=""\/>/g)??[]).length>=4,
     name+' needs proportional horizontal and vertical spacers around the centre text');
 }
@@ -198,8 +207,10 @@ for(const suffix of ['','_light']){
   assert.match(mark,/android:background="@drawable\/widget_box_(dark|light)"/);
   assert.match(element(compact,'widget_compact_remaining_row'),
     /android:background="@drawable\/widget_box_(dark|light)"/);
-  assert.match(compact,/<ImageView[^>]*android:layout_weight="0\.40"[^>]*widget_brand_mark_/,
-    '1×1 brand mark is the largest slot');
+  assert.match(compact,/<ImageView[^>]*android:layout_weight="0\.34"[^>]*widget_brand_mark_/,
+    '1×1 brand mark keeps a third of the cell; the countdown box gets the most');
+  // Glyphs must clear the 11dp rounded outline of the boxes.
+  assert.match(element(compact,'widget_compact_remaining_row'),/android:paddingStart="8dp" android:paddingEnd="8dp"/);
   for(const name of ['widget_prayer_row','widget_prayer_column']){
     const xml=read(p+name+suffix+'.xml');
     const short=name==='widget_prayer_row'?'row':'col';
