@@ -34,20 +34,35 @@ const ICONS={
 
 /** Identical space on both sides of the Hijri | Gregorian rule. */
 const DATE_RULE_GAP=9;
+// The date row re-renders with every one-second tick. Building Intl formatters
+// is expensive on Hermes, so each is built once and only format() runs per tick.
+let hijriFormat:Intl.DateTimeFormat|null|undefined;
 function formatHijri(now:Date){
-  try {
-    return new Intl.DateTimeFormat('tr-TR-u-ca-islamic',{
-      day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Istanbul',
-    }).format(now);
-  } catch {return null;}
+  if(hijriFormat===undefined){
+    try {
+      hijriFormat=new Intl.DateTimeFormat('tr-TR-u-ca-islamic',{
+        day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Istanbul',
+      });
+    } catch {hijriFormat=null;}
+  }
+  try {return hijriFormat?.format(now)??null;} catch {return null;}
+}
+const gregorianFormats=new Map<string,Intl.DateTimeFormat>();
+function formatGregorian(now:Date,timezone:string){
+  let format=gregorianFormats.get(timezone);
+  if(!format){
+    format=new Intl.DateTimeFormat('tr-TR',{
+      weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone,
+    });
+    gregorianFormats.set(timezone,format);
+  }
+  return format.format(now);
 }
 function DateDivider({now,timezone,hijriDate}:{
   now:Date;timezone:string;hijriDate:string|null;
 }){
   const {colors}=useAppTheme();
-  const date=new Intl.DateTimeFormat('tr-TR',{
-    weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:timezone,
-  }).format(now);
+  const date=formatGregorian(now,timezone);
   const hijri=hijriDate??formatHijri(now);
   // Equal flexible halves keep the vertical rule at the actual screen centre.
   // Each date hugs the rule (Hijri right-aligned, Gregorian left-aligned), so

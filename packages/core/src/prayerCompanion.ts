@@ -112,11 +112,19 @@ function plusDays(dateISO:string,days:number):string{
   return new Date(base+days*86400_000).toISOString().slice(0,10);
 }
 
+/** Each clock is cross-checked against the IANA zone once per process; the
+ * same 16-day calendar is otherwise re-verified thousands of times while the
+ * widget, alert and home plans are built. Only verified instants are kept. */
+const VERIFIED_INSTANTS=new Map<string,number>();
+const VERIFIED_INSTANT_LIMIT=2048;
 /** Türkiye has used permanent UTC+03:00 since 2016.
  * Every result is cross-validated against the IANA timezone so a future
  * regulatory timezone change FAILS CLOSED instead of silently misfiring.
  */
 export function prayerInstant(dateISO:string,hhmm:string):number{
+  const key=dateISO+' '+hhmm;
+  const known=VERIFIED_INSTANTS.get(key);
+  if(known!==undefined)return known;
   assertISODate(dateISO);
   const minutes=timeToMinutes(hhmm);
   const at=Date.parse(dateISO+'T'+hhmm+':00+03:00');
@@ -124,6 +132,8 @@ export function prayerInstant(dateISO:string,hhmm:string):number{
   const local=zonedClock(new Date(at),PRAYER_TIMEZONE);
   if(local.dateISO!==dateISO || Math.floor(local.secondsOfDay/60)!==minutes)
     throw new RangeError('Prayer time zone rule changed; refresh scheduler');
+  if(VERIFIED_INSTANTS.size>=VERIFIED_INSTANT_LIMIT)VERIFIED_INSTANTS.clear();
+  VERIFIED_INSTANTS.set(key,at);
   return at;
 }
 export type PrayerAlertEvent={
@@ -202,41 +212,63 @@ export type PrayerWidgetSnapshot={
   /** Published Hijri date of the current day, '' when the source has none. */
   hijriDate:string;
 };
-export function buildPrayerWidgetSnapshot(
-  days:readonly PrayerSchedule[], nowMs:number,
-  kerahat?:KerahatSettings,
-):PrayerWidgetSnapshot{
+/** Published prayers of a calendar, computed once and reused for every
+ * snapshot of a timeline (previously each of ~160 snapshots re-verified all
+ * ~96 clocks of the calendar on the JS thread). */
+type WidgetPlan={
+  days:readonly PrayerSchedule[];
+  /** First published six-prayer day for each date, as days.find() picked it. */
+  current:ReadonlyMap<string,PrayerSchedule>;
+  /** Every published prayer instant, ascending (stable for equal instants). */
+  upcoming:readonly {instant:number;name:string;time:string}[];
+  kerahat?:KerahatSettings;
+};
+function widgetPlan(days:readonly PrayerSchedule[],kerahat?:KerahatSettings):WidgetPlan{
+  const current=new Map<string,PrayerSchedule>();
+  const upcoming:{instant:number;name:string;time:string}[]=[];
+  // Only non-demo published days, never a local astronomical approximation.
+  for(const day of days){
+    if(day.isDemo||day.timezone!==PRAYER_TIMEZONE)continue;
+    if(day.times.length===6&&!current.has(day.dateISO))current.set(day.dateISO,day);
+    for(const item of day.times)
+      upcoming.push({instant:prayerInstant(day.dateISO,item.time),name:item.label,time:item.time});
+  }
+  upcoming.sort((a,b)=>a.instant-b.instant);
+  return {days,current,upcoming,kerahat};
+}
+function widgetSnapshot(plan:WidgetPlan,nowMs:number):PrayerWidgetSnapshot{
   const clock=zonedClock(new Date(nowMs),PRAYER_TIMEZONE);
   const fallback:PrayerWidgetSnapshot={
     status:'no-data',city:'Konum seçilmedi',dateISO:clock.dateISO,
     nextName:'Takvimi aç',nextTime:'',nextAt:0,remainingMinutes:0,
     updatedAt:nowMs,times:[],kerahat:false,hijriDate:'',
   };
-  if(!days.length)return fallback;
-  // Only non-demo published days, never a local astronomical approximation.
-  const current=days.find(d=>d.dateISO===clock.dateISO&&!d.isDemo&&
-    d.timezone===PRAYER_TIMEZONE&&d.times.length===6);
-  const upcoming: {instant:number;name:string;time:string}[]=[];
-  for(const day of days){
-    if(day.isDemo||day.timezone!==PRAYER_TIMEZONE)continue;
-    for(const item of day.times){
-      const at=prayerInstant(day.dateISO,item.time);
-      if(at>nowMs)upcoming.push({instant:at,name:item.label,time:item.time});
-    }
+  if(!plan.days.length)return fallback;
+  const current=plan.current.get(clock.dateISO);
+  // First published prayer strictly after now (binary search).
+  let low=0,high=plan.upcoming.length;
+  while(low<high){
+    const mid=(low+high)>>>1;
+    if(plan.upcoming[mid].instant>nowMs)high=mid;else low=mid+1;
   }
-  upcoming.sort((a,b)=>a.instant-b.instant);
-  const next=upcoming[0];
-  if(!current||!next)return {...fallback,city:current?.locationName??days[0]?.locationName??fallback.city};
+  const next=plan.upcoming[low];
+  if(!current||!next)return {...fallback,city:current?.locationName??plan.days[0]?.locationName??fallback.city};
   return {
     status:'ready',city:current.locationName,dateISO:clock.dateISO,
     nextName:next.name,nextTime:next.time,nextAt:next.instant,
     remainingMinutes:Math.ceil((next.instant-nowMs)/60_000),
     updatedAt:nowMs,
     times:current.times.map(t=>({...t})),
-    kerahat:kerahat!==undefined&&
-      getKerahatView(current,clock.dateISO,clock.secondsOfDay,kerahat).active!==null,
+    kerahat:plan.kerahat!==undefined&&
+      getKerahatView(current,clock.dateISO,clock.secondsOfDay,plan.kerahat).active!==null,
     hijriDate:typeof current.hijriDate==='string'?current.hijriDate.trim():'',
   };
+}
+export function buildPrayerWidgetSnapshot(
+  days:readonly PrayerSchedule[], nowMs:number,
+  kerahat?:KerahatSettings,
+):PrayerWidgetSnapshot{
+  return widgetSnapshot(widgetPlan(days,kerahat),nowMs);
 }
 /** iOS WidgetKit precomputed boundary updates. Countdown text is system-driven,
  * rather than scheduling a widget refresh every minute. Android snapshots only
@@ -265,7 +297,8 @@ export function buildPrayerWidgetTimeline(
       }
     }
   }
+  const plan=widgetPlan(days,kerahat);
   return [...events].sort((a,b)=>a-b).slice(0,limit).map(date=>({
-    date,snapshot:buildPrayerWidgetSnapshot(days,date,kerahat),
+    date,snapshot:widgetSnapshot(plan,date),
   }));
 }

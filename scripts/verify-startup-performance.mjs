@@ -73,6 +73,16 @@ assert.match(companion,/setTimeout\(\(\)=>\{[\s\S]*?setMaintenanceReady\(true\);
 assert.match(companion,/if\(!ready\|\|!maintenanceReady\|\|!kerahatReady\|\|!source\.place\)return/);
 assert.match(companion,/widgetNeedsForegroundPublish\(native,place\.id,Date\.now\(\),widgetKey\)/,
   'native-ready widget must bypass full JS calendar writer on startup');
+// Per-second home ticks must reuse Intl formatters (each construction is an
+// ICU round trip on Hermes; rebuilding them froze the countdown).
+const prayerCore=read('packages/core/src/prayer.ts');
+assert.doesNotMatch(prayerCore,/export function zonedClock\([^)]*\)[^\n]*\n\s*const parts = new Intl/,
+  'zonedClock must use the cached per-timezone formatter');
+assert.doesNotMatch(home,/function DateDivider[\s\S]{0,300}new Intl\.DateTimeFormat/,
+  'date row must not build formatters on every tick');
+assert.doesNotMatch(read('apps/mobile/src/features/prayer/HomeBrandHeader.tsx'),
+  /useMemo\(\(\)=>\{\s*const format=\(zone:string\)=>new Intl/,
+  'local clock must reuse its formatter');
 assert.match(companion,/const native=await getNativeWidgetSummary\(\)/,
   'lightweight status must be read before heavy widget engine import');
 assert.match(companion,/returnedFromBackground\.current/,

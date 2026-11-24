@@ -202,3 +202,26 @@ test('widget carries the published Hijri date of the current day only',()=>{
   assert.equal(buildPrayerWidgetSnapshot([base,next],at).hijriDate,'',
     'no published Hijri date: the widget hides the line instead of computing one');
 });
+
+test('widget timeline stays off the JS-thread critical path: one formatter, no rescans',()=>{
+  // Root cause of multi-second freezes on Hermes: every zonedClock() built a
+  // new Intl.DateTimeFormat and every snapshot re-verified the whole calendar
+  // (≈15 000 constructions for a 16-day, 160-boundary widget publish).
+  const days=Array.from({length:16},(_,i)=>({...base,
+    dateISO:new Date(Date.UTC(2026,10,14+i)).toISOString().slice(0,10)}));
+  const intl=Intl as unknown as {DateTimeFormat:unknown};
+  const Real=Intl.DateTimeFormat;
+  let built=0;
+  intl.DateTimeFormat=function(locales?:string|string[],options?:Intl.DateTimeFormatOptions){
+    built++;
+    return new Real(locales,options);
+  };
+  try{
+    const entries=buildPrayerWidgetTimeline(days,prayerInstant('2026-11-14','16:30'),160,
+      {mode:'custom',sunriseMinutes:45,preNoonMinutes:30,preSunsetMinutes:45});
+    assert.ok(entries.length>150,'a full 16-day publish ('+entries.length+' boundaries)');
+  }finally{intl.DateTimeFormat=Real;}
+  assert.ok(built<=1,'timeline built '+built+' Intl.DateTimeFormat instances');
+  assert.throws(()=>prayerInstant('2026-11-14','24:00'),
+    'cached instants never bypass validation of new clocks');
+});

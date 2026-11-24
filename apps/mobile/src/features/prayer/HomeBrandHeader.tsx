@@ -8,6 +8,19 @@ import type {PrayerPlaceSelection} from './prayerApi';
 import type {PrayerPlaceMode} from './usePrayerSource';
 import type {DevicePlaceStatus} from './useDevicePrayerLocation';
 
+/** One HH:MM formatter per zone; building one each minute costs a JS frame on Hermes. */
+const clockFormats=new Map<string,Intl.DateTimeFormat>();
+function clockFormat(zone:string):Intl.DateTimeFormat{
+  let format=clockFormats.get(zone);
+  if(!format){
+    format=new Intl.DateTimeFormat('tr-TR',{
+      hour:'2-digit',minute:'2-digit',hour12:false,timeZone:zone,
+    });
+    clockFormats.set(zone,format);
+  }
+  return format;
+}
+
 /**
  * Premium home header: brand, independent city/district selector and a
  * dedicated non-interactive local clock. The GPS control stays distinct
@@ -32,9 +45,7 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
   const dark=colors.isDark;
   const minute=Math.floor(now.getTime()/60000);
   const localClock=useMemo(()=>{
-    const format=(zone:string)=>new Intl.DateTimeFormat('tr-TR',{
-      hour:'2-digit',minute:'2-digit',hour12:false,timeZone:zone,
-    }).format(now);
+    const format=(zone:string)=>clockFormat(zone).format(now);
     try{return format(timezone);}
     catch{return format('Europe/Istanbul');}
   },[minute,timezone]);

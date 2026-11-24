@@ -5,6 +5,8 @@ import {router} from 'expo-router';
 import {upcomingReligiousDay,type PrayerSchedule} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 
+const MONTH_SHORT=new Intl.DateTimeFormat('tr-TR',{month:'short',timeZone:'UTC'});
+
 const abbrev=['İmsak','Öğle','Akşam'] as const;
 const indices=[0,2,4] as const;
 /** Cheap home footer: no network, cache or timers. Only the already published
@@ -90,7 +92,7 @@ export const HomeCalendarSection=memo(function HomeCalendarSection({
             {next.dateISO.slice(8,10)}
           </Text>
           <Text style={{fontSize:10,fontWeight:'800',color:colors.muted}}>
-            {new Intl.DateTimeFormat('tr-TR',{month:'short',timeZone:'UTC'}).format(
+            {MONTH_SHORT.format(
               new Date(next.dateISO+'T12:00:00Z')).toLocaleUpperCase('tr-TR')}
           </Text>
         </View>
