@@ -268,6 +268,13 @@ try {
     Invoke-Checked 'Verify verified native widget recovery contracts' {
       & node scripts/verify-widget3-contracts.mjs
     }
+    Invoke-Checked 'Verify home dial, calendar and religious-day share designs' {
+      & node --experimental-strip-types scripts/verify-home-visual-contracts.mjs
+      if ($LASTEXITCODE -ne 0) { return }
+      & node scripts/verify-calendar-views.mjs
+      if ($LASTEXITCODE -ne 0) { return }
+      & node scripts/verify-religious-days-share.mjs
+    }
   }
   # Prevent Release APKs with placeholder images or modified source pixels.
   if ($Configuration -eq 'Release') {
