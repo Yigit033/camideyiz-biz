@@ -27,6 +27,8 @@ const ICONS:Record<PrayerKey,keyof typeof Feather.glyphMap>={
   imsak:'moon',gunes:'sunrise',ogle:'sun',ikindi:'clock',aksam:'sunset',yatsi:'moon',
 };
 const LEADS=[0,5,10,15,30,45,60] as const;
+/** Section titles stay on one line and shrink to fit beside their control. */
+const SECTION_TITLE_FIT={numberOfLines:1,adjustsFontSizeToFit:true,minimumFontScale:.65} as const;
 const SOUND_OPTIONS:readonly {id:AlertSound;label:string;icon:keyof typeof Feather.glyphMap}[]=[
   {id:'default',label:'Bildirim sesi',icon:'bell'},
   {id:'adhan',label:'Ezan',icon:'volume-2'},
@@ -52,9 +54,11 @@ function WidgetShowcase(){
   },[source.days,source.place?.id]);
   return <View style={{gap:11}}>
     <View style={styles.sectionHeader}>
-      <View style={{flexDirection:'row',gap:8,alignItems:'center'}}>
+      <View style={styles.sectionLead}>
         <MaterialCommunityIcons name="widgets-outline" size={21} color={colors.gold}/>
-        <Text style={[styles.sectionTitle,{color:colors.text}]}>Ana ekran widget’ları</Text>
+        <Text {...SECTION_TITLE_FIT} style={[styles.sectionTitle,{color:colors.text}]}>
+          Ana ekran widget’ları
+        </Text>
       </View>
       <InfoPill icon="smartphone" text="Önizleme"/>
     </View>
@@ -176,9 +180,11 @@ export default function CompanionScreen(){
       <Widget3Diagnostics/>
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <View style={styles.sectionHeader}>
-          <View style={{flex:1,flexDirection:'row',gap:8,alignItems:'center'}}>
+          <View style={styles.sectionLead}>
             <Feather name="bell" size={21} color={colors.gold}/>
-            <Text style={[styles.sectionTitle,{color:colors.text}]}>Namaz Vakti Hatırlatmaları</Text>
+            <Text {...SECTION_TITLE_FIT} style={[styles.sectionTitle,{color:colors.text}]}>
+              Namaz Vakti Hatırlatmaları
+            </Text>
           </View>
           <Switch
             value={settings.enabled}
@@ -363,9 +369,9 @@ export default function CompanionScreen(){
         announcement.status==='pending-disable')?
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <View style={styles.sectionHeader}>
-          <View style={{flex:1,flexDirection:'row',gap:8,alignItems:'center'}}>
+          <View style={styles.sectionLead}>
             <MaterialCommunityIcons name="bullhorn-outline" size={20} color={colors.gold}/>
-            <Text style={[styles.sectionTitle,{color:colors.text}]}>
+            <Text {...SECTION_TITLE_FIT} style={[styles.sectionTitle,{color:colors.text}]}>
               Özel Duyurular
             </Text>
           </View>
@@ -410,9 +416,11 @@ export default function CompanionScreen(){
       </View>:null}
       <View style={[styles.panel,{backgroundColor:colors.surface,borderColor:colors.border}]}>
         <View style={styles.sectionHeader}>
-          <View style={{flexDirection:'row',alignItems:'center',gap:8}}>
+          <View style={styles.sectionLead}>
             <Feather name="inbox" size={20} color={colors.gold}/>
-            <Text style={[styles.sectionTitle,{color:colors.text}]}>Bildirim geçmişi</Text>
+            <Text {...SECTION_TITLE_FIT} style={[styles.sectionTitle,{color:colors.text}]}>
+              Bildirim geçmişi
+            </Text>
           </View>
           {companion.inbox.length?<Pressable onPress={companion.clearInbox} accessibilityRole="button">
             <Text style={{color:'#BD756C',fontSize:12,fontWeight:'700'}}>Tümünü sil</Text>
@@ -450,7 +458,10 @@ const styles=StyleSheet.create({
   back:{height:41,width:41,borderWidth:1,borderRadius:13,alignItems:'center',justifyContent:'center'},
   panel:{borderWidth:1,borderRadius:23,padding:14,gap:15},
   sectionHeader:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:9},
-  sectionTitle:{fontFamily:'serif',fontSize:18,fontWeight:'700'},
+  // Takes only the width the trailing switch or button leaves (minus the
+  // 9pt gap), so a long title can never run under it.
+  sectionLead:{flex:1,flexDirection:'row',gap:8,alignItems:'center'},
+  sectionTitle:{flexShrink:1,fontFamily:'serif',fontSize:18,fontWeight:'700'},
   infoPill:{paddingHorizontal:8,minHeight:26,borderWidth:1,borderRadius:15,
     flexDirection:'row',gap:5,alignItems:'center'},
   note:{borderWidth:1,borderRadius:13,padding:11,flexDirection:'row',alignItems:'flex-start',gap:8},
