@@ -72,7 +72,7 @@
  <LinearLayout android:id="@+id/widget_row_remaining" android:layout_width="0dp" android:layout_height="match_parent"
   android:layout_weight="1.7" android:layout_marginStart="4dp" android:padding="3dp" android:orientation="vertical"
   android:gravity="center" android:background="@drawable/widget_box_light" android:visibility="gone">
- <TextView android:id="@+id/widget_row_next" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text="Kalan" android:textSize="11sp" android:textColor="#3F5A4E" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_row_next" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text="Kalan" android:textSize="11sp" android:textColor="#0C76B4" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
  <Chronometer android:id="@+id/widget_row_countdown" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="0.64" android:text="--:--" android:textSize="16sp" android:textColor="#0C76B4"
   android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="24sp" android:autoSizeStepGranularity="1sp"/>

@@ -39,11 +39,11 @@
   android:paddingTop="2dp" android:paddingBottom="2dp"
   android:orientation="vertical" android:gravity="center" android:background="@drawable/widget_chip_dark">
  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3"
-  android:text="KALAN" android:textSize="9sp" android:textColor="#AFC5D4" android:textStyle="bold"
+  android:text="KALAN" android:textSize="9sp" android:textColor="#3CC8F5" android:textStyle="bold"
   android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="10sp" android:autoSizeStepGranularity="1sp"/>
  <Chronometer android:id="@+id/widget_ring_mini_countdown" android:layout_width="match_parent"
-  android:layout_height="0dp" android:layout_weight="0.7" android:text="--:--" android:textColor="#F4D392" android:textSize="18sp"
+  android:layout_height="0dp" android:layout_weight="0.7" android:text="--:--" android:textColor="#3CC8F5" android:textSize="18sp"
   android:textStyle="bold" android:includeFontPadding="false"
   android:gravity="center" android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="12sp" android:autoSizeMaxTextSize="34sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>

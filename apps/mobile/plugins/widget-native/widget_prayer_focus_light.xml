@@ -37,11 +37,11 @@
   <LinearLayout android:layout_width="0dp" android:layout_weight="1.25" android:layout_height="match_parent"
    android:orientation="vertical">
   <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.26"
-   android:text="KALAN SÜRE" android:textSize="9sp" android:textColor="#607481" android:gravity="start|bottom"
+   android:text="KALAN SÜRE" android:textSize="9sp" android:textColor="#0C76B4" android:textStyle="bold" android:gravity="start|bottom"
    android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform"
    android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
   <Chronometer android:id="@+id/widget_focus_countdown" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="1" android:text="--:--" android:textColor="#91652D" android:textSize="27sp"
+   android:layout_weight="1" android:text="--:--" android:textColor="#0C76B4" android:textSize="27sp"
    android:textStyle="bold" android:includeFontPadding="false"
    android:gravity="start|center_vertical" android:maxLines="1" android:autoSizeTextType="uniform"
    android:autoSizeMinTextSize="18sp" android:autoSizeMaxTextSize="56sp" android:autoSizeStepGranularity="1sp"/>

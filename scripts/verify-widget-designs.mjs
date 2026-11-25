@@ -370,6 +370,37 @@ for(const [name,key] of [['widget_ring_mini','MINI'],['widget_ring_square','SQUA
   assert.equal(Number(java[1]),x,key+'_CHROME_X must equal the layout chrome');
   assert.equal(Number(java[2]),y,key+'_CHROME_Y must equal the layout chrome');
 }
+// Widget Design 10.1 — owner: "Kalan" and its countdown blue in EVERY
+// widget (logo cyan on navy, the light mark's deep azure on ivory), the
+// label bold so the small blue text reads at a glance. Nothing repaints
+// them at runtime, so the layouts are the whole truth.
+let blueCountdowns=0,blueLabels=0;
+for(const kind of variants){
+  for(const suffix of ['','_light']){
+    const file=kind+suffix,xml=read(p+file+'.xml');
+    const blue=suffix?'#0C76B4':'#3CC8F5';
+    for(const node of walk(tree(xml))){
+      const id=attr(node,'id')?.replace('@+id/','')??'';
+      if(node.tag==='Chronometer'){
+        assert.equal(attr(node,'textColor'),blue,'countdown must be blue: '+file+' '+id);
+        assert.doesNotMatch(scheduler,new RegExp('ink\\(card,look,R\\.id\\.'+id+'\\b'),
+          'countdown colour is never repainted: '+id);
+        blueCountdowns++;
+        continue;
+      }
+      const label=/kalan/i.test(attr(node,'text')??'')||
+        ['widget_strip_next','widget_day_footer','widget_row_next','widget_col_next'].includes(id);
+      if(!label||node.tag!=='TextView')continue;
+      assert.equal(attr(node,'textColor'),blue,'"Kalan" label must be blue: '+file+' '+(id||attr(node,'text')));
+      assert.equal(attr(node,'textStyle'),'bold','"Kalan" label must be bold: '+file+' '+(id||attr(node,'text')));
+      blueLabels++;
+    }
+  }
+}
+assert.equal(blueCountdowns,variants.length*2,'one countdown per widget and theme');
+assert.ok(blueLabels>=variants.length*2,'every widget names its countdown');
+console.log('Widget Design 10.1: '+blueCountdowns+' countdowns and '+blueLabels+
+  ' "Kalan" labels blue in both themes');
 console.log('Widget Design 10.0: one system typeface in every widget, '+boxes+
   ' boxes with exactly centred text and symmetric insets, ring chrome constants follow the layouts');
 console.log('Widget Design 9.0: large brand mark, outlined 1×1 with kerahet outline, resizable six-prayer row and column');

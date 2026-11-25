@@ -20,10 +20,10 @@
    android:orientation="vertical">
   <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text=""/>
   <TextView android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.17" android:text="KALAN SÜRE" android:textSize="8sp" android:textColor="#607481"
+   android:layout_weight="0.17" android:text="KALAN SÜRE" android:textSize="8sp" android:textColor="#0C76B4" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
   <Chronometer android:id="@+id/widget_ring_square_countdown" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.42" android:text="--:--" android:textSize="18sp" android:textColor="#91652D" android:textStyle="bold"
+   android:layout_weight="0.42" android:text="--:--" android:textSize="18sp" android:textColor="#0C76B4" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="34sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_ring_square_next" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="0.24" android:text="Sıradaki" android:textSize="11sp" android:textColor="#163045" android:textStyle="bold"
