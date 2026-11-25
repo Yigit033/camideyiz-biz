@@ -7,13 +7,10 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {router,useLocalSearchParams} from 'expo-router';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {captureRef} from 'react-native-view-shot';
-import * as Sharing from 'expo-sharing';
-import * as MediaLibrary from 'expo-media-library/legacy';
 import {
   GALLERY_PRESETS,GALLERY_TEXT_MAX_LENGTH,DEFAULT_GALLERY_DRAFT,
   cleanGalleryText,canExportGalleryDesign,parseGalleryDraft,
-  galleryFormatDimensions,type GalleryDraft,type GalleryFont,
+  type GalleryDraft,type GalleryFont,
   type GalleryFormat,type GalleryTextTone,type GalleryTextPosition,
   type GalleryTextSize,type GalleryShade,
 } from '@camideyiz/core';
@@ -22,6 +19,9 @@ import {
   gallerySlot,galleryPhoto,
 } from '@/features/gallery/galleryCatalog';
 import {GalleryCanvas} from '@/features/gallery/GalleryCanvas';
+import {
+  captureDesignPng,saveDesignPng,shareDesignPng,
+} from '@/features/gallery/designExport';
 
 const FONT_OPTIONS:readonly {id:GalleryFont;name:string;sample:string;family:string}[]=[
   {id:'serif',name:'Klasik',sample:'Aa',family:Platform.OS==='ios'?'Georgia':'serif'},
@@ -112,14 +112,7 @@ export default function GalleryEditor(){
     // The preview must be mounted and laid out for native view capture.
     // Scroll to the preview before capture so Android draws its image layer.
     scrollRef.current?.scrollTo({y:0,animated:false});
-    await new Promise<void>(resolve=>setTimeout(resolve,100));
-    const dims=galleryFormatDimensions(draft.format);
-    const uri=await captureRef(canvasRef,{
-      result:'tmpfile',format:'png',quality:1,
-      width:dims.width,height:dims.height,
-    });
-    if(!uri)throw new Error('Görsel dosyası üretilemedi.');
-    return uri.startsWith('file://')?uri:'file://'+uri;
+    return captureDesignPng(canvasRef,draft.format);
   };
   const share=async()=>{
     if(busy)return;
@@ -130,14 +123,7 @@ export default function GalleryEditor(){
     }
     setBusy('share');
     try{
-      const available=await Sharing.isAvailableAsync();
-      if(!available)throw new Error('Bu cihazda sistem paylaşım menüsü kullanılamıyor.');
-      const uri=await imageForExport();
-      await Sharing.shareAsync(uri,{
-        mimeType:'image/png',UTI:'public.png',
-        dialogTitle:'WhatsApp veya uygun bir uygulamada paylaş',
-      });
-      // Returning from the system sheet does NOT prove the user sent a message.
+      await shareDesignPng(imageForExport);
     }catch(error){
       Alert.alert('Paylaşım açılamadı',
         error instanceof Error?error.message:'Görsel paylaşımı başlatılamadı.');
@@ -152,10 +138,7 @@ export default function GalleryEditor(){
     }
     setBusy('save');
     try{
-      const permission=await MediaLibrary.requestPermissionsAsync(true,['photo']);
-      if(!permission.granted)throw new Error('Fotoğraf kaydetme izni verilmedi.');
-      const uri=await imageForExport();
-      await MediaLibrary.saveToLibraryAsync(uri);
+      await saveDesignPng(imageForExport);
       Alert.alert('Görsel kaydedildi',
         'Hazırladığın görsel telefon galerisine kaydedildi. WhatsApp > Güncellemeler > Durum bölümünden seçerek paylaşabilirsin.');
     }catch(error){

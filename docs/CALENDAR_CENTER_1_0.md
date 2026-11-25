@@ -8,8 +8,8 @@ Ana sayfanın **en altında** (mevcut Ayet/Hadis, Ezan, Kerahet ve vakit alanlar
 
 ### Ekranlar
 
-- \`/calendar30\`: bugünden itibaren 30 takvim günü (0..29), ilçe adı, Gregorian gün, hazırsa Hicri tarih. Üç özet saat ve dokununca açılan altı gerçek namaz saati. Her günü ayrı doğrula; eksik yayın varsa **—** yerine açık "Yayımlanmış veri bekleniyor" mesajı. Asla farklı ilçe, eski tarih, yanlış kaynak veya astronomik tahminle doldurma.
-- \`/religious-days\`: Yaklaşan / 2026 / 2027, Tümü / Kandiller / Bayramlar / Diğer filtreleri; açılır kart, hicri karşılığı, kandil akşamı bilgisi ve resmî Diyanet kaynak linki. Diyanet güncellemesi gerektiriyorsa \`packages/core/src/religiousDays.ts\` manuel ve kaynak doğrulamasıyla sürümlenir.
+- \`/calendar30\`: bugünden itibaren 30 takvim günü (0..29), ilçe adı, Gregorian gün, hazırsa Hicri tarih. Takvim 2.0 (25.11.2026): 30 gün tek sayfalık, açılıp kapanmayan bir tabloda; her satırda tarih ve altı namaz saati, bugün altın çizgiyle vurgulu, satıra dokununca seçilen günün uzun tarihi ve Hicri tarihi üstte. Satırlar ölçülen ekran yüksekliğine bölünür (360×800 dp telefonda kaydırmasız); büyük sistem yazısında satırlar büyür, gerekirse tarih saatlerin üstüne iner ve tablo kayar. Her günü ayrı doğrula; eksik yayın varsa **—** yerine açık "Yayımlanmış veri bekleniyor" mesajı. Asla farklı ilçe, eski tarih, yanlış kaynak veya astronomik tahminle doldurma.
+- \`/religious-days\`: Yaklaşan / 2026 / 2027, Tümü / Kandiller / Bayramlar / Diğer filtreleri; açılır kart, hicri karşılığı, kandil akşamı bilgisi ve resmî Diyanet kaynak linki. Her satırda paylaş düğmesi: `/religious-day-share` camideyiz.biz logolu, Osmanlı kemerli altın çerçeveli kartı (Durum 9:16 / Gönderi 4:5, Gece / Gündüz) Galeri ile aynı PNG + sistem paylaşım hattından (`features/gallery/designExport.ts`) paylaşır veya galeriye kaydeder; sözleşme `scripts/verify-religious-days-share.mjs`. Diyanet güncellemesi gerektiriyorsa \`packages/core/src/religiousDays.ts\` manuel ve kaynak doğrulamasıyla sürümlenir.
 
 ## Kaynak mimarisi ve sorumluluklar
 

@@ -23,6 +23,7 @@ function Navigation() {
       <Stack.Screen name="kerahat-guide" options={{presentation:'card'}}/>
       <Stack.Screen name="calendar30" options={{presentation:'card'}}/>
       <Stack.Screen name="religious-days" options={{presentation:'card'}}/>
+      <Stack.Screen name="religious-day-share" options={{presentation:'card'}}/>
       <Stack.Screen name="gallery-editor" options={{presentation:'card'}}/>
     </Stack>
   </>;
