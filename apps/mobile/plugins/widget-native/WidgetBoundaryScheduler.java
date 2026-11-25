@@ -671,8 +671,9 @@ public final class WidgetBoundaryScheduler {
           R.layout.widget_next_prayer_auto));
       card.setTextViewText(R.id.widget_city,ready?city:"Takvim bekleniyor");
       card.setTextViewText(R.id.widget_next_label,ready?"SIRADAKİ VAKİT":"TAKVİM BEKLENİYOR");
-      card.setTextViewText(R.id.widget_next_name,ready?next:"—");
-      card.setTextViewText(R.id.widget_next_time,ready?time:"--:--");
+      // One centred line, one autosize pass: "Akşam  17:45" (two half-width
+      // views sized the name and the clock differently and sat off-centre).
+      card.setTextViewText(R.id.widget_next_name,ready?next+"  "+time:"—");
       setCountdown(card,R.id.widget_next_countdown,nextAt,now);
       card.setViewVisibility(R.id.widget_next_countdown_row,ready?View.VISIBLE:View.GONE);
       card.setOnClickPendingIntent(R.id.widget_root,launchAction(context,41018));
@@ -972,7 +973,8 @@ public final class WidgetBoundaryScheduler {
 
   // Fixed chrome around each ring stage, in dp (padding, logo/header,
   // margins, footer chip): the ring gets the largest square that remains.
-  private static final float MINI_CHROME_X=12f,MINI_CHROME_Y=82f;
+  // verify-widget-designs.mjs recomputes them from the dark layouts.
+  private static final float MINI_CHROME_X=12f,MINI_CHROME_Y=88f;
   private static final float SQUARE_CHROME_X=10f,SQUARE_CHROME_Y=39f;
   private static final float PREMIUM_CHROME_X=20f,PREMIUM_CHROME_Y=118f;
   /** Launcher sizes may round; keep the ring stroke off the stage edge. */

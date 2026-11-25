@@ -1,5 +1,6 @@
 /**
- * Widget Design 7.0 — native launcher first, 9 variants, countdown-first.
+ * Widget Design 7.0–10.0 — native launcher first, countdown-first, one
+ * system typeface, exactly centred box text.
  * Structural QA only: physical launcher scaling and UI jank require APK tests.
  */
 import assert from 'node:assert/strict';
@@ -31,7 +32,7 @@ const clocks={
 };
 const secondary={
  widget_compact_prayer:'widget_compact_name',
- widget_next_prayer:'widget_next_time',
+ widget_next_prayer:'widget_next_name',
  widget_prayer_focus:'widget_focus_current',
  widget_prayer_strip:'widget_strip_time_0',
  widget_ring_mini:'widget_ring_mini_time',
@@ -53,6 +54,25 @@ function font(xml,id){
   assert.ok(m,'Missing text size '+id);
   return Number(m[1]);
 }
+// Minimal layout tree (parents, siblings, attributes) for structural rules.
+function tree(xml){
+  const top={tag:'#document',attrs:'',children:[]},stack=[top];
+  for(const [,close,tag,attrs,self] of xml.replace(/<!--[\s\S]*?-->/g,'')
+      .matchAll(/<(\/?)([A-Za-z]+)\b([^<>]*?)(\/?)>/g)){
+    if(close){stack.pop();continue;}
+    const node={tag,attrs,children:[],parent:stack.at(-1)};
+    stack.at(-1).children.push(node);
+    if(!self)stack.push(node);
+  }
+  return top.children[0];
+}
+const attr=(node,name)=>node.attrs.match(new RegExp('android:'+name+'="([^"]*)"'))?.[1];
+function* walk(node){yield node;for(const child of node.children)yield* walk(child);}
+const dp=(node,name)=>{const v=attr(node,name);return v===undefined?0:Number(v.replace(/dp$/,''));};
+const pad=(node,side)=>{
+  const v=attr(node,'padding'+side)??attr(node,'padding');
+  return v===undefined?0:Number(v.replace(/dp$/,''));
+};
 for(const kind of variants){
   const info=read(p+kind+'_info.xml');
   assert.match(info,/android:updatePeriodMillis="1800000"/);
@@ -87,6 +107,15 @@ assert.ok(font(comp,clocks.widget_compact_prayer)>=15);
 // clipped the clock ("06:2") on ColorOS.
 assert.doesNotMatch(comp,/widget_compact_time/);
 assert.match(scheduler,/R\.id\.widget_compact_name,ready\?next\+"  "\+time/);
+// 2×2 likewise: "Akşam  17:45" is ONE centred line. Two half-width views
+// autosized the name and the clock to different sizes and sat off-centre.
+for(const suffix of ['','_light']){
+  const next=read(p+'widget_next_prayer'+suffix+'.xml');
+  assert.doesNotMatch(next,/widget_next_time/);
+  assert.match(element(next,'widget_next_name'),/android:layout_width="match_parent"[^>]*android:gravity="center"/);
+}
+assert.doesNotMatch(scheduler,/R\.id\.widget_next_time/);
+assert.match(scheduler,/R\.id\.widget_next_name,ready\?next\+"  "\+time/);
 assert.match(read(p+'widget_compact_prayer_info.xml'),/targetCellWidth="1"/);
 assert.match(read(p+'widget_compact_prayer_info.xml'),/targetCellHeight="1"/);
 assert.match(read(p+'widget_slim_prayer_info.xml'),/targetCellWidth="1"/);
@@ -117,16 +146,17 @@ for(const suffix of ['', '_light']){
     element(strip,'widget_strip_time_'+i);
     element(premium,'widget_ring_premium_clock_'+i);
   }
-  // Footer = 40dp floor + weighted growth (tall cells enlarge the countdown).
+  // Footer = 46dp floor + weighted growth: the caption sits ABOVE the centred
+  // countdown, so the footer is taller to keep the countdown large.
   assert.match(element(strip,'widget_strip_remaining_row'),
-    /android:layout_height="40dp" android:layout_weight="0\.25"/);
+    /android:layout_height="46dp" android:layout_weight="0\.34"/);
   const day=read(p+'widget_prayer_day'+suffix+'.xml');
   for(let i=0;i<6;i++){
     element(day,'widget_day_row_'+i);
     element(day,'widget_day_label_'+i);
     element(day,'widget_day_time_'+i);
   }
-  assert.match(day,/android:layout_height="38dp" android:layout_weight="0\.25"/);
+  assert.match(day,/android:layout_height="44dp" android:layout_weight="0\.34"/);
   const slim=read(p+'widget_slim_prayer'+suffix+'.xml');
   assert.match(slim,/KALAN SÜRE/);
   assert.doesNotMatch(slim,/android:textSize="24sp"/,
@@ -248,5 +278,76 @@ assert.match(scheduler,/OPTION_APPWIDGET_MIN_WIDTH/);
 assert.match(scheduler,/OPTION_APPWIDGET_MAX_HEIGHT/);
 // The row/column highlight the CURRENT period, like the home screen.
 assert.match(scheduler,/current=!ready\?-1:!nextInCurrentDay\?5:nextIndex<0\?-1:\(nextIndex\+5\)%6/);
+// Widget Design 10.0 — owner: "all fonts the same", "text inside the boxes
+// exactly centred".
+// ONE typeface: every widget text follows the system font (OPPO Sans on
+// ColorOS). sans-serif-condensed/-medium countdowns fell back to Roboto there,
+// so one widget drew in two typefaces. Bold still marks numbers and names.
+// Boxes = outlined/filled chips, boxes and cells, plus the strip and premium
+// hour cells (highlighted at runtime). The daily rows are table rows (name
+// left, clock right), not boxes.
+const isBox=node=>/@drawable\/widget_(chip|box|cell)_(dark|light)"/.test(node.attrs)||
+  /android:id="@\+id\/widget_(strip|ring_premium)_cell_\d"/.test(node.attrs);
+const centresX=gravity=>gravity==='center'||(gravity??'').split('|').includes('center_horizontal');
+let boxes=0;
+for(const kind of variants){
+  for(const suffix of ['','_light']){
+    const file=kind+suffix,xml=read(p+file+'.xml');
+    assert.doesNotMatch(xml,/android:(fontFamily|typeface|textFontWeight|textAppearance)=/,
+      'widget text must use the system font: '+file);
+    for(const box of walk(tree(xml))){
+      if(!isBox(box))continue;
+      boxes++;
+      assert.equal(pad(box,'Start'),pad(box,'End'),'box insets must be symmetric (start/end): '+file);
+      assert.equal(pad(box,'Top'),pad(box,'Bottom'),'box insets must be symmetric (top/bottom): '+file);
+      for(const text of walk(box)){
+        if(!/^(TextView|Chronometer)$/.test(text.tag))continue;
+        const label=file+' '+(attr(text,'id')??attr(text,'text'));
+        const row=text.parent,siblings=row.children;
+        if(attr(row,'orientation')==='horizontal'&&siblings.length>1){
+          // Side by side only as a content-sized group that a full-width row
+          // centres. A weighted neighbour centres the value in the LEFTOVER
+          // space ("KALAN" + countdown sat right of centre).
+          assert.ok(attr(row,'layout_width')==='match_parent'&&centresX(attr(row,'gravity')),
+            'side-by-side texts must form a centred group: '+label);
+          for(const member of siblings)
+            assert.ok(attr(member,'layout_weight')===undefined&&
+              /^(wrap_content|\d+dp)$/.test(attr(member,'layout_width')),
+              'a label and a value share a box stacked, or as a content-sized centred group: '+label);
+          continue;
+        }
+        assert.equal(attr(text,'layout_width'),'match_parent','box text must span its box: '+label);
+        // Exactly centred, or a label/clock pair hugging their shared edge
+        // (label bottom → clock top), which centres the pair as one group.
+        const gravity=attr(text,'gravity'),at=siblings.indexOf(text);
+        const hug=gravity==='center_horizontal|bottom'&&
+            attr(siblings[at+1]??text,'gravity')==='center_horizontal|top'||
+          gravity==='center_horizontal|top'&&
+            attr(siblings[at-1]??text,'gravity')==='center_horizontal|bottom';
+        assert.ok(gravity==='center'||hug,'box text must be centred: '+label+' ('+gravity+')');
+      }
+    }
+  }
+}
+// 34 boxes per theme: 1×1 2, 2×2 chip 1, daily footer 1, strip 6+1, mini
+// chip 1, premium 6+1, slim chip 1, row 6+1, column 6+1.
+assert.ok(boxes>=68,'box audit lost coverage ('+boxes+' boxes)');
+// Ring frames: the scheduler sizes each square from the chrome around the
+// stage, so these constants must follow the layouts (a taller chip with a
+// stale constant pushes the ring stroke under the chip).
+for(const [name,key] of [['widget_ring_mini','MINI'],['widget_ring_square','SQUARE'],
+    ['widget_ring_premium','PREMIUM']]){
+  const root=tree(read(p+name+'.xml'));
+  const x=pad(root,'Start')+pad(root,'End');
+  let y=pad(root,'Top')+pad(root,'Bottom');
+  for(const child of root.children)
+    y+=dp(child,'layout_marginTop')+dp(child,'layout_height')+dp(child,'layout_marginBottom');
+  const java=scheduler.match(new RegExp(key+'_CHROME_X=([\\d.]+)f,'+key+'_CHROME_Y=([\\d.]+)f'));
+  assert.ok(java,'Missing '+key+'_CHROME constants');
+  assert.equal(Number(java[1]),x,key+'_CHROME_X must equal the layout chrome');
+  assert.equal(Number(java[2]),y,key+'_CHROME_Y must equal the layout chrome');
+}
+console.log('Widget Design 10.0: one system typeface in every widget, '+boxes+
+  ' boxes with exactly centred text and symmetric insets, ring chrome constants follow the layouts');
 console.log('Widget Design 9.0: large brand mark, outlined 1×1 with kerahet outline, resizable six-prayer row and column');
 console.log('Widget Design 8.0: 11 variants, countdown-first hierarchy, autosized content that fills the launcher cell, ring-proportional centre text and light/dark parity validated');

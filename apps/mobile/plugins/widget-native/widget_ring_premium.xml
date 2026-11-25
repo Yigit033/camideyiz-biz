@@ -30,8 +30,8 @@
    android:layout_weight="0.15" android:text="KALAN SÜRE" android:textSize="9sp" android:textColor="#AFC5D4"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
   <Chronometer android:id="@+id/widget_ring_premium_countdown" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.42" android:text="--:--" android:textSize="31sp" android:textColor="#F4D392" android:textStyle="bold" android:fontFamily="sans-serif-condensed"
-   android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="18sp" android:autoSizeMaxTextSize="52sp" android:autoSizeStepGranularity="1sp"/>
+   android:layout_weight="0.42" android:text="--:--" android:textSize="31sp" android:textColor="#F4D392" android:textStyle="bold"
+   android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="14sp" android:autoSizeMaxTextSize="52sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_ring_premium_next" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="0.25" android:text="Takvim" android:textSize="15sp" android:textColor="#F1F7F8" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="26sp" android:autoSizeStepGranularity="1sp"/>

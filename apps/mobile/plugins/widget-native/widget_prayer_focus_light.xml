@@ -42,7 +42,7 @@
    android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
   <Chronometer android:id="@+id/widget_focus_countdown" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="1" android:text="--:--" android:textColor="#91652D" android:textSize="27sp"
-   android:textStyle="bold" android:fontFamily="sans-serif-medium" android:includeFontPadding="false"
+   android:textStyle="bold" android:includeFontPadding="false"
    android:gravity="start|center_vertical" android:maxLines="1" android:autoSizeTextType="uniform"
    android:autoSizeMinTextSize="18sp" android:autoSizeMaxTextSize="56sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_focus_next" android:layout_width="match_parent" android:layout_height="0dp"

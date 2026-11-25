@@ -2,7 +2,8 @@
 <!-- 1×1. Large brand mark, "İmsak 06:24" as ONE autosized line (two views
      split the ~70dp cell and clipped the clock), and an outlined "Kalan" box
      whose outline turns orange during kerahet. Inner padding keeps glyphs
-     clear of the rounded outline. -->
+     clear of the rounded outline and is symmetric, so every text sits exactly
+     centred in its box. All text uses the system font. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_compact_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg_light" android:padding="5dp" android:gravity="center" android:orientation="vertical">
@@ -20,7 +21,7 @@
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_compact_remaining_row" android:layout_width="match_parent"
   android:layout_height="0dp" android:layout_weight="0.42" android:layout_marginTop="3dp"
-  android:paddingStart="8dp" android:paddingEnd="8dp" android:paddingTop="2dp" android:paddingBottom="3dp"
+  android:paddingStart="8dp" android:paddingEnd="8dp" android:paddingTop="2dp" android:paddingBottom="2dp"
   android:orientation="vertical" android:gravity="center" android:background="@drawable/widget_box_light">
  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3"
   android:text="Kalan" android:textSize="9sp" android:textColor="#3F5A4E" android:textStyle="bold"
@@ -29,9 +30,9 @@
   android:autoSizeStepGranularity="1sp"/>
  <Chronometer android:id="@+id/widget_compact_countdown" android:layout_width="match_parent"
   android:layout_height="0dp" android:layout_weight="0.7" android:text="--:--" android:textColor="#0C76B4"
-  android:textSize="18sp" android:textStyle="bold" android:fontFamily="sans-serif-condensed"
+  android:textSize="18sp" android:textStyle="bold"
   android:includeFontPadding="false" android:gravity="center" android:maxLines="1"
-  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="30sp"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="30sp"
   android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
 </LinearLayout>

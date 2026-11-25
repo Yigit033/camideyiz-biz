@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- GENERATED from widget_ring_mini.xml by scripts/sync-widget-light-layouts.mjs. Do not edit. 2×2 mini ring (resizable). Ring stage: centres an exact-square frame (sized per launcher cell on Android 12+) so the centre text box IS the ring on tall ColorOS cells. -->
+<!-- GENERATED from widget_ring_mini.xml by scripts/sync-widget-light-layouts.mjs. Do not edit. 2×2 mini ring (resizable). Ring stage: centres an exact-square frame (sized per launcher cell on Android 12+) so the centre text box IS the ring on tall ColorOS cells. The 40dp chip stacks "KALAN" over the countdown on one centre line (MINI_CHROME_Y in WidgetBoundaryScheduler.java counts it). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_ring_mini_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg_light" android:padding="6dp" android:orientation="vertical" android:gravity="center">
@@ -34,15 +34,17 @@
   </LinearLayout>
  </FrameLayout>
  </LinearLayout>
- <LinearLayout android:layout_width="match_parent" android:layout_height="34dp"
+ <LinearLayout android:layout_width="match_parent" android:layout_height="40dp"
   android:layout_marginTop="4dp" android:paddingStart="12dp" android:paddingEnd="12dp"
-  android:orientation="horizontal" android:gravity="center" android:background="@drawable/widget_chip_light">
- <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="KALAN"
-  android:textSize="9sp" android:textColor="#607481" android:textStyle="bold" android:maxLines="1" android:includeFontPadding="false"
-  android:layout_marginEnd="6dp"/>
- <Chronometer android:id="@+id/widget_ring_mini_countdown" android:layout_width="0dp" android:layout_weight="1"
-  android:layout_height="match_parent" android:text="--:--" android:textColor="#91652D" android:textSize="18sp"
-  android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:includeFontPadding="false"
+  android:paddingTop="2dp" android:paddingBottom="2dp"
+  android:orientation="vertical" android:gravity="center" android:background="@drawable/widget_chip_light">
+ <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3"
+  android:text="KALAN" android:textSize="9sp" android:textColor="#607481" android:textStyle="bold"
+  android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="10sp" android:autoSizeStepGranularity="1sp"/>
+ <Chronometer android:id="@+id/widget_ring_mini_countdown" android:layout_width="match_parent"
+  android:layout_height="0dp" android:layout_weight="0.7" android:text="--:--" android:textColor="#91652D" android:textSize="18sp"
+  android:textStyle="bold" android:includeFontPadding="false"
   android:gravity="center" android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="12sp" android:autoSizeMaxTextSize="34sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
 </LinearLayout>

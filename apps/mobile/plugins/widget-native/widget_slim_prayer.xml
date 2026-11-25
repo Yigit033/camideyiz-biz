@@ -37,7 +37,7 @@
   android:orientation="vertical" android:background="@drawable/widget_chip_dark">
  <Chronometer android:id="@+id/widget_slim_countdown" android:layout_width="match_parent"
   android:layout_height="match_parent" android:text="--:--" android:textColor="#F4D392" android:textSize="16sp"
-  android:textStyle="bold" android:fontFamily="sans-serif-condensed" android:includeFontPadding="false"
+  android:textStyle="bold" android:includeFontPadding="false"
   android:gravity="center" android:maxLines="1" android:autoSizeTextType="uniform"
   android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="23sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
