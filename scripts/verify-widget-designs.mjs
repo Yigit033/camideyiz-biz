@@ -255,6 +255,16 @@ for(const suffix of ['','_light']){
     '1×1 brand mark keeps a third of the cell; the countdown box gets the most');
   // Glyphs must clear the 11dp rounded outline of the boxes.
   assert.match(element(compact,'widget_compact_remaining_row'),/android:paddingStart="8dp" android:paddingEnd="8dp"/);
+  // Owner feedback: "Kalan" a little lower and blue like the countdown;
+  // kerahet never adds text to the 1×1 (outline only).
+  const label=element(compact,'widget_compact_remaining_label');
+  const blue=suffix?'#0C76B4':'#3CC8F5';
+  assert.ok(label.includes('android:textColor="'+blue+'"'),'1×1 "Kalan" is blue');
+  assert.ok(element(compact,'widget_compact_countdown').includes('android:textColor="'+blue+'"'));
+  assert.match(element(compact,'widget_compact_remaining_row'),
+    /android:paddingTop="4dp" android:paddingBottom="0dp"/,
+    '1×1 "Kalan" + countdown sit 2dp lower (optical centre), countdown size unchanged');
+  assert.doesNotMatch(compact,/android:text="[^"]*(?:[Kk]erahet|KERAHET)/);
   for(const name of ['widget_prayer_row','widget_prayer_column']){
     const xml=read(p+name+suffix+'.xml');
     const short=name==='widget_prayer_row'?'row':'col';
@@ -269,6 +279,15 @@ assert.match(read(p+'widget_prayer_row_info.xml'),/resizeMode="horizontal"/);
 assert.match(read(p+'widget_prayer_column_info.xml'),/targetCellWidth="1"[^>]*targetCellHeight="4"/);
 assert.match(read(p+'widget_prayer_column_info.xml'),/resizeMode="vertical"/);
 // Kerahet: ONLY the 1×1 "Kalan" outline changes; it follows the app's rule.
+{
+  const start=scheduler.indexOf('int[] compact=widgetIds[2];');
+  const block=scheduler.slice(start,scheduler.indexOf('int[] focus=widgetIds[3];',start));
+  assert.ok(start>0&&block.length>0);
+  const literals=block.replace(/\/\/[^\n]*/g,'').match(/"(?:[^"\\\n]|\\.)*"/g)??[];
+  assert.ok(literals.length>0&&!literals.some(text=>/kerahet/i.test(text)),
+    'the 1×1 never writes kerahet text');
+  assert.doesNotMatch(block,/widget_compact_remaining_label/,'the "Kalan" label never changes at runtime');
+}
 assert.match(scheduler,/setInt\(R\.id\.widget_compact_remaining_row,"setBackgroundResource",kerahat/);
 assert.match(scheduler,/boolean kerahat=ready&&props\.optBoolean\("kerahat",false\)/);
 assert.match(scheduler,/next\+"\|"\+kerahat/,'1×1 repaints when kerahet starts or ends');
@@ -299,7 +318,11 @@ for(const kind of variants){
       if(!isBox(box))continue;
       boxes++;
       assert.equal(pad(box,'Start'),pad(box,'End'),'box insets must be symmetric (start/end): '+file);
-      assert.equal(pad(box,'Top'),pad(box,'Bottom'),'box insets must be symmetric (top/bottom): '+file);
+      // The one optical exception (owner feedback): the 1×1 "Kalan" box,
+      // whose descender-less pair sits 2dp lower; its total inset is kept.
+      if(attr(box,'id')==='@+id/widget_compact_remaining_row')
+        assert.ok(pad(box,'Top')===4&&pad(box,'Bottom')===0,'1×1 optical inset: '+file);
+      else assert.equal(pad(box,'Top'),pad(box,'Bottom'),'box insets must be symmetric (top/bottom): '+file);
       for(const text of walk(box)){
         if(!/^(TextView|Chronometer)$/.test(text.tag))continue;
         const label=file+' '+(attr(text,'id')??attr(text,'text'));
