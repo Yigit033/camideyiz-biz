@@ -11,12 +11,23 @@ export const WIDGET_PAYLOAD_REVISION=2;
 
 type KerahatKeySource={mode:string;sunriseMinutes:number;
   preNoonMinutes:number;preSunsetMinutes:number};
+/** Short stable FNV-1a digest: the native key is capped at 80 characters. */
+function labelDigest(value:string):string{
+  let hash=0x811c9dc5;
+  for(let i=0;i<value.length;i++){
+    hash^=value.charCodeAt(i);
+    hash=Math.imul(hash,0x01000193)>>>0;
+  }
+  return hash.toString(36);
+}
 /** What the native timeline was built from. A calendar published by an older
- * app, or with other kerahet settings, carries a different key and is
- * republished instead of waiting for the 6-hour refresh. */
-export function widgetContentKey(kerahat:KerahatKeySource):string{
+ * app, with other kerahet settings, or under another district name (Üsküdar
+ * and İstanbul share one calendar ID) carries a different key and is
+ * republished instead of waiting for the 6-hour refresh. `city` is the name
+ * the widgets show: the selected district's, as on every published day. */
+export function widgetContentKey(kerahat:KerahatKeySource,city:string):string{
   return ['p'+WIDGET_PAYLOAD_REVISION,kerahat.mode,kerahat.sunriseMinutes,
-    kerahat.preNoonMinutes,kerahat.preSunsetMinutes].join('|');
+    kerahat.preNoonMinutes,kerahat.preSunsetMinutes,'c'+labelDigest(city)].join('|');
 }
 
 export type NativeWidgetSummary={

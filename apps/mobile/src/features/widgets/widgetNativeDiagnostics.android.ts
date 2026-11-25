@@ -138,7 +138,7 @@ export async function publishAndroidWidgetTimeline(
   // already comes from published and structurally validated core schedules.
   const calendar={
     version:1,cityId,city:timeline[0].snapshot.city,generatedAt:now,sourceAt,
-    contentKey:widgetContentKey(kerahat),
+    contentKey:widgetContentKey(kerahat,timeline[0].snapshot.city),
     entries:timeline.map(({date,snapshot})=>({
       at:date,props:toWidgetProps(snapshot),
     })),

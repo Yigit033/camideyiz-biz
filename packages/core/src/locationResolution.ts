@@ -4,11 +4,28 @@
  */
 export function normaliseTurkishPlace(value:string):string{
   return value.trim().toLocaleLowerCase('tr-TR')
+    // Diyanet's same-name disambiguators: "KALE (M)", "EDREMİT (V)".
+    .replace(/\([^)]*\)/g,' ')
     .replace(/ı/g,'i').replace(/ğ/g,'g').replace(/ü/g,'u')
     .replace(/ş/g,'s').replace(/ö/g,'o').replace(/ç/g,'c')
     .replace(/\b(?:province|district|ilcesi|ilce|ili|il)\b/gi,'')
     .replace(/[^a-z0-9]+/g,' ').trim();
 }
+
+/** One official name, two spellings: the directory's and the geocoder's. */
+const SPELLINGS:Readonly<Record<string,string>>={
+  ondokuzmayis:'19mayis',          // Samsun: "19 MAYIS"
+  mereglisi:'marmaraereglisi',     // Tekirdağ: "M.EREĞLİSİ"
+  eyup:'eyupsultan',               // İstanbul, renamed 2017
+  kazan:'kahramankazan',           // Ankara, renamed 2016
+};
+/** Comparison key: spacing and punctuation never decide a match
+ * ("BÜYÜK ORHAN" = "Büyükorhan", "MUSTAFA KEMALPAŞA" = "Mustafakemalpaşa"). */
+export function turkishPlaceKey(value:string):string{
+  const compact=normaliseTurkishPlace(value).replace(/ /g,'');
+  return SPELLINGS[compact]??compact;
+}
+
 export type LocationDirectoryRow={id:number;name:string};
 export function findExactTurkishPlace<T extends LocationDirectoryRow>(
   candidateNames:readonly (string|null|undefined)[],
@@ -16,12 +33,88 @@ export function findExactTurkishPlace<T extends LocationDirectoryRow>(
 ):T|null{
   for(const label of candidateNames){
     if(typeof label!=='string'||label.length<2)continue;
-    const normalized=normaliseTurkishPlace(label);
-    if(!normalized)continue;
-    const matches=entries.filter(entry=>normaliseTurkishPlace(entry.name)===normalized);
+    const key=turkishPlaceKey(label);
+    if(!key)continue;
+    const matches=entries.filter(entry=>turkishPlaceKey(entry.name)===key);
     if(matches.length===1)return matches[0];
   }
   return null;
+}
+
+/** "PENDİK" → "Pendik", "KALE (M)" → "Kale (M)", "M.EREĞLİSİ" → "M.Ereğlisi". */
+export function prettyTurkishPlace(name:string):string{
+  return name.trim().toLocaleLowerCase('tr-TR')
+    .replace(/(^|[\s\-(.])([^\s\-(.])/g,(_match,edge:string,letter:string)=>
+      edge+letter.toLocaleUpperCase('tr-TR'));
+}
+
+/**
+ * Diyanet publishes ONE calendar for a metropolitan province's urban core,
+ * under the province's own name ("İSTANBUL", 9541). The districts carved out
+ * of that old central district (Üsküdar, Kadıköy, Çankaya, Konak…) have no
+ * entry of their own because that calendar is theirs. Naming them lets
+ * people and GPS find them; each resolves to the province-centre ID and
+ * never to a neighbouring district. A district Diyanet lists itself always
+ * keeps its own entry. Keys are {@link turkishPlaceKey} province names.
+ */
+export const CENTRAL_DISTRICTS:Readonly<Record<string,readonly string[]>>={
+  adana:['Çukurova','Sarıçam','Seyhan','Yüreğir'],
+  ankara:['Altındağ','Çankaya','Etimesgut','Gölbaşı','Keçiören','Mamak',
+    'Pursaklar','Sincan','Yenimahalle'],
+  antalya:['Döşemealtı','Kepez','Konyaaltı','Muratpaşa'],
+  aydin:['Efeler'],
+  balikesir:['Altıeylül','Karesi'],
+  bursa:['Gürsu','Nilüfer','Osmangazi','Yıldırım'],
+  denizli:['Merkezefendi','Pamukkale'],
+  diyarbakir:['Bağlar','Kayapınar','Sur','Yenişehir'],
+  erzurum:['Palandöken','Yakutiye'],
+  eskisehir:['Odunpazarı','Tepebaşı'],
+  gaziantep:['Şahinbey','Şehitkamil'],
+  hatay:['Antakya','Defne'],
+  istanbul:['Adalar','Ataşehir','Bağcılar','Bahçelievler','Bakırköy',
+    'Bayrampaşa','Beşiktaş','Beykoz','Beyoğlu','Esenler','Eyüpsultan','Fatih',
+    'Gaziosmanpaşa','Güngören','Kadıköy','Kağıthane','Sarıyer','Şişli',
+    'Ümraniye','Üsküdar','Zeytinburnu'],
+  izmir:['Balçova','Bayraklı','Bornova','Buca','Çiğli','Gaziemir',
+    'Karabağlar','Karşıyaka','Konak','Narlıdere'],
+  kahramanmaras:['Dulkadiroğlu','Onikişubat'],
+  kayseri:['Hacılar','Kocasinan','Melikgazi','Talas'],
+  kocaeli:['Başiskele','Derince','İzmit'],
+  malatya:['Battalgazi'],
+  manisa:['Şehzadeler','Yunusemre'],
+  mardin:['Artuklu'],
+  mersin:['Akdeniz','Mezitli','Toroslar','Yenişehir'],
+  mugla:['Menteşe'],
+  ordu:['Altınordu'],
+  sakarya:['Adapazarı','Arifiye','Erenler','Serdivan'],
+  samsun:['Canik','İlkadım'],
+  sanliurfa:['Eyyübiye','Haliliye','Karaköprü'],
+  tekirdag:['Süleymanpaşa'],
+  trabzon:['Ortahisar'],
+  van:['İpekyolu','Tuşba'],
+};
+
+/**
+ * A province's district directory with its central districts named (each
+ * a copy of the province-centre row under the district's own name), in
+ * Turkish alphabetical order. `gps` also accepts "Merkez", the official name
+ * of a non-metropolitan province's central district in reverse geocoding;
+ * it is never listed for people to pick.
+ */
+export function withCentralDistricts<T extends LocationDirectoryRow>(
+  provinceName:string,entries:readonly T[],options:{gps?:boolean}={},
+):T[]{
+  const centre=findExactTurkishPlace([provinceName],entries);
+  if(!centre)return [...entries];
+  const taken=new Set(entries.map(entry=>turkishPlaceKey(entry.name)));
+  const names=[...CENTRAL_DISTRICTS[turkishPlaceKey(provinceName)]??[],
+    ...options.gps?['Merkez']:[]];
+  const extra=names.filter(name=>!taken.has(turkishPlaceKey(name)))
+    .map(name=>({...centre,name}));
+  if(!extra.length)return [...entries];
+  return [...entries,...extra].sort((a,b)=>
+    a.name.toLocaleLowerCase('tr-TR').localeCompare(
+      b.name.toLocaleLowerCase('tr-TR'),'tr-TR'));
 }
 
 /** Approximate Haversine distance; ONLY a threshold for reducing Android

@@ -1,12 +1,16 @@
 import {useEffect,useRef,useState} from 'react';
 import {AppState} from 'react-native';
 import * as Location from 'expo-location';
-import {findExactTurkishPlace,locationTravelMeters} from '@camideyiz/core';
+import {findExactTurkishPlace,locationTravelMeters,prettyTurkishPlace,
+  withCentralDistricts} from '@camideyiz/core';
 import {getCities,getStates,type PrayerPlaceSelection,
   type CityOption,type StateOption} from './prayerApi';
 
+/** `unlisted`: the phone knows the district, but Diyanet publishes no
+ * calendar under that name; the person picks the right one from the list. */
 export type DevicePlaceStatus=
-  'manual'|'locating'|'active'|'permission-denied'|'unavailable';
+  'manual'|'locating'|'active'|'permission-denied'|'unavailable'|'unlisted';
+const UNLISTED='district_unlisted';
 
 type GpsFix={latitude:number;longitude:number};
 const MIN_MOVEMENT_METERS=2000;
@@ -71,22 +75,28 @@ export function useDevicePrayerLocation({
         if(!alive)return;
         // An address may report an Istanbul neighbourhood as "district".
         // Exact matching deliberately avoids false neighbouring-city clocks.
+        // Central districts (Üsküdar, Çankaya…) resolve to the province-centre
+        // calendar Diyanet publishes for them, under their own name.
         const district=findExactTurkishPlace(
-          [address.subregion,address.district,address.city],allDistricts);
+          [address.subregion,address.district,address.city],
+          withCentralDistricts(province.name,allDistricts,{gps:true}));
         if(!district||district.state_id!==province.id)
-          throw new Error('District not resolved');
+          throw new Error(UNLISTED);
+        const centre=district.name==='Merkez';
         await callback.current({
-          id:district.id,name:district.name,
-          stateId:province.id,stateName:province.name,
+          id:district.id,
+          name:prettyTurkishPlace(centre?province.name:district.name),
+          stateId:province.id,stateName:prettyTurkishPlace(province.name),
         });
         if(!alive)return;
         lastGeocode=coords;
         lastCheckedAt=Date.now();
         setStatus('active');
-      }catch{
+      }catch(error){
         if(alive){
           // A short outage must not reset the last confirmed district.
-          setStatus('unavailable');
+          setStatus(error instanceof Error&&error.message===UNLISTED
+            ?'unlisted':'unavailable');
         }
       }finally{inFlight=false;}
     };

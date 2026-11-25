@@ -5,6 +5,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather} from '@expo/vector-icons';
+import {normaliseTurkishPlace,prettyTurkishPlace,withCentralDistricts} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
 import {
   getStates,getCities,
@@ -17,10 +18,7 @@ type Props={
 };
 const CACHE_PREFIX='@camideyiz/place-directory/v3/';
 const MAX_CACHE_AGE_MS=7*86400_000;
-function prettyName(name:string):string{
-  return name.toLocaleLowerCase('tr-TR')
-    .replace(/(^|[\s\-])\S/g,match=>match.toLocaleUpperCase('tr-TR'));
-}
+const prettyName=prettyTurkishPlace;
 function parseCached<T extends {id:number;name:string}>(raw:string|null):T[]|null{
   if(!raw)return null;
   try{
@@ -95,13 +93,14 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
       const items=await getCities(next.id);
       if(request!==requestId.current)return;
       if(items.length===0)throw new Error('Empty district list');
-      setDistricts(items);
+      // Üsküdar, Çankaya… listed by name on the province-centre calendar.
+      setDistricts(withCentralDistricts(next.name,items));
       store('cities/'+next.id,items);
     }catch{
       const saved=await cached<CityOption>('cities/'+next.id);
       if(request!==requestId.current)return;
       const valid=saved?.filter(x=>x.state_id===next.id);
-      if(valid?.length){setDistricts(valid);setOffline(true);}
+      if(valid?.length){setDistricts(withCentralDistricts(next.name,valid));setOffline(true);}
       else setError('Bu ilin ilçe rehberine ulaşılamadı. Tekrar dene veya başka bir bağlantı kullan.');
     }finally{if(request===requestId.current)setLoading(false);}
   };
@@ -129,9 +128,10 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
     }finally{setSaving(false);}
   };
   const filtered=useMemo(()=>{
-    const query=filter.trim().toLocaleLowerCase('tr-TR');
+    // "uskudar" finds Üsküdar: typed without Turkish letters still matches.
+    const query=normaliseTurkishPlace(filter);
     const items=province?districts:states;
-    return query?items.filter(x=>x.name.toLocaleLowerCase('tr-TR').includes(query)):items;
+    return query?items.filter(x=>normaliseTurkishPlace(x.name).includes(query)):items;
   },[province,states,districts,filter]);
 
   return <Modal visible={visible} animationType="slide"
@@ -203,7 +203,8 @@ export function LocationPicker({visible,onClose,onSelect}:Props){
         </Pressable>
       </View>:null}
       {!loading&&!saving&&!error?<FlatList data={filtered}
-        keyExtractor={item=>String(item.id)} keyboardShouldPersistTaps="handled"
+        // Central districts share the province-centre ID: the name keeps keys unique.
+        keyExtractor={item=>item.id+':'+item.name} keyboardShouldPersistTaps="handled"
         contentContainerStyle={{paddingHorizontal:18,paddingBottom:45}}
         ListEmptyComponent={<Text style={{color:colors.muted,textAlign:'center',marginTop:28}}>
           {province?'Bu il için eşleşen ilçe bulunamadı.':'Sonuç bulunamadı.'}

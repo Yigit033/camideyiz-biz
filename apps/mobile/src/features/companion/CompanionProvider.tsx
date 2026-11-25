@@ -110,7 +110,8 @@ export function CompanionProvider({children}:PropsWithChildren){
   // Widgets show kerahet with the same preference as the home screen; a
   // change republishes the native timeline (its content key differs).
   const {settings:kerahat,ready:kerahatReady}=useKerahatSettings();
-  const widgetKey=widgetContentKey(kerahat);
+  // The published days carry the selected district's name (usePrayerSource).
+  const widgetKey=widgetContentKey(kerahat,source.place?.name??'');
   const [settings,setSettings]=useState<PrayerAlertSettings>(DEFAULT_ALERT_SETTINGS);
   const [inbox,setInbox]=useState<NativePrayerEvent[]>([]);
   const [ready,setReady]=useState(false);

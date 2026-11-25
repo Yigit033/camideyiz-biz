@@ -22,6 +22,30 @@ type DataStatus=
   'loading'|'choose-location'|'verified'|'offline'|'mirror'|'mirror-cached'|'unavailable';
 export type PrayerSourceTriplet=OfficialTriplet|MirrorTriplet;
 
+/** Central districts share their province-centre calendar ID, so a day
+ * cached as "İstanbul" can be shown for "Üsküdar". Every day carries the
+ * selected district's name: the widget cache, widgets and notifications
+ * read it from there. */
+function labelledFor(data:PrayerSourceTriplet|null,place:PrayerPlaceSelection|null):
+PrayerSourceTriplet|null{
+  if(!data||!place||data.city.id!==place.id)return data;
+  const name=place.name;
+  if(data.city.name===name&&data.today.locationName===name&&
+     data.next.locationName===name)return data;
+  const day=<T extends {locationName:string}>(value:T):T=>
+    value.locationName===name?value:{...value,locationName:name};
+  return data.source==='idamedya-diyanet-republished'
+    ?{...data,city:{...data.city,name},
+      previous:data.previous?day(data.previous):null,
+      upcoming:data.upcoming.map(day),today:day(data.today),next:day(data.next)}
+    :{...data,city:{...data.city,name},
+      previous:day(data.previous),today:day(data.today),next:day(data.next)};
+}
+/** Same published calendar: only the shown district name differs. */
+function sameCalendar(a:PrayerPlaceSelection|null,b:PrayerPlaceSelection):boolean{
+  return a!==null&&a.id===b.id&&a.stateId===b.stateId;
+}
+
 function validPlace(value:unknown):value is PrayerPlaceSelection{
   if(!value||typeof value!=='object')return false;
   const p=value as PrayerPlaceSelection;
@@ -91,20 +115,24 @@ export function usePrayerSource(now:Date){
     ]);
     modeRef.current='manual';
     setLocationMode('manual');
+    // Üsküdar after İstanbul (same calendar): keep the shown hours; the
+    // calendar effect only reloads for a different district ID.
+    const reload=!sameCalendar(currentPlaceRef.current,next);
     currentPlaceRef.current=next;
-    setData(null);setStatus('loading');setFailureReason(null);
+    if(reload){setData(null);setStatus('loading');setFailureReason(null);}
     setPlace(next);
   },[officialConfigured]);
 
   const selectGpsPlace=useCallback(async(next:PrayerPlaceSelection)=>{
     if(!validPlace(next)||modeRef.current!=='auto')return;
-    if(currentPlaceRef.current?.id===next.id&&
-      currentPlaceRef.current?.stateId===next.stateId)return;
+    const current=currentPlaceRef.current;
+    const reload=!sameCalendar(current,next);
+    if(!reload&&current?.name===next.name&&current?.stateName===next.stateName)return;
     const key=officialConfigured?OFFICIAL_PLACE_KEY:MIRROR_PLACE_KEY;
     await AsyncStorage.setItem(key,JSON.stringify(next));
     if(modeRef.current!=='auto')return;
     currentPlaceRef.current=next;
-    setData(null);setStatus('loading');setFailureReason(null);
+    if(reload){setData(null);setStatus('loading');setFailureReason(null);}
     setPlace(next);
   },[officialConfigured]);
 
@@ -221,10 +249,11 @@ export function usePrayerSource(now:Date){
           ?'EzanVakti eMushaf · Diyanet verilerinin bağımsız aktarımı'
           :'İdamedya · Diyanet verilerinin bağımsız aktarımı'
       :'Üçüncü taraf yayımlanmış namaz takvimi';
+  const days=useMemo(()=>labelledFor(data,place),[data,place]);
   return useMemo(()=>({
-    place,status,days:data,selectPlace,retry,failureReason,
+    place,status,days,selectPlace,retry,failureReason,
     locationMode,autoLocationStatus,enableAutoLocation,
     configured:true,officialConfigured,sourceLabel,
-  }),[place,status,data,selectPlace,retry,failureReason,locationMode,
+  }),[place,status,days,selectPlace,retry,failureReason,locationMode,
     autoLocationStatus,enableAutoLocation,officialConfigured,sourceLabel]);
 }

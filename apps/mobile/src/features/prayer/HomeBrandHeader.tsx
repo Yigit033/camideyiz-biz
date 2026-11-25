@@ -54,14 +54,19 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
     ?place.name.toLocaleLowerCase('tr-TR')===place.stateName.toLocaleLowerCase('tr-TR')
       ?'İl merkezi':place.name
     :'İl / ilçe seç';
+  // Short, whole messages: the line never ends in "…" on any phone.
+  const autoIssue=locationMode==='auto'&&autoLocationStatus!=='active'&&
+    autoLocationStatus!=='locating';
   const region=locationMode==='auto'
     ?autoLocationStatus==='active'
       ?'Otomatik · '+(place?.stateName??'Konum')
       :autoLocationStatus==='locating'
-        ?'Konumun bulunuyor…'
+        ?'Konum bulunuyor…'
         :autoLocationStatus==='permission-denied'
           ?'Konum izni gerekli'
-          :'Otomatik konum alınamadı'
+          :autoLocationStatus==='unlisted'
+            ?'İlçeni listeden seç'
+            :'Konum alınamadı'
     :place?.stateName??'Konum';
 
   const actionSize=small?42:45;
@@ -86,8 +91,14 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
       }}>
         <Pressable accessibilityRole="button"
           accessibilityLabel={locationMode==='auto'
-            ?'Otomatik konumu yeniden bul':'GPS ile konumumu otomatik bul'}
+            ?autoLocationStatus==='unlisted'?'İlçeni listeden seç'
+              :'Otomatik konumu yeniden bul'
+            :'GPS ile konumumu otomatik bul'}
           onPress={()=>{
+            // GPS found a district without a calendar of its own: pick one.
+            if(locationMode==='auto'&&autoLocationStatus==='unlisted'){
+              onOpenLocation();return;
+            }
             if(locationMode==='auto'&&autoLocationStatus==='permission-denied'){
               Alert.alert('Konum izni gerekli',
                 'İlçeni otomatik bulabilmek için telefonun konum iznine ihtiyacımız var.',
@@ -119,9 +130,11 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
           hitSlop={{top:7,bottom:7,right:4}}
           style={{flex:1,minWidth:0,flexDirection:'row',
             alignItems:'center',minHeight:58,gap:3}}>
-          <View style={{flex:1,minWidth:0,gap:4}}>
-            <Text style={{fontSize:small?9:9.5,color:colors.muted,fontWeight:'700'}}
-              numberOfLines={1}>{region}</Text>
+          <View style={{flex:1,minWidth:0,gap:3}}>
+            <Text style={{fontSize:small?10:10.5,lineHeight:small?12.5:13,
+              fontWeight:'800',letterSpacing:.1,
+              color:autoIssue?colors.gold:colors.muted}}
+              numberOfLines={2} adjustsFontSizeToFit minimumFontScale={.85}>{region}</Text>
             <Text style={{fontSize:small?12.5:14,fontWeight:'800',
               color:colors.text}} numberOfLines={1}
               adjustsFontSizeToFit minimumFontScale={.78}>{district}</Text>
