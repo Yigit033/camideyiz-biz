@@ -1,6 +1,6 @@
-import {useEffect, useMemo, useRef, type ComponentProps} from 'react';
+import {memo, useEffect, useMemo, useRef, type ComponentProps} from 'react';
 import {StyleSheet,Text,View} from 'react-native';
-import Svg, {Circle, Defs, Ellipse, G, Line, LinearGradient, Path, RadialGradient, Rect, Stop} from 'react-native-svg';
+import Svg, {Circle, Defs, G, Line, LinearGradient, Path, RadialGradient, Stop} from 'react-native-svg';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
 import {GestureDetector, usePanGesture} from 'react-native-gesture-handler';
 import Animated, {
@@ -20,8 +20,11 @@ import {
 import {type ColorTokens} from '@/theme/tokens';
 import {DialLighting} from './DialLighting';
 import {
-  centerMedallionLayout,CENTER_ROWS,MEDALLION_RINGS,MEDALLION_VIEWBOX,
+  centerMedallionLayout,CENTER_ROWS,MEDALLION_RINGS,MEDALLION_VIEWBOX,MINARET_VIEWBOX,
 } from './centerMedallionLayout';
+import {
+  MINARET_DETAIL,MINARET_FILLS,MINARET_PALETTE,MINARET_SHAPES,MINARET_STOPS,MINARET_STROKE,
+} from './ottomanMinaret';
 
 
 export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
@@ -52,66 +55,51 @@ const PRAYER_ICONS: Record<PrayerTime['key'], ComponentProps<typeof MaterialComm
 };
 type PrayerArc = PrayerTime & {from: number; to: number};
 
-/** Gold leaf for the minaret: the dark field's luminous gold, and a deeper
- * antique gold on ivory where the pale highlights would wash out. */
-const MINARET_GOLD={
-  dark:['#B8995E','#F3DFB0','#E2C88F','#A88A55'],
-  light:['#8C6B33','#C9A462','#B08B4C','#7A5C2A'],
-} as const;
 /** Short status under the live countdown while a kerahet window is active. */
 const KERAHET_LABEL_COLOR={dark:'#F2A54A',light:'#A64B0B'} as const;
 
 /**
- * Classical Ottoman minaret (viewBox 40×96): alem crescent, pointed külah,
- * two şerefe balconies on corbels and a stepped base. Openings are cut in
- * the medallion colour so the shaft reads as solid gold on either theme.
+ * Classical Ottoman minaret (Süleymaniye type), drawn from ottomanMinaret.ts:
+ * gilded alem, lead pencil külah, petek windows, three şerefe on muqarnas
+ * corbels and a slender fluted stone shaft, each piece shaded as a cylinder.
+ * Openings are cut in the medallion colour so they read as pierced on either
+ * theme. Memoised: the dial re-renders every second, the minaret only when
+ * the theme or the dial size changes.
  */
-function OttomanMinaret({width,height,dark,cutout}:{
+const OttomanMinaret=memo(function OttomanMinaret({width,height,dark,cutout}:{
   width:number;height:number;dark:boolean;cutout:string;
 }){
-  const gold=dark?MINARET_GOLD.dark:MINARET_GOLD.light;
+  const tone=dark?MINARET_PALETTE.dark:MINARET_PALETTE.light;
   return <View accessible accessibilityRole="image" accessibilityLabel="Osmanlı minaresi"
     style={{width,height}}>
-    <Svg width={width} height={height} viewBox="0 0 40 96">
+    <Svg width={width} height={height}
+      viewBox={'0 0 '+MINARET_VIEWBOX.width+' '+MINARET_VIEWBOX.height}>
       <Defs>
-        <LinearGradient id="minaretGold" x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor={gold[0]}/>
-          <Stop offset=".38" stopColor={gold[1]}/>
-          <Stop offset=".62" stopColor={gold[2]}/>
-          <Stop offset="1" stopColor={gold[3]}/>
+        {MINARET_FILLS.map(fill=><LinearGradient key={fill} id={'minaret-'+fill}
+          x1="0" y1="0" x2="1" y2="0">
+          {tone[fill].map((color,i)=>
+            <Stop key={i} offset={MINARET_STOPS[i]} stopColor={color}/>)}
+        </LinearGradient>)}
+        <LinearGradient id="minaret-drop" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={tone.niche} stopOpacity={MINARET_STROKE.dropOpacity}/>
+          <Stop offset="1" stopColor={tone.niche} stopOpacity="0"/>
         </LinearGradient>
       </Defs>
-      <G fill="url(#minaretGold)">
-        <Path d="M17.4 3.2a2.6 2.6 0 0 0 5.2 0a3.1 3.1 0 0 1-5.2 0z"/>
-        <Rect x="19.4" y="5" width="1.2" height="7.5"/>
-        <Circle cx="20" cy="8.2" r="1.25"/>
-        <Circle cx="20" cy="10.8" r="1"/>
-        <Path d="M20 11.5L25 33.5H15Z"/>
-        <Rect x="13.8" y="33.3" width="12.4" height="2" rx=".5"/>
-        <Rect x="15.3" y="35.3" width="9.4" height="8.4"/>
-        <Rect x="10.6" y="43.7" width="18.8" height="3.3" rx=".6"/>
-        <Path d="M10.6 47H29.4L25.4 51.2H14.6Z"/>
-        <Rect x="14.6" y="51.2" width="10.8" height="14.6"/>
-        <Rect x="9.8" y="65.8" width="20.4" height="3.4" rx=".6"/>
-        <Path d="M9.8 69.2H30.2L26.1 73.6H13.9Z"/>
-        <Path d="M13.9 73.6H26.1L26.6 88H13.4Z"/>
-        <Rect x="11.2" y="88" width="17.6" height="4.2" rx=".4"/>
-        <Rect x="9.6" y="92.2" width="20.8" height="3.6" rx=".7"/>
-      </G>
-      <G fill={cutout}>
-        <Rect x="19.2" y="37.6" width="1.6" height="4" rx=".8"/>
-        <Rect x="19.2" y="54.6" width="1.6" height="6" rx=".8"/>
-        <Rect x="19.2" y="77" width="1.6" height="7" rx=".8"/>
-        {[12.4,14.8,17.2,19.6,22,24.4,26.8].map(x=>
-          <Rect key={'s1-'+x} x={x} y="44.4" width=".9" height="1.9"/>)}
-        {[11.6,14,16.4,18.8,21.2,23.6,26,28.4].map(x=>
-          <Rect key={'s2-'+x} x={x} y="66.5" width=".9" height="2"/>)}
-      </G>
-      <Path d="M12.8 49.1H27.2M12.1 71.4H27.9M11.2 92.2H28.8"
-        stroke={cutout} strokeWidth=".55" strokeOpacity=".75" fill="none"/>
+      {MINARET_SHAPES.map((shape,i)=><Path key={i} d={shape.d}
+        fill={'url(#minaret-'+shape.fill+')'} stroke={tone.edge}
+        strokeWidth={MINARET_STROKE.edge} strokeOpacity={MINARET_STROKE.edgeOpacity}
+        strokeLinejoin="round"/>)}
+      <Path d={MINARET_DETAIL.drops} fill="url(#minaret-drop)"/>
+      <Path d={MINARET_DETAIL.courses} fill="none" stroke={tone.course}
+        strokeWidth={MINARET_STROKE.course} strokeOpacity={tone.courseOpacity}/>
+      <Path d={MINARET_DETAIL.niches} fill={tone.niche} fillOpacity={tone.nicheOpacity}/>
+      <Path d={MINARET_DETAIL.cut} fill={cutout}/>
+      <Path d={MINARET_DETAIL.glints} fill="none" stroke={tone.glint}
+        strokeWidth={MINARET_STROKE.glint} strokeOpacity={MINARET_STROKE.glintOpacity}
+        strokeLinecap="round"/>
     </Svg>
   </View>;
-}
+});
 
 /** line ✦ line ornament of the centre medallion. */
 function CenterOrnament({unit,color}:{unit:number;color:string}){

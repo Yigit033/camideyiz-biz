@@ -5,27 +5,44 @@ import {
   MEDALLION_FRACTION,MEDALLION_RINGS,MEDALLION_VIEWBOX,
   MINARET_BASE_HEIGHT,MINARET_BREATH,MINARET_SCALE,MINARET_VIEWBOX,
 } from '../apps/mobile/src/features/prayer/centerMedallionLayout.ts';
+import {
+  MINARET_ART_BOTTOM,MINARET_ART_TOP,MINARET_DETAIL,MINARET_FILLS,MINARET_PALETTE,MINARET_SHAPES,
+} from '../apps/mobile/src/features/prayer/ottomanMinaret.ts';
 
 const read=(relative)=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
 const logo=read('apps/mobile/src/components/CamideyizBrandLogo.tsx');
 const header=read('apps/mobile/src/features/prayer/HomeBrandHeader.tsx');
 const wheel=read('apps/mobile/src/features/prayer/PrayerWheel.tsx');
 const medallion=read('apps/mobile/src/features/prayer/centerMedallionLayout.ts');
+const minaretArt=read('apps/mobile/src/features/prayer/ottomanMinaret.ts');
 const home=read('apps/mobile/src/app/(tabs)/index.tsx');
 const panel=read('apps/mobile/src/features/prayer/KerahatPanel.tsx');
 const gallery=read('apps/mobile/src/app/(tabs)/gallery.tsx');
 const reminders=read('apps/mobile/src/app/companion.tsx');
 
 // Home header shows the glossy stacked mark (symbol + wordmark) cut from the
-// approved icon, ~86pt tall: the splash mark on dark, its ivory-legible
-// deep-azure derivation on light. Never a redrawn or flat substitute.
-assert.match(logo,/dark:require\('\.\.\/\.\.\/assets\/splash-mark\.png'\)/);
+// approved icon, ~86pt tall: the clean transparent splash-mark derivation on
+// dark (the splash mark's faint field pixels read as a box on the header) and
+// its ivory-legible deep-azure twin on light. Never a redrawn or flat substitute.
+assert.match(logo,/dark:require\('\.\.\/\.\.\/assets\/widget-mark-dark\.png'\)/);
 assert.match(logo,/light:require\('\.\.\/\.\.\/assets\/widget-mark-light\.png'\)/);
+assert.doesNotMatch(logo,/splash-mark\.png'\)/,'no boxed splash mark in the header');
 assert.match(logo,/source=\{colors\.isDark\?HOME_MARK\.dark:HOME_MARK\.light\}/);
+assert.match(logo,/const MARK_ASPECT=384\/337;/);
 assert.match(logo,/const height=compact\?72:86;/);
+assert.match(logo,/style=\{\{height,width:Math\.round\(height\*MARK_ASPECT\)\}\}/);
+assert.match(logo,/resizeMode="contain"/);
 assert.match(logo,/accessibilityLabel="camideyiz\.biz"/);
 assert.match(header,/<CamideyizBrandLogo compact=\{compact\}\/>/);
 assert.doesNotMatch(header,/<CamideyizBrandLogo[^>]*horizontal/);
+// The three heads reach the top of the mark's image: their room is explicit
+// padding under the status bar, never a centred fixed-height box, and nothing
+// clips the mark on any phone (regular ~22pt above the heads, compact ~14).
+assert.match(header,/<View style=\{\{alignItems:'center',overflow:'visible',\s*paddingTop:compact\?5:7,paddingBottom:compact\?3:4\}\}>\s*<CamideyizBrandLogo compact=\{compact\}\/>/);
+assert.doesNotMatch(header,/height:compact\?78:92|marginTop:-/);
+assert.match(header,/return <View style=\{\{gap:compact\?6:7,paddingTop:compact\?0:2,marginBottom:2\}\}>/);
+assert.match(home,/contentContainerStyle=\{\[styles\.content,\{paddingTop:compact\?7:11\}\]\}/);
+assert.equal((home.match(/<SafeAreaView edges=\{\['top'\]\}/g)??[]).length,2,'both home states sit under the status bar inset');
 
 // Date row: the rule sits at the screen centre with identical gaps; the
 // Hijri date hugs it from the left, the Gregorian date from the right.
@@ -79,7 +96,7 @@ assert.match(wheel,/lineHeight:CENTER_ROWS\.title\*unit/);
 assert.match(wheel,/lineHeight:CENTER_ROWS\.countdown\*unit,\s*marginTop:CENTER_ROWS\.countdownGap\*unit/);
 assert.match(wheel,/lineHeight:CENTER_ROWS\.kerahet\*unit/);
 assert.match(wheel,/height:CENTER_ROWS\.location\*unit,maxWidth:layout\.locationMaxWidth/);
-assert.match(wheel,/<Svg width=\{width\} height=\{height\} viewBox="0 0 40 96">/);
+assert.match(wheel,/<Svg width=\{width\} height=\{height\}\s*viewBox=\{'0 0 '\+MINARET_VIEWBOX\.width\+' '\+MINARET_VIEWBOX\.height\}>/);
 assert.match(medallion,/const unit=size\/CENTER_DESIGN_DIAL;/);
 assert.equal(CENTER_DESIGN_DIAL,366);
 assert.equal(MEDALLION_FRACTION,.585);
@@ -102,10 +119,16 @@ assert.match(home,/const wheelSize=Math\.min\(width-10,366\);/);
 const close=(actual,expected,message)=>
   assert.ok(Math.abs(actual-expected)<=1e-9*Math.max(1,Math.abs(expected)),
     message+': '+actual+' ≠ '+expected);
-// Gold outline of the minaret art (viewBox 40×96): alem horns, külah base,
-// both şerefe balconies and the plinth.
-const minaretGold=[[17.4,3.2],[22.6,3.2],[15,33.5],[25,33.5],[10.6,43.7],[29.4,43.7],
-  [9.8,65.8],[30.2,65.8],[9.6,95.8],[30.4,95.8]];
+// Every vertex of the minaret art (viewBox 40×96): the alem horns are its
+// top, the plinth its base, exactly where MINARET_VIEWBOX says the gold is.
+const minaretGold=MINARET_SHAPES.flatMap(({d})=>
+  [...d.matchAll(/[ML](-?[\d.]+) (-?[\d.]+)/g)].map(([,x,y])=>[+x,+y]));
+assert.ok(minaretGold.length>=100,'minaret vertices parsed: '+minaretGold.length);
+assert.equal(MINARET_ART_TOP,MINARET_VIEWBOX.top);
+assert.equal(MINARET_ART_BOTTOM,MINARET_VIEWBOX.bottom);
+assert.equal(Math.min(...minaretGold.map(([,y])=>y)),MINARET_VIEWBOX.top,'alem horns are the top of the gold');
+assert.equal(Math.max(...minaretGold.map(([,y])=>y)),MINARET_VIEWBOX.bottom,'plinth is the base of the gold');
+assert.ok(minaretGold.every(([x])=>x>0&&x<MINARET_VIEWBOX.width),'minaret inside its viewBox');
 const reference={false:centerMedallionLayout(CENTER_DESIGN_DIAL,false),
   true:centerMedallionLayout(CENTER_DESIGN_DIAL,true)};
 for(const dial of [300,310,320,340,350,360,366]){
@@ -132,10 +155,11 @@ for(const dial of [300,310,320,340,350,360,366]){
     close(alemTip-(centre-dotRing),breath,label+': alem tip one breath under the gold dot ring');
     assert.ok(alemTip<side*.07,label+': minaret anchored near the medallion top');
     // The horns sit just off the centre line, so radially they keep 99% of
-    // the vertical breath; every other point keeps more.
+    // the vertical breath; every other vertex keeps more.
     for(const [x,y] of minaretGold){
       const r=Math.hypot(left+x/40*width-centre,top+y/96*height-centre);
-      assert.ok(r<=dotRing-.99*breath,label+': minaret gold ('+x+','+y+') keeps clear of the ring');
+      if(!(r<=dotRing-.99*breath))
+        assert.fail(label+': minaret gold ('+x+','+y+') keeps clear of the ring');
     }
     // Stack: starts one breath under the minaret base (never under its box),
     // centred, one equal gap between its own rows.
@@ -169,10 +193,37 @@ for(const dial of [300,310,320,340,350,360,366]){
     assert.ok(layout.locationMaxWidth>=86*unit,label+': location row keeps its room');
   }
 }
-assert.match(wheel,/id="minaretGold" x1="0" y1="0" x2="1" y2="0"/);
-assert.match(wheel,/'#B8995E','#F3DFB0','#E2C88F','#A88A55'/);
-assert.match(wheel,/<Path d="M17\.4 3\.2a2\.6 2\.6 0 0 0 5\.2 0a3\.1 3\.1 0 0 1-5\.2 0z"\/>/,
-  'alem crescent');
+// Süleymaniye-type minaret, top to bottom: gilded alem (crescent, horns up,
+// over two bulbs), lead pencil külah, windowed petek, three şerefe (pierced
+// railing, slab, muqarnas cells) and a fluted, coursed stone shaft on a base.
+assert.deepEqual(MINARET_SHAPES[0],
+  {fill:'gilt',d:'M17.7 3.2a2.3 2.3 0 0 0 4.6 0a2.7 2.7 0 0 1 -4.6 0Z'},'alem crescent');
+assert.equal(MINARET_SHAPES.filter(shape=>shape.fill==='lead').length,1,'one lead külah');
+assert.deepEqual([...MINARET_FILLS],['lead','stone','gilt']);
+assert.equal((minaretArt.match(/^const below\d=serefe\(SEREFE\[\d\]\);$/gm)??[]).length,3,'three şerefe');
+for(const [key,min] of [['cut',45],['niches',70],['courses',30],['glints',4],['drops',3]])
+  assert.ok((MINARET_DETAIL[key].match(/M/g)??[]).length>=min,'minaret detail: '+key);
+// Pieces are shaded as cylinders; openings are cut in the medallion colour;
+// the art redraws only on a theme or size change.
+assert.match(wheel,/const OttomanMinaret=memo\(function OttomanMinaret\(/);
+assert.match(wheel,/id=\{'minaret-'\+fill\}\s*x1="0" y1="0" x2="1" y2="0"/);
+assert.match(wheel,/fill=\{'url\(#minaret-'\+shape\.fill\+'\)'\}/);
+assert.match(wheel,/<Path d=\{MINARET_DETAIL\.cut\} fill=\{cutout\}\/>/);
+assert.match(wheel,/cutout=\{colors\.isDark\?'#08253C':'#FEF7EA'\}/);
+// Dark theme: gold, warm ivory and slate on midnight blue, never green.
+const hue=hex=>{
+  const [r,g,b]=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255);
+  const max=Math.max(r,g,b),d=max-Math.min(r,g,b);
+  if(!d)return null;
+  const h=(max===r?((g-b)/d)%6:max===g?(b-r)/d+2:(r-g)/d+4)*60;
+  return h<0?h+360:h;
+};
+const darkMinaret=Object.values(MINARET_PALETTE.dark).flat().filter(c=>typeof c==='string');
+assert.ok(darkMinaret.length>=16);
+for(const color of darkMinaret){
+  const h=hue(color);
+  assert.ok(h===null||h<85||h>175,'dark minaret colour '+color+' must not be green');
+}
 assert.equal((wheel.match(/<CenterOrnament unit=\{unit\}/g)??[]).length,2);
 assert.doesNotMatch(wheel,/name="mosque"/);
 assert.doesNotMatch(wheel,/SIRADAKİ VAKİT|'KERAHET VAKTİ'|KERAHET YAKLAŞIYOR/);
@@ -227,4 +278,4 @@ assert.ok(sectionHeaders>=4&&fittedTitles===sectionHeaders,
   'every reminders section title fits beside its switch or button ('+fittedTitles+'/'+sectionHeaders+')');
 assert.match(reminders,/<Text \{\.\.\.SECTION_TITLE_FIT\}[^>]*>\s*Namaz Vakti Hatırlatmaları\s*<\/Text>/);
 
-console.log('Home visual QA: glossy stacked brand mark, centred date rule, 1.5× minaret crowning the medallion one breath under its gold ring with an equal-gap stack and live Kerahet line on every dial size, uncropped aligned gallery, removed redundant rows, strong kerahet cues and reminders titles that fit beside their switches OK');
+console.log('Home visual QA: glossy stacked brand mark, centred date rule, 1.5× Süleymaniye-type minaret crowning the medallion one breath under its gold ring with an equal-gap stack and live Kerahet line on every dial size, uncropped aligned gallery, removed redundant rows, strong kerahet cues and reminders titles that fit beside their switches OK');

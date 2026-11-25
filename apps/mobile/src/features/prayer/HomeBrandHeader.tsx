@@ -67,7 +67,12 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
   const actionSize=small?42:45;
   const timeSize=small?67:76;
   return <View style={{gap:compact?6:7,paddingTop:compact?0:2,marginBottom:2}}>
-    <View style={{alignItems:'center',justifyContent:'center',height:compact?78:92}}>
+    {/* The mark's three heads reach the top of its image, so their room is
+        explicit padding (not a centred fixed-height box) and nothing clips:
+        heads ~22pt under the status bar (14 compact), wordmark ~12pt (10)
+        above the location row. */}
+    <View style={{alignItems:'center',overflow:'visible',
+      paddingTop:compact?5:7,paddingBottom:compact?3:4}}>
       <CamideyizBrandLogo compact={compact}/>
     </View>
 
