@@ -52,6 +52,9 @@ public final class WidgetBoundaryScheduler {
   private static final String PREFS = "camideyiz.widget.boundaries.v1";
   private static final String CALENDAR = "timeline";
   private static final String ACTION = "biz.camideyiz.app.WIDGET_BOUNDARY";
+  /** Ring widgets turn with the clock like the home dial (now at 12 o'clock). */
+  static final String RING_TICK = "biz.camideyiz.app.WIDGET_RING_TICK";
+  static final long RING_TICK_MS = 5L * 60 * 1000;
   private static final String[] NAMES = {
     "NextPrayerWidget","PrayerDayWidget","CompactPrayerWidget",
     "PrayerFocusWidget","PrayerStripWidget",
@@ -331,6 +334,7 @@ public final class WidgetBoundaryScheduler {
     long now=System.currentTimeMillis();
     long nextBoundary=0;
     int installed=0;
+    int ringHosts=0;
     lastRenderMs=0;
     lastCommitMs=0;
     local.edit().putLong("lastAttemptAt",now)
@@ -366,6 +370,7 @@ public final class WidgetBoundaryScheduler {
       selection.put("nativeAppliedAt",now);
       WidgetInventory inventory=inspectWidgetInventory(app,selection);
       installed=inventory.count;
+      ringHosts=inventory.ids[5].length+inventory.ids[6].length+inventory.ids[8].length;
       if(renderPending&&!inventory.signature.equals(pendingSignature)){
         // A calendar/district/installed-host change invalidates all queued
         // rasterized frames, including when zero widgets remain installed.
@@ -439,6 +444,7 @@ public final class WidgetBoundaryScheduler {
     }finally{
       long alarmAt=SystemClock.elapsedRealtime();
       scheduleNext(app,installed>0?nextBoundary:0,now,forceAlarmRearm(reason));
+      scheduleRingTick(app,ringHosts>0,now);
       lastAlarmMs=SystemClock.elapsedRealtime()-alarmAt;
       lastRefreshMs=SystemClock.elapsedRealtime()-started;
       if(lastRefreshMs>1500)
@@ -470,10 +476,13 @@ public final class WidgetBoundaryScheduler {
         themeKey(context)+"|"+props.optBoolean("ready",false)+"|";
     String kerahat=String.valueOf(props.optBoolean("kerahat",false));
     String dated=date+"|"+props.optString("hijriDate","")+"|"+next+"|"+day;
+    // Rings are drawn turned to the current time: a new 5-minute turn makes
+    // only the three ring families dirty.
+    String turn="|t"+(System.currentTimeMillis()/RING_TICK_MS);
     String[] data={city+"|"+next,city+"|"+date+"|"+next+"|"+day,
         next+"|"+kerahat,city+"|"+next,city+"|"+date+"|"+next+"|"+day,
-        date+"|"+next+"|"+day,city+"|"+date+"|"+next+"|"+day,next,
-        date+"|"+next+"|"+day,dated,dated};
+        date+"|"+next+"|"+day+turn,city+"|"+date+"|"+next+"|"+day+turn,next,
+        date+"|"+next+"|"+day+turn,dated,dated};
     String[] result=new String[NAMES.length];
     for(int i=0;i<NAMES.length;i++){
       int[] copy=ids[i].clone();
@@ -1193,6 +1202,29 @@ public final class WidgetBoundaryScheduler {
     setCountdown(card,R.id.widget_col_countdown,data.nextAt,data.now);
     card.setOnClickPendingIntent(R.id.widget_col_root,launchAction(context,41028));
     return card;
+  }
+
+  /**
+   * Turns the ring widgets every five minutes with a NON-wakeup alarm: it is
+   * delivered only while the phone is awake (screen on), so a sleeping phone
+   * pays nothing, and the first wake-up turns the ring at once. Cancelled
+   * when no ring widget is pinned.
+   */
+  private static void scheduleRingTick(Context context,boolean rings,long now){
+    try{
+      AlarmManager manager=(AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
+      if(manager==null)return;
+      Intent intent=new Intent(context,WidgetBoundaryReceiver.class).setAction(RING_TICK);
+      PendingIntent tick=PendingIntent.getBroadcast(context,41029,intent,
+          PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+      if(!rings){
+        manager.cancel(tick);
+        return;
+      }
+      manager.set(AlarmManager.RTC,(now/RING_TICK_MS+1)*RING_TICK_MS,tick);
+    }catch(RuntimeException failure){
+      Log.w(TAG,"Ring turn alarm not scheduled",failure);
+    }
   }
 
   private static PendingIntent alarmIntent(Context context){

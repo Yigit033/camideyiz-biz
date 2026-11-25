@@ -20,6 +20,7 @@ public final class WidgetBoundaryReceiver extends BroadcastReceiver {
     if (intent == null || intent.getAction() == null) return;
     String action = intent.getAction();
     if (!action.equals("biz.camideyiz.app.WIDGET_BOUNDARY") &&
+        !action.equals(WidgetBoundaryScheduler.RING_TICK) &&
         !action.equals(Intent.ACTION_BOOT_COMPLETED) &&
         !action.equals(Intent.ACTION_TIME_CHANGED) &&
         !action.equals(Intent.ACTION_TIMEZONE_CHANGED) &&

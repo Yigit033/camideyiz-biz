@@ -15,10 +15,10 @@
    android:contentDescription="Altı gerçek namaz vaktini gösteren kare vakit çemberi"/>
   <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
    android:orientation="horizontal" android:baselineAligned="false">
-  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.24" android:text=""/>
-  <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.52"
+  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.27" android:text=""/>
+  <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.46"
    android:orientation="vertical">
-  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text=""/>
+  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text=""/>
   <TextView android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="0.17" android:text="KALAN SÜRE" android:textSize="8sp" android:textColor="#AFC5D4"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
@@ -31,9 +31,9 @@
   <TextView android:id="@+id/widget_ring_square_time" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="0.19" android:text="--:--" android:textSize="9sp" android:textColor="#F1F7F8" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
-  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text=""/>
+  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text=""/>
   </LinearLayout>
-  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.24" android:text=""/>
+  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.27" android:text=""/>
   </LinearLayout>
  </FrameLayout>
  </LinearLayout>

@@ -149,11 +149,25 @@ assert.match(pipe,/dirty\[8\]&&installed\[8\]\.length>0/);
 assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,PrayerRingBitmapRenderer\.SMALL\)/);
 assert.match(pipe,/PrayerRingBitmapRenderer\.render\(times,now,PrayerRingBitmapRenderer\.LARGE\)/);
 const ring=read(p+'PrayerRingBitmapRenderer.java');
-assert.match(ring,/size==SMALL\?\.43f:\.44f/);
+// Home-dial look: prayer colours, gold rim + hour ticks, "now" pointer at 12.
+const geo=name=>Number(ring.match(new RegExp('static final float '+name+'=([.0-9]+)f'))[1]);
+const [R,B,M]=[geo('RADIUS'),geo('BAND'),geo('MARKER')];
+assert.ok(R+B/2+.010+.024<.5,'hour ticks leave the bitmap');
+assert.ok(R+B/2+.006+M<.5,'now pointer leaves the bitmap');
+assert.ok(R-B/2-.010>=.36,'centre text needs the gold inner rim at ≥ .36 of the side');
+assert.match(ring,/0xFF3593B5,0xFFD69E44,0xFF1EAFB0,0xFF10B981,0xFFDA7049,0xFF7162BB/);
+// Turns with the clock: current time at the top, re-rendered every 5 minutes
+// by a NON-wakeup alarm (no battery cost while the phone sleeps).
+assert.match(ring,/return -90f\+\(minute-now\)\*\.25f;/);
+assert.match(ring,/"\|"\+minuteNow\+"\|"/,'cache must not serve a stale turn');
+assert.match(scheduler,/manager\.set\(AlarmManager\.RTC,\(now\/RING_TICK_MS\+1\)\*RING_TICK_MS,tick\)/);
+assert.doesNotMatch(scheduler,/RTC_WAKEUP,[^;]*RING_TICK/);
+assert.match(scheduler,/scheduleRingTick\(app,ringHosts>0,now\)/);
+assert.match(scheduler,/date\+"\|"\+next\+"\|"\+day\+turn,city/);
+assert.match(read(p+'WidgetBoundaryReceiver.java'),/action\.equals\(WidgetBoundaryScheduler\.RING_TICK\)/);
 // Drawn near display size (2×2 ≈ 150dp, 4×4 ≈ 240dp at 3×): no 2-3× upscaling blur.
 assert.match(ring,/SMALL=448,LARGE=720/);
 // Ring + outer rim (r+.043) and active halo must stay inside the bitmap.
-for(const r of [.43,.44])assert.ok(r+.043<.5&&r+.0345<.5,'ring exceeds bitmap at r='+r);
 
 // Widget Design 8.0 — adaptive space: content scales with the launcher cell.
 for(const kind of variants){

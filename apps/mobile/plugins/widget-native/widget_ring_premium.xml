@@ -22,10 +22,10 @@
    android:contentDescription="Vakit aralıklarını gösteren premium zaman çemberi"/>
   <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
    android:orientation="horizontal" android:baselineAligned="false">
-  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.26" android:text=""/>
-  <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.48"
+  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.27" android:text=""/>
+  <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.46"
    android:orientation="vertical">
-  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text=""/>
+  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text=""/>
   <TextView android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="0.15" android:text="KALAN SÜRE" android:textSize="9sp" android:textColor="#AFC5D4"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
@@ -38,9 +38,9 @@
   <TextView android:id="@+id/widget_ring_premium_time" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="0.18" android:text="Saat --:--" android:textSize="11sp" android:textColor="#F1F7F8" android:textStyle="bold"
    android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
-  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text=""/>
+  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text=""/>
   </LinearLayout>
-  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.26" android:text=""/>
+  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.27" android:text=""/>
   </LinearLayout>
  </FrameLayout>
  </LinearLayout>
