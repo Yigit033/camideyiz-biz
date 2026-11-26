@@ -32,6 +32,7 @@ const DRAWABLES=[
   [/@drawable\/widget_chip_dark"/g,'@drawable/widget_chip_light"'],
   [/@drawable\/widget_box_dark"/g,'@drawable/widget_box_light"'],
   [/@drawable\/widget_cell_dark"/g,'@drawable/widget_cell_light"'],
+  [/@drawable\/widget_rule_dark"/g,'@drawable/widget_rule_light"'],
   // Glowing cyan mark on navy → deep-azure mark on ivory (build-widget-marks.mjs).
   [/@drawable\/widget_brand_mark_dark"/g,'@drawable/widget_brand_mark_light"'],
 ];

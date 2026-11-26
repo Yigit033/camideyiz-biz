@@ -1103,8 +1103,7 @@ public final class WidgetBoundaryScheduler {
     R.id.widget_row_label_2,R.id.widget_row_label_3,R.id.widget_row_label_4,R.id.widget_row_label_5};
   private static final int[] ROW_TIMES={R.id.widget_row_time_0,R.id.widget_row_time_1,
     R.id.widget_row_time_2,R.id.widget_row_time_3,R.id.widget_row_time_4,R.id.widget_row_time_5};
-  private static final int[] ROW_DATE_LINES={R.id.widget_row_hijri,R.id.widget_row_date,
-    R.id.widget_row_weekday};
+  private static final int[] ROW_DATE_LINES={R.id.widget_row_hijri,R.id.widget_row_date};
   private static final int[] COL_NUMERALS={R.id.widget_col_hijri_day,R.id.widget_col_day};
   private static final int[] COL_CAPTIONS={R.id.widget_col_hijri_month,R.id.widget_col_month,
     R.id.widget_col_weekday};
@@ -1131,6 +1130,9 @@ public final class WidgetBoundaryScheduler {
     /** "17" "Cemaziyelahir" and "26" "Kasım" "Perşembe": widgets show the
      * day and month (no years, as on a calendar leaf). */
     final String title,hijriDay,hijriMonth,day,month,weekday;
+    /** Whole dates for the 6×1 calendar band: "17 Cemaziyelahir 1448" and
+     * "26 Kasım 2026 Perşembe". */
+    final String hijriFull,civilFull;
     final long nextAt,now;
     Strip(JSONObject props,JSONArray times,boolean ready,String next,
         boolean nextInCurrentDay,long nextAt,long now){
@@ -1150,9 +1152,9 @@ public final class WidgetBoundaryScheduler {
       hijriDay=hijri[0];hijriMonth=hijri[1];
       String[] civil=gregorian(props.optString("dateISO",""));
       day=civil[0];month=civil[1];weekday=civil[2];
+      hijriFull=ready?props.optString("hijriDate","").trim().replaceAll("\\s+"," "):"";
+      civilFull=join(join(join(day,month),civil[3]),weekday);
     }
-    String hijriLine(){return join(hijriDay,hijriMonth);}
-    String dayLine(){return join(day,month);}
   }
 
   /** The six names a strip or premium footer shows (defaults before data). */
@@ -1196,7 +1198,7 @@ public final class WidgetBoundaryScheduler {
     }
   }
 
-  /** "22", "Kasım" and "Pazar" for a published Europe/Istanbul date. */
+  /** "22", "Kasım", "Pazar" and "2026" for a published Europe/Istanbul date. */
   private static String[] gregorian(String dateISO){
     try{
       TimeZone zone=TimeZone.getTimeZone("Europe/Istanbul");
@@ -1207,10 +1209,12 @@ public final class WidgetBoundaryScheduler {
       SimpleDateFormat date=new SimpleDateFormat("d",turkish);
       SimpleDateFormat month=new SimpleDateFormat("MMMM",turkish);
       SimpleDateFormat week=new SimpleDateFormat("EEEE",turkish);
+      SimpleDateFormat year=new SimpleDateFormat("yyyy",turkish);
       date.setTimeZone(zone);month.setTimeZone(zone);week.setTimeZone(zone);
-      return new String[]{date.format(day),month.format(day),week.format(day)};
+      year.setTimeZone(zone);
+      return new String[]{date.format(day),month.format(day),week.format(day),year.format(day)};
     }catch(Exception invalid){
-      return new String[]{"","",""};
+      return new String[]{"","","",""};
     }
   }
 
@@ -1249,20 +1253,21 @@ public final class WidgetBoundaryScheduler {
         R.layout.widget_prayer_row_light,R.layout.widget_prayer_row,
         R.layout.widget_prayer_row_auto));
     boolean remaining=bucket>=1&&data.ready;
-    card.setViewVisibility(R.id.widget_row_logo,bucket==2?View.GONE:View.VISIBLE);
-    card.setViewVisibility(R.id.widget_row_brand,bucket==2?View.VISIBLE:View.GONE);
+    // The calendar band at 6×1, once there is a date to show.
+    boolean band=bucket==2&&!(data.hijriFull.isEmpty()&&data.civilFull.isEmpty());
     card.setViewVisibility(R.id.widget_row_remaining,remaining?View.VISIBLE:View.GONE);
-    // The six names and the date lines: one size, fitted to this card.
-    WidgetTypeScale.RowType type=WidgetTypeScale.row(context,size,bucket,remaining,
-        data.labels,data.hijriLine(),data.dayLine(),data.weekday);
+    card.setViewVisibility(R.id.widget_row_rule,band?View.VISIBLE:View.GONE);
+    card.setViewVisibility(R.id.widget_row_calendar,band?View.VISIBLE:View.GONE);
+    // The six names and both dates: one size, fitted to this card.
+    WidgetTypeScale.RowType type=WidgetTypeScale.row(context,size,band,remaining,
+        data.labels,data.hijriFull,data.civilFull);
     for(int label:ROW_LABELS)
       card.setTextViewTextSize(label,TypedValue.COMPLEX_UNIT_PX,type.caption);
-    if(bucket==2){
-      card.setTextViewText(R.id.widget_row_hijri,data.hijriLine());
+    if(band){
+      card.setTextViewText(R.id.widget_row_hijri,data.hijriFull);
       card.setViewVisibility(R.id.widget_row_hijri,
-          data.hijriLine().isEmpty()?View.GONE:View.VISIBLE);
-      card.setTextViewText(R.id.widget_row_date,data.dayLine());
-      card.setTextViewText(R.id.widget_row_weekday,data.weekday);
+          data.hijriFull.isEmpty()?View.GONE:View.VISIBLE);
+      card.setTextViewText(R.id.widget_row_date,data.civilFull);
       for(int line:ROW_DATE_LINES)
         card.setTextViewTextSize(line,TypedValue.COMPLEX_UNIT_PX,type.caption);
     }

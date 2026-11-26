@@ -69,6 +69,7 @@ const RESOURCES={
     'widget_box_dark.xml','widget_box_light.xml',
     'widget_box_kerahet_dark.xml','widget_box_kerahet_light.xml',
     'widget_cell_dark.xml','widget_cell_light.xml',
+    'widget_rule_dark.xml','widget_rule_light.xml',
     'widget_cell_on_imsak.xml','widget_cell_on_gunes.xml','widget_cell_on_ogle.xml',
     'widget_cell_on_ikindi.xml','widget_cell_on_aksam.xml','widget_cell_on_yatsi.xml',
     'widget_ic_imsak.xml','widget_ic_gunes.xml','widget_ic_ogle.xml',

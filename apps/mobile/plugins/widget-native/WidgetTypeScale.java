@@ -31,13 +31,13 @@ final class WidgetTypeScale{
 
   // Six-prayer row (widget_prayer_row.xml), dp and layout weights.
   static final float ROW_PAD=6f,ROW_GAP=4f,ROW_CELL_PAD=2f;
-  static final float ROW_LOGO=1.2f,ROW_BRAND=2.2f,ROW_REMAINING=1.7f;
+  static final float ROW_LOGO=1.2f,ROW_REMAINING=1.7f;
   /** Label share of a cell: icon .28, label .32, clock .40. */
   static final float ROW_LABEL_SHARE=0.32f;
-  /** Date block under the mark: rule (1dp + 2dp margins each side), then
-   * the mark (weight 1) over three lines (weight .3 each). */
-  static final float ROW_RULE=5f,ROW_MARK=1f,ROW_LINE=0.3f;
-  static final int ROW_LINES=3;
+  /** 6×1 calendar band under the prayers: a 1dp rule with 4/3dp margins,
+   * then the date line (weight .28 against the prayers' 1), two halves
+   * parted by a 1dp stroke. */
+  static final float ROW_RULE=8f,ROW_CALENDAR=0.28f,ROW_DIVIDER=1f;
 
   // Six-prayer column (widget_prayer_column.xml).
   static final float COL_PAD=6f,COL_GAP=4f;
@@ -93,21 +93,22 @@ final class WidgetTypeScale{
   }
 
   /**
-   * Row: the six prayer names and, at 6×1, the three date lines share ONE
-   * caption size, the largest at which every one of them fits its box.
+   * Row: the six prayer names and, at 6×1, both dates of the calendar band
+   * share ONE caption size, the largest at which every one fits its box.
    */
-  static RowType row(Context context,SizeF size,int bucket,boolean remaining,
+  static RowType row(Context context,SizeF size,boolean band,boolean remaining,
       String[] labels,String... dateLines){
     float width=size.getWidth()-2*ROW_PAD,height=size.getHeight()-2*ROW_PAD;
-    float lead=bucket==2?ROW_BRAND:ROW_LOGO;
-    float weights=lead+6f+(remaining?ROW_REMAINING:0f);
+    float prayers=band?(height-ROW_RULE)/(1f+ROW_CALENDAR):height;
+    float weights=ROW_LOGO+6f+(remaining?ROW_REMAINING:0f);
     float flex=width-ROW_GAP*(6+(remaining?1:0));
     float cell=flex/weights;
     float caption=fit(context,cell-2*ROW_CELL_PAD,
-        (height-2*ROW_CELL_PAD)*ROW_LABEL_SHARE,7f,15f,true,labels);
-    if(bucket==2){
-      float line=(height-ROW_RULE)*ROW_LINE/(ROW_MARK+ROW_LINES*ROW_LINE);
-      caption=Math.min(caption,fit(context,cell*ROW_BRAND,line,6f,13f,true,dateLines));
+        (prayers-2*ROW_CELL_PAD)*ROW_LABEL_SHARE,7f,15f,true,labels);
+    if(band){
+      float line=(height-ROW_RULE)*ROW_CALENDAR/(1f+ROW_CALENDAR);
+      caption=Math.min(caption,
+          fit(context,(width-ROW_DIVIDER)/2f,line,7f,14f,true,dateLines));
     }
     return new RowType(caption);
   }

@@ -268,8 +268,10 @@ for(const suffix of ['','_light']){
   for(const name of ['widget_prayer_row','widget_prayer_column']){
     const xml=read(p+name+suffix+'.xml');
     const short=name==='widget_prayer_row'?'row':'col';
-    for(const id of ['logo','brand','remaining'])element(xml,'widget_'+short+'_'+id);
-    assert.match(element(xml,'widget_'+short+'_brand'),/android:visibility="gone"/);
+    const hidden=short==='row'?['rule','calendar']:['brand'];
+    for(const id of ['logo','remaining',...hidden])element(xml,'widget_'+short+'_'+id);
+    for(const id of hidden)
+      assert.match(element(xml,'widget_'+short+'_'+id),/android:visibility="gone"/);
     assert.match(element(xml,'widget_'+short+'_remaining'),/android:visibility="gone"/);
     for(let i=0;i<6;i++)element(xml,'widget_'+short+'_icon_'+i);
   }
@@ -445,16 +447,31 @@ for(const suffix of ['','_light']){
     assert.equal(attr(n,'maxLines'),'1');
     fittedViews++;
   });
-  // 6×1 row: mark, gold rule, "17 Cemaziyelahir", "26 Kasım", "Perşembe".
+  // 6×1 row (owner's sketch): the prayers on top; under a fading gold rule a
+  // calendar band across the card, Hijri date (gold) | Gregorian date.
   const row=tree(read(p+'widget_prayer_row'+suffix+'.xml'));
-  const brand=byId(row,'widget_row_brand');
-  const [mark,rule,...lines]=brand.children;
-  assert.equal(mark.tag,'ImageView');
-  assert.equal(attr(rule,'background'),ink('#F4D392'),'gold rule over the row dates');
-  assert.deepEqual(lines.map(n=>attr(n,'id')),
-    ['@+id/widget_row_hijri','@+id/widget_row_date','@+id/widget_row_weekday']);
-  leaf(lines,['#F4D392','#F1F7F8','#AFC5D4'],'row date line');
-  alike(lines,'row date lines',['textColor']);
+  const [main,rule,band]=row.children;
+  assert.equal(attr(main,'id'),'@+id/widget_row_main');
+  assert.equal(attr(main,'orientation'),'horizontal');
+  assert.equal(attr(rule,'id'),'@+id/widget_row_rule');
+  assert.equal(attr(rule,'background'),'@drawable/widget_rule_'+(suffix?'light':'dark'),
+    'a gold rule that fades at both ends parts prayers and calendar');
+  assert.equal(attr(band,'id'),'@+id/widget_row_calendar');
+  const [hijriLine,stroke,dateLine]=band.children;
+  assert.equal(attr(stroke,'layout_width'),'1dp');
+  assert.equal(attr(stroke,'background'),ink('#F4D392'),'a short gold stroke parts the two dates');
+  const lines=[hijriLine,dateLine];
+  assert.deepEqual(lines.map(n=>attr(n,'id')),['@+id/widget_row_hijri','@+id/widget_row_date']);
+  leaf(lines,['#F4D392','#F1F7F8'],'row date');
+  alike(lines,'row dates',['textColor']);
+  lines.forEach(n=>assert.equal(weight(n),1,'each date takes half of the band'));
+  for(const theme of ['dark','light']){
+    const drawable=read(p+'widget_rule_'+theme+'.xml');
+    const gold=theme==='dark'?'F4D392':'91652D';
+    assert.match(drawable,new RegExp('startColor="#00'+gold+'"[\\s\\S]*centerColor="#D9'+gold+'"[\\s\\S]*endColor="#00'+gold+'"'),
+      'rule fades out at both ends: '+theme);
+    assert.ok(plugin.includes("'widget_rule_"+theme+".xml'"),'CNG missing widget_rule_'+theme+'.xml');
+  }
   const names=[0,1,2,3,4,5].map(i=>byId(row,'widget_row_label_'+i));
   names.forEach(n=>{assert.equal(attr(n,'autoSizeTextType'),undefined,'row names take the fitted size');fittedViews++;});
   alike(names,'row names');
@@ -485,7 +502,7 @@ for(const suffix of ['','_light']){
   const cell=byId(row,'widget_row_cell_0'),remaining=byId(row,'widget_row_remaining');
   near(pad(row,'Start'),k('ROW_PAD'),'row padding');
   near(weight(byId(row,'widget_row_logo')),k('ROW_LOGO'),'row logo weight');
-  near(weight(brand),k('ROW_BRAND'),'row date block weight');
+  near(weight(main),1,'row prayers weight');
   near(weight(remaining),k('ROW_REMAINING'),'row remaining weight');
   near(dp(cell,'layout_marginStart'),k('ROW_GAP'),'row cell gap');
   near(dp(remaining,'layout_marginStart'),k('ROW_GAP'),'row remaining gap');
@@ -494,9 +511,8 @@ for(const suffix of ['','_light']){
   near(weight(byId(row,'widget_row_label_0'))/cell.children.reduce((s,n)=>s+weight(n),0),
     k('ROW_LABEL_SHARE'),'row name share of a cell');
   near(ruleDp(rule),k('ROW_RULE'),'row rule');
-  near(weight(mark),k('ROW_MARK'),'row mark weight');
-  lines.forEach(n=>near(weight(n),k('ROW_LINE'),'row date line weight'));
-  near(lines.length,k('ROW_LINES'),'row date line count');
+  near(weight(band),k('ROW_CALENDAR'),'row calendar band weight');
+  near(dp(stroke,'layout_width'),k('ROW_DIVIDER'),'row date divider');
   const ccell=byId(col,'widget_col_cell_0'),cremaining=byId(col,'widget_col_remaining');
   near(pad(col,'Start'),k('COL_PAD'),'column padding');
   near(weight(byId(col,'widget_col_logo')),k('COL_LOGO'),'column logo weight');
@@ -543,10 +559,13 @@ for(const pattern of [
   /for\(int caption:COL_CAPTIONS\)\s*card\.setTextViewTextSize\(caption,TypedValue\.COMPLEX_UNIT_PX,type\.caption\)/,
   /float labelSize=WidgetTypeScale\.strip\(context,size,stripNames\(times\)\);\s*for\(int label:labels\)card\.setTextViewTextSize\(label,TypedValue\.COMPLEX_UNIT_PX,labelSize\)/,
   /float labelSize=WidgetTypeScale\.premium\(context,size,stripNames\(times\)\);\s*for\(int label:hourLabels\)\s*card\.setTextViewTextSize\(label,TypedValue\.COMPLEX_UNIT_PX,labelSize\)/,
-  /ROW_DATE_LINES=\{R\.id\.widget_row_hijri,R\.id\.widget_row_date,\s*R\.id\.widget_row_weekday\}/,
+  /ROW_DATE_LINES=\{R\.id\.widget_row_hijri,R\.id\.widget_row_date\}/,
   /COL_NUMERALS=\{R\.id\.widget_col_hijri_day,R\.id\.widget_col_day\}/,
   /COL_CAPTIONS=\{R\.id\.widget_col_hijri_month,R\.id\.widget_col_month,\s*R\.id\.widget_col_weekday\}/,
-  /WidgetTypeScale\.row\(context,size,bucket,remaining,\s*data\.labels,data\.hijriLine\(\),data\.dayLine\(\),data\.weekday\)/,
+  /WidgetTypeScale\.row\(context,size,band,remaining,\s*data\.labels,data\.hijriFull,data\.civilFull\)/,
+  /boolean band=bucket==2&&!\(data\.hijriFull\.isEmpty\(\)&&data\.civilFull\.isEmpty\(\)\)/,
+  /setViewVisibility\(R\.id\.widget_row_rule,band\?View\.VISIBLE:View\.GONE\)/,
+  /setViewVisibility\(R\.id\.widget_row_calendar,band\?View\.VISIBLE:View\.GONE\)/,
   /WidgetTypeScale\.column\(context,size,remaining,\s*new String\[\]\{data\.hijriDay,data\.day\},data\.hijriMonth,data\.month,data\.weekday\)/,
 ])assert.match(scheduler,pattern);
 // One measured size for the whole group: the widest member decides.
@@ -577,8 +596,8 @@ assert.match(scheduler,/static String\[\] hijriParts\(String hijri\)/);
   assert.ok(widest*max*1.3<=box,'daily names diverge at 130% font: '+(widest*max*1.3).toFixed(1)+' > '+box.toFixed(1));
   alike([0,1,2,3,4,5].map(i=>byId(day,'widget_day_label_'+i)),'daily names');
 }
-console.log('Widget Design 11.0: '+fittedViews+' texts in row, column, strip and premium groups take one '+
-  'fitted size each, calendar-leaf dates under a gold rule, scheduler geometry follows the layouts');
+console.log('Widget Design 11.1: '+fittedViews+' texts in row, column, strip and premium groups take one '+
+  'fitted size each; 6×1 calendar band and column calendar leaf under gold rules; scheduler geometry follows the layouts');
 console.log('Widget Design 10.1: '+blueCountdowns+' countdowns and '+blueLabels+
   ' "Kalan" labels blue in both themes');
 console.log('Widget Design 10.0: one system typeface in every widget, '+boxes+
