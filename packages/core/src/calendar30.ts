@@ -131,3 +131,11 @@ export function validateCalendar30Cache(raw:unknown,cityId:number,startISO:strin
 export function calendar30Coverage(snapshot:Calendar30Snapshot):number{
   return snapshot.days.filter(Boolean).length;
 }
+
+/** "17 Cemaziyelahir 1448" → day and month on one line, the year on its own,
+ * for narrow calendar cells; anything without a trailing year stays whole. */
+export function splitHijriDate(value:string|null|undefined):{dayMonth:string;year:string}{
+  const text=(value??'').trim().replace(/\s+/g,' ');
+  const match=/^(.*\S)\s+(\d{3,4})$/.exec(text);
+  return match?{dayMonth:match[1],year:match[2]}:{dayMonth:text,year:''};
+}

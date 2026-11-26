@@ -45,7 +45,7 @@ const PRAYER_COUNTDOWN_LABELS:Record<PrayerTime['key'],string> = {
   imsak:'İmsağa Kalan',gunes:'Güneşe Kalan',ogle:'Öğleye Kalan',
   ikindi:'İkindiye Kalan',aksam:'Akşama Kalan',yatsi:'Yatsıya Kalan',
 };
-const PRAYER_ICONS: Record<PrayerTime['key'], ComponentProps<typeof MaterialCommunityIcons>['name']> = {
+export const PRAYER_ICONS: Record<PrayerTime['key'], ComponentProps<typeof MaterialCommunityIcons>['name']> = {
   imsak:'moon-waning-crescent',gunes:'weather-sunset-up',ogle:'white-balance-sunny',
   ikindi:'timer-sand',aksam:'weather-sunset-down',yatsi:'weather-night',
 };

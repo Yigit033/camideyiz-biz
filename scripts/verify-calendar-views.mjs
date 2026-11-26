@@ -16,46 +16,65 @@ assert.match(cards,/upcomingReligiousDay\(dateISO\)/);
 assert.doesNotMatch(home,/fetchCalendar30/,'home must not start 30-day network calls');
 assert.match(screen,/useCalendar30\(dateISO\)/);
 assert.match(screen,/Yayımlanmış veri bekleniyor/);
-// Calendar 2.0 (25.11.2026): the 30 days are ONE compact table that fills
-// the page. No expanding/collapsing day cards, no virtualised card list.
-assert.doesNotMatch(screen,/FlatList|setExpanded|expanded:|chevron-(up|down)/,
-  'the 30-day calendar must not collapse or expand');
+// Calendar 3.0 (owner, 26.11.2026, after his sketch): the thirty dates stay
+// on one page as a three-column grid (Hijri day and month, Gregorian date,
+// weekday); a tapped date opens its six clocks right under its row, joined
+// to the date by a tab. One open day at a time; a second tap closes it.
 assert.match(screen,/const DAYS=30;/);
-assert.match(screen,/data\.map\(\(item,index\)=><DayRow /,'all 30 rows render at once');
-assert.match(screen,/day\.times\.map\(t=>/,'every row shows the six published clocks');
-assert.match(screen,/const COLUMNS=\['İmsak','Güneş','Öğle','İkindi','Akşam','Yatsı'\] as const;/);
+assert.match(screen,/const PER_ROW=3;/);
+assert.match(screen,/rows\.map\(\(row,r\)=>/,'all ten rows render at once');
+assert.match(screen,/row\.map\(item=><DateCell /,'every row shows its three dates');
+assert.doesNotMatch(screen,/FlatList|SectionList/,'no virtualised list: the month is one page');
+assert.match(screen,/setOpen\(current=>\{[\s\S]{0,120}current===iso\?null:iso/,
+  'a tap opens a date, a second tap closes it');
+assert.match(screen,/openItem\?<DayPanel /,'the panel opens under the tapped date\'s row');
+assert.match(screen,/day\.times\.map\(\(t,i\)=>/,'the panel shows the six published clocks');
+assert.match(screen,/position:'absolute',top:-\(GAP\+EDGE\)-1,\s*left:column\*\(cellWidth\+GAP\)-EDGE,width:cellWidth,/,
+  'the tab joins the date to its panel');
+assert.match(screen,/borderBottomColor:'transparent',\s*borderBottomLeftRadius:0,borderBottomRightRadius:0/,
+  'an open date has no foot: it runs into its panel');
+assert.match(screen,/borderTopLeftRadius:column===0\?0:16,borderTopRightRadius:column===PER_ROW-1\?0:16/);
+assert.match(screen,/entering=\{FadeIn\.duration\(190\)\} exiting=\{FadeOut\.duration\(110\)\}/);
+assert.match(screen,/layout=\{LinearTransition\.duration\(220\)\}/,'rows below glide instead of jumping');
+assert.match(screen,/useEffect\(\(\)=>setOpen\(null\),\[dateISO,place\?\.id\]\)/,
+  'a new day or district starts closed');
+// Owner: "all fonts the same size". One size per text role for all thirty
+// cells, from the cell width and the system font, never cell by cell.
+assert.doesNotMatch(screen,/adjustsFontSizeToFit/,'no cell shrinks its own text');
+assert.ok((screen.match(/allowFontScaling=\{false\}/g)??[]).length>=8,'the system font is applied once, centrally');
+assert.match(screen,/const TEXT_MAX_SCALE=1\.3;/);
 assert.match(screen,/onLayout=\{e=>setRoom\(e\.nativeEvent\.layout\.height\)\}/,
-  'rows are sized from the measured page height');
-assert.match(screen,/rowHeight=body>0\?Math\.max\(minRow,Math\.min\(stacked\?54:MAX_ROW,body\/DAYS\)\)/);
-assert.match(screen,/scrollEnabled=\{!fits\}/,'the table scrolls only when it cannot fit');
-// Today is highlighted; the selected day's long date and Hijri date stay visible.
+  'cells are sized from the measured page height');
+// Today and Friday stand out; the open day shows its long Gregorian and Hijri dates.
 assert.match(screen,/today=\{item\.iso===dateISO\}/);
-assert.match(screen,/borderLeftWidth:today\?3:0,borderLeftColor:colors\.gold/);
-assert.match(screen,/chosen\.day\.hijriDate/);
+assert.match(screen,/borderColor:open\?look\.openEdge:today\?colors\.gold:colors\.border/);
+assert.match(screen,/color:friday\?colors\.gold:colors\.muted/);
+assert.match(screen,/\{day\?\.hijriDate\?\?''\}/);
 for(const copy of ['BUGÜN','Bu günün vakitleri henüz yayımlanmadı.','30 günlük takvim hazır',
   'Önce ana sayfadan il veya ilçe seç','Takvim yükleniyor…','Namaz takvimi alınamadı',
   'Yeniden dene','İnternet bağlantını kontrol edip yeniden dene.','place.stateName',
-  'günün vakitleri hazır'])
+  'günün vakitleri hazır','Yayımlanmış veri bekleniyor'])
   assert.ok(screen.includes(copy),'calendar lost information: '+copy);
-// Safe areas and large system fonts: numbers scale to 130% then shrink to
-// fit; if the clocks no longer fit beside the date, the date moves above.
 assert.match(screen,/<SafeAreaView edges=\{\['top','bottom'\]\}/);
-assert.match(screen,/const TABLE_MAX_SCALE=1\.3;/);
-assert.match(screen,/maxFontSizeMultiplier=\{TABLE_MAX_SCALE\}/);
-assert.ok((screen.match(/adjustsFontSizeToFit/g)??[]).length>=4,'table cells shrink instead of clipping');
-assert.match(screen,/const stacked=clocksRoom-dateWidth<6\*\(TIME_SIZE\*textScale\*2\.55\+6\);/);
-// A 360×800 dp phone (3-button navigation, ~614 dp below header and day
-// strip) shows all 30 rows without scrolling at the default font size.
+// A 360×800 dp phone (3-button navigation, ~650 dp below the header) shows
+// all thirty dates closed, and every name fits its cell at one size.
 {
   const num=name=>Number(screen.match(new RegExp('const '+name+'=([0-9.]+);'))?.[1]);
-  const [size,header]=[num('TIME_SIZE'),num('HEADER_ROW')];
-  assert.ok(size>=12&&header>0,'table constants missing');
-  assert.ok(screen.includes('const minRow=Math.ceil(TIME_SIZE*textScale*(stacked?2.3:1.2)+(stacked?8:2));'),
-    'row height formula changed: re-check the 360×800 fit below');
-  const minRow=Math.ceil(size*1.2+2);
-  assert.ok((614-header-2)/30>=minRow,'30 rows no longer fit one 360×800 screen');
-  const dateWidth=Math.round(Math.min(96,Math.max(70,(360-28)*.22)));
-  assert.ok(360-16-2-12-dateWidth>=6*(size*2.55+6),'clocks no longer fit beside the date on 360 dp');
+  const type=Object.fromEntries([...screen.match(/const TYPE=\{([^}]*)\}/)[1]
+    .matchAll(/(\w+):([\d.]+)/g)].map(([,k,v])=>[k,+v]));
+  const em=Object.fromEntries([...screen.match(/const WIDEST_EM=\{([^}]*)\}/)[1]
+    .matchAll(/(\w+):([\d.]+)/g)].map(([,k,v])=>[k,+v]));
+  const [gap,edge,line,pad,rows]=[num('GAP'),num('EDGE'),num('LINE'),num('CELL_PAD'),30/num('PER_ROW')];
+  assert.ok(gap>0&&edge>0&&line>=1.2&&pad>0&&rows===10,'calendar constants missing');
+  assert.ok(screen.includes('const least=Math.ceil((hijri+date+weekday)*LINE+CELL_PAD*2+EDGE*2);'),
+    'cell height formula changed: re-check the 360×800 fit below');
+  const cell=(344-gap*2)/3,inner=cell-2*edge-10;
+  const sizes=['hijri','date','weekday'].map(k=>Math.min(type[k],inner/em[k]));
+  const least=Math.ceil(sizes.reduce((a,b)=>a+b,0)*line+pad*2+edge*2);
+  assert.ok(rows*least+gap*(rows-1)<=650,'thirty dates no longer fit one 360×800 screen ('+least+')');
+  assert.ok(sizes[0]>=10.5&&sizes[1]>=11.5,'dates read too small on a 360 dp phone');
+  // "29 Cemaziyelevvel" is ~8.4 em in a bold system face: the margin holds.
+  assert.ok(em.hijri>=8.8&&em.date>=8&&em.weekday>=5,'widest-name margins shrank');
 }
 assert.match(days,/religiousDaysFrom\(current\)/);
 // Copy policy (22.11.2026): no source/disclaimer links in the UI; the
@@ -70,4 +89,4 @@ assert.match(hook,/if\(revision===0\)try/,
 assert.match(hook,/controller\.abort\(\)/,
   'unmount or district switch must cancel pending requests');
 assert.match(api,/officialCalendar30\(cityId,date\)/);
-console.log('Calendar 2.0: one-page 30-day table (today highlighted, six clocks, no collapsing), lazy verified days, home cards, routed screens and Diyanet annual events OK');
+console.log('Calendar 3.0: thirty dates on one page in three columns, a tapped date opens its six clocks under its row on a tab, one text size per role, lazy verified days, home cards, routed screens and Diyanet annual events OK');

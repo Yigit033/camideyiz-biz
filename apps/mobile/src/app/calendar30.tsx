@@ -1,111 +1,244 @@
-import {memo,useCallback,useEffect,useMemo,useState} from 'react';
-import {ActivityIndicator,Pressable,ScrollView,Text,View,useWindowDimensions} from 'react-native';
+import {memo,useCallback,useEffect,useMemo,useRef,useState,type ComponentRef} from 'react';
+import {ActivityIndicator,Pressable,ScrollView,Text,View,useWindowDimensions,
+  type LayoutChangeEvent,type NativeScrollEvent,type NativeSyntheticEvent} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {Feather} from '@expo/vector-icons';
+import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
 import {router} from 'expo-router';
-import {shiftCalendarDate,zonedClock,type Calendar30Day} from '@camideyiz/core';
+import Animated,{FadeIn,FadeOut,LinearTransition} from 'react-native-reanimated';
+import {prayerBadgeForeground,shiftCalendarDate,splitHijriDate,timeToMinutes,zonedClock,
+  type Calendar30Day} from '@camideyiz/core';
 import {useAppTheme} from '@/theme/ThemeProvider';
+import type {ColorTokens} from '@/theme/tokens';
 import {useCalendar30} from '@/features/calendar/useCalendar30';
+import {PRAYER_COLORS,PRAYER_ICONS} from '@/features/prayer/PrayerWheel';
 
-const MONTH=new Intl.DateTimeFormat('tr-TR',{month:'short',timeZone:'UTC'});
 const MONTH_LONG=new Intl.DateTimeFormat('tr-TR',{month:'long',timeZone:'UTC'});
 const WEEKDAY=new Intl.DateTimeFormat('tr-TR',{weekday:'long',timeZone:'UTC'});
-const WEEKDAY_SHORT=new Intl.DateTimeFormat('tr-TR',{weekday:'short',timeZone:'UTC'});
-const COLUMNS=['İmsak','Güneş','Öğle','İkindi','Akşam','Yatsı'] as const;
 const DAYS=30;
-/** Dense numbers scale with the system font up to 130%, then shrink to fit:
- * thirty rows of six clocks stay one table, never clipped. */
-const TABLE_MAX_SCALE=1.3;
-const TIME_SIZE=12.5;
-const MAX_ROW=30;
-const HEADER_ROW=26;
+/** Calendar 3.0 (owner, 26.11.2026): thirty date cells in three columns on
+ * one page; a tapped date opens its six clocks right under its row. */
+const PER_ROW=3;
+const ROWS=DAYS/PER_ROW;
+const GAP=6;
+const EDGE=1.5;
+/** Text grows with the system font up to 130%, as ONE size per role across
+ * all thirty cells (never cell-by-cell shrinking), capped by what the
+ * longest Turkish name fits: "29 Cemaziyelevvel", "28 Ağustos 2026",
+ * "Cumartesi" (widths in em of the system bold face, with a margin). */
+const TEXT_MAX_SCALE=1.3;
+const TYPE={hijri:11,date:12.5,weekday:10.5,label:10.5,time:16} as const;
+const WIDEST_EM={hijri:9,date:8.2,weekday:5.2,time:3} as const;
+const LINE=1.25;
+const CELL_PAD=5;
+/** Panel: inner padding, and a 24pt prayer badge with a 7pt gap per tile. */
+const PANEL_PAD=GAP+2;
+const TILE_PAD=7;
+const BADGE=24;
+const CELL_MAX=62;
 
 const noon=(iso:string)=>new Date(iso+'T12:00:00Z');
-function readable(iso:string){const day=noon(iso);
-  return Number(iso.slice(8,10))+' '+MONTH_LONG.format(day)+' '+WEEKDAY.format(day);
+function gregorian(iso:string){
+  const day=noon(iso);
+  return {
+    date:Number(iso.slice(8,10))+' '+MONTH_LONG.format(day)+' '+iso.slice(0,4),
+    weekday:WEEKDAY.format(day),friday:day.getUTCDay()===5,
+  };
 }
+type Sizes={hijri:number;date:number;weekday:number;label:number;time:number;
+  cell:number;tile:number};
 
-/** One calendar day as a single table row: date, then the six clocks. */
-const DayRow=memo(function DayRow({dateISO,day,today,selected,stripe,height,dateWidth,
-  stacked,pending,onSelect}:{
-  dateISO:string;day:Calendar30Day|null;today:boolean;selected:boolean;stripe:boolean;
-  height:number;dateWidth:number;stacked:boolean;pending:boolean;onSelect:(iso:string)=>void;
+/** One date: Hijri day and month (gold), Gregorian date, weekday. */
+const DateCell=memo(function DateCell({iso,day,today,open,pending,sizes,onToggle}:{
+  iso:string;day:Calendar30Day|null;today:boolean;open:boolean;pending:boolean;
+  sizes:Sizes;onToggle:(iso:string)=>void;
 }){
   const {colors}=useAppTheme();
-  const dark=colors.isDark;
-  const date=noon(dateISO);
-  const friday=date.getUTCDay()===5;
-  return <Pressable onPress={()=>onSelect(dateISO)}
-    accessibilityRole="button" accessibilityState={{selected}}
-    accessibilityLabel={(today?'Bugün, ':'')+readable(dateISO)+(day
-      ?', '+day.times.map(t=>t.label+' '+t.time).join(', ')
-      :', Yayımlanmış veri bekleniyor')}
-    style={{height,flexDirection:stacked?'column':'row',alignItems:stacked?'stretch':'center',
-      justifyContent:'center',gap:stacked?2:0,paddingRight:6,
-      paddingLeft:today?3:6,borderLeftWidth:today?3:0,borderLeftColor:colors.gold,
-      backgroundColor:today?(dark?'#14385A':'#F5ECDC'):selected?colors.soft:
-        stripe?(dark?'#0E2840':'#F8F8F3'):'transparent'}}>
-    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.75}
-      maxFontSizeMultiplier={TABLE_MAX_SCALE}
-      style={{width:stacked?undefined:dateWidth,fontSize:12,fontVariant:['tabular-nums'],
-        fontWeight:'800',color:today?colors.gold:colors.text}}>
-      {dateISO.slice(8,10)+' '+MONTH.format(date)}
-      <Text style={{fontSize:10.5,fontWeight:friday?'800':'600',
-        color:friday?colors.gold:colors.muted}}>{' '+WEEKDAY_SHORT.format(date)}</Text>
+  const look=palette(colors);
+  const {date,weekday,friday}=gregorian(iso);
+  const hijri=splitHijriDate(day?.hijriDate);
+  return <Pressable onPress={()=>onToggle(iso)}
+    accessibilityRole="button" accessibilityState={{expanded:open}}
+    accessibilityLabel={(today?'Bugün, ':'')+date+' '+weekday+
+      (day?.hijriDate?', '+day.hijriDate:'')+
+      (day?'':pending?', takvim yükleniyor':', Yayımlanmış veri bekleniyor')+
+      (open?'. Vakitleri kapat':'. Vakitleri göster')}
+    style={({pressed})=>({
+      flex:1,height:sizes.cell,borderWidth:EDGE,borderRadius:13,
+      paddingHorizontal:5,alignItems:'center',justifyContent:'center',
+      backgroundColor:open?look.openFill:today?look.todayFill:colors.surface,
+      borderColor:open?look.openEdge:today?colors.gold:colors.border,
+      // An open date becomes the tab of its panel: square foot, no bottom edge.
+      ...(open?{borderBottomColor:'transparent',
+        borderBottomLeftRadius:0,borderBottomRightRadius:0}:null),
+      opacity:pressed?.86:1,
+    })}>
+    {hijri.dayMonth
+      ?<Text allowFontScaling={false} numberOfLines={1} style={{
+        fontSize:sizes.hijri,lineHeight:sizes.hijri*LINE,fontWeight:'700',
+        color:colors.gold,textAlign:'center'}}>{hijri.dayMonth}</Text>
+      :<View style={{height:sizes.hijri*LINE,justifyContent:'center'}}>
+        <View style={{width:44,height:5,borderRadius:3,
+          backgroundColor:colors.border,opacity:pending?1:.55}}/>
+      </View>}
+    <Text allowFontScaling={false} numberOfLines={1} style={{
+      fontSize:sizes.date,lineHeight:sizes.date*LINE,fontWeight:'800',
+      fontVariant:['tabular-nums'],color:today?colors.gold:colors.text,
+      textAlign:'center'}}>{date}</Text>
+    <Text allowFontScaling={false} numberOfLines={1} style={{
+      fontSize:sizes.weekday,lineHeight:sizes.weekday*LINE,
+      fontWeight:friday||today?'800':'600',
+      color:friday?colors.gold:colors.muted,textAlign:'center'}}>
+      {weekday}
     </Text>
-    <View style={{flex:stacked?0:1,flexDirection:'row',alignItems:'center'}}>
-    {day?day.times.map(t=><Text key={t.key} numberOfLines={1} adjustsFontSizeToFit
-      minimumFontScale={.75} maxFontSizeMultiplier={TABLE_MAX_SCALE}
-      style={{flex:1,textAlign:'center',fontSize:TIME_SIZE,fontVariant:['tabular-nums'],
-        fontWeight:today||selected?'800':'600',color:colors.text}}>{t.time}</Text>)
-      :pending?COLUMNS.map(c=><View key={c} style={{flex:1,alignItems:'center'}}>
-        <View style={{width:'62%',height:6,borderRadius:3,backgroundColor:colors.border}}/>
-      </View>)
-      :<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={.75}
-        maxFontSizeMultiplier={TABLE_MAX_SCALE}
-        style={{flex:6,textAlign:'center',fontSize:11,fontStyle:'italic',color:colors.muted}}>
-        Yayımlanmış veri bekleniyor
-      </Text>}
-    </View>
   </Pressable>;
 });
 
+/** The six clocks of the open date, joined to it by a tab. */
+function DayPanel({iso,day,column,cellWidth,pending,today,nowMinutes,sizes,onLayout}:{
+  iso:string;day:Calendar30Day|null;column:number;cellWidth:number;pending:boolean;
+  today:boolean;nowMinutes:number;sizes:Sizes;onLayout:(e:LayoutChangeEvent)=>void;
+}){
+  const {colors}=useAppTheme();
+  const look=palette(colors);
+  const {date,weekday}=gregorian(iso);
+  const next=today&&day?day.times.findIndex(t=>timeToMinutes(t.time)>nowMinutes):-1;
+  return <Animated.View entering={FadeIn.duration(190)} exiting={FadeOut.duration(110)}
+    layout={LinearTransition.duration(220)} onLayout={onLayout}
+    accessibilityLiveRegion="polite"
+    style={{borderWidth:EDGE,borderColor:look.openEdge,backgroundColor:look.openFill,
+      borderRadius:16,
+      borderTopLeftRadius:column===0?0:16,borderTopRightRadius:column===PER_ROW-1?0:16,
+      padding:PANEL_PAD,gap:GAP+1}}>
+    {/* The tab: continues the date's sides down through the row gap and
+        covers this panel's top edge under it, so date and panel are one shape. */}
+    <View pointerEvents="none" style={{position:'absolute',top:-(GAP+EDGE)-1,
+      left:column*(cellWidth+GAP)-EDGE,width:cellWidth,height:GAP+EDGE*2+1,
+      backgroundColor:look.openFill,borderLeftWidth:EDGE,borderRightWidth:EDGE,
+      borderColor:look.openEdge}}/>
+    <View style={{flexDirection:'row',flexWrap:'wrap',alignItems:'baseline',
+      justifyContent:'space-between',columnGap:8,rowGap:1,paddingHorizontal:2}}>
+      <View style={{flexDirection:'row',alignItems:'center',gap:6}}>
+        {today?<Text allowFontScaling={false} style={{fontSize:sizes.label-1,
+          fontWeight:'800',letterSpacing:.6,color:colors.gold}}>BUGÜN</Text>:null}
+        <Text allowFontScaling={false} style={{fontSize:sizes.date+1,fontWeight:'800',
+          color:colors.text}}>{date+' '+weekday}</Text>
+      </View>
+      <Text allowFontScaling={false} style={{fontSize:sizes.hijri,fontWeight:'700',
+        color:colors.gold}}>{day?.hijriDate??''}</Text>
+    </View>
+    {day?<View style={{flexDirection:'row',flexWrap:'wrap',gap:GAP}}>
+      {day.times.map((t,i)=>{
+        const accent=PRAYER_COLORS[t.key];
+        const isNext=i===next;
+        return <View key={t.key} accessible
+          accessibilityLabel={t.label+' '+t.time+(isNext?', sıradaki vakit':'')}
+          style={{width:sizes.tile,
+            flexDirection:'row',alignItems:'center',gap:7,
+            paddingVertical:TILE_PAD,paddingHorizontal:TILE_PAD,borderRadius:12,
+            borderWidth:isNext?EDGE:1,borderColor:isNext?accent:colors.border,
+            backgroundColor:look.tile}}>
+          <View style={{width:BADGE,height:BADGE,borderRadius:BADGE/2,backgroundColor:accent,
+            alignItems:'center',justifyContent:'center'}}>
+            <MaterialCommunityIcons name={PRAYER_ICONS[t.key]} size={14}
+              color={prayerBadgeForeground(accent)}/>
+          </View>
+          <View style={{flex:1,minWidth:0}}>
+            <Text allowFontScaling={false} numberOfLines={1} style={{
+              fontSize:sizes.label,lineHeight:sizes.label*LINE,fontWeight:'700',
+              color:isNext?colors.text:colors.muted}}>{t.label}</Text>
+            <Text allowFontScaling={false} numberOfLines={1} style={{
+              fontSize:sizes.time,lineHeight:sizes.time*LINE,fontWeight:'800',
+              fontVariant:['tabular-nums'],color:colors.text}}>{t.time}</Text>
+          </View>
+        </View>;
+      })}
+    </View>
+    :<View style={{minHeight:64,alignItems:'center',justifyContent:'center',gap:6}}>
+      {pending
+        ?<ActivityIndicator size="small" color={colors.gold}/>
+        :<Text allowFontScaling={false} style={{fontSize:sizes.label+1,fontWeight:'700',
+          color:colors.muted,textAlign:'center'}}>Bu günün vakitleri henüz yayımlanmadı.</Text>}
+    </View>}
+  </Animated.View>;
+}
+
+/** Open date and its panel share one warm surface; tiles sit a step apart. */
+function palette(colors:ColorTokens){
+  return colors.isDark
+    ?{openFill:colors.elevated,openEdge:'rgba(216,191,141,.72)',
+      todayFill:'#14385A',tile:colors.surface}
+    :{openFill:'#FBF2DE',openEdge:'#D6B97E',todayFill:'#F5ECDC',tile:'#FFFFFF'};
+}
+
 export default function Calendar30Screen(){
   const [dateISO,setDateISO]=useState(()=>zonedClock(new Date(),'Europe/Istanbul').dateISO);
+  const [nowMinutes,setNowMinutes]=useState(()=>
+    Math.floor(zonedClock(new Date(),'Europe/Istanbul').secondsOfDay/60));
   const {colors}=useAppTheme();
   const {width,fontScale}=useWindowDimensions();
   const {place,snapshot,coverage,status,loading,error,retry}=useCalendar30(dateISO);
-  const [selected,setSelected]=useState(dateISO);
+  const [open,setOpen]=useState<string|null>(null);
   const [room,setRoom]=useState(0);
+  const [gridWidth,setGridWidth]=useState(width-16);
+  const scroll=useRef<ComponentRef<typeof ScrollView>>(null);
+  const scrollY=useRef(0);
+  const reveal=useRef(false);
   useEffect(()=>{
     const timer=setInterval(()=>{
-      const next=zonedClock(new Date(),'Europe/Istanbul').dateISO;
-      setDateISO(old=>old===next?old:next);
-    },60_000);
+      const clock=zonedClock(new Date(),'Europe/Istanbul');
+      setDateISO(old=>old===clock.dateISO?old:clock.dateISO);
+      setNowMinutes(Math.floor(clock.secondsOfDay/60));
+    },30_000);
     return ()=>clearInterval(timer);
   },[]);
-  useEffect(()=>setSelected(dateISO),[dateISO,place?.id]);
+  useEffect(()=>setOpen(null),[dateISO,place?.id]);
   const dates=useMemo(()=>Array.from({length:DAYS},(_,i)=>shiftCalendarDate(dateISO,i)),[dateISO]);
   const data=useMemo(()=>dates.map((iso,index)=>({
     iso,day:snapshot?.startISO===dateISO?snapshot.days[index]??null:null,
   })),[snapshot,dates,dateISO]);
-  const onSelect=useCallback((iso:string)=>setSelected(iso),[]);
+  const rows=useMemo(()=>Array.from({length:ROWS},(_,r)=>
+    data.slice(r*PER_ROW,r*PER_ROW+PER_ROW)),[data]);
+  const onToggle=useCallback((iso:string)=>{
+    setOpen(current=>{
+      reveal.current=current!==iso;
+      return current===iso?null:iso;
+    });
+  },[]);
 
-  // Fit: all 30 rows share the measured height, so the month reads as one
-  // page with no expanding cards. Larger system fonts raise the minimum row
-  // height; only then does the table scroll.
-  const textScale=Math.min(fontScale,TABLE_MAX_SCALE);
-  const dateWidth=Math.round(Math.min(96,Math.max(70,(width-28)*.22))*Math.max(1,textScale*.92));
-  // Each clock needs its digits plus a visible gap; if the date column leaves
-  // too little room (large fonts, narrow phones), the date moves above them.
-  const clocksRoom=width-16-2-12;
-  const stacked=clocksRoom-dateWidth<6*(TIME_SIZE*textScale*2.55+6);
-  const minRow=Math.ceil(TIME_SIZE*textScale*(stacked?2.3:1.2)+(stacked?8:2));
-  const body=Math.max(0,room-HEADER_ROW*textScale-2);
-  const rowHeight=body>0?Math.max(minRow,Math.min(stacked?54:MAX_ROW,body/DAYS)):minRow+4;
-  const fits=rowHeight*DAYS<=body+.5;
+  // One size per role for all cells, from the cell width and system font.
+  const cellWidth=(gridWidth-GAP*(PER_ROW-1))/PER_ROW;
+  const sizes=useMemo<Sizes>(()=>{
+    const scale=Math.min(Math.max(fontScale,1),TEXT_MAX_SCALE);
+    const inner=cellWidth-2*EDGE-10;
+    const hijri=Math.min(TYPE.hijri*scale,inner/WIDEST_EM.hijri);
+    const date=Math.min(TYPE.date*scale,inner/WIDEST_EM.date);
+    const weekday=Math.min(TYPE.weekday*scale,inner/WIDEST_EM.weekday);
+    // Three tiles per panel row: the panel spans the grid inside its edge.
+    const tile=Math.floor((gridWidth-2*EDGE-2*PANEL_PAD-GAP*(PER_ROW-1))/PER_ROW*10)/10;
+    const tileText=tile-2*TILE_PAD-2-BADGE-7;
+    const time=Math.min(TYPE.time*scale,tileText/WIDEST_EM.time);
+    // Thirty cells fill the page when they can, never below their text.
+    const least=Math.ceil((hijri+date+weekday)*LINE+CELL_PAD*2+EDGE*2);
+    const fit=room>0?(room-GAP*(ROWS-1))/ROWS:least;
+    return {hijri,date,weekday,label:TYPE.label*Math.min(scale,1.15),time,
+      cell:Math.max(least,Math.min(CELL_MAX,Math.floor(fit))),tile};
+  },[cellWidth,gridWidth,fontScale,room]);
 
-  const chosen=data.find(d=>d.iso===selected)??data[0];
+  const onScroll=useCallback((e:NativeSyntheticEvent<NativeScrollEvent>)=>{
+    scrollY.current=e.nativeEvent.contentOffset.y;
+  },[]);
+  // An opened panel near the bottom slides into view, its date still visible.
+  const onPanelLayout=useCallback((e:LayoutChangeEvent)=>{
+    if(!reveal.current)return;
+    reveal.current=false;
+    const {y,height}=e.nativeEvent.layout;
+    const bottom=y+height+GAP;
+    const top=y-sizes.cell-GAP;
+    if(bottom>scrollY.current+room)
+      scroll.current?.scrollTo({y:Math.min(top,bottom-room),animated:true});
+    else if(top<scrollY.current)scroll.current?.scrollTo({y:Math.max(0,top),animated:true});
+  },[room,sizes.cell]);
+
   const pending=status==='loading';
   const banner=status==='choose-location'?'Önce ana sayfadan il veya ilçe seç':
     pending?'Takvim yükleniyor…':
@@ -146,24 +279,6 @@ export default function Calendar30Screen(){
     </View>
 
     <View style={{flex:1,paddingHorizontal:8,paddingTop:8,paddingBottom:6,gap:7}}>
-      {/* Selected day in full: long date, Hijri date. Today by default. */}
-      <View accessible accessibilityLiveRegion="polite"
-        style={{flexDirection:'row',flexWrap:'wrap',alignItems:'center',columnGap:8,rowGap:2,
-          paddingHorizontal:10,paddingVertical:7,borderRadius:13,borderWidth:1,
-          borderColor:chosen.iso===dateISO?colors.gold:colors.border,
-          backgroundColor:colors.surface}}>
-        {chosen.iso===dateISO?<Text style={{fontSize:10,fontWeight:'800',
-          color:colors.gold,letterSpacing:.6}}>BUGÜN</Text>:null}
-        <Text style={{fontSize:12.5,fontWeight:'800',color:colors.text}}>
-          {readable(chosen.iso)}
-        </Text>
-        <Text style={{flexGrow:1,textAlign:'right',fontSize:11.5,fontWeight:'700',
-          color:chosen.day?colors.gold:colors.muted}}>
-          {chosen.day?(chosen.day.hijriDate??'Yayımlanmış takvim')
-            :pending?'':'Bu günün vakitleri henüz yayımlanmadı.'}
-        </Text>
-      </View>
-
       {banner?<View style={{flexDirection:'row',flexWrap:'wrap',alignItems:'center',
         columnGap:10,rowGap:4,paddingHorizontal:10,paddingVertical:6,borderRadius:12,
         backgroundColor:colors.soft}}>
@@ -184,30 +299,29 @@ export default function Calendar30Screen(){
       </View>:null}
 
       <View style={{flex:1}} onLayout={e=>setRoom(e.nativeEvent.layout.height)}>
-        <View style={{height:fits?HEADER_ROW*textScale+2+rowHeight*DAYS:'100%',
-          borderRadius:14,borderWidth:1,borderColor:colors.border,overflow:'hidden',
-          backgroundColor:colors.surface}}>
-          <View style={{height:HEADER_ROW*textScale,flexDirection:'row',alignItems:'center',
-            paddingHorizontal:6,backgroundColor:colors.elevated,
-            borderBottomWidth:1,borderBottomColor:colors.border}}>
-            {stacked?null:<Text numberOfLines={1} maxFontSizeMultiplier={TABLE_MAX_SCALE}
-              style={{width:dateWidth,fontSize:10.5,fontWeight:'800',color:colors.muted}}>
-              Tarih
-            </Text>}
-            {COLUMNS.map(c=><Text key={c} numberOfLines={1} adjustsFontSizeToFit
-              minimumFontScale={.75} maxFontSizeMultiplier={TABLE_MAX_SCALE}
-              style={{flex:1,textAlign:'center',fontSize:10.5,fontWeight:'800',
-                color:colors.gold}}>{c}</Text>)}
-          </View>
-          <ScrollView scrollEnabled={!fits} showsVerticalScrollIndicator={!fits}
-            bounces={false} overScrollMode="never">
-            {data.map((item,index)=><DayRow key={item.iso} dateISO={item.iso} day={item.day}
-              today={item.iso===dateISO} selected={item.iso===selected&&item.iso!==dateISO}
-              stripe={index%2===1} height={rowHeight} dateWidth={dateWidth} stacked={stacked}
-              pending={pending&&!item.day} onSelect={onSelect}/>)}
-          </ScrollView>
-        </View>
+        <ScrollView ref={scroll} onScroll={onScroll} scrollEventThrottle={32}
+          showsVerticalScrollIndicator={false} overScrollMode="never"
+          contentContainerStyle={{gap:GAP}}
+          onLayout={e=>setGridWidth(e.nativeEvent.layout.width)}>
+          {rows.map((row,r)=>{
+            const column=row.findIndex(item=>item.iso===open);
+            const openItem=column>=0?row[column]:null;
+            return [
+              <Animated.View key={'row-'+r} layout={LinearTransition.duration(220)}
+                style={{flexDirection:'row',gap:GAP}}>
+                {row.map(item=><DateCell key={item.iso} iso={item.iso} day={item.day}
+                  today={item.iso===dateISO} open={item.iso===open}
+                  pending={pending&&!item.day} sizes={sizes} onToggle={onToggle}/>)}
+              </Animated.View>,
+              openItem?<DayPanel key={'panel-'+openItem.iso} iso={openItem.iso}
+                day={openItem.day} column={column} cellWidth={cellWidth}
+                pending={pending&&!openItem.day} today={openItem.iso===dateISO}
+                nowMinutes={nowMinutes} sizes={sizes} onLayout={onPanelLayout}/>:null,
+            ];
+          })}
+        </ScrollView>
       </View>
     </View>
   </SafeAreaView>;
 }
+

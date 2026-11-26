@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
  parseCalendar30Source,mergeCalendar30,calendar30Coverage,
- validateCalendar30Cache,shiftCalendarDate,
+ validateCalendar30Cache,shiftCalendarDate,splitHijriDate,
 } from './calendar30.ts';
 const ID=9545,START='2026-12-20',STAMP='2026-12-20T12:00:00.000Z';
 const times=['06:10','07:42','12:55','15:28','17:51','19:15'];
@@ -88,4 +88,11 @@ test('merge rejects a calendar belonging to another date or district',()=>{
  const a=parseCalendar30Source(mirror([primary(0)]),'idamedya',ID,START,STAMP);
  assert.throws(()=>mergeCalendar30([a,{...a,startISO:'2026-12-21'}]));
  assert.throws(()=>mergeCalendar30([a,{...a,cityId:ID+1}]));
+});
+test('Hijri dates split into day-month and year for calendar cells',()=>{
+  assert.deepEqual(splitHijriDate('17 Cemaziyelahir 1448'),{dayMonth:'17 Cemaziyelahir',year:'1448'});
+  assert.deepEqual(splitHijriDate('  1  Muharrem   1449 '),{dayMonth:'1 Muharrem',year:'1449'});
+  assert.deepEqual(splitHijriDate('Ramazan'),{dayMonth:'Ramazan',year:''});
+  assert.deepEqual(splitHijriDate(null),{dayMonth:'',year:''});
+  assert.deepEqual(splitHijriDate('1448'),{dayMonth:'1448',year:''});
 });
