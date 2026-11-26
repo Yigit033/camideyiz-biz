@@ -340,8 +340,6 @@ export function PrayerWheel({
                 strokeOpacity={nextGlowStrength}
                 strokeWidth={urgency==='normal'?71:77} fill="none"/>
             </>}
-            {index === selectedIndex && <Path d={arc(item.from+.85,item.to-.85,RADIUS)}
-              stroke={PRAYER_COLORS[item.key]} strokeOpacity=".37" strokeWidth="71" fill="none"/>}
             <Path d={arc(item.from+.9,item.to-.9,RADIUS)}
               stroke={'url(#fill-'+item.key+')'}
               strokeWidth={index===selectedIndex?63:58} fill="none"/>
@@ -349,14 +347,6 @@ export function PrayerWheel({
               stroke={index===selectedIndex?'#FFE9B7':'#F9F2DC'}
               strokeOpacity={index===selectedIndex?.94:.37}
               strokeWidth={index===selectedIndex?4.3:1.8} fill="none"/>
-            <Path d={arc(item.from+2,item.to-2,114)}
-              stroke={index===selectedIndex?'#FFF6DC':'#F8E9C8'}
-              strokeOpacity={index===selectedIndex?.42:.18}
-              strokeWidth={index===selectedIndex?4.2:2.1} fill="none"/>
-            <Path d={arc(item.from+2,item.to-2,149)}
-              stroke="#FFF9E4"
-              strokeOpacity={index===selectedIndex?.15:.07}
-              strokeWidth="11" fill="none"/>
           </G>)}
           {/* 24 civil-hour divisions, each coloured by its actual
               prayer interval. Render above wedges, below kerahet warnings. */}
@@ -373,20 +363,20 @@ export function PrayerWheel({
           })}
           <Circle cx="180" cy="180" r="106" stroke={rim} strokeWidth="2.2"
             strokeOpacity=".7" fill="url(#dialInner)"/>
-          <Circle cx="180" cy="180" r="101" stroke={rim} strokeWidth=".8"
-            strokeOpacity=".28" fill="none"/>
           {sectors.map(item => {
             const p1=polar(item.from,108),p2=polar(item.from,169);
             return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
               stroke={colors.isDark?'#071E2D':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
           })}
-          {/* Approximate kerahet arcs share the SAME angular coordinates
+          {/* Owner (26.11.2026): no faint concentric strokes inside the band
+              (no mid-band sheen, inner hairline, full kerahet track or second
+              inner rim) and no halo outside the selected prayer: the band
+              reads as one clean ring, the selected prayer as a wider band
+              with a cream outer edge.
+              Approximate kerahet arcs share the SAME angular coordinates
               on two concentric tracks. Outer = warning, inner = interval.
               Both rotate WITH the physical dial, never with elapsed progress.
               Active: deep burgundy; next 20min: warm amber; otherwise muted. */}
-          {kerahatArcs.length>0
-            ?<Circle cx="180" cy="180" r="112" fill="none"
-              stroke={rim} strokeOpacity=".62" strokeWidth="3.2"/>:null}
           {kerahatArcs.map(window=><G key={'kerahat-'+window.kind+'-'+window.sectorKey}>
             {window.state!=='inactive'?<Path
               d={arc(window.from,window.to,112)}

@@ -273,6 +273,12 @@ assert.match(gallery,/maxWidth:tileWidth\*2\+TILE_SPACING/);
 
 // Keep ring calculation unchanged; kerahet stands out at a glance.
 assert.match(wheel,/const kerahatArcs=ringWindows\.flatMap/);
+// Owner (26.11.2026): the band is one clean ring. No faint concentric
+// strokes inside it (mid-band sheen, inner hairline, a full kerahet track, a
+// second inner rim) and no halo outside the selected prayer.
+assert.doesNotMatch(wheel,/arc\(item\.from\+2,item\.to-2,(114|149)\)/,'no hairline or sheen inside the band');
+assert.doesNotMatch(wheel,/r="101"|<Circle cx="180" cy="180" r="112"/,'no second inner rim or full kerahet track');
+assert.doesNotMatch(wheel,/strokeOpacity="\.37" strokeWidth="71"/,'no halo outside the selected prayer');
 assert.match(wheel,/strokeWidth=\{kerahatActive\?3\.5:kerahatApproaching\?2\.6:\.8\}/);
 assert.match(wheel,/window\.state==='active'\?15\.5/);
 assert.match(wheel,/window\.state==='active'\?14/);
