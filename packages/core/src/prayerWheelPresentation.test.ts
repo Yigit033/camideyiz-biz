@@ -229,8 +229,8 @@ test('inner red ring responds exactly to the user-selected noon duration',()=>{
 
 test('all six exact prayer-colour clock badges meet WCAG small-caption contrast',()=>{
   const sectorColours={
-    imsak:'#3593B5',gunes:'#D69E44',ogle:'#1EAFB0',
-    ikindi:'#10B981',aksam:'#DA7049',yatsi:'#7162BB',
+    imsak:'#4A86D1',gunes:'#E6C478',ogle:'#22B4E8',
+    ikindi:'#D8933B',aksam:'#C06A3E',yatsi:'#2F4E96',
   } as const;
   function luminance(hex:string){
     const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255)

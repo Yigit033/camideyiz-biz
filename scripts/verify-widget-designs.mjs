@@ -185,7 +185,22 @@ const [R,B,M]=[geo('RADIUS'),geo('BAND'),geo('MARKER')];
 assert.ok(R+B/2+.010+.024<.5,'hour ticks leave the bitmap');
 assert.ok(R+B/2+.006+M<.5,'now pointer leaves the bitmap');
 assert.ok(R-B/2-.010>=.36,'centre text needs the gold inner rim at ≥ .36 of the side');
-assert.match(ring,/0xFF3593B5,0xFFD69E44,0xFF1EAFB0,0xFF10B981,0xFFDA7049,0xFF7162BB/);
+assert.match(ring,/0xFF4A86D1,0xFFE6C478,0xFF22B4E8,0xFFD8933B,0xFFC06A3E,0xFF2F4E96/);
+// One palette everywhere (owner, 26.11.2026): the app's PRAYER_COLORS, the
+// ring bitmap and the highlighted widget cells are the same six colours.
+{
+  const wheelSrc=read('apps/mobile/src/features/prayer/PrayerWheel.tsx');
+  const app=['imsak','gunes','ogle','ikindi','aksam','yatsi'].map(key=>
+    wheelSrc.match(new RegExp('\\n  '+key+":'(#[0-9A-F]{6})'"))?.[1]);
+  assert.ok(app.every(Boolean),'PRAYER_COLORS not found');
+  const bitmap=[...ring.match(/COLORS=\{([^}]*)\}/)[1].matchAll(/0xFF([0-9A-F]{6})/g)].map(m=>'#'+m[1]);
+  assert.deepEqual(bitmap,app,'ring widget colours follow the app');
+  ['imsak','gunes','ogle','ikindi','aksam','yatsi'].forEach((key,i)=>{
+    const cell=read(p+'widget_cell_on_'+key+'.xml');
+    assert.equal((cell.match(new RegExp(app[i],'gi'))??[]).length,2,'widget_cell_on_'+key+' follows the app');
+  });
+  assert.doesNotMatch(app.join(),/#10B981|#7162BB/,'no green or violet prayer colour');
+}
 // Turns with the clock: current time at the top, re-rendered every 5 minutes
 // by a NON-wakeup alarm (no battery cost while the phone sleeps).
 assert.match(ring,/return -90f\+\(minute-now\)\*\.25f;/);

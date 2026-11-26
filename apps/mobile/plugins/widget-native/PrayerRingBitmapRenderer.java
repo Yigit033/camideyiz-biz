@@ -28,9 +28,10 @@ import java.util.TimeZone;
  * non-wakeup tick so it turns with the clock while the screen is on.
  */
 public final class PrayerRingBitmapRenderer {
-  // The home dial's PRAYER_COLORS: İmsak, Güneş, Öğle, İkindi, Akşam, Yatsı.
+  // The home dial's PRAYER_COLORS: İmsak, Güneş, Öğle, İkindi, Akşam, Yatsı
+  // (the logo's blues for night and sky, gold for the sun's path).
   private static final int[] COLORS={
-      0xFF3593B5,0xFFD69E44,0xFF1EAFB0,0xFF10B981,0xFFDA7049,0xFF7162BB
+      0xFF4A86D1,0xFFE6C478,0xFF22B4E8,0xFFD8933B,0xFFC06A3E,0xFF2F4E96
   };
   // Every turn is a new bitmap; the cache only shares one pass between the
   // mini and square rings (same SMALL size), so it holds a few bitmaps.

@@ -23,13 +23,20 @@ import {
 } from './ottomanMinaret';
 
 
+/**
+ * Prayer colours from the product's own two colours (owner, 26.11.2026):
+ * the logo's blues for the night and the sky, gold for the sun's path.
+ * İmsak dawn blue, Güneş champagne gold, Öğle the logo's cyan, İkindi
+ * amber, Akşam copper, Yatsı night navy. No violet, green or red. The same
+ * six colours drive the widgets (PrayerRingBitmapRenderer, widget_cell_on_*).
+ */
 export const PRAYER_COLORS: Record<PrayerTime['key'], string> = {
-  imsak:'#3593B5',
-  gunes:'#D69E44',
-  ogle:'#1EAFB0',
-  ikindi:'#10B981',
-  aksam:'#DA7049',
-  yatsi:'#7162BB',
+  imsak:'#4A86D1',
+  gunes:'#E6C478',
+  ogle:'#22B4E8',
+  ikindi:'#D8933B',
+  aksam:'#C06A3E',
+  yatsi:'#2F4E96',
 };
 
 const CENTER = 180;
@@ -51,6 +58,8 @@ export const PRAYER_ICONS: Record<PrayerTime['key'], ComponentProps<typeof Mater
 };
 type PrayerArc = PrayerTime & {from: number; to: number};
 
+/** Dark edge under the kerahet marks, legible on every prayer colour. */
+const KERAHET_CONTOUR='#071E2D';
 /** Short status under the live countdown while a kerahet window is active. */
 const KERAHET_LABEL_COLOR={dark:'#F2A54A',light:'#A64B0B'} as const;
 
@@ -131,8 +140,10 @@ function SectorIcon({sector,size,rotation,dark}:{
   const point=polar(layout.labelAngle,layout.labelRadius);
   const scale=size/DIAMETER;
   const width=layout.labelWidth*scale,height=layout.labelHeight*scale;
-  const contrastInk=sector.key==='yatsi'?'#FFF6E6'
-    :sector.key==='aksam'?'#3A241B':dark?'#0B2A44':'#16372E';
+  // The badge rule picks the icon ink too: ivory on night navy, deep ink on
+  // every lighter prayer colour.
+  const contrastInk=prayerBadgeForeground(PRAYER_COLORS[sector.key])===PRAYER_BADGE_LIGHT_INK
+    ?'#FFF6E6':dark?'#0B2A44':'#16372E';
   const unrotate=useAnimatedStyle(()=>({
     transform:[{rotateZ:-rotation.value+'deg'}],
   }));
@@ -378,6 +389,14 @@ export function PrayerWheel({
               Both rotate WITH the physical dial, never with elapsed progress.
               Active: deep burgundy; next 20min: warm amber; otherwise muted. */}
           {kerahatArcs.map(window=><G key={'kerahat-'+window.kind+'-'+window.sectorKey}>
+            {/* A thin dark contour under both marks keeps the approaching
+                amber readable on the gold Güneş and İkindi bands. */}
+            <Path d={arc(window.from,window.to,112)} stroke={KERAHET_CONTOUR}
+              strokeOpacity=".55" fill="none" strokeLinecap="round"
+              strokeWidth={(window.state==='active'?15.5:window.state==='approaching'?13.2:9.6)+3}/>
+            <Path d={arc(window.from,window.to,161)} stroke={KERAHET_CONTOUR}
+              strokeOpacity=".55" fill="none" strokeLinecap="butt"
+              strokeWidth={(window.state==='active'?14:window.state==='approaching'?12:8.5)+3}/>
             {window.state!=='inactive'?<Path
               d={arc(window.from,window.to,112)}
               stroke={window.state==='active'?'#AE4054':'#D49A55'}
