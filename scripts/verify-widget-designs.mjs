@@ -146,17 +146,17 @@ for(const suffix of ['', '_light']){
     element(strip,'widget_strip_time_'+i);
     element(premium,'widget_ring_premium_clock_'+i);
   }
-  // Footer = 46dp floor + weighted growth: the caption sits ABOVE the centred
-  // countdown, so the footer is taller to keep the countdown large.
+  // Footer = 40dp floor + a small weighted growth (owner, 26.11.2026: compact,
+  // large text): the countdown stays large, the cells get the rest.
   assert.match(element(strip,'widget_strip_remaining_row'),
-    /android:layout_height="46dp" android:layout_weight="0\.34"/);
+    /android:layout_height="40dp" android:layout_weight="0\.2"/);
   const day=read(p+'widget_prayer_day'+suffix+'.xml');
   for(let i=0;i<6;i++){
     element(day,'widget_day_row_'+i);
     element(day,'widget_day_label_'+i);
     element(day,'widget_day_time_'+i);
   }
-  assert.match(day,/android:layout_height="44dp" android:layout_weight="0\.34"/);
+  assert.match(day,/android:layout_height="40dp" android:layout_weight="0\.2"/);
   const slim=read(p+'widget_slim_prayer'+suffix+'.xml');
   assert.match(slim,/KALAN SÜRE/);
   assert.doesNotMatch(slim,/android:textSize="24sp"/,
@@ -563,7 +563,7 @@ for(const pattern of [
   /COL_NUMERALS=\{R\.id\.widget_col_hijri_day,R\.id\.widget_col_day\}/,
   /COL_CAPTIONS=\{R\.id\.widget_col_hijri_month,R\.id\.widget_col_month,\s*R\.id\.widget_col_weekday\}/,
   /WidgetTypeScale\.row\(context,size,band,remaining,\s*data\.labels,data\.hijriFull,data\.civilFull\)/,
-  /boolean band=bucket==2&&!\(data\.hijriFull\.isEmpty\(\)&&data\.civilFull\.isEmpty\(\)\)/,
+  /!\(data\.hijriFull\.isEmpty\(\)&&data\.civilFull\.isEmpty\(\)\)/,
   /setViewVisibility\(R\.id\.widget_row_rule,band\?View\.VISIBLE:View\.GONE\)/,
   /setViewVisibility\(R\.id\.widget_row_calendar,band\?View\.VISIBLE:View\.GONE\)/,
   /WidgetTypeScale\.column\(context,size,remaining,\s*new String\[\]\{data\.hijriDay,data\.day\},data\.hijriMonth,data\.month,data\.weekday\)/,
@@ -578,26 +578,96 @@ assert.match(read(p+'PrayerStripWidgetProvider.java'),
 assert.match(scheduler,/new SimpleDateFormat\("d",turkish\)/);
 assert.match(scheduler,/new SimpleDateFormat\("MMMM",turkish\)/);
 assert.match(scheduler,/static String\[\] hijriParts\(String hijri\)/);
-// The daily list keeps per-view autosize, so all six names must fit their
-// box at the group maximum even at 130% system font on the smallest 4×2
-// (300dp): then all six render at the same size. Widths in em of the
-// system regular face (Roboto metrics, as on ColorOS's OPPO Sans).
-{
-  const em={'İ':.28,k:.5,i:.24,n:.55,d:.56,m:.87,s:.5,a:.54,G:.67,'ü':.55,e:.53,'ş':.5,
-    'Ö':.68,'ğ':.56,l:.24,A:.65,Y:.61,t:.33,'ı':.24};
-  const width=word=>[...word].reduce((sum,c)=>{assert.ok(em[c],'no width for '+c);return sum+em[c];},0);
-  const day=tree(read(p+'widget_prayer_day.xml'));
-  const label=byId(day,'widget_day_label_0'),dayRow=label.parent,time=byId(day,'widget_day_time_0');
-  const columnWidth=(300-2*pad(day,'Start')-1-5)/2;
-  const box=(columnWidth-pad(dayRow,'Start')-pad(dayRow,'End')-dp(byId(day,'widget_day_icon_0'),'layout_width'))*
-    weight(label)/(weight(label)+weight(time));
-  const max=Number(attr(label,'autoSizeMaxTextSize').replace('sp',''));
-  const widest=Math.max(...['İmsak','Güneş','Öğle','İkindi','Akşam','Yatsı'].map(width));
-  assert.ok(widest*max*1.3<=box,'daily names diverge at 130% font: '+(widest*max*1.3).toFixed(1)+' > '+box.toFixed(1));
-  alike([0,1,2,3,4,5].map(i=>byId(day,'widget_day_label_'+i)),'daily names');
+// Widget Design 11.2 — owner (26.11.2026): dates in every widget with room,
+// compact cards with large text. The 4×2 and 4×4 headers carry the Hijri and
+// the Gregorian date (one fitted size) between the mark and the district,
+// over a fading gold rule; the daily names take one fitted size too; the
+// 2×2 shows a short date line; the row's calendar band shows at every width.
+let headerDates=0;
+for(const suffix of ['','_light']){
+  const ink=hex=>suffix?LIGHT[hex]:hex;
+  const leaf=(nodes,inks,label)=>nodes.forEach((n,i)=>{
+    assert.equal(attr(n,'textColor'),ink(inks[i]),label+' ink '+i);
+    assert.equal(attr(n,'textStyle'),'bold',label+' must be bold');
+    assert.equal(attr(n,'autoSizeTextType'),undefined,label+' takes the fitted size');
+    assert.equal(attr(n,'maxLines'),'1');
+    fittedViews++;
+  });
+  for(const [file,prefix,cityId] of [['widget_prayer_day','widget_day','widget_day_city'],
+      ['widget_prayer_focus','widget_focus','widget_focus_city'],
+      ['widget_prayer_strip','widget_strip','widget_strip_city'],
+      ['widget_ring_premium','widget_ring_premium','widget_ring_premium_city']]){
+    const root=tree(read(p+file+suffix+'.xml'));
+    const block=byId(root,prefix+'_dates'),city=byId(root,cityId),header=block.parent;
+    const [mark]=header.children;
+    assert.equal(mark.tag,'ImageView',file+': the mark opens the header');
+    assert.deepEqual(header.children.map(n=>attr(n,'id')??n.tag),
+      ['ImageView','@+id/'+prefix+'_dates','@+id/'+cityId],file+': mark, dates, district');
+    near(weight(block),k('HEADER_DATES'),file+' dates weight');
+    near(weight(city),k('HEADER_CITY'),file+' district weight');
+    near(dp(block,'layout_marginStart'),k('HEADER_GAP_DATES'),file+' dates gap');
+    near(dp(city,'layout_marginStart'),k('HEADER_GAP_CITY'),file+' district gap');
+    const lines=block.children;
+    assert.deepEqual(lines.map(n=>attr(n,'id')),['@+id/'+prefix+'_hijri','@+id/'+prefix+'_civil']);
+    leaf(lines,['#F4D392','#F1F7F8'],file+' header date');
+    alike(lines,file+' header dates',['textColor']);
+    lines.forEach(n=>assert.equal(weight(n),1,file+': each date line takes half the header'));
+    assert.ok(scheduler.includes('dateHeader(card,context,size,dates,R.id.'+prefix+'_dates,'),
+      file+' fills and fits its date header');
+    headerDates+=2;
+    if(file!=='widget_ring_premium'){
+      const rule=[...walk(root)].find(n=>attr(n,'background')==='@drawable/widget_rule_'+(suffix?'light':'dark'));
+      assert.ok(rule&&attr(rule,'layout_height')==='1dp','fading gold rule under the header: '+file);
+    }
+    if(!suffix){
+      near(pad(root,'Start'),file==='widget_prayer_focus'||file==='widget_ring_premium'?10:8,file+' padding');
+      near(dp(mark,'layout_width'),file==='widget_ring_premium'?48:42,file+' mark width');
+      near(dp(header,'layout_height'),file==='widget_ring_premium'?42:36,file+' header height');
+    }
+  }
+  // Daily names: one fitted size (regular face); the geometry is the layout's.
+  const day=tree(read(p+'widget_prayer_day'+suffix+'.xml'));
+  const dayNames=[0,1,2,3,4,5].map(i=>byId(day,'widget_day_label_'+i));
+  dayNames.forEach(n=>{assert.equal(attr(n,'autoSizeTextType'),undefined,'daily names take the fitted size');fittedViews++;});
+  alike(dayNames,'daily names');
+  if(!suffix){
+    const label=dayNames[0],dayRow=label.parent,time=byId(day,'widget_day_time_0');
+    const [header,rule,body,footer]=day.children;
+    near(pad(day,'Start'),k('DAY_PAD'),'daily padding');
+    near(dp(header,'layout_height'),k('DAY_HEADER'),'daily header');
+    near(ruleDp(rule),k('DAY_RULE'),'daily rule');
+    near(weight(body),1,'daily list weight');
+    near(dp(footer,'layout_height'),k('DAY_FOOTER'),'daily footer');
+    near(weight(footer),k('DAY_FOOTER_WEIGHT'),'daily footer weight');
+    near(dp(footer,'layout_marginTop'),k('DAY_FOOTER_GAP'),'daily footer gap');
+    const divider=body.children[1];
+    near(dp(divider,'layout_width')+dp(divider,'layout_marginStart'),k('DAY_COLUMN_GAP'),'daily column gap');
+    near(pad(dayRow,'Start')+pad(dayRow,'End'),k('DAY_ROW_PAD'),'daily row padding');
+    near(dp(byId(day,'widget_day_icon_0'),'layout_width'),k('DAY_BULLET'),'daily bullet');
+    near(weight(label)/(weight(label)+weight(time)),1/1.9,'daily name share');
+    assert.match(scale,/DAY_NAME_SHARE=1f\/1\.9f;/);
+  }
+  // 2×2: the short date line in gold replaces "SIRADAKİ VAKİT".
+  const next=tree(read(p+'widget_next_prayer'+suffix+'.xml'));
+  const dateLine=byId(next,'widget_next_label');
+  assert.equal(attr(dateLine,'textColor'),ink('#F4D392'));
+  assert.equal(attr(dateLine,'textStyle'),'bold');
 }
-console.log('Widget Design 11.1: '+fittedViews+' texts in row, column, strip and premium groups take one '+
-  'fitted size each; 6×1 calendar band and column calendar leaf under gold rules; scheduler geometry follows the layouts');
+for(const pattern of [
+  /float nameSize=WidgetTypeScale\.dayNames\(context,size,stripNames\(times\)\);\s*for\(int label:labels\)card\.setTextViewTextSize\(label,TypedValue\.COMPLEX_UNIT_PX,nameSize\)/,
+  /updateSized\(manager,day,size->/,/updateSized\(manager,focus,size->/,
+  /String\[\] dates=dateLines\(props,ready\);/,
+  /card\.setTextViewText\(R\.id\.widget_next_label,ready&&!dates\[2\]\.isEmpty\(\)/,
+  /card\.setTextViewTextSize\(hijri,TypedValue\.COMPLEX_UNIT_PX,px\);\s*card\.setTextViewTextSize\(civil,TypedValue\.COMPLEX_UNIT_PX,px\);/,
+  /boolean band=size\.getHeight\(\)>=WidgetTypeScale\.ROW_BAND_MIN_HEIGHT&&/,
+])assert.match(scheduler,pattern);
+for(const provider of ['PrayerDayWidgetProvider','PrayerFocusWidgetProvider'])
+  assert.match(read(p+provider+'.java'),/onAppWidgetOptionsChanged/,provider+' refits on resize');
+assert.match(scale,/return fit\(context,flex\*HEADER_DATES\/\(HEADER_DATES\+HEADER_CITY\),height\/2f,8f,14f,true,dates\);/);
+assert.equal(headerDates,16,'four date headers in both themes');
+console.log('Widget Design 11.2: '+fittedViews+' texts in row, column, strip, premium and daily groups take one '+
+  'fitted size each; '+headerDates+' header date lines, the row calendar band at every width, column calendar leaf; '+
+  'scheduler geometry follows the layouts');
 console.log('Widget Design 10.1: '+blueCountdowns+' countdowns and '+blueLabels+
   ' "Kalan" labels blue in both themes');
 console.log('Widget Design 10.0: one system typeface in every widget, '+boxes+

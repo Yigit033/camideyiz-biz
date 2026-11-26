@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 4×2 six-prayer strip. Cells and the countdown footer scale with the launcher cell; the footer keeps a 40dp floor and stacks its caption over the countdown on one centre line. -->
+<!-- 4×2 six-prayer strip. Header: mark, the Hijri and Gregorian dates (one fitted size), the district; a fading gold rule. The six names take ONE fitted size, the clocks autosize; a 40dp footer with a small weight keeps the countdown large and gives the cells the rest. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_strip_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:orientation="vertical" android:background="@drawable/widget_bg" android:padding="8dp">
@@ -7,13 +7,18 @@
   android:orientation="horizontal">
  <ImageView android:layout_width="42dp" android:layout_height="36dp" android:src="@drawable/widget_brand_mark_dark"
   android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
+ <LinearLayout android:id="@+id/widget_strip_dates" android:layout_width="0dp" android:layout_height="match_parent"
+  android:layout_weight="1.7" android:layout_marginStart="8dp" android:orientation="vertical" android:gravity="center">
+ <TextView android:id="@+id/widget_strip_hijri" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="" android:textSize="11sp" android:textColor="#F4D392" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
+ <TextView android:id="@+id/widget_strip_civil" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="" android:textSize="11sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
+ </LinearLayout>
  <TextView android:id="@+id/widget_strip_city" android:layout_width="0dp" android:layout_height="wrap_content"
   android:layout_weight="1" android:layout_marginStart="6dp" android:text="—" android:textSize="11sp"
   android:textColor="#AFC5D4" android:gravity="end|center_vertical" android:maxLines="1"
   android:ellipsize="end" android:includeFontPadding="false"/>
  </LinearLayout>
  <TextView android:layout_width="match_parent" android:layout_height="1dp" android:text=""
-  android:background="#31566D" android:layout_marginTop="4dp" android:layout_marginBottom="2dp"/>
+  android:background="@drawable/widget_rule_dark" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" android:layout_marginTop="4dp" android:layout_marginBottom="2dp"/>
  <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
   android:orientation="horizontal" android:baselineAligned="false" android:layout_marginBottom="5dp">
  <LinearLayout android:id="@+id/widget_strip_cell_0" android:layout_width="0dp" android:layout_weight="1"
@@ -26,7 +31,7 @@
  <TextView android:id="@+id/widget_strip_time_0" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
   android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
-  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="21sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_strip_cell_1" android:layout_width="0dp" android:layout_weight="1"
   android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
@@ -38,7 +43,7 @@
  <TextView android:id="@+id/widget_strip_time_1" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
   android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
-  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="21sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_strip_cell_2" android:layout_width="0dp" android:layout_weight="1"
   android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
@@ -50,7 +55,7 @@
  <TextView android:id="@+id/widget_strip_time_2" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
   android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
-  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="21sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_strip_cell_3" android:layout_width="0dp" android:layout_weight="1"
   android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
@@ -62,7 +67,7 @@
  <TextView android:id="@+id/widget_strip_time_3" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
   android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
-  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="21sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_strip_cell_4" android:layout_width="0dp" android:layout_weight="1"
   android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
@@ -74,7 +79,7 @@
  <TextView android:id="@+id/widget_strip_time_4" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
   android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
-  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="21sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_strip_cell_5" android:layout_width="0dp" android:layout_weight="1"
   android:layout_height="match_parent" android:paddingStart="2dp" android:paddingEnd="2dp"
@@ -86,11 +91,11 @@
  <TextView android:id="@+id/widget_strip_time_5" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
   android:textSize="12sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
-  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="19sp" android:autoSizeStepGranularity="1sp"/>
+  android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="10sp" android:autoSizeMaxTextSize="21sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_strip_remaining_row" android:layout_width="match_parent"
-  android:layout_height="46dp" android:layout_weight="0.34" android:background="@drawable/widget_chip_dark"
+  android:layout_height="40dp" android:layout_weight="0.2" android:background="@drawable/widget_chip_dark"
   android:orientation="vertical" android:paddingStart="12dp" android:paddingEnd="12dp"
   android:paddingTop="2dp" android:paddingBottom="2dp" android:gravity="center">
   <TextView android:id="@+id/widget_strip_next" android:layout_width="match_parent" android:layout_height="0dp"

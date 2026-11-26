@@ -662,6 +662,9 @@ public final class WidgetBoundaryScheduler {
     Look look=look(context);
     boolean kerahat=ready&&props.optBoolean("kerahat",false);
     int count=0;
+    // "17 Cemaziyelahir 1448" and "26 Kasım 2026 Perşembe" for the date
+    // headers; "17 Cemaziyelahir · 26 Kasım" for the 2×2.
+    String[] dates=dateLines(props,ready);
 
     // 2×2: published prayer clock and a native, launcher-driven countdown.
     int[] small=widgetIds[0];
@@ -670,7 +673,8 @@ public final class WidgetBoundaryScheduler {
           R.layout.widget_next_prayer_light,R.layout.widget_next_prayer,
           R.layout.widget_next_prayer_auto));
       card.setTextViewText(R.id.widget_city,ready?city:"Takvim bekleniyor");
-      card.setTextViewText(R.id.widget_next_label,ready?"SIRADAKİ VAKİT":"TAKVİM BEKLENİYOR");
+      card.setTextViewText(R.id.widget_next_label,ready&&!dates[2].isEmpty()
+          ?dates[2]:ready?"SIRADAKİ VAKİT":"TAKVİM BEKLENİYOR");
       // One centred line, one autosize pass: "Akşam  17:45" (two half-width
       // views sized the name and the clock differently and sat off-centre).
       card.setTextViewText(R.id.widget_next_name,ready?next+"  "+time:"—");
@@ -685,47 +689,54 @@ public final class WidgetBoundaryScheduler {
     int[] day=widgetIds[1];
     JSONArray times=ready?props.getJSONArray("times"):new JSONArray();
     if(day.length>0&&dirty[1]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
-          R.layout.widget_prayer_day_light,R.layout.widget_prayer_day,
-          R.layout.widget_prayer_day_auto));
-      card.setTextViewText(R.id.widget_day_city,ready?city:"Takvim bekleniyor");
-      int[] rows={R.id.widget_day_row_0,R.id.widget_day_row_1,
-          R.id.widget_day_row_2,R.id.widget_day_row_3,
-          R.id.widget_day_row_4,R.id.widget_day_row_5};
-      int[] icons={R.id.widget_day_icon_0,R.id.widget_day_icon_1,
-          R.id.widget_day_icon_2,R.id.widget_day_icon_3,
-          R.id.widget_day_icon_4,R.id.widget_day_icon_5};
-      int[] labels={R.id.widget_day_label_0,R.id.widget_day_label_1,
-          R.id.widget_day_label_2,R.id.widget_day_label_3,
-          R.id.widget_day_label_4,R.id.widget_day_label_5};
-      int[] clocks={R.id.widget_day_time_0,R.id.widget_day_time_1,
-          R.id.widget_day_time_2,R.id.widget_day_time_3,
-          R.id.widget_day_time_4,R.id.widget_day_time_5};
-      String[] symbols={"◒","☀","☼","☀","◓","☾"};
-      int normalLight=Color.parseColor("#123D34"),normalDark=Color.parseColor("#F8F4E9");
-      int highlightLight=Color.parseColor("#976B2F"),highlightDark=Color.parseColor("#F0CB8B");
-      int activeRow=look.pick(R.drawable.widget_active_light,
-          R.drawable.widget_active_dark,R.drawable.widget_active_auto);
-      for(int i=0;i<6;i++){
-        JSONObject value=i<times.length()?times.getJSONObject(i):null;
-        String label=value==null?"—":value.optString("label","—");
-        String clock=value==null?"--:--":value.optString("time","--:--");
-        boolean selected=ready && (nextInCurrentDay?label.equals(next):i==5);
-        card.setTextViewText(icons[i],symbols[i]);
-        card.setTextViewText(labels[i],label);
-        card.setTextViewText(clocks[i],clock);
-        ink(card,look,labels[i],selected?highlightLight:normalLight,
-            selected?highlightDark:normalDark);
-        ink(card,look,clocks[i],selected?highlightLight:normalLight,
-            selected?highlightDark:normalDark);
-        card.setInt(rows[i],"setBackgroundResource",
-            selected?activeRow:R.drawable.widget_row_clear);
-      }
-      card.setTextViewText(R.id.widget_day_footer,ready
-          ?next+" vaktine kalan":"Takvim bekleniyor");
-      setCountdown(card,R.id.widget_day_countdown,nextAt,now);
-      card.setOnClickPendingIntent(R.id.widget_day_root,launchAction(context,41019));
-      manager.updateAppWidget(day,card);
+      updateSized(manager,day,size->{
+        RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+            R.layout.widget_prayer_day_light,R.layout.widget_prayer_day,
+            R.layout.widget_prayer_day_auto));
+        card.setTextViewText(R.id.widget_day_city,ready?city:"Takvim bekleniyor");
+        dateHeader(card,context,size,dates,R.id.widget_day_dates,R.id.widget_day_hijri,
+            R.id.widget_day_civil,WidgetTypeScale.DAY_PAD,42f,36f);
+        int[] rows={R.id.widget_day_row_0,R.id.widget_day_row_1,
+            R.id.widget_day_row_2,R.id.widget_day_row_3,
+            R.id.widget_day_row_4,R.id.widget_day_row_5};
+        int[] icons={R.id.widget_day_icon_0,R.id.widget_day_icon_1,
+            R.id.widget_day_icon_2,R.id.widget_day_icon_3,
+            R.id.widget_day_icon_4,R.id.widget_day_icon_5};
+        int[] labels={R.id.widget_day_label_0,R.id.widget_day_label_1,
+            R.id.widget_day_label_2,R.id.widget_day_label_3,
+            R.id.widget_day_label_4,R.id.widget_day_label_5};
+        int[] clocks={R.id.widget_day_time_0,R.id.widget_day_time_1,
+            R.id.widget_day_time_2,R.id.widget_day_time_3,
+            R.id.widget_day_time_4,R.id.widget_day_time_5};
+        String[] symbols={"◒","☀","☼","☀","◓","☾"};
+        int normalLight=Color.parseColor("#123D34"),normalDark=Color.parseColor("#F8F4E9");
+        int highlightLight=Color.parseColor("#976B2F"),highlightDark=Color.parseColor("#F0CB8B");
+        int activeRow=look.pick(R.drawable.widget_active_light,
+            R.drawable.widget_active_dark,R.drawable.widget_active_auto);
+        for(int i=0;i<6;i++){
+          JSONObject value=i<times.length()?times.getJSONObject(i):null;
+          String label=value==null?"—":value.optString("label","—");
+          String clock=value==null?"--:--":value.optString("time","--:--");
+          boolean selected=ready && (nextInCurrentDay?label.equals(next):i==5);
+          card.setTextViewText(icons[i],symbols[i]);
+          card.setTextViewText(labels[i],label);
+          card.setTextViewText(clocks[i],clock);
+          ink(card,look,labels[i],selected?highlightLight:normalLight,
+              selected?highlightDark:normalDark);
+          ink(card,look,clocks[i],selected?highlightLight:normalLight,
+              selected?highlightDark:normalDark);
+          card.setInt(rows[i],"setBackgroundResource",
+              selected?activeRow:R.drawable.widget_row_clear);
+        }
+        // The six names: one size, fitted to this card.
+        float nameSize=WidgetTypeScale.dayNames(context,size,stripNames(times));
+        for(int label:labels)card.setTextViewTextSize(label,TypedValue.COMPLEX_UNIT_PX,nameSize);
+        card.setTextViewText(R.id.widget_day_footer,ready
+            ?next+" vaktine kalan":"Takvim bekleniyor");
+        setCountdown(card,R.id.widget_day_countdown,nextAt,now);
+        card.setOnClickPendingIntent(R.id.widget_day_root,launchAction(context,41019));
+        return card;
+      });
       count+=day.length;
     }
 
@@ -754,24 +765,28 @@ public final class WidgetBoundaryScheduler {
     // 4×2: focus on the current interval and the remaining time to next.
     int[] focus=widgetIds[3];
     if(focus.length>0&&dirty[3]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
-          R.layout.widget_prayer_focus_light,R.layout.widget_prayer_focus,
-          R.layout.widget_prayer_focus_auto));
-      int nextIndex=-1;
-      for(int i=0;i<times.length();i++){
-        if(next.equals(times.getJSONObject(i).optString("label",""))){
-          nextIndex=i;break;
+      updateSized(manager,focus,size->{
+        RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+            R.layout.widget_prayer_focus_light,R.layout.widget_prayer_focus,
+            R.layout.widget_prayer_focus_auto));
+        dateHeader(card,context,size,dates,R.id.widget_focus_dates,R.id.widget_focus_hijri,
+            R.id.widget_focus_civil,10f,42f,36f);
+        int nextIndex=-1;
+        for(int i=0;i<times.length();i++){
+          if(next.equals(times.getJSONObject(i).optString("label",""))){
+            nextIndex=i;break;
+          }
         }
-      }
-      String current=nextIndex<0?"—":
-          times.getJSONObject((nextIndex+5)%6).optString("label","—");
-      card.setTextViewText(R.id.widget_focus_city,ready?city:"Takvim bekleniyor");
-      card.setTextViewText(R.id.widget_focus_current,ready?current:"—");
-      card.setTextViewText(R.id.widget_focus_next,ready?"SIRADAKİ · "+next:"SIRADAKİ VAKİT");
-      card.setTextViewText(R.id.widget_focus_time,ready?"Saat "+time:"Takvimi açıp eşitle");
-      setCountdown(card,R.id.widget_focus_countdown,nextAt,now);
-      card.setOnClickPendingIntent(R.id.widget_focus_root,launchAction(context,41021));
-      manager.updateAppWidget(focus,card);
+        String current=nextIndex<0?"—":
+            times.getJSONObject((nextIndex+5)%6).optString("label","—");
+        card.setTextViewText(R.id.widget_focus_city,ready?city:"Takvim bekleniyor");
+        card.setTextViewText(R.id.widget_focus_current,ready?current:"—");
+        card.setTextViewText(R.id.widget_focus_next,ready?"SIRADAKİ · "+next:"SIRADAKİ VAKİT");
+        card.setTextViewText(R.id.widget_focus_time,ready?"Saat "+time:"Takvimi açıp eşitle");
+        setCountdown(card,R.id.widget_focus_countdown,nextAt,now);
+        card.setOnClickPendingIntent(R.id.widget_focus_root,launchAction(context,41021));
+        return card;
+      });
       count+=focus.length;
     }
     // Responsive six-prayer strip: six published clocks and a single native
@@ -816,6 +831,8 @@ public final class WidgetBoundaryScheduler {
         float labelSize=WidgetTypeScale.strip(context,size,stripNames(times));
         for(int label:labels)card.setTextViewTextSize(label,TypedValue.COMPLEX_UNIT_PX,labelSize);
         card.setTextViewText(R.id.widget_strip_city,ready?city:"");
+        dateHeader(card,context,size,dates,R.id.widget_strip_dates,R.id.widget_strip_hijri,
+            R.id.widget_strip_civil,WidgetTypeScale.STRIP_PAD,42f,WidgetTypeScale.STRIP_HEADER);
         card.setTextViewText(R.id.widget_strip_next,
             ready?next+" vaktine kalan":"Takvim bekleniyor");
         // Keep the footer visible even before the validated calendar arrives:
@@ -861,6 +878,9 @@ public final class WidgetBoundaryScheduler {
         card.setTextViewText(R.id.widget_ring_premium_next,ready?next:"Takvim");
         card.setTextViewText(R.id.widget_ring_premium_time,ready?"Saat "+time:"--:--");
         card.setTextViewText(R.id.widget_ring_premium_city,ready?city:"Takvim bekleniyor");
+        dateHeader(card,context,size,dates,R.id.widget_ring_premium_dates,
+            R.id.widget_ring_premium_hijri,R.id.widget_ring_premium_civil,
+            WidgetTypeScale.PREMIUM_PAD,48f,42f);
         // All six verified daily hours move to a dedicated quiet footer,
         // never floating over the ring or colliding with the live counter.
         int[] hourLabels={R.id.widget_ring_premium_label_0,R.id.widget_ring_premium_label_1,
@@ -1152,9 +1172,35 @@ public final class WidgetBoundaryScheduler {
       hijriDay=hijri[0];hijriMonth=hijri[1];
       String[] civil=gregorian(props.optString("dateISO",""));
       day=civil[0];month=civil[1];weekday=civil[2];
-      hijriFull=ready?props.optString("hijriDate","").trim().replaceAll("\\s+"," "):"";
-      civilFull=join(join(join(day,month),civil[3]),weekday);
+      String[] lines=dateLines(props,ready);
+      hijriFull=lines[0];civilFull=lines[1];
     }
+  }
+
+  /** {"17 Cemaziyelahir 1448", "26 Kasım 2026 Perşembe",
+   * "17 Cemaziyelahir · 26 Kasım"}; empty parts before a calendar arrives. */
+  static String[] dateLines(JSONObject props,boolean ready){
+    String hijri=ready?props.optString("hijriDate","").trim().replaceAll("\\s+"," "):"";
+    String[] parts=hijriParts(hijri);
+    String[] civil=gregorian(props.optString("dateISO",""));
+    String dayMonth=join(civil[0],civil[1]);
+    String hijriShort=join(parts[0],parts[1]);
+    return new String[]{hijri,join(join(dayMonth,civil[3]),civil[2]),
+        hijriShort.isEmpty()||dayMonth.isEmpty()?"":hijriShort+" · "+dayMonth};
+  }
+
+  /** A date header: Hijri over Gregorian, one size fitted to the card. */
+  private static void dateHeader(RemoteViews card,Context context,SizeF size,String[] dates,
+      int block,int hijri,int civil,float pad,float mark,float height){
+    boolean shown=!(dates[0].isEmpty()&&dates[1].isEmpty());
+    card.setViewVisibility(block,shown?View.VISIBLE:View.INVISIBLE);
+    if(!shown)return;
+    card.setTextViewText(hijri,dates[0]);
+    card.setTextViewText(civil,dates[1]);
+    float px=WidgetTypeScale.header(context,size,WidgetTypeScale.NOMINAL_STRIP_WIDTH,
+        pad,mark,height,dates[0],dates[1]);
+    card.setTextViewTextSize(hijri,TypedValue.COMPLEX_UNIT_PX,px);
+    card.setTextViewTextSize(civil,TypedValue.COMPLEX_UNIT_PX,px);
   }
 
   /** The six names a strip or premium footer shows (defaults before data). */
@@ -1253,8 +1299,10 @@ public final class WidgetBoundaryScheduler {
         R.layout.widget_prayer_row_light,R.layout.widget_prayer_row,
         R.layout.widget_prayer_row_auto));
     boolean remaining=bucket>=1&&data.ready;
-    // The calendar band at 6×1, once there is a date to show.
-    boolean band=bucket==2&&!(data.hijriFull.isEmpty()&&data.civilFull.isEmpty());
+    // The calendar band at every width, once there is a date to show and
+    // the card is tall enough for two tiers.
+    boolean band=size.getHeight()>=WidgetTypeScale.ROW_BAND_MIN_HEIGHT&&
+        !(data.hijriFull.isEmpty()&&data.civilFull.isEmpty());
     card.setViewVisibility(R.id.widget_row_remaining,remaining?View.VISIBLE:View.GONE);
     card.setViewVisibility(R.id.widget_row_rule,band?View.VISIBLE:View.GONE);
     card.setViewVisibility(R.id.widget_row_calendar,band?View.VISIBLE:View.GONE);

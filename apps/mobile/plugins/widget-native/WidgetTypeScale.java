@@ -34,10 +34,11 @@ final class WidgetTypeScale{
   static final float ROW_LOGO=1.2f,ROW_REMAINING=1.7f;
   /** Label share of a cell: icon .28, label .32, clock .40. */
   static final float ROW_LABEL_SHARE=0.32f;
-  /** 6×1 calendar band under the prayers: a 1dp rule with 4/3dp margins,
-   * then the date line (weight .28 against the prayers' 1), two halves
-   * parted by a 1dp stroke. */
+  /** Calendar band under the prayers: a 1dp rule with 4/3dp margins, then
+   * the date line (weight .28 against the prayers' 1), two halves parted by
+   * a 1dp stroke. Shown at every width once the card is this tall. */
   static final float ROW_RULE=8f,ROW_CALENDAR=0.28f,ROW_DIVIDER=1f;
+  static final float ROW_BAND_MIN_HEIGHT=64f;
 
   // Six-prayer column (widget_prayer_column.xml).
   static final float COL_PAD=6f,COL_GAP=4f;
@@ -48,11 +49,11 @@ final class WidgetTypeScale{
   static final float COL_BRAND_PAD=2f;
 
   // Six-prayer strip (widget_prayer_strip.xml): header 36dp, rule 1dp with
-  // 4/2dp margins, cells (weight 1, 5dp bottom margin) and a 46dp footer
-  // that also takes weight .34; cells pad 2dp sideways and 3dp vertically,
+  // 4/2dp margins, cells (weight 1, 5dp bottom margin) and a 40dp footer
+  // that also takes weight .2; cells pad 2dp sideways and 3dp vertically,
   // and the clock sits 3dp under the name (name .8 : clock 1).
   static final float STRIP_PAD=8f,STRIP_HEADER=36f,STRIP_RULE=7f,STRIP_CELLS_BOTTOM=5f;
-  static final float STRIP_FOOTER=46f,STRIP_FOOTER_WEIGHT=0.34f;
+  static final float STRIP_FOOTER=40f,STRIP_FOOTER_WEIGHT=0.2f;
   static final float STRIP_CELL_PAD_X=2f,STRIP_CELL_PAD_Y=3f,STRIP_TIME_GAP=3f;
   static final float NAME_SHARE=0.8f/1.8f;
   static final float NOMINAL_STRIP_WIDTH=300f,NOMINAL_STRIP_HEIGHT=160f;
@@ -70,7 +71,7 @@ final class WidgetTypeScale{
     float cells=Math.max(0f,leftover)/(1f+STRIP_FOOTER_WEIGHT);
     float cell=(width-2*STRIP_PAD)/6f;
     return fit(context,cell-2*STRIP_CELL_PAD_X,
-        (cells-2*STRIP_CELL_PAD_Y-STRIP_TIME_GAP)*NAME_SHARE,8f,13f,false,names);
+        (cells-2*STRIP_CELL_PAD_Y-STRIP_TIME_GAP)*NAME_SHARE,8f,15f,false,names);
   }
 
   /** Premium ring footer: one size for the six prayer names (regular face). */
@@ -79,6 +80,34 @@ final class WidgetTypeScale{
     float cell=(width-2*PREMIUM_PAD-2*PREMIUM_CHIP_PAD)/6f;
     return fit(context,cell-2*PREMIUM_CELL_PAD_X,
         (PREMIUM_CHIP-2*PREMIUM_CELL_PAD_Y-PREMIUM_TIME_GAP)*NAME_SHARE,8f,13f,false,names);
+  }
+
+  // Date headers (daily, focus, strip, premium ring): the mark, 8dp, the two
+  // date lines (weight 1.7), 6dp, the district (weight 1).
+  static final float HEADER_DATES=1.7f,HEADER_CITY=1f,HEADER_GAP_DATES=8f,HEADER_GAP_CITY=6f;
+  /** One size for the Hijri and the Gregorian line of a date header. */
+  static float header(Context context,SizeF size,float nominalWidth,float pad,float mark,
+      float height,String... dates){
+    float width=size==null?nominalWidth:size.getWidth();
+    float flex=width-2*pad-mark-HEADER_GAP_DATES-HEADER_GAP_CITY;
+    return fit(context,flex*HEADER_DATES/(HEADER_DATES+HEADER_CITY),height/2f,8f,14f,true,dates);
+  }
+
+  // Daily list (widget_prayer_day.xml): 8dp padding, 36dp header, 8dp rule,
+  // the list (weight 1) and a 40dp footer (weight .2, 5dp above it). Two
+  // columns parted by a 1dp rule with 5dp gap; rows pad 5/6dp around a 15dp
+  // bullet, then name : clock = 1 : .9.
+  static final float DAY_PAD=8f,DAY_HEADER=36f,DAY_RULE=8f;
+  static final float DAY_FOOTER=40f,DAY_FOOTER_WEIGHT=0.2f,DAY_FOOTER_GAP=5f;
+  static final float DAY_COLUMN_GAP=6f,DAY_ROW_PAD=11f,DAY_BULLET=15f,DAY_NAME_SHARE=1f/1.9f;
+  /** Daily list: one size for the six prayer names (regular face). */
+  static float dayNames(Context context,SizeF size,String... names){
+    float width=size==null?NOMINAL_STRIP_WIDTH:size.getWidth();
+    float height=size==null?NOMINAL_STRIP_HEIGHT:size.getHeight();
+    float column=(width-2*DAY_PAD-DAY_COLUMN_GAP)/2f;
+    float body=Math.max(0f,height-2*DAY_PAD-DAY_HEADER-DAY_RULE-DAY_FOOTER-DAY_FOOTER_GAP)
+        /(1f+DAY_FOOTER_WEIGHT);
+    return fit(context,(column-DAY_ROW_PAD-DAY_BULLET)*DAY_NAME_SHARE,body/3f,9f,16f,false,names);
   }
 
   /** Text sizes (px) for one row card at one launcher size. */

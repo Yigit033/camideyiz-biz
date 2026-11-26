@@ -17,9 +17,9 @@
   android:includeFontPadding="false"/>
  </LinearLayout>
  <TextView android:id="@+id/widget_next_label" android:layout_width="match_parent" android:layout_height="12dp"
-  android:layout_weight="0.18" android:layout_marginTop="4dp" android:text="SIRADAKİ VAKİT" android:textSize="9sp"
-  android:textColor="#AFC5D4" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
-  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="12sp"
+  android:layout_weight="0.18" android:layout_marginTop="4dp" android:text="" android:textSize="9sp"
+  android:textColor="#F4D392" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="13sp"
   android:autoSizeStepGranularity="1sp"/>
  <TextView android:id="@+id/widget_next_name" android:layout_width="match_parent" android:layout_height="20dp"
   android:layout_weight="0.5" android:text="Takvim  --:--" android:textSize="15sp" android:textColor="#F1F7F8"

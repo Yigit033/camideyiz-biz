@@ -32,7 +32,8 @@ assert.match(native,/Math\.min\(sourceAt\+MAX_AGE,calendarEndsAt\)/,
 assert.match(native,/getAppWidgetIds\(component\(context,NAMES\[0\]\)\)/);
 assert.match(native,/getAppWidgetIds\(component\(context,NAMES\[1\]\)\)/);
 assert.match(native,/manager\.updateAppWidget\(small,card\)/);
-assert.match(native,/manager\.updateAppWidget\(day,card\)/);
+assert.match(native,/updateSized\(manager,day,size->/,
+  'the daily card is built per launcher size (fitted dates and names)');
 assert.match(native,/setAndAllowWhileIdle\(AlarmManager\.RTC_WAKEUP/,
   'native rollover must retain a Doze-aware best-effort alarm');
 assert.match(native,/result\.put\("nativeCityId",nativeCityId\)/,

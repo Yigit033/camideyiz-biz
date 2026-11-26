@@ -3,12 +3,18 @@ package biz.camideyiz.app;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
+import android.os.Bundle;
 import biz.camideyiz.app.widget.WidgetBoundaryAsyncRefresh;
 
 /** Same provider component name as previous Expo widget; keep home-screen pins. */
 public final class PrayerDayWidgetProvider extends AppWidgetProvider {
   @Override
   public void onUpdate(Context context, AppWidgetManager manager, int[] ids) {
+    WidgetBoundaryAsyncRefresh.dispatch(context,goAsync(),"launcher:update:daily");
+  }
+  /** A resize refits the header dates and the names to the new size. */
+  @Override public void onAppWidgetOptionsChanged(Context context,AppWidgetManager manager,
+      int id,Bundle options){
     WidgetBoundaryAsyncRefresh.dispatch(context,goAsync(),"launcher:update:daily");
   }
 
