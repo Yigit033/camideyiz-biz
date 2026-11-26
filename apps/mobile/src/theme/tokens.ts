@@ -1,7 +1,7 @@
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type ColorTokens = {
   canvas: string; surface: string; elevated: string; text: string; muted: string;
-  border: string; emerald: string; gold: string; warning: string; soft: string;
+  border: string; emerald: string; accentStrong: string; gold: string; warning: string; soft: string;
   isDark: boolean;
 };
 export const base = {
@@ -11,11 +11,17 @@ export const base = {
 };
 export const lightTokens: ColorTokens = {
   canvas:base.ivory,surface:'#FFFFFF',elevated:'#EBEEE8',text:'#152821',
-  muted:'#65736C',border:'#DEE4DB',emerald:base.emerald,gold:'#A88A5C',
+  muted:'#65736C',border:'#DEE4DB',emerald:base.emerald,accentStrong:base.emerald,gold:'#A88A5C',
   warning:base.warning,soft:'#E5EEE6',isDark:false
 };
+/** The blue logo defines the dark visual identity: midnight blue canvases,
+ * deep ocean surfaces and luminous cyan actions. "emerald" is retained as
+ * the semantic API key so existing components inherit bright cyan foregrounds.
+ * accentStrong provides accessible blue fills for controls with white labels.
+ * The separately defined original light theme stays visually unchanged.
+ */
 export const darkTokens: ColorTokens = {
-  canvas:'#0C1717',surface:base.emerald,elevated:base.navy,text:'#F8F4E9',
-  muted:'#A7B9AF',border:'#29443F',emerald:'#43D1A8',gold:'#D2BB89',
-  warning:'#E78B90',soft:'#1C3832',isDark:true
+  canvas:'#071725',surface:'#102B40',elevated:'#173D58',text:'#F2F7FB',
+  muted:'#B2C6D6',border:'#2B536B',emerald:'#20B6EB',accentStrong:'#0C76B4',gold:'#D8BF8D',
+  warning:'#F08F9A',soft:'#16344C',isDark:true
 };

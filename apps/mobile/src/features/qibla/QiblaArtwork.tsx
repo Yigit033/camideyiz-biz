@@ -1,20 +1,22 @@
-import {memo,useEffect,useMemo,useRef} from 'react';
-import {Image,StyleSheet,View} from 'react-native';
+import {memo,useEffect,useMemo} from 'react';
+import {Image,StyleSheet,Text,View} from 'react-native';
 import Svg,{
-  Circle,Defs,Ellipse,G,Line,LinearGradient,Path,Polygon,
-  RadialGradient,Rect,Stop,Text as SvgText,
+  Circle,Defs,G,Line,LinearGradient,Path,Polygon,
+  RadialGradient,Rect,Stop,
 } from 'react-native-svg';
-import Animated,{Easing,useAnimatedStyle,useSharedValue,withTiming} from 'react-native-reanimated';
-import {normalizeBearing} from '@camideyiz/core';
+import Animated,{
+  cancelAnimation,Easing,useAnimatedStyle,useSharedValue,withRepeat,withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 
-const GOLD='#E0BE7A',IVORY='#F7E8CB',EMERALD='#15493D';
+const GOLD='#E0BE7A';
 const DIAL=360;
 
-function KaabaSymbol({x=180,y=58}: {x?:number;y?:number}){
+function KaabaSymbol({x=180,y=58,dark}: {x?:number;y?:number;dark:boolean}){
   return <G transform={'translate('+x+' '+y+')'}>
     <Circle r="27" fill="#E6B85E" opacity=".13"/>
-    <Circle r="23" fill="#071E1A" stroke="#FFE8A6" strokeWidth="2.4"/>
-    <Circle r="19" fill="#0C2C24" stroke="#8C6E3B" strokeWidth=".8"/>
+    <Circle r="23" fill={dark?'#071A2B':'#071E1A'} stroke="#FFE8A6" strokeWidth="2.4"/>
+    <Circle r="19" fill={dark?'#0B2A44':'#0C2C24'} stroke="#8C6E3B" strokeWidth=".8"/>
     <Path d="M-12 -7 L0 -11 L13 -5 L1 -1 Z" fill="#CDA75D"/>
     <Path d="M-12 -7 L1 -1 V13 L-12 8 Z" fill="#1F2624"/>
     <Path d="M1 -1 L13 -5 V8 L1 13 Z" fill="#080E11"/>
@@ -24,26 +26,26 @@ function KaabaSymbol({x=180,y=58}: {x?:number;y?:number}){
 }
 
 export const QiblaBackdrop=memo(function QiblaBackdrop({dark}: {dark:boolean}){
-  const sky=dark?'#053E37':'#D6EAE0';
-  const silhouette=dark?'#081E1D':'#9CAD9A';
-  const horizon=dark?'#051C1B':'#D1D8C8';
+  const sky=dark?'#0C3856':'#D6EAE0';
+  const silhouette=dark?'#0A2235':'#9CAD9A';
+  const horizon=dark?'#071D31':'#D1D8C8';
   return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
     <Svg width="100%" height="100%" viewBox="0 0 390 840"
       preserveAspectRatio="xMidYMin slice">
       <Defs>
         <LinearGradient id="nightWash" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor={dark?'#052C29':'#F8F6EB'}/>
-          <Stop offset="28%" stopColor={dark?'#08463C':'#E8EEE0'}/>
-          <Stop offset="56%" stopColor={dark?'#043D33':'#EDF0E3'}/>
-          <Stop offset="100%" stopColor={dark?'#001F1D':'#F7F3E9'}/>
+          <Stop offset="0%" stopColor={dark?'#071E33':'#F8F6EB'}/>
+          <Stop offset="28%" stopColor={dark?'#0B456C':'#E8EEE0'}/>
+          <Stop offset="56%" stopColor={dark?'#0B395B':'#EDF0E3'}/>
+          <Stop offset="100%" stopColor={dark?'#05192A':'#F7F3E9'}/>
         </LinearGradient>
         <RadialGradient id="skyBloom" cx="79%" cy="21%" rx="60%" ry="43%">
           <Stop offset="0%" stopColor={dark?'#D8B06C':'#E1BF84'} stopOpacity={dark?'.49':'.29'}/>
-          <Stop offset="51%" stopColor={dark?'#3B8575':'#A9D8C9'} stopOpacity=".23"/>
+          <Stop offset="51%" stopColor={dark?'#317FA9':'#A9D8C9'} stopOpacity=".23"/>
           <Stop offset="100%" stopColor={sky} stopOpacity="0"/>
         </RadialGradient>
         <LinearGradient id="fadingWater" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0%" stopColor={dark?'#236F61':'#BCD5C8'} stopOpacity=".3"/>
+          <Stop offset="0%" stopColor={dark?'#1F648D':'#BCD5C8'} stopOpacity=".3"/>
           <Stop offset="100%" stopColor={horizon} stopOpacity="0"/>
         </LinearGradient>
         <LinearGradient id="archMetal" x1="0" y1="0" x2="1" y2="1">
@@ -126,44 +128,39 @@ export const QiblaBackdrop=memo(function QiblaBackdrop({dark}: {dark:boolean}){
   </View>;
 });
 
+const CARDINALS=[
+  {name:'K',angle:0},{name:'D',angle:90},{name:'G',angle:180},{name:'B',angle:270},
+] as const;
+
+/**
+ * The needle (Qibla relative to the phone's top edge) and the true-north
+ * cardinal ring are driven by Reanimated shared values on the UI thread:
+ * sensor samples never re-render this component or rebuild any SVG.
+ */
 export const QiblaCompass=memo(function QiblaCompass({
-  size,relative,heading,available,aligned,
-}: {size:number;relative:number|null;heading:number|null;available:boolean;aligned:boolean}){
-  const animatedAngle=useSharedValue(0);
-  const lastAngle=useRef(0);
-  useEffect(()=>{
-    if(relative===null)return;
-    const next=normalizeBearing(relative),previous=lastAngle.current;
-    const step=((next-previous+540)%360)-180;
-    lastAngle.current=previous+step;
-    animatedAngle.value=withTiming(lastAngle.current,{
-      duration:240,easing:Easing.out(Easing.cubic),
-    });
-  },[relative,animatedAngle]);
+  size,needleAngle,northAngle,available,aligned,dark,
+}: {size:number;needleAngle:SharedValue<number>;northAngle:SharedValue<number>;
+  available:boolean;aligned:boolean;dark:boolean}){
   const animatedStyle=useAnimatedStyle(()=>({
-    transform:[{rotate: animatedAngle.value+'deg'}],
+    transform:[{rotate: needleAngle.value+'deg'}],
+  }));
+  // World-fixed ring: counter-rotates by the device heading…
+  const ringStyle=useAnimatedStyle(()=>({
+    transform:[{rotate: (-northAngle.value)+'deg'}],
+  }));
+  // …while each letter turns back so it always reads upright.
+  const uprightStyle=useAnimatedStyle(()=>({
+    transform:[{rotate: northAngle.value+'deg'}],
   }));
   const outer=available?'#FAE2A4':'#C6AC80';
-  // True north labels move around the fixed bezel as the device rotates.
-  // Letter glyphs remain upright for readability.
-  const cardinalLabels=useMemo(()=>{
-    if(heading===null||!available)return [];
-    return ([
-      {name:'K',worldAngle:0},
-      {name:'D',worldAngle:90},
-      {name:'G',worldAngle:180},
-      {name:'B',worldAngle:270},
-    ] as const).map(point=>{
-      const radians=(point.worldAngle-heading)*Math.PI/180;
-      return {
-        ...point,
-        x:180+114*Math.sin(radians),
-        y:180-114*Math.cos(radians),
-        outerX:180+149*Math.sin(radians),
-        outerY:180-149*Math.cos(radians),
-      };
-    });
-  },[heading,available]);
+  const scale=size/DIAL;
+  const letter=30*scale;
+  const cardinalLabels=useMemo(()=>CARDINALS.map(point=>{
+    const radians=point.angle*Math.PI/180;
+    return {...point,
+      x:(180+114*Math.sin(radians))*scale,y:(180-114*Math.cos(radians))*scale,
+      dotX:(180+149*Math.sin(radians))*scale,dotY:(180-149*Math.cos(radians))*scale};
+  }),[scale]);
   // The complex gold bezel and 168 decorative tick/engraving groups are
   // static: updating the sensor does not reconstruct these React elements.
   const face=useMemo(()=>(
@@ -171,10 +168,10 @@ export const QiblaCompass=memo(function QiblaCompass({
       pointerEvents="none">
       <Defs>
         <RadialGradient id="qFace" cx="48%" cy="42%" rx="70%" ry="68%">
-          <Stop offset="0%" stopColor="#155244"/>
-          <Stop offset="55%" stopColor="#06362F"/>
-          <Stop offset="83%" stopColor="#062A25"/>
-          <Stop offset="100%" stopColor="#011C1C"/>
+          <Stop offset="0%" stopColor={dark?'#15597C':'#155244'}/>
+          <Stop offset="55%" stopColor={dark?'#0D3E64':'#06362F'}/>
+          <Stop offset="83%" stopColor={dark?'#0A3050':'#062A25'}/>
+          <Stop offset="100%" stopColor={dark?'#051B31':'#011C1C'}/>
         </RadialGradient>
         <LinearGradient id="qGold" x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0%" stopColor="#A57C3A"/>
@@ -184,18 +181,18 @@ export const QiblaCompass=memo(function QiblaCompass({
           <Stop offset="100%" stopColor="#70502A"/>
         </LinearGradient>
         <RadialGradient id="qGlint" cx="45%" cy="34%" rx="63%" ry="70%">
-          <Stop offset="0%" stopColor="#D3E0C4" stopOpacity=".18"/>
-          <Stop offset="100%" stopColor="#D3E0C4" stopOpacity="0"/>
+          <Stop offset="0%" stopColor={dark?'#CFE4F2':'#D3E0C4'} stopOpacity=".18"/>
+          <Stop offset="100%" stopColor={dark?'#CFE4F2':'#D3E0C4'} stopOpacity="0"/>
         </RadialGradient>
         <LinearGradient id="qStar" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0%" stopColor="#7AA59A"/>
-          <Stop offset="48%" stopColor="#215D53"/>
-          <Stop offset="100%" stopColor="#042824"/>
+          <Stop offset="0%" stopColor={dark?'#72C9E5':'#7AA59A'}/>
+          <Stop offset="48%" stopColor={dark?'#2675A1':'#215D53'}/>
+          <Stop offset="100%" stopColor={dark?'#123450':'#042824'}/>
         </LinearGradient>
       </Defs>
-      <Circle cx="180" cy="183" r="173" fill="#031B19" opacity=".38"/>
+      <Circle cx="180" cy="183" r="173" fill={dark?'#071D30':'#031B19'} opacity=".38"/>
       <Circle cx="180" cy="180" r="173" fill="url(#qGold)" stroke="#F6DAA5" strokeWidth="1"/>
-      <Circle cx="180" cy="180" r="167.5" fill="#0E4036" stroke="#45351F" strokeWidth="2"/>
+      <Circle cx="180" cy="180" r="167.5" fill={dark?'#104366':'#0E4036'} stroke="#45351F" strokeWidth="2"/>
       <Circle cx="180" cy="180" r="161" fill="url(#qGold)" stroke="#FAE2A4" strokeWidth=".9"/>
       <Circle cx="180" cy="180" r="152" fill="url(#qFace)" stroke="#654820" strokeWidth="2.1"/>
       {/* Filigree engravings along the outer gold bezel */}
@@ -217,7 +214,7 @@ export const QiblaCompass=memo(function QiblaCompass({
       <Circle cx="180" cy="180" r="112" stroke="#A6AF8C" strokeOpacity=".18" fill="none"/>
       <Circle cx="180" cy="180" r="107" stroke="#D8CC9B" strokeOpacity=".12" fill="none"/>
       {/* Intricate, restrained Islamic eight-sided starwork on the face */}
-      <G opacity=".18" stroke="#84B1A0" strokeWidth=".8" fill="none">
+      <G opacity=".18" stroke={dark?'#6CB5D8':'#84B1A0'} strokeWidth=".8" fill="none">
         {Array.from({length:8},(_,i)=><G key={'rose-'+i} transform={'rotate('+(i*45)+' 180 180)'}>
           <Path d="M180 89L191 157L180 180L169 157Z"/>
           <Path d="M180 91L212 130L180 164L148 130Z"/>
@@ -229,28 +226,31 @@ export const QiblaCompass=memo(function QiblaCompass({
       {Array.from({length:8},(_,i)=><G key={'facet-'+i}
         transform={'rotate('+(i*45)+' 180 180)'}>
         <Polygon points="180,88 164,166 180,180" fill="url(#qStar)" opacity={i%2===0?'.98':'.64'}/>
-        <Polygon points="180,88 196,166 180,180" fill={i%2===0?'#4D8878':'#195648'} opacity=".83"/>
-        <Path d="M180 88V180" fill="none" stroke="#D3E2B9" strokeWidth=".6" strokeOpacity=".38"/>
+        <Polygon points="180,88 196,166 180,180" fill={i%2===0?(dark?'#3F90B9':'#4D8878'):(dark?'#1C567A':'#195648')} opacity=".83"/>
+        <Path d="M180 88V180" fill="none" stroke={dark?'#CFE2F0':'#D3E2B9'} strokeWidth=".6" strokeOpacity=".38"/>
       </G>)}
       <Circle cx="180" cy="180" r="151" stroke="#FFF3CB" strokeOpacity=".16" fill="none"/>
     </Svg>
-  ),[size]);
+  ),[size,dark]);
   return <View accessible accessibilityRole="image"
-    accessibilityLabel={available&&relative!==null
-      ?'Kıble yönü pusulada saat yönünde '+Math.round(relative)+' derece'
+    accessibilityLabel={available
+      ?'Kıble pusulası; altın ibre Kâbe yönünü gösterir'
       :'Kıble pusulası yön verisi bekliyor'}
     style={{width:size,height:size,alignSelf:'center'}}>
     {face}
-    <Svg width={size} height={size} viewBox={'0 0 '+DIAL+' '+DIAL}
-      pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {cardinalLabels.map(label=><G key={label.name}>
-        <Circle cx={label.outerX} cy={label.outerY} r="4.4"
-          fill="#EBC77D" stroke="#74572D" strokeWidth=".7"/>
-        <SvgText x={label.x} y={label.y+9} textAnchor="middle"
-          fontSize="27" fontFamily="serif" fontWeight="700"
-          fill="#FFF0D1" stroke="#624A2C" strokeWidth=".3">{label.name}</SvgText>
-      </G>)}
-    </Svg>
+    {available?<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,ringStyle]}>
+      {cardinalLabels.map(label=><View key={label.name} pointerEvents="none">
+        <View style={[styles.cardinalDot,{left:label.dotX-4.4*scale,top:label.dotY-4.4*scale,
+          width:8.8*scale,height:8.8*scale,borderRadius:4.4*scale,
+          backgroundColor:label.name==='K'?'#F3D28A':'#EBC77D'}]}/>
+        <Animated.View style={[{position:'absolute',left:label.x-letter/2,top:label.y-letter/2,
+          width:letter,height:letter,alignItems:'center',justifyContent:'center'},uprightStyle]}>
+          <Text allowFontScaling={false} style={{fontFamily:'serif',fontWeight:'700',
+            fontSize:27*scale,lineHeight:letter,color:label.name==='K'?'#FFE9B8':'#FFF0D1',
+            textShadowColor:'#3A2A16',textShadowRadius:2}}>{label.name}</Text>
+        </Animated.View>
+      </View>)}
+    </Animated.View>:null}
     {/* The needle is animated independently; the SVG bezel is never rerendered with heading ticks. */}
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill,animatedStyle]}>
       <Svg width={size} height={size} viewBox={'0 0 '+DIAL+' '+DIAL}>
@@ -266,7 +266,7 @@ export const QiblaCompass=memo(function QiblaCompass({
             fill="#F8CD6F" opacity=".12" stroke="#ECC77B" strokeWidth="2"/>
           <Path d="M180 195L175 181L180 78L187 181Z" fill="url(#needleGlow)"/>
           <Path d="M180 78L180 195" stroke="#FFFFFF" strokeWidth="1.3" strokeOpacity=".9"/>
-          <KaabaSymbol x={180} y={58}/>
+          <KaabaSymbol x={180} y={58} dark={dark}/>
         </G>:null}
       </Svg>
     </Animated.View>
@@ -286,6 +286,55 @@ export const QiblaCompass=memo(function QiblaCompass({
       <Circle cx="180" cy="180" r="174" fill="none" stroke={outer} strokeOpacity=".2" strokeWidth="1"/>
     </Svg>
   </View>;
+});
+
+/** Live figure-8 calibration demo: a phone glyph traces a lemniscate on the
+ * UI thread (no JS timers), with a faint trail so the motion is obvious. */
+export const QiblaCalibrationGuide=memo(function QiblaCalibrationGuide({
+  width,color,
+}: {width:number;color:string}){
+  const height=width*.42;
+  const progress=useSharedValue(0);
+  useEffect(()=>{
+    progress.value=withRepeat(withTiming(1,{duration:2600,easing:Easing.linear}),-1,false);
+    return()=>cancelAnimation(progress);
+  },[progress]);
+  const phoneStyle=useAnimatedStyle(()=>{
+    const t=progress.value*Math.PI*2;
+    const d=1+Math.sin(t)*Math.sin(t);
+    const a=width*.4;
+    return {transform:[
+      {translateX:a*Math.cos(t)/d},
+      {translateY:a*Math.sin(t)*Math.cos(t)/d*1.15},
+      {rotate:(Math.cos(t)*28)+'deg'},
+    ]};
+  });
+  const trail=useMemo(()=>{
+    const a=width*.4,cx=width/2,cy=height/2;
+    let d='';
+    for(let i=0;i<=64;i++){
+      const t=i/64*Math.PI*2,den=1+Math.sin(t)**2;
+      d+=(i?'L':'M')+(cx+a*Math.cos(t)/den).toFixed(1)+' '+
+        (cy+a*Math.sin(t)*Math.cos(t)/den*1.15).toFixed(1);
+    }
+    return d;
+  },[width,height]);
+  return <View style={{width,height,alignItems:'center',justifyContent:'center'}}
+    accessible accessibilityLabel="Kalibrasyon: telefonu havada yavaşça 8 şeklinde hareket ettir">
+    <Svg width={width} height={height} style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Path d={trail} stroke={color} strokeOpacity=".38" strokeWidth="2" strokeDasharray="4 6" fill="none"/>
+    </Svg>
+    <Animated.View style={[styles.guidePhone,{borderColor:color},phoneStyle]}>
+      <View style={[styles.guideSpeaker,{backgroundColor:color}]}/>
+    </Animated.View>
+  </View>;
+});
+
+const styles=StyleSheet.create({
+  cardinalDot:{position:'absolute',borderWidth:.7,borderColor:'#74572D'},
+  guidePhone:{width:22,height:38,borderRadius:6,borderWidth:2,alignItems:'center',
+    paddingTop:3,backgroundColor:'rgba(255,255,255,.08)'},
+  guideSpeaker:{width:8,height:2,borderRadius:1,opacity:.8},
 });
 
 export function QiblaKaabaGlyph({size=32}: {size?:number}){

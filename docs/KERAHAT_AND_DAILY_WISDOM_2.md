@@ -1,6 +1,6 @@
-# Kerahat 2.0 + Günün Ayeti ve Hadisi 2.0 — Mimari ve kalite
+# Kerahet 2.0 + Günün Ayeti ve Hadisi 2.0 — Mimari ve kalite
 
-## 1. Kerahat 2.0: konuma göre yaklaşık zamanlar
+## 1. Kerahet 2.0: konuma göre yaklaşık zamanlar
 Kaynak: Diyanet Din İşleri Yüksek Kurulu, "Mekruh vakitler hangileridir?"
 https://kurul.diyanet.gov.tr/tr/fetva/mekruh-vakitler-hangileridir-hangi-vakitlerde-kaza-ve-hangi-vakitlerde-nafile-namaz-kilinmaz/0193c42d-52b7-7186-d5b4-f1d3c950ad73
 
@@ -78,7 +78,7 @@ doğrulanmamış metinlerin üretim veritabanından aniden dağıtılması engel
   yönetimli CMS/veritabanı ve içerik onay iş akışı kurmak anlamlıdır.
 - Fiziksel Android/iOS görsel QA: 320 dp ekranlarda iki kartın satır/ikon yerleşimi,
   büyük yazı, erişilebilirlik, Modal klavye/geriye dönüşü, offline favoriler.
-- Kerahat dinî doğruluk için uzman incelemesi ve mezhepsel açıklamaların kontrolü.
+- Kerahet dinî doğruluk için uzman incelemesi ve mezhepsel açıklamaların kontrolü.
 
 ## Testler ve güvenlik
 - \`kerahat.test.ts\`: 3 aralık ve gerçek İstanbul takvim saati, ilçe kaydırma, manuel

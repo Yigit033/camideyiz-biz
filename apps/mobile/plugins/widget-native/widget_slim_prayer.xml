@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 1×2 vertical. Two equal halves; all text autosizes to the narrow column,
+     so "KALAN SÜRE" and a long HH:MM:SS countdown are never ellipsized. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widget_slim_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:orientation="vertical" android:background="@drawable/widget_bg" android:padding="6dp">
+ <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:orientation="vertical" android:gravity="center">
+ <ImageView android:layout_width="match_parent" android:layout_height="32dp" android:layout_weight="1.1"
+  android:src="@drawable/widget_brand_mark_dark" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
+ <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.45"
+  android:layout_marginTop="4dp" android:text="SIRADAKİ" android:textSize="8sp" android:textColor="#AFC5D4"
+  android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="10sp"
+  android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_slim_name" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.85" android:text="Takvim" android:textSize="13sp" android:textColor="#F1F7F8"
+  android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="20sp"
+  android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_slim_time" android:layout_width="match_parent" android:layout_height="0dp"
+  android:layout_weight="0.7" android:text="--:--" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold"
+  android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="17sp"
+  android:autoSizeStepGranularity="1sp"/>
+ </LinearLayout>
+ <TextView android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="4dp"
+  android:layout_marginBottom="4dp" android:text="" android:background="#31566D"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+  android:orientation="vertical" android:gravity="center">
+ <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.45"
+  android:text="KALAN SÜRE" android:textSize="8sp" android:textColor="#3CC8F5" android:textStyle="bold" android:gravity="center"
+  android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform"
+  android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="10sp" android:autoSizeStepGranularity="1sp"/>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="30dp" android:layout_weight="1.6"
+  android:layout_marginTop="4dp" android:paddingStart="3dp" android:paddingEnd="3dp" android:gravity="center"
+  android:orientation="vertical" android:background="@drawable/widget_chip_dark">
+ <Chronometer android:id="@+id/widget_slim_countdown" android:layout_width="match_parent"
+  android:layout_height="match_parent" android:text="--:--" android:textColor="#3CC8F5" android:textSize="16sp"
+  android:textStyle="bold" android:includeFontPadding="false"
+  android:gravity="center" android:maxLines="1" android:autoSizeTextType="uniform"
+  android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="23sp" android:autoSizeStepGranularity="1sp"/>
+ </LinearLayout>
+ </LinearLayout>
+</LinearLayout>

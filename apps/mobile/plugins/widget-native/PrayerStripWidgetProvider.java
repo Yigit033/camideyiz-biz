@@ -1,0 +1,22 @@
+package biz.camideyiz.app;
+
+import android.appwidget.AppWidgetManager;
+import android.appwidget.AppWidgetProvider;
+import android.content.Context;
+import android.os.Bundle;
+import biz.camideyiz.app.widget.WidgetBoundaryAsyncRefresh;
+
+/** Six-column layout; resizable on launchers with 6 physical grid columns.
+ * A resize repaints it: the prayer names are fitted to the new size. */
+public final class PrayerStripWidgetProvider extends AppWidgetProvider {
+  @Override public void onUpdate(Context context,AppWidgetManager manager,int[] ids){
+    WidgetBoundaryAsyncRefresh.dispatch(context,goAsync(),"launcher:update:strip");
+  }
+  @Override public void onAppWidgetOptionsChanged(Context context,AppWidgetManager manager,
+      int id,Bundle options){
+    WidgetBoundaryAsyncRefresh.dispatch(context,goAsync(),"launcher:update:strip");
+  }
+  @Override public void onDisabled(Context context){
+    WidgetBoundaryAsyncRefresh.dispatch(context,goAsync(),"launcher:disabled:strip");
+  }
+}

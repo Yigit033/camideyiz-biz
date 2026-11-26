@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 2×2 mini ring (resizable). Ring stage: centres an exact-square frame (sized per launcher cell on Android 12+) so the centre text box IS the ring on tall ColorOS cells. The 40dp chip stacks "KALAN" over the countdown on one centre line (MINI_CHROME_Y in WidgetBoundaryScheduler.java counts it). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/widget_ring_mini_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:background="@drawable/widget_bg" android:padding="6dp" android:orientation="vertical" android:gravity="center">
+ <ImageView android:layout_width="match_parent" android:layout_height="30dp" android:src="@drawable/widget_brand_mark_dark"
+  android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
+ <LinearLayout android:id="@+id/widget_ring_mini_stage" android:layout_width="match_parent"
+  android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="2dp" android:gravity="center"
+  android:orientation="vertical">
+ <FrameLayout android:id="@+id/widget_ring_mini_frame" android:layout_width="match_parent"
+  android:layout_height="match_parent">
+  <ImageView android:id="@+id/widget_ring_mini_art" android:src="@drawable/widget_ring_track" android:layout_width="match_parent"
+   android:layout_height="match_parent" android:scaleType="fitCenter"
+   android:contentDescription="Yayımlanmış altı vakit için oranlı zaman çemberi"/>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+   android:orientation="horizontal" android:baselineAligned="false">
+  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.27" android:text=""/>
+  <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.46"
+   android:orientation="vertical">
+  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text=""/>
+  <TextView android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.2" android:text="SIRADAKİ" android:textSize="8sp" android:textColor="#AFC5D4"
+   android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="12sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_mini_next" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.36" android:text="Vakit" android:textSize="11sp" android:textColor="#F4D392" android:textStyle="bold"
+   android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="24sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:id="@+id/widget_ring_mini_time" android:layout_width="match_parent" android:layout_height="0dp"
+   android:layout_weight="0.26" android:text="--:--" android:textSize="9sp" android:textColor="#F1F7F8" android:textStyle="bold"
+   android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="16sp" android:autoSizeStepGranularity="1sp"/>
+  <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.36" android:text=""/>
+  </LinearLayout>
+  <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="0.27" android:text=""/>
+  </LinearLayout>
+ </FrameLayout>
+ </LinearLayout>
+ <LinearLayout android:layout_width="match_parent" android:layout_height="40dp"
+  android:layout_marginTop="4dp" android:paddingStart="12dp" android:paddingEnd="12dp"
+  android:paddingTop="2dp" android:paddingBottom="2dp"
+  android:orientation="vertical" android:gravity="center" android:background="@drawable/widget_chip_dark">
+ <TextView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3"
+  android:text="KALAN" android:textSize="9sp" android:textColor="#3CC8F5" android:textStyle="bold"
+  android:gravity="center" android:maxLines="1" android:includeFontPadding="false"
+  android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="10sp" android:autoSizeStepGranularity="1sp"/>
+ <Chronometer android:id="@+id/widget_ring_mini_countdown" android:layout_width="match_parent"
+  android:layout_height="0dp" android:layout_weight="0.7" android:text="--:--" android:textColor="#3CC8F5" android:textSize="18sp"
+  android:textStyle="bold" android:includeFontPadding="false"
+  android:gravity="center" android:maxLines="1" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="12sp" android:autoSizeMaxTextSize="34sp" android:autoSizeStepGranularity="1sp"/>
+ </LinearLayout>
+</LinearLayout>

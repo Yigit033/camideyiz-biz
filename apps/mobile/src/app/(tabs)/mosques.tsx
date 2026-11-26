@@ -67,17 +67,17 @@ export default function MosquesScreen(){
       </View>
 
       <View style={[styles.hero,{
-        backgroundColor:colors.isDark?'#123B35':'#E8F0E7',
-        borderColor:colors.isDark?'#467F6F':'#C8D9CA',
+        backgroundColor:colors.isDark?'#17394F':'#E8F0E7',
+        borderColor:colors.isDark?'#3F718F':'#C8D9CA',
       }]}>
         <View pointerEvents="none" style={[styles.halo,{
-          backgroundColor:colors.isDark?'rgba(95,177,145,.10)':'rgba(255,255,255,.62)',
+          backgroundColor:colors.isDark?'rgba(32,182,235,.08)':'rgba(255,255,255,.62)',
         }]}/>
         <View style={styles.illustration}>
           <MosqueLandscape width={landscapeWidth} dark={colors.isDark}/>
           <View style={[styles.crest,{
-            backgroundColor:colors.isDark?'rgba(11,46,40,.7)':'rgba(255,255,255,.78)',
-            borderColor:colors.isDark?'#447F6C':'#C7D4C4',
+            backgroundColor:colors.isDark?'rgba(14,44,65,.81)':'rgba(255,255,255,.78)',
+            borderColor:colors.isDark?'#436F88':'#C7D4C4',
           }]}>
             <MosqueCrest width={64} dark={colors.isDark}/>
           </View>
@@ -93,7 +93,7 @@ export default function MosquesScreen(){
           onPress={()=>openMaps()}
           disabled={opening}
           style={({pressed})=>[styles.primary,{
-            backgroundColor:colors.isDark?'#128868':'#087456',
+            backgroundColor:colors.isDark?'#167FB6':'#087456',
             opacity:opening?.72:pressed?.88:1,
           }]}>
           {opening?<ActivityIndicator color="#FFF" size="small"/>:
@@ -104,7 +104,7 @@ export default function MosquesScreen(){
         <View style={styles.heroFoot}>
           <Feather name="external-link" size={13} color={colors.muted}/>
           <Text style={{fontSize:11,color:colors.muted}}>
-            Google Haritalar'da açılır · Uygulama içi API ücreti yok
+            Google Haritalar'da açılır
           </Text>
         </View>
       </View>
@@ -156,7 +156,7 @@ export default function MosquesScreen(){
         <View style={[styles.tip,{borderTopColor:colors.border}]}>
           <Feather name="info" size={14} color={colors.gold}/>
           <Text style={{fontSize:11,lineHeight:18,color:colors.muted,flex:1}}>
-            Bölge boş bırakılırsa Google Haritalar, cihazının konumuna göre yakın sonuçlar göstermeye çalışır.
+            Bölge yazmazsan yakınındaki camiler gösterilir.
           </Text>
         </View>
       </View>
@@ -171,13 +171,6 @@ export default function MosquesScreen(){
           description="Google Haritalar'daki mevcut fotoğraflar, yorumlar ve adresler."/>
         <InfoRow icon="navigation" title="Yol tarifi"
           description="Yaya, araç veya toplu taşıma seçenekleri Google Haritalar'da."/>
-      </View>
-      <View style={styles.disclaimer}>
-        <Feather name="shield" size={14} color={colors.gold}/>
-        <Text style={{flex:1,color:colors.muted,fontSize:10,lineHeight:17}}>
-          Camideyiz Biz cami verilerini toplamaz veya konumunu bu sayfada kendi sunucusuna göndermez.
-          Haritalar açıldıktan sonraki arama ve konum işlemlerini Google yönetir.
-        </Text>
       </View>
     </ScrollView>
   </SafeAreaView>;
@@ -197,7 +190,7 @@ const styles=StyleSheet.create({
   heroDescription:{textAlign:'center',fontSize:12,lineHeight:20,maxWidth:310,marginBottom:8},
   primary:{height:55,borderRadius:17,width:'100%',
     flexDirection:'row',alignItems:'center',justifyContent:'center',gap:12,
-    shadowColor:'#082A1E',shadowOpacity:.18,shadowRadius:8,elevation:3},
+    shadowColor:'#0A2236',shadowOpacity:.18,shadowRadius:8,elevation:3},
   primaryText:{color:'#FFFFFF',fontSize:15,fontWeight:'800',letterSpacing:.2},
   heroFoot:{flexDirection:'row',alignItems:'center',justifyContent:'center',gap:7,flexWrap:'wrap'},
   searchCard:{borderWidth:1,borderRadius:23,padding:17,gap:14},
@@ -211,5 +204,4 @@ const styles=StyleSheet.create({
   infoRow:{flexDirection:'row',alignItems:'center',gap:13},
   infoIcon:{height:43,width:43,borderRadius:14,borderWidth:1,
     alignItems:'center',justifyContent:'center'},
-  disclaimer:{flexDirection:'row',alignItems:'flex-start',gap:9,paddingHorizontal:4,paddingBottom:10},
 });

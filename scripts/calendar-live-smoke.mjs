@@ -1,39 +1,64 @@
 /**
- * Optional live integration smoke test. Exercises the same public endpoint and
- * production parser as mobile. No API key, paid provider or mock data.
- *
- * Run: node --experimental-strip-types scripts/calendar-live-smoke.mjs
+ * Published calendar smoke test covering different municipalities.
+ * CI records failures but never fabricates prayer hours or blocks TypeScript.
+ * Run with: node --experimental-strip-types scripts/calendar-live-smoke.mjs
  */
 import {zonedClock} from '../packages/core/src/prayer.ts';
-import {parseMirrorTriplet,parseMirrorStates,DEFAULT_MIRROR_PLACE}
+import {parseMirrorTriplet,parseEmushafTriplet,parseMirrorStates}
   from '../packages/core/src/mirrorCalendar.ts';
 
 const dateISO=zonedClock(new Date(),'Europe/Istanbul').dateISO;
-const root='https://idamedya.org/api/v1/namaz';
-async function read(path){
-  const response=await fetch(root+path,{
+const regions=[
+  {id:9541,stateId:539,name:'İstanbul',state:'İstanbul'},
+  {id:9551,stateId:539,name:'Tuzla',state:'İstanbul'},
+  {id:9545,stateId:539,name:'Pendik',state:'İstanbul'},
+  {id:9740,stateId:557,name:'Tarsus',state:'Mersin'},
+];
+const primary='https://idamedya.org/api/v1/namaz';
+const backup='https://ezanvakti.emushaf.net/vakitler';
+async function getJson(url){
+  const result=await fetch(url,{
     method:'GET',headers:{Accept:'application/json'},
-    signal:AbortSignal.timeout(12000),
+    signal:AbortSignal.timeout(8500),
   });
-  if(!response.ok)throw new Error('Source HTTP '+response.status+' for '+path);
-  const value=await response.json();
-  if(!value||typeof value!=='object')throw new Error('Invalid JSON');
-  return value;
+  if(!result.ok)throw new Error('HTTP '+result.status);
+  return result.json();
 }
-const [statesRaw,calendarRaw]=await Promise.all([
-  read('/iller'),
-  read('/'+DEFAULT_MIRROR_PLACE.id),
-]);
-const states=parseMirrorStates(statesRaw);
-if(!states.some(s=>s.id===DEFAULT_MIRROR_PLACE.stateId &&
-  s.centerDistrictId===DEFAULT_MIRROR_PLACE.id)){
-  throw new Error('Istanbul district mapping has changed');
+let states;
+try {
+  states=parseMirrorStates(await getJson(primary+'/iller'));
+  console.log('Province directory:',states.length,'records');
+}catch(error){
+  console.warn('Province directory unavailable:',error.message);
 }
-const calendar=parseMirrorTriplet(
-  calendarRaw,DEFAULT_MIRROR_PLACE.id,dateISO,DEFAULT_MIRROR_PLACE.name,
-  new Date().toISOString(),
-);
-console.log('LIVE CALENDAR OK',dateISO,calendar.city.name);
-for(const t of calendar.today.times)console.log(t.label,t.time);
-console.log('Tomorrow Imsak:',calendar.next.times[0].time,
-  'Previous day available:',calendar.previous!==null);
+const probe=async(region)=>{
+  const started=new Date().toISOString();
+  const attempts=[];
+  try{
+    const t=parseMirrorTriplet(
+      await getJson(primary+'/'+region.id),region.id,dateISO,region.name,started);
+    return {region:region.name,source:'idamedya',success:true,
+      today:t.today.dateISO,imsak:t.today.times[0].time,
+      tomorrow:t.next.dateISO,attempts};
+  }catch(error){attempts.push('idamedya:'+
+    (error instanceof Error?error.message:'unknown'));}
+  for(const source of [
+    {name:'mtopal',root:'https://namazvakti.mtopal.dev/vakitler'},
+    {name:'emushaf',root:backup},
+  ]){
+    try{
+      const t=parseEmushafTriplet(await getJson(source.root+'/'+region.id),
+        region.id,dateISO,region.name,started,source.name);
+      return {region:region.name,source:source.name,success:true,
+        today:t.today.dateISO,imsak:t.today.times[0].time,
+        tomorrow:t.next.dateISO,attempts};
+    }catch(error){attempts.push(source.name+':'+
+      (error instanceof Error?error.message:'unknown'));}
+  }
+  return {region:region.name,success:false,attempts};
+};
+const results=await Promise.all(regions.map(probe));
+for(const result of results)console.log(JSON.stringify(result));
+const failed=results.filter(r=>!r.success);
+if(failed.length)throw Error('No verified calendar from any provider for: '+
+  failed.map(x=>x.region).join(', '));

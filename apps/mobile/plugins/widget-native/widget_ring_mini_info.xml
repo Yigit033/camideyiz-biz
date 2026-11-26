@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+  android:minWidth="150dp" android:minHeight="150dp"
+  android:targetCellWidth="2" android:targetCellHeight="2"
+  android:previewLayout="@layout/widget_ring_mini_auto"
+    android:description="@string/widget_ring_mini_description"
+    android:initialLayout="@layout/widget_ring_mini_auto"
+  android:updatePeriodMillis="1800000"
+  android:resizeMode="horizontal|vertical"
+  android:widgetCategory="home_screen|keyguard"/>

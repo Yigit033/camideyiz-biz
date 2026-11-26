@@ -13,7 +13,118 @@ jobs:
           node-version: '22.13.0'
       # Lockfile generated after first networked clean install.
       - run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Verify chosen owner-supplied ezan MP3 for Metro/Android
+        run: npm run prepare:adhan
       - run: npm run typecheck
+      - name: Verify background ezan playback and exact selected recording
+        run: node scripts/verify-adhan-playback-contracts.mjs
+      - name: Verify Kıble 3.0 fused compass, honest guidance gating and UI-thread needle
+        run: node scripts/verify-qibla.mjs
+      - name: Verify dark theme uses the brand midnight-blue palette (no green)
+        run: node scripts/verify-dark-palette.mjs
+      - name: Verify on-time prayer alerts, ezan-instead-of-notification and guaranteed fallback
+        run: |
+          node scripts/verify-prayer-alerts.mjs
+          node scripts/build-notification-icon.mjs --check
+      - name: Reproduce and prevent false Expo Go detection on native Android APK
+        run: node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
+      - name: Verify nonblocking cold-start cache, audio and native maintenance architecture
+        run: node scripts/verify-startup-performance.mjs
+      - name: Test already-ready Android widget foreground fast-path and recovery
+        run: node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
+      - name: Verify premium calendar views and lazy 30-day loading
+        run: node scripts/verify-calendar-views.mjs
+      - name: Verify Widget Engine 4.0 nonblocking native coordinator and native timing
+        run: node scripts/verify-widget-engine4.mjs
+      - name: Verify Widget Engine 4.1 bounded rendering, unified brand and stale-work protection
+        run: node scripts/verify-widget-engine41.mjs
+      - name: Verify Widget Engine 4.3 exact boundary switch, launcher day/night theme and picker previews
+        run: node scripts/verify-widget-engine43.mjs
+      - name: Test headless native health fast-path against stale, wrong-city and missing alarm snapshots
+        run: node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
+      - name: Verify Widget 3.0 offline/native recovery contracts
+        run: node scripts/verify-widget3-contracts.mjs
+      - name: Verify nine countdown-first widgets including fixed 2×2 circle
+        run: node scripts/verify-widget-designs.mjs
+      - name: Verify light widget layouts are generated from their dark sources
+        run: node scripts/sync-widget-light-layouts.mjs --check
+      - name: Verify exact owner-supplied brand icon is unchanged
+        run: node scripts/verify-brand-symbol.mjs
+      - name: Verify seamless native/JS brand splash and Android 12 icon mask fit
+        run: |
+          node scripts/verify-splash.mjs
+          node scripts/build-splash-mark.mjs --check
+          node scripts/build-widget-marks.mjs --check
+      - name: Verify all 27 gallery originals, full-frame preview and row alignment
+        run: npm run verify:gallery-assets
+      - name: Verify home, gallery and kerahat visual regression contracts
+        run: node scripts/verify-home-visual-contracts.mjs
+      - name: Parse Windows APK build script
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('scripts/build-android-windows.ps1', [ref]$tokens, [ref]$errors)
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          Write-Host 'PowerShell syntax OK'
+          # Regression: invoking android/gradlew.bat from apps/mobile alone
+          # makes Gradle fail to locate android/settings.gradle.
+          $script = Get-Content 'scripts/build-android-windows.ps1' -Raw
+          if ($script -notmatch '(?s)Push-Location \$androidDir\s*try\s*\{.*?Invoke-Checked "Build native') {
+            throw 'Windows builder must switch into android/ before invoking Gradle'
+          }
+          if ($script -notmatch 'settingsFiles = @\(') {
+            throw 'Windows builder must validate Android settings.gradle'
+          }
+          Write-Host 'Gradle Android project-root contract OK'
+          # Expo prebuild can modify package.json and tsconfig.json between
+          # incremental builds. The script may preserve exactly these files
+          # in stash; it must reject unexpected local edits.
+          if ($script -notmatch 'git -C \$CheckoutPath stash push' -or
+              $script -notmatch '\$otherChanges.Count -gt 0') {
+            throw 'Windows builder must preserve expected Expo changes and reject unexpected edits'
+          }
+          Write-Host 'Expo prebuild preservation contract OK'
+      - name: Validate poster installer syntax and binary release gate
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('scripts/install-kerahat-posters.ps1', [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          $script = Get-Content 'scripts/build-android-windows.ps1' -Raw
+          if ($script -notmatch 'Verify original-source lossless WebP posters' -or
+              $script -notmatch 'verify-kerahat-posters.mjs') {
+            throw 'Release builder must verify decoded lossless WebP posters'
+          }
+          $installer = Get-Content 'scripts/install-kerahat-posters.ps1' -Raw
+          if ($installer -notmatch 'git -C \$root commit --only' -or
+              $installer -notmatch 'ComputeHash') {
+            throw 'Poster installer must hash-validate and commit ONLY the verified assets'
+          }
+          Write-Host 'Original-source lossless WebP poster validation contract OK'
+      - name: Verify owner announcement script cannot leak admin key in mobile bundle
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile('scripts/admin-announcements.ps1', [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+          $script = Get-Content 'scripts/admin-announcements.ps1' -Raw
+          if ($script -notmatch 'CB_ANNOUNCEMENT_ADMIN_SECRET' -or
+              $script -notmatch 'Action draft' -and $script -notmatch "'draft'") {
+            throw 'Admin script must use server-side authorization and draft workflow'
+          }
+          Write-Host 'Owner-only announcement CLI syntax and authorization contracts OK'
       - name: Live free-calendar endpoint smoke test (non-blocking)
         # Provider outages are observable without breaking unrelated code checks.
         continue-on-error: true
@@ -21,6 +132,79 @@ jobs:
       - name: Build secure Diyanet API service
         run: npm run build --workspace @camideyiz/api
       - run: cd apps/mobile && npx expo install --check
+      - name: Native widget Android CNG prebuild smoke test
+        run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo prebuild --platform android --no-install --clean
+      - name: Verify P0 native widget receiver and bridge are registered by CNG
+        run: |
+          set -euo pipefail
+          app=apps/mobile/android/app/src/main
+          test -s "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          test -s "$app/java/biz/camideyiz/app/widget/WidgetRenderPipeline.java"
+          for theme in dark light; do
+            cmp "apps/mobile/assets/widget-mark-$theme.png" "$app/res/drawable-nodpi/widget_brand_mark_$theme.png"
+          done
+          test -s "$app/java/biz/camideyiz/app/widget/WidgetBoundaryReceiver.java"
+          test -s "$app/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
+          test -s "$app/java/biz/camideyiz/app/widget/CamideyizWidgetPackage.java"
+          grep -F 'CamideyizWidgetPackage()' "$app/java/biz/camideyiz/app/MainApplication.kt"
+          grep -F 'WidgetBoundaryReceiver' "$app/AndroidManifest.xml"
+          grep -F 'RECEIVE_BOOT_COMPLETED' "$app/AndroidManifest.xml"
+          grep -F 'setAndAllowWhileIdle' "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          grep -F 'RemoteViews' "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          grep -F 'setOnClickPendingIntent' "$app/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          test -s "$app/java/biz/camideyiz/app/NextPrayerWidgetProvider.java"
+          test -s "$app/java/biz/camideyiz/app/PrayerDayWidgetProvider.java"
+          test -s "$app/res/layout/widget_next_prayer.xml"
+          test -s "$app/res/layout/widget_prayer_day.xml"
+          test -s "$app/res/xml/widget_next_prayer_info.xml"
+          test -s "$app/res/xml/widget_prayer_day_info.xml"
+          grep -F 'widget_day_countdown' "$app/res/layout/widget_prayer_day.xml"
+          grep -F 'widget_ring_square_countdown' "$app/res/layout/widget_ring_square.xml"
+          grep -F 'SquarePrayerRingWidgetProvider' "$app/AndroidManifest.xml"
+          grep -F 'widget_ring_square_auto' "$app/res/values/camideyiz_widget.xml"
+          grep -F '@layout/widget_ring_square</item>' "$app/res/values-night/camideyiz_widget.xml"
+          test -s "$app/res/drawable/widget_ring_track.xml"
+          grep -F 'SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED' "$app/AndroidManifest.xml"
+          test -s "$app/java/biz/camideyiz/app/widget/PrayerRingBitmapRenderer.java"
+          test -s "$app/res/drawable-nodpi/widget_brand_symbol.png"
+          cmp apps/mobile/assets/camideyiz-original-symbol.png "$app/res/drawable-nodpi/widget_brand_symbol.png"
+          for name in CompactPrayer PrayerFocus PrayerStrip MiniPrayerRing PremiumPrayerRing SlimPrayer SquarePrayerRing; do
+            test -s "$app/java/biz/camideyiz/app/${name}WidgetProvider.java"
+            grep -F "${name}WidgetProvider" "$app/AndroidManifest.xml"
+          done
+          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip widget_ring_mini widget_ring_premium widget_slim_prayer widget_ring_square; do
+            test -s "$app/res/layout/${resource}.xml"
+            test -s "$app/res/layout/${resource}_light.xml"
+            test -s "$app/res/xml/${resource}_info.xml"
+          done
+          grep -F 'NextPrayerWidgetProvider' "$app/AndroidManifest.xml"
+          grep -F 'PrayerDayWidgetProvider' "$app/AndroidManifest.xml"
+          echo 'Native RemoteViews widget layouts, tappable providers and rollover bridge present'
+      - name: Verify native full ezan service, special alarm permission and local MP3
+        run: |
+          set -euo pipefail
+          app=apps/mobile/android/app/src/main
+          test -s "$app/java/biz/camideyiz/app/adhan/AdhanAlarmScheduler.java"
+          test -s "$app/java/biz/camideyiz/app/adhan/AdhanAlarmReceiver.java"
+          test -s "$app/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
+          test -s "$app/java/biz/camideyiz/app/adhan/CamideyizAdhanBridge.java"
+          test -s "$app/res/raw/camideyiz_adhan.mp3"
+          test "$(wc -c < "$app/res/raw/camideyiz_adhan.mp3")" -gt 200000
+          grep -F 'CamideyizAdhanPackage()' "$app/java/biz/camideyiz/app/MainApplication.kt"
+          grep -F 'SCHEDULE_EXACT_ALARM' "$app/AndroidManifest.xml"
+          grep -F 'FOREGROUND_SERVICE_MEDIA_PLAYBACK' "$app/AndroidManifest.xml"
+          grep -F 'AdhanAlarmReceiver' "$app/AndroidManifest.xml"
+          grep -F 'AdhanPlaybackService' "$app/AndroidManifest.xml"
+          grep -F 'expo.modules.audio.service.AudioControlsService' "$app/AndroidManifest.xml"
+          grep -F 'mediaPlayback' "$app/AndroidManifest.xml"
+          grep -F 'setExactAndAllowWhileIdle' "$app/java/biz/camideyiz/app/adhan/AdhanAlarmScheduler.java"
+          grep -F 'startForeground' "$app/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
+          echo 'Native adhan alarm, media service and bundled MP3 verified'
+      - name: Verify release WorkManager R8 keep rules
+        run: |
+          grep -F 'androidx.room.RoomDatabase { <init>(); }' apps/mobile/android/app/proguard-rules.pro
+          grep -F 'androidx.work.InputMerger { <init>(); }' apps/mobile/android/app/proguard-rules.pro
+          echo 'WorkManager release constructor keep rules present'
       - name: Expo Android bundle smoke test
         run: cd apps/mobile && CI=1 EXPO_NO_TELEMETRY=1 npx expo export --platform android --output-dir ../../.expo-export-check
       - name: Metro startup smoke test

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated for Widget Engine 4.3. Day theme aliases resolved by the launcher. -->
+<resources>
+  <item name="widget_next_prayer_auto" type="layout">@layout/widget_next_prayer_light</item>
+  <item name="widget_prayer_day_auto" type="layout">@layout/widget_prayer_day_light</item>
+  <item name="widget_compact_prayer_auto" type="layout">@layout/widget_compact_prayer_light</item>
+  <item name="widget_prayer_focus_auto" type="layout">@layout/widget_prayer_focus_light</item>
+  <item name="widget_prayer_strip_auto" type="layout">@layout/widget_prayer_strip_light</item>
+  <item name="widget_ring_mini_auto" type="layout">@layout/widget_ring_mini_light</item>
+  <item name="widget_ring_premium_auto" type="layout">@layout/widget_ring_premium_light</item>
+  <item name="widget_slim_prayer_auto" type="layout">@layout/widget_slim_prayer_light</item>
+  <item name="widget_ring_square_auto" type="layout">@layout/widget_ring_square_light</item>
+  <item name="widget_prayer_row_auto" type="layout">@layout/widget_prayer_row_light</item>
+  <item name="widget_prayer_column_auto" type="layout">@layout/widget_prayer_column_light</item>
+  <item name="widget_box_auto" type="drawable">@drawable/widget_box_light</item>
+  <item name="widget_box_kerahet_auto" type="drawable">@drawable/widget_box_kerahet_light</item>
+  <item name="widget_cell_auto" type="drawable">@drawable/widget_cell_light</item>
+  <item name="widget_active_auto" type="drawable">@drawable/widget_active_light</item>
+  <item name="widget_strip_selected_auto" type="drawable">@drawable/widget_strip_selected_light</item>
+  <string name="widget_next_prayer_description">Sıradaki vakit, saati ve canlı kalan süre</string>
+  <string name="widget_prayer_day_description">Bugünün altı vakti ve sıradaki vakte kalan süre</string>
+  <string name="widget_compact_prayer_description">Tek karede sıradaki vakit ve kalan süre</string>
+  <string name="widget_prayer_focus_description">İçinde bulunulan vakit ve sıradakine kalan süre</string>
+  <string name="widget_prayer_strip_description">Altı vakit tek şeritte, sıradaki vakit vurgulu</string>
+  <string name="widget_ring_mini_description">Günün vakit çemberi ve kalan süre</string>
+  <string name="widget_ring_premium_description">Büyük vakit çemberi, kalan süre ve altı vakit</string>
+  <string name="widget_slim_prayer_description">Dar alanda dikey sıradaki vakit ve kalan süre</string>
+  <string name="widget_ring_square_description">Merkezinde kalan süre olan kare vakit çemberi</string>
+  <string name="widget_prayer_row_description">Altı vakit yatay şeritte; genişledikçe kalan süre ve tarih eklenir</string>
+  <string name="widget_prayer_column_description">Altı vakit dikey şeritte; uzadıkça kalan süre ve tarih eklenir</string>
+</resources>

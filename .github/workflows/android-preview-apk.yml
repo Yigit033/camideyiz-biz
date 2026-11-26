@@ -1,0 +1,214 @@
+name: Android standalone QA APK
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/widgets-and-prayer-alerts-2
+    paths:
+      # Automatically run once when this workflow is first introduced.
+      # Later native builds can be started manually without rebuilding on every commit.
+      - .github/workflows/android-preview-apk.yml
+      - apps/mobile/src/features/adhan/**
+      - apps/mobile/src/app/_layout.tsx
+      - apps/mobile/app.json
+      - apps/mobile/package.json
+      - scripts/verify-adhan-playback-contracts.mjs
+      - apps/mobile/plugins/adhan-native/**
+      - apps/mobile/plugins/withNativeAdhanAlarm.js
+      - apps/mobile/plugins/widget-native/**
+      - apps/mobile/src/features/widgets/**
+      - apps/mobile/src/features/native/**
+      - scripts/verify-widget-native-runtime.mjs
+      - scripts/verify-widget-engine4.mjs
+      - scripts/verify-widget-engine41.mjs
+      - scripts/verify-widget-engine43.mjs
+      - scripts/sync-widget-light-layouts.mjs
+      - scripts/verify-widget-designs.mjs
+      - scripts/verify-widget-headless-gate.mjs
+      - packages/core/src/widgetCalendarCache*
+      - scripts/verify-widget3-contracts.mjs
+      - apps/mobile/src/features/companion/**
+      - apps/mobile/src/app/companion.tsx
+      - packages/core/src/prayerCompanion.ts
+      - apps/mobile/assets/audio/**
+      - apps/mobile/src/app/(tabs)/index.tsx
+      - apps/mobile/src/features/prayer/**
+      - apps/mobile/src/features/wisdom/**
+      - scripts/verify-startup-performance.mjs
+      - scripts/verify-widget-foreground-gate.mjs
+      - apps/mobile/src/app/(tabs)/gallery.tsx
+      - apps/mobile/src/features/gallery/**
+      - apps/mobile/assets/gallery/**
+      - scripts/verify-gallery-assets.mjs
+      - scripts/verify-home-visual-contracts.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  android-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Use preinstalled runner Android SDK
+        run: |
+          test -d "$ANDROID_HOME"
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" || \
+            test -x "$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"
+          echo "Android SDK: $ANDROID_HOME"
+
+      - name: Install workspace packages
+        run: npm install --no-audit --no-fund
+      - name: Run unit and TypeScript tests
+        run: |
+          npm test
+          npm run typecheck
+          node scripts/verify-widget3-contracts.mjs
+          node scripts/verify-widget-designs.mjs
+          node scripts/sync-widget-light-layouts.mjs --check
+          node scripts/verify-startup-performance.mjs
+          node --experimental-strip-types scripts/verify-widget-foreground-gate.mjs
+          node --experimental-strip-types scripts/verify-widget-native-runtime.mjs
+          node scripts/verify-widget-engine4.mjs
+          node scripts/verify-widget-engine41.mjs
+          node scripts/verify-widget-engine43.mjs
+          node --experimental-strip-types scripts/verify-widget-headless-gate.mjs
+          node scripts/verify-adhan-playback-contracts.mjs
+          node scripts/verify-prayer-alerts.mjs
+          node scripts/verify-qibla.mjs
+          node scripts/verify-dark-palette.mjs
+          node scripts/verify-brand-symbol.mjs
+          node scripts/verify-splash.mjs
+          node scripts/verify-home-visual-contracts.mjs
+          echo "Home visual and source-photo QA gates verified before native APK build"
+      - name: Verify the two actual kerahat WebP posters
+        run: npm run verify:kerahat-posters
+      - name: Verify all 27 optimized gallery photographs
+        run: npm run verify:gallery-assets
+
+      - name: Generate native Android project
+        working-directory: apps/mobile
+        env:
+          CI: '1'
+          EXPO_NO_TELEMETRY: '1'
+        run: npx expo prebuild --platform android --no-install --clean
+
+      - name: Verify P0 receiver and native source registration in generated Android app
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="apps/mobile/android/app/src/main"
+          test -s "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          test -s "$root/java/biz/camideyiz/app/widget/WidgetRenderPipeline.java"
+          for theme in dark light; do
+            cmp "apps/mobile/assets/widget-mark-$theme.png" "$root/res/drawable-nodpi/widget_brand_mark_$theme.png"
+          done
+          test -s "$root/java/biz/camideyiz/app/widget/WidgetBoundaryReceiver.java"
+          test -s "$root/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
+          test -s "$root/java/biz/camideyiz/app/widget/CamideyizWidgetPackage.java"
+          grep -F 'CamideyizWidgetPackage()' "$root/java/biz/camideyiz/app/MainApplication.kt"
+          grep -F 'WidgetBoundaryReceiver' "$root/AndroidManifest.xml"
+          grep -F 'android:updatePeriodMillis="1800000"' "$root/res/xml/widget_next_prayer_info.xml"
+          grep -F 'android:updatePeriodMillis="1800000"' "$root/res/xml/widget_prayer_day_info.xml"
+          grep -F 'refreshNow' "$root/java/biz/camideyiz/app/widget/CamideyizWidgetBridge.java"
+          grep -F 'nativeCityId' "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          grep -F 'RECEIVE_BOOT_COMPLETED' "$root/AndroidManifest.xml"
+          test -s "$root/java/biz/camideyiz/app/NextPrayerWidgetProvider.java"
+          test -s "$root/java/biz/camideyiz/app/PrayerDayWidgetProvider.java"
+          test -s "$root/res/layout/widget_next_prayer.xml"
+          test -s "$root/res/layout/widget_prayer_day.xml"
+          grep -F 'widget_root' "$root/res/layout/widget_next_prayer.xml"
+          grep -F 'widget_day_root' "$root/res/layout/widget_prayer_day.xml"
+          grep -F 'widget_day_time_5' "$root/res/layout/widget_prayer_day.xml"
+          grep -F 'widget_day_countdown' "$root/res/layout/widget_prayer_day.xml"
+          grep -F 'widget_ring_square_countdown' "$root/res/layout/widget_ring_square.xml"
+          # 8dp padding protects live countdown prominence in the 2×2 footprint.
+          grep -F 'android:padding="8dp"' "$root/res/layout/widget_next_prayer.xml"
+          test -s "$root/res/drawable-nodpi/widget_brand_symbol.png"
+          cmp apps/mobile/assets/camideyiz-original-symbol.png \
+              "$root/res/drawable-nodpi/widget_brand_symbol.png"
+          for name in CompactPrayer PrayerFocus PrayerStrip MiniPrayerRing PremiumPrayerRing SlimPrayer SquarePrayerRing; do
+            test -s "$root/java/biz/camideyiz/app/${name}WidgetProvider.java"
+            grep -F "${name}WidgetProvider" "$root/AndroidManifest.xml"
+          done
+          for resource in widget_compact_prayer widget_prayer_focus widget_prayer_strip widget_ring_mini widget_ring_premium widget_slim_prayer widget_ring_square; do
+            test -s "$root/res/layout/${resource}.xml"
+            test -s "$root/res/layout/${resource}_light.xml"
+            test -s "$root/res/xml/${resource}_info.xml"
+          done
+          test -s "$root/java/biz/camideyiz/app/widget/PrayerRingBitmapRenderer.java"
+          grep -F 'setChronometerCountDown' "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          test -s "$root/res/xml/widget_next_prayer_info.xml"
+          test -s "$root/res/xml/widget_prayer_day_info.xml"
+          grep -F 'NextPrayerWidgetProvider' "$root/AndroidManifest.xml"
+          grep -F 'PrayerDayWidgetProvider' "$root/AndroidManifest.xml"
+          grep -F 'setOnClickPendingIntent' "$root/java/biz/camideyiz/app/widget/WidgetBoundaryScheduler.java"
+          echo 'Native RemoteViews and launcher click-through registered by CNG'
+      - name: Verify Android adhan alarm and media playback service
+        shell: bash
+        run: |
+          set -euo pipefail
+          main=apps/mobile/android/app/src/main
+          test -s "$main/res/raw/camideyiz_adhan.mp3"
+          cmp apps/mobile/assets/audio/camideyiz-biz-ezan.mp3 "$main/res/raw/camideyiz_adhan.mp3"
+          echo 'Offline Android res/raw MP3 binary matches the vendored source exactly'
+          test -s "$main/java/biz/camideyiz/app/adhan/AdhanAlarmReceiver.java"
+          test -s "$main/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
+          grep -F 'CamideyizAdhanPackage()' "$main/java/biz/camideyiz/app/MainApplication.kt"
+          grep -F 'SCHEDULE_EXACT_ALARM' "$main/AndroidManifest.xml"
+          grep -F 'mediaPlayback' "$main/AndroidManifest.xml"
+          grep -F 'expo.modules.audio.service.AudioControlsService' "$main/AndroidManifest.xml"
+          grep -F 'R.raw.camideyiz_adhan' "$main/java/biz/camideyiz/app/adhan/AdhanPlaybackService.java"
+
+      - name: Assemble standalone Release APK (arm64)
+        working-directory: apps/mobile/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace
+
+      - name: Verify installability and prepare QA APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          src="apps/mobile/android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$src"
+          signer="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$signer"
+          mkdir -p artifacts
+          dest="artifacts/camideyiz-biz-qa-arm64-release.apk"
+          if "$signer" verify "$src"; then
+            cp "$src" "$dest"
+            echo "Release APK already signed"
+          else
+            echo "Unsigned Release APK: applying a QA-only signing certificate"
+            key="apps/mobile/android/app/debug.keystore"
+            if [ ! -s "$key" ]; then
+              key="$RUNNER_TEMP/qa-debug.keystore"
+              keytool -genkeypair -v -storetype JKS -keystore "$key" \
+                -storepass android -keypass android -alias androiddebugkey \
+                -keyalg RSA -keysize 2048 -validity 10000 \
+                -dname "CN=Android QA, OU=Testing, O=CamideyizBiz, C=TR"
+            fi
+            "$signer" sign --ks "$key" --ks-key-alias androiddebugkey \
+              --ks-pass pass:android --key-pass pass:android \
+              --out "$dest" "$src"
+          fi
+          "$signer" verify --verbose "$dest"
+          sha256sum "$dest"
+          du -h "$dest"
+
+      - name: Upload installable arm64 preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: camideyiz-biz-qa-arm64-release
+          path: artifacts/camideyiz-biz-qa-arm64-release.apk
+          if-no-files-found: error
+          retention-days: 7

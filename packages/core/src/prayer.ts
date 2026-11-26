@@ -8,6 +8,9 @@ export type PrayerSchedule = {
   dateISO: string;
   isDemo: boolean;
   times: readonly PrayerTime[];
+  /** Published Hijri date for this day ("13 Cemaziyelahir 1448"), when the
+   * source provides one. Never calculated locally for widgets. */
+  hijriDate?: string | null;
 };
 /** DEMO ONLY: NOT VALID RELIGIOUS PRAYER TIMES. */
 export const DEMO_SCHEDULE: PrayerSchedule = {
@@ -26,11 +29,24 @@ export function timeToMinutes(clock: string): number {
   const [h, m] = clock.split(':').map(Number);
   return h * 60 + m;
 }
+/** Building an Intl.DateTimeFormat is far costlier than using one, most of
+ * all on Hermes, where every construction goes through ICU. One formatter per
+ * timezone for the whole process keeps per-second ticks and widget timeline
+ * builds off the JS thread's critical path. */
+const ZONED_FORMATTERS = new Map<string, Intl.DateTimeFormat>();
+function zonedFormatter(timezone: string): Intl.DateTimeFormat {
+  let formatter = ZONED_FORMATTERS.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+    });
+    ZONED_FORMATTERS.set(timezone, formatter);
+  }
+  return formatter;
+}
 export function zonedClock(date: Date, timezone: string): {dateISO: string; secondsOfDay: number} {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
-  }).formatToParts(date);
+  const parts = zonedFormatter(timezone).formatToParts(date);
   const value = (part: string) => Number(parts.find(p => p.type === part)?.value ?? 0);
   const dateISO = [value('year'), String(value('month')).padStart(2,'0'), String(value('day')).padStart(2,'0')].join('-');
   return {dateISO,secondsOfDay: value('hour')*3600 + value('minute')*60 + value('second')};

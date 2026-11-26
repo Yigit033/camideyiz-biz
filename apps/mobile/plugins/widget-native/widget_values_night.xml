@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated for Widget Engine 4.3. Night theme aliases resolved by the launcher. -->
+<resources>
+  <item name="widget_next_prayer_auto" type="layout">@layout/widget_next_prayer</item>
+  <item name="widget_prayer_day_auto" type="layout">@layout/widget_prayer_day</item>
+  <item name="widget_compact_prayer_auto" type="layout">@layout/widget_compact_prayer</item>
+  <item name="widget_prayer_focus_auto" type="layout">@layout/widget_prayer_focus</item>
+  <item name="widget_prayer_strip_auto" type="layout">@layout/widget_prayer_strip</item>
+  <item name="widget_ring_mini_auto" type="layout">@layout/widget_ring_mini</item>
+  <item name="widget_ring_premium_auto" type="layout">@layout/widget_ring_premium</item>
+  <item name="widget_slim_prayer_auto" type="layout">@layout/widget_slim_prayer</item>
+  <item name="widget_ring_square_auto" type="layout">@layout/widget_ring_square</item>
+  <item name="widget_prayer_row_auto" type="layout">@layout/widget_prayer_row</item>
+  <item name="widget_prayer_column_auto" type="layout">@layout/widget_prayer_column</item>
+  <item name="widget_box_auto" type="drawable">@drawable/widget_box_dark</item>
+  <item name="widget_box_kerahet_auto" type="drawable">@drawable/widget_box_kerahet_dark</item>
+  <item name="widget_cell_auto" type="drawable">@drawable/widget_cell_dark</item>
+  <item name="widget_active_auto" type="drawable">@drawable/widget_active_dark</item>
+  <item name="widget_strip_selected_auto" type="drawable">@drawable/widget_strip_selected_dark</item>
+</resources>

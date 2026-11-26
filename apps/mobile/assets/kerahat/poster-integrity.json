@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "encoding": "webp-lossless",
+  "width": 1126,
+  "height": 2000,
+  "posters": {
+    "heavy": {
+      "file": "agir-kerahat.webp",
+      "sourceFilename": "agir-kerahat.jpeg",
+      "sourceFormat": "jpeg",
+      "sourceSha256": "7d1bf6133c217eddf263928b7536c5e4dd9077a883f683940de951c4553ff52d",
+      "sourceBytes": 162213,
+      "webpSha256": "ed0173831a9a2570cf7268640cb740b486442168afc01b2cdc10369bc6e26ebd",
+      "webpBytes": 444916,
+      "pixelSha256": "6a3211c809947ddc9c96ca3e7c9704df68b5a1386088de6348506af558b8e053"
+    },
+    "light": {
+      "file": "hafif-kerahat.webp",
+      "sourceFilename": "hafif-kerahat.jpeg",
+      "sourceFormat": "jpeg",
+      "sourceSha256": "d85d787b5a6a1d903ec41ab1bf57be11c9962f30348f29072ff29c0b89b07440",
+      "sourceBytes": 142589,
+      "webpSha256": "3955a784d5963525d4258ff826cb6c4b9c69a6e9bca54b1ceb2b5bc7e578784b",
+      "webpBytes": 403564,
+      "pixelSha256": "8b784f9da67ce527dcf7c0abef0c0cced79c0fdf96d11cecbafb6f0544e45608"
+    }
+  }
+}

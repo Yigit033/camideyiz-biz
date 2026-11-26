@@ -30,11 +30,11 @@ test('urgency thresholds are deterministic',()=>{
   assert.equal(calculatePrayerPhase(DEMO_SCHEDULE,ak-15*60).urgency,'imminent');
   assert.equal(calculatePrayerPhase(DEMO_SCHEDULE,ak).next.key,'yatsi');
 });
-test('three indicative kerahat periods are distinct and bounded',()=>{
+test('three indicative kerahet periods are distinct and bounded',()=>{
   const w=indicativeKerahatWindows(DEMO_SCHEDULE);
   assert.deepEqual(w.map(x=>x.kind),['sunrise','zenith','sunset']);
   assert.deepEqual(w.map(x=>[x.startSeconds/60,x.endSeconds/60]),[
-    [7*60+2,7*60+47],[12*60+38,12*60+48],[18*60+36,19*60+21],
+    [7*60+2,7*60+47],[12*60+18,12*60+48],[18*60+36,19*60+21],
   ]);
 });
 test('indicative warnings start and end at precise sample boundary',()=>{
@@ -66,4 +66,15 @@ test('invalid daily schedule is rejected instead of silently producing wrong pro
 test('minutesToNextEvent uses next minute ceiling',()=>{
   assert.equal(minutesToNextEvent(14*60+2),'15 dk');
   assert.equal(minutesToNextEvent(60*60+1),'1 sa 1 dk');
+});
+
+test('manual 10-minute noon interval remains configurable, even though the default is 30',()=>{
+  const defaults=indicativeKerahatWindows(DEMO_SCHEDULE);
+  const custom=indicativeKerahatWindows(DEMO_SCHEDULE,{preNoonMinutes:10});
+  const noon=defaults.find(w=>w.kind==='zenith')!;
+  const adjusted=custom.find(w=>w.kind==='zenith')!;
+  assert.equal(noon.endSeconds,adjusted.endSeconds);
+  assert.equal(noon.startSeconds,adjusted.startSeconds-20*60);
+  assert.equal((noon.endSeconds-noon.startSeconds)/60,30);
+  assert.equal((adjusted.endSeconds-adjusted.startSeconds)/60,10);
 });

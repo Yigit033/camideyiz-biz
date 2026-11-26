@@ -2,7 +2,7 @@
 
 iOS ve Android için namaz vakitleri ve günlük ibadet rehberi. **Expo SDK 58 / React Native / TypeScript** mobil uygulaması, **Next.js** yönetim paneli prototipi ve ortak TypeScript çekirdeği.
 
-> **Yayın öncesi sürüm:** Ana ekran, ücretsiz üçüncü taraf İdamedya takvim servisi üzerinden yayımlanmış vakitleri okuyabilir. Bu Diyanet'in resmî API'si değildir; kaynak uygulamada açıkça etiketlenir. Resmî API onayı, bildirimler, widget'lar ve cihaz testleri tamamlanmış değildir.
+> **Yayın öncesi sürüm:** Ana ekran, ücretsiz üçüncü taraf İdamedya takvim servisi üzerinden yayımlanmış vakitleri okuyabilir. Bu Diyanet'in resmî API'si değildir; kaynak uygulamada açıkça etiketlenir. Resmî API onayı ve cihaz testleri tamamlanmış değildir; native widget ve yerel bildirim modülleri geliştirme dalında test aşamasındadır.
 
 ## Kurulum
 
@@ -44,6 +44,25 @@ Altın/zümrüt referans tasarımından geliştirilmiş canlı gerçek kuzey pus
 
 Orijinal namaz çemberi, günlük kartlar ve çevrimli vakit akışı; ücretsiz İdamedya servisinden alınan, Diyanet kaynaklı olduğu belirtilen takvim kayıtlarıyla görüntülenebilir. Resmî Diyanet API onayı beklerken ayrı sağlayıcı/adapör: [ücretsiz kaynak teknik kılavuzu](docs/FREE_CALENDAR.md).
 
-## Kerahat 2.0 ve Günün Seçkisi 2.0
+## Kerahet 2.0 ve Günün Seçkisi 2.0
 
-Yayımlanmış il/ilçe namaz vakitlerine dayalı üç yaklaşık kerahat bandı, manuel gösterim ayarları, kaynaklı açıklamalar; ayrıca 12 ayet ve 7 hadisten oluşan offline günlük seçki, favoriler ve paylaşım: [Teknik karar ve QA](docs/KERAHAT_AND_DAILY_WISDOM_2.md).
+Yayımlanmış il/ilçe namaz vakitlerine dayalı üç yaklaşık kerahet bandı, manuel gösterim ayarları, kaynaklı açıklamalar; ayrıca sağlanan belgeye dayalı 30 eşleşmiş ayet-hadis çiftinin çevrimdışı döngüsü, favoriler ve paylaşım: [Teknik karar ve QA](docs/KERAHAT_AND_DAILY_WISDOM_2.md).
+
+## Paylaşım Galerisi
+
+Sahibinin yüklediği 27 fotoğraf ve ayrı 27 WebP küçük önizleme yerel olarak paketlenmiştir. Tasarım Atölyesi varsayılan olarak **Tam Fotoğraf** kadrajını kullanır (kırpma yok, yumuşak arka plan); isteyen **Çerçeveyi Doldur** seçeneğiyle kırpabilir. 9:16 WhatsApp Durumu ve 4:5 gönderi formatları, hazır veya özel yazı, yerel kaydetme ve sistem paylaşım menüsü korunur.
+
+`npm run verify:gallery-assets` ile her 27 tam fotoğrafın ve 27 önizlemenin format/boyut kontrolünü yapın. Windows APK betiği ve Android CI bu kontrolü release aşamasında çalıştırır. Kaynağı düşük çözünürlüklü fotoğraflar yeni detay kazanmaz; gerçek cihazda kaydetme/paylaşma çıktısı ayrıca kontrol edilmelidir.
+
+## Widget ve Bildirimler 2.0
+
+Expo SDK 58 ile iOS/Android native namaz vakti widget'ları (2 boyut), 6 vakte özel cihaz içi hatırlatmalar, ses/sessiz kontrolü ve cihazda saklanan gözlenen bildirim geçmişi: [mimari, kurulum ve test koşulları](docs/WIDGETS_AND_NOTIFICATIONS_2.md). Expo Go gerçek ana ekran widget'larını **göstermez**; yeni native uygulama derlemesi ve cihaz QA şarttır.
+
+
+## Marka Açılış Ekranı
+
+Native splash ile JS katmanı arasında görünmez devir, onaylı ikondan türetilmiş amblem, ana ekranı bekletmeyen kısa bir açılış ve "Hareketi azalt" desteği: [teknik notlar ve cihaz testi](docs/SPLASH_SCREEN.md).
+
+## Windows'ta APK testi
+
+Reanimated/CMake/Ninja uzun dosya yolu hatasını aşmak ve emülatör olmadan kendi Android telefonuna yüklenebilir release APK oluşturmayı denemek için [Windows native APK kılavuzu](docs/WINDOWS_ANDROID_APK.md) ve `scripts/build-android-windows.ps1` betiğini kullan. Betik ayrı `C:\\cb` checkout'unda çalışır; asıl proje dizinine dokunmaz. Android cihaz testi hâlâ tamamlanması gereken bir kalite kapısıdır.

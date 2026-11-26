@@ -10,7 +10,7 @@ function JewelTab({focused,children}: {focused:boolean;children:React.ReactNode}
   return <View style={{
     alignItems:'center',justifyContent:'center',
     width:45,height:34,borderRadius:focused?20:13,
-    backgroundColor:focused?(dark?'#0A5041':'#E7DDC4'):'transparent',
+    backgroundColor:focused?(dark?'#154D72':'#E7DDC4'):'transparent',
     borderWidth:focused?1.7:0,
     borderColor:dark?'#F4D38E':'#B48C53',
     shadowColor:focused?'#F6C56D':'transparent',
@@ -30,13 +30,13 @@ export default function TabLayout(){
   const insets=useSafeAreaInsets();
   const dark=colors.isDark;
   const bottomSpace=Math.max(6,insets.bottom);
-  const glyph=(focused:boolean)=>focused?'#FFE2A0':dark?'#EBDCB7':'#4C6B5C';
+  const glyph=(focused:boolean)=>focused?'#FFE2A0':dark?'#D8E8F5':'#4C6B5C';
   return <Tabs screenOptions={{
     headerShown:false,
     tabBarActiveTintColor:dark?'#EED49E':'#97764A',
-    tabBarInactiveTintColor:dark?'#B7CBC5':'#345749',
+    tabBarInactiveTintColor:dark?'#B7CDDE':'#345749',
     tabBarStyle:{
-      backgroundColor:dark?'#073B32':'#FFFCF6',
+      backgroundColor:dark?'#0B2942':'#FFFCF6',
       borderTopColor:dark?'#A3844C':'#D9C59F',
       borderTopWidth:1,
       borderTopLeftRadius:23,borderTopRightRadius:23,

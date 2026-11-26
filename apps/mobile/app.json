@@ -16,15 +16,111 @@
     },
     "android": {
       "package": "biz.camideyiz.app",
-      "edgeToEdgeEnabled": true,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE"
       ]
     },
     "plugins": [
       "expo-router",
-      "expo-location"
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-mark.png",
+          "imageWidth": 150,
+          "resizeMode": "contain",
+          "backgroundColor": "#050A1D",
+          "dark": {
+            "image": "./assets/splash-mark.png",
+            "backgroundColor": "#050A1D"
+          }
+        }
+      ],
+      "expo-location",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0C76B4"
+        }
+      ],
+      [
+        "expo-widgets",
+        {
+          "enableAndroid": false,
+          "groupIdentifier": "group.biz.camideyiz.app",
+          "widgets": [
+            {
+              "name": "NextPrayerWidget",
+              "displayName": "Sıradaki Vakit",
+              "description": "Konum, namaz vakti ve kalan süre",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium"
+                ],
+                "contentMarginsDisabled": true,
+                "initialLayout": "src/features/widgets/NextPrayerWidget.ios.tsx"
+              },
+              "android": {
+                "targetCellWidth": 2,
+                "targetCellHeight": 2,
+                "minWidth": 180,
+                "minHeight": 120,
+                "initialLayout": "src/features/widgets/NextPrayerWidget.android.tsx"
+              }
+            },
+            {
+              "name": "PrayerDayWidget",
+              "displayName": "Günlük Namaz Vakitleri",
+              "description": "Bugünün altı namaz vakti",
+              "ios": {
+                "supportedFamilies": [
+                  "systemMedium",
+                  "systemLarge"
+                ],
+                "contentMarginsDisabled": true,
+                "initialLayout": "src/features/widgets/PrayerDayWidget.ios.tsx"
+              },
+              "android": {
+                "targetCellWidth": 4,
+                "targetCellHeight": 2,
+                "minWidth": 300,
+                "minHeight": 130,
+                "initialLayout": "src/features/widgets/PrayerDayWidget.android.tsx"
+              }
+            }
+          ]
+        }
+      ],
+      "./plugins/withWorkManagerR8",
+      "./plugins/withWidgetBoundaryBridge",
+      "./plugins/withNativeAdhanAlarm",
+      "./plugins/withNativeCompass",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Yalnızca hazırladığınız görselleri kaydetmek için fotoğraf erişimi.",
+          "savePhotosPermission": "Hazırladığınız görselleri telefon galerinize kaydetmek için izin.",
+          "granularPermissions": []
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false,
+          "recordAudioAndroid": false,
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hairline that fades out at both ends: parts the row widget's prayers
+     from its calendar band. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+ <gradient android:type="linear" android:angle="0" android:startColor="#00F4D392"
+  android:centerColor="#D9F4D392" android:endColor="#00F4D392"/>
+</shape>
