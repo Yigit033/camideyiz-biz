@@ -63,7 +63,15 @@ assert.doesNotMatch(home,/'KERAHET · '\+restriction\.title|'Kerahete '\+kerahat
 // top of the ring, OUT of the stack's shared gap. Below it, in order and one
 // equal gap apart: ornament, "<vakit>a Kalan", countdown, [Kerahet],
 // ornament, location, with no kicker line.
-const gestureClosed=wheel.indexOf('</GestureDetector>');
+// Owner (26.11.2026): the dial is never turned by hand. It follows the clock
+// (and a tapped prayer card); touches pass through it, so scrolling the page
+// never turns it.
+assert.doesNotMatch(wheel,/GestureDetector|usePanGesture|react-native-gesture-handler|onGestureStart/,
+  'the dial has no hand-rotation gesture');
+assert.match(wheel,/<View style=\{\{width: size, height: size\}\} pointerEvents="none">\s*<Animated\.View style=\{\[\{width: size, height: size\}, ringStyle\]\}>/,
+  'the turning dial lets touches through');
+assert.doesNotMatch(home,/onGestureStart|onGestureEnd|Çevirerek/,'no "turn to explore" hint or wiring');
+const gestureClosed=wheel.indexOf('</Animated.View>\n    </View>');
 const minaretAt=wheel.indexOf('<OttomanMinaret width={layout.minaret.width}');
 const centerStack=wheel.indexOf('width:layout.stack.width,gap:layout.stack.gap,');
 const order=['<CenterOrnament','PRAYER_COUNTDOWN_LABELS[nextKey]',
@@ -74,7 +82,7 @@ const order=['<CenterOrnament','PRAYER_COUNTDOWN_LABELS[nextKey]',
   },[]);
 assert.ok(gestureClosed>=0&&minaretAt>gestureClosed&&centerStack>minaretAt&&
   order.every(i=>i>centerStack),
-  'Centre must be stationary (outside gesture rotation): the minaret anchored '+
+  'Centre must be stationary (outside the turning dial): the minaret anchored '+
   'on its own, then ornament, title, countdown, Kerahet, ornament, location');
 assert.equal((wheel.match(/<OttomanMinaret /g)??[]).length,1);
 assert.doesNotMatch(wheel,/CENTER_GAP\*unit|<OttomanMinaret width=\{18\*unit\}/,

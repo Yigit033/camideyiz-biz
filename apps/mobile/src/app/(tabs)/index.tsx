@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {Feather,MaterialCommunityIcons} from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import Animated,{Easing,interpolateColor,useAnimatedStyle,useReducedMotion,
   useSharedValue,withTiming} from 'react-native-reanimated';
 import {formatCountdown,zonedClock,calculateTimeAwareness,calculateVerifiedPhase,minutesToNextEvent,PRAYER_KEYS,MIRROR_SOURCE,MIRROR_CACHE_MS,MIRROR_OFFLINE_CACHE_MS,calculateMirrorPhase,getKerahatView,prayerBadgeForeground,type PrayerTime} from '@camideyiz/core';
@@ -168,8 +167,8 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
   const [pickerOpen,setPickerOpen]=useState(false);
   const [manualIndex,setManualIndex]=useState<number|null>(null);
   const [focusRequest,setFocusRequest]=useState(0);
-  // Give a user time to explore the wheel, then gently self-center on the
-  // actual live prayer. Repeated gestures restart the idle countdown.
+  // A tapped prayer card turns the dial to it for a moment, then the dial
+  // gently self-centres on the live prayer again. Each tap restarts the wait.
   const liveReturnTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
   const cancelLiveReturn=useCallback(()=>{
     if(liveReturnTimer.current!==null){
@@ -186,10 +185,6 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
     },1800);
   },[cancelLiveReturn]);
   useEffect(()=>()=>cancelLiveReturn(),[cancelLiveReturn]);
-  const handleWheelSelection=useCallback((index:number)=>{
-    setManualIndex(index);
-    Haptics.selectionAsync().catch(()=>undefined);
-  },[]);
   const focusIndex=useCallback((index:number)=>{
     cancelLiveReturn();
     setManualIndex(index);
@@ -272,12 +267,6 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
         <View style={[styles.halo,{backgroundColor:dark?'rgba(32,182,235,.08)':'rgba(203,168,100,.12)'}]}/>
         <PrayerWheel
           times={SCHEDULE.times} selectedIndex={selectedIndex}
-          onSelect={handleWheelSelection}
-          onGestureStart={()=>{
-            cancelLiveReturn();
-            setManualIndex(previous=>previous??currentIndex);
-          }}
-          onGestureEnd={scheduleLiveReturn}
           focusRequest={focusRequest}
           nowSeconds={previewSeconds} colors={colors}
           size={wheelSize} countdown={formatCountdown(phase.secondsRemaining)}
@@ -294,11 +283,6 @@ function ConfiguredHome({official,now}: {official:ReturnType<typeof usePrayerSou
               :official.place.name+' · '+official.place.stateName)
             :SCHEDULE.locationName}
         />
-        <View style={{position:'absolute',right:8,top:22,alignItems:'flex-end',gap:3}}
-          pointerEvents="none">
-          <Feather name="rotate-cw" size={13} color={colors.gold}/>
-          <Text style={{fontSize:9,color:colors.muted,textAlign:'right'}}>Çevirerek{'\n'}keşfet</Text>
-        </View>
       </View>
 
       <View style={[styles.chipsContainer,{
@@ -443,8 +427,7 @@ function CalendarLoadingHome({official,now}:{
       <View style={styles.wheelStage}>
         <View style={[styles.halo,{backgroundColor:dark?'rgba(32,182,235,.08)':'rgba(203,168,100,.12)'}]}/>
         <PrayerWheel preview times={NO_DATA_TIMES}
-          selectedIndex={selectedIndex}
-          onSelect={setSelectedIndex} focusRequest={focusRequest}
+          selectedIndex={selectedIndex} focusRequest={focusRequest}
           nowSeconds={0} colors={colors}
           size={Math.min(width-10,366)} countdown=""
           isManualSelection={false}

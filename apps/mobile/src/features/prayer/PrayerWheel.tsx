@@ -2,18 +2,14 @@ import {memo, useEffect, useMemo, useRef, type ComponentProps} from 'react';
 import {StyleSheet,Text,View} from 'react-native';
 import Svg, {Circle, Defs, G, Line, LinearGradient, Path, RadialGradient, Stop} from 'react-native-svg';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
-import {GestureDetector, usePanGesture} from 'react-native-gesture-handler';
 import Animated, {
-  cancelAnimation, Easing, useAnimatedReaction, useAnimatedStyle,
+  cancelAnimation, Easing, useAnimatedStyle,
   useReducedMotion, useSharedValue, withSpring, withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import {scheduleOnRN} from 'react-native-worklets';
 import type {PrayerTime,PrayerKey,RestrictionWindow,Urgency} from '@camideyiz/core';
 import {
-  angleOfTouch, normalizeDegrees,
-  nearestCenterRotation, sectorAtNeedle, shortestAngularDelta,
-  tangentialVelocity, makeVisualDialSectors, clockSecondsToVisualAngle,
+  nearestCenterRotation, makeVisualDialSectors, clockSecondsToVisualAngle,
   kerahatRingWindows,prayerSectorVisualLayout,nearestLiveDialRotation,
   prayerBadgeForeground,PRAYER_BADGE_LIGHT_INK,
 } from '@camideyiz/core';
@@ -151,7 +147,7 @@ function SectorIcon({sector,size,rotation,dark}:{
 }
 
 /** HH:MM and its name share one capsule at the exact boundary angle.
- * Counter-rotation keeps both text lines upright during free rotation.
+ * Counter-rotation keeps both text lines upright as the dial turns.
  */
 function SectorStartClock({sector,size,rotation,preview=false}:{
   sector:PrayerArc;size:number;rotation:SharedValue<number>;preview?:boolean;
@@ -192,10 +188,6 @@ function SectorStartClock({sector,size,rotation,preview=false}:{
 type Props = {
   times: readonly PrayerTime[];
   selectedIndex: number;
-  onSelect: (index: number) => void;
-  /** Called after a real annular drag begins / ends; used to arm live return. */
-  onGestureStart?: () => void;
-  onGestureEnd?: () => void;
   focusRequest: number;
   size: number;
   colors: ColorTokens;
@@ -206,14 +198,14 @@ type Props = {
   nextKey: PrayerKey;
   restriction: RestrictionWindow | null;
   indicativeWindows: readonly RestrictionWindow[];
-  /** Explicit no-schedule state: a visual, manually rotatable wheel with no computed times. */
+  /** Explicit no-schedule state: a visual wheel with no computed times. */
   preview?: boolean;
   locationName?: string;
   previousYatsiTime?:string|null;
   nextImsakTime?:string|null;
 };
 export function PrayerWheel({
-  times, selectedIndex, onSelect, onGestureStart, onGestureEnd, focusRequest, size,
+  times, selectedIndex, focusRequest, size,
   colors, countdown, isManualSelection, nowSeconds,
   urgency, nextKey, restriction, indicativeWindows,
   preview=false, locationName, previousYatsiTime, nextImsakTime,
@@ -229,24 +221,18 @@ export function PrayerWheel({
   const rotation = useSharedValue(-initialAngle);
   const previousFocus = useRef(focusRequest);
   const previousManual=useRef(isManualSelection);
-  const active = useSharedValue(false);
-  const prevTouch = useSharedValue(0);
-  const hasTouch = useSharedValue(false);
-  const centerPt = size / 2;
-  const sectorBounds = useMemo(
-    () => sectors.map(({from, to}) => ({from, to})), [sectors],
-  );
 
   // Live 24-hour clock drives the entire ring. One revolution is one real
   // day; no synthetic speed boost and no jump at 360°/tomorrow's İmsak.
-  // Manual exploration suspends clock tracking until idle auto-return.
+  // The dial is never turned by hand (owner, 26.11.2026): it only follows
+  // the clock, and a tapped prayer card turns it to that prayer until the
+  // idle auto-return.
   const liveAngle=preview?0:clockSecondsToVisualAngle(nowSeconds,times,sectors);
   useEffect(()=>{
     const focusChanged=previousFocus.current!==focusRequest;
     const returning=previousManual.current&&!isManualSelection;
     previousFocus.current=focusRequest;
     previousManual.current=isManualSelection;
-    if(active.value)return;
     if(preview||isManualSelection){
       if(!focusChanged||!sectors[selectedIndex])return;
       cancelAnimation(rotation);
@@ -257,8 +243,8 @@ export function PrayerWheel({
       return;
     }
     const destination=nearestLiveDialRotation(rotation.value,liveAngle);
-    // Faster damped return after an exploratory gesture, then very gentle
-    // linear second-by-second tracking. Never interrupt an active drag.
+    // Faster damped return after exploring a prayer, then very gentle
+    // linear second-by-second tracking.
     if(returning){
       cancelAnimation(rotation);
       rotation.value=reduceMotion?withTiming(destination,{duration:0}):
@@ -274,67 +260,6 @@ export function PrayerWheel({
   const ringStyle = useAnimatedStyle(() => ({
     transform: [{rotateZ: rotation.value + 'deg'}],
   }));
-
-  const panGesture = usePanGesture({
-    minDistance: 2,
-    maxPointers: 1,
-    onActivate: (event) => {
-      'worklet';
-      const x = event.x - centerPt, y = event.y - centerPt;
-      const r = Math.sqrt(x * x + y * y);
-      // Only the annular surface behaves as the physical dial.
-      if (r < size * .255 || r > size * .505) {
-        active.value = false;
-        hasTouch.value = false;
-        return;
-      }
-      cancelAnimation(rotation);
-      if (onGestureStart) scheduleOnRN(onGestureStart);
-      prevTouch.value = angleOfTouch(event.x, event.y, centerPt);
-      hasTouch.value = true;
-      active.value = true;
-    },
-    onUpdate: (event) => {
-      'worklet';
-      if (!active.value || !hasTouch.value) return;
-      const x = event.x - centerPt, y = event.y - centerPt;
-      if (x * x + y * y < (size * .125) ** 2) return;
-      const angle = angleOfTouch(event.x, event.y, centerPt);
-      const delta = shortestAngularDelta(prevTouch.value, angle);
-      // Unwrapped rotation is continuous through 0/360: one physical revolution is one turn.
-      rotation.value += delta;
-      prevTouch.value = angle;
-    },
-    onDeactivate: (event) => {
-      'worklet';
-      if (!active.value || !hasTouch.value) return;
-      hasTouch.value = false;
-      // Start the quiet period when the finger actually leaves the screen.
-      // Any subsequent touch cancels the pending return on the RN thread.
-      if (onGestureEnd) scheduleOnRN(onGestureEnd);
-      const dx=event.x-centerPt,dy=event.y-centerPt;
-      const velocity=event.canceled||reduceMotion?0
-        :tangentialVelocity(dx,dy,event.velocityX,event.velocityY);
-      // Predict only a small flick (rather than a long-running decay).
-      // This guarantees the idle-return can never race infinite inertia.
-      const projected=rotation.value+velocity*.13;
-      const idx=sectorAtNeedle(projected,sectorBounds);
-      if(idx<0){active.value=false;return;}
-      const destination=nearestCenterRotation(rotation.value,sectorBounds[idx]);
-      rotation.value=withTiming(destination,{
-        duration:reduceMotion?0:event.canceled?180:340,
-        easing:Easing.out(Easing.cubic),
-      },()=>{active.value=false;});
-    },
-  });
-
-  // Only send semantic changes across the UI/RN thread boundary, not every touch frame.
-  useAnimatedReaction(
-    () => active.value ? sectorAtNeedle(rotation.value, sectorBounds) : -1,
-    (index, previous) => {
-      if (index >= 0 && index !== previous) scheduleOnRN(onSelect, index);
-    },
-  );
 
   // Clock marks are painted only INSIDE the time band they belong to.
   // No generic 72-tick decorative ring or whole-circle progress arc.
@@ -378,134 +303,134 @@ export function PrayerWheel({
 
   return <View style={{width: size, height: size, alignSelf: 'center', justifyContent: 'center'}}>
     <DialLighting size={size} dark={colors.isDark}/>
-    <GestureDetector gesture={panGesture}>
-      <View style={{width: size, height: size}} collapsable={false}>
-        <Animated.View style={[{width: size, height: size}, ringStyle]}>
-          <Svg width={size} height={size} viewBox="0 0 360 360" pointerEvents="none">
-            <Defs>
-              <RadialGradient id="dialInner" cx="46%" cy="40%" rx="72%" ry="72%">
-                <Stop offset="0%" stopColor={colors.isDark ? '#264F6B' : '#FFFFFF'}/>
-                <Stop offset="100%" stopColor={centerFill}/>
-              </RadialGradient>
-              {sectors.map(item => <LinearGradient id={'fill-'+item.key} key={item.key}
-                x1="12%" y1="5%" x2="92%" y2="98%">
-                <Stop offset="0%" stopColor={blendHex(PRAYER_COLORS[item.key],'#FFFFFF',colors.isDark?.29:.44)}/>
-                <Stop offset="28%" stopColor={PRAYER_COLORS[item.key]}/>
-                <Stop offset="72%" stopColor={blendHex(PRAYER_COLORS[item.key],colors.isDark?'#061A2C':'#061B1C',colors.isDark?.29:.12)}/>
-                <Stop offset="100%" stopColor={blendHex(PRAYER_COLORS[item.key],colors.isDark?'#061A2C':'#061B1C',colors.isDark?.48:.26)}/>
-              </LinearGradient>)}
-            </Defs>
-            {warningTint?<Circle cx="180" cy="180" r="173"
-              stroke={warningTint} strokeWidth={kerahatActive?9:6}
-              strokeOpacity={kerahatActive?.42:.30} fill="none"/>:null}
-            <Circle cx="180" cy="180" r="176" stroke={warningTint??rim}
-              strokeWidth={kerahatActive?3.5:kerahatApproaching?2.6:.8}
-              strokeOpacity={warningTint?1:.55} fill="none"/>
-            <Circle cx="180" cy="180" r="169" stroke={rim} strokeWidth="1" strokeOpacity=".36" fill="none"/>
-            <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="65" fill="none"/>
-            {sectors.map((item,index) => <G key={item.key}>
-              {!preview && item.key===nextKey && <>
-                <Path d={arc(item.from+.6,item.to-.6,RADIUS)}
-                  stroke={warningTint??PRAYER_COLORS[item.key]}
-                  strokeOpacity={nextGlowStrength*.46}
-                  strokeWidth={urgency==='normal'?80:88} fill="none"/>
-                <Path d={arc(item.from+.6,item.to-.6,RADIUS)}
-                  stroke={warningTint??blendHex(PRAYER_COLORS[item.key],'#FCECCB',.25)}
-                  strokeOpacity={nextGlowStrength}
-                  strokeWidth={urgency==='normal'?71:77} fill="none"/>
-              </>}
-              {index === selectedIndex && <Path d={arc(item.from+.85,item.to-.85,RADIUS)}
-                stroke={PRAYER_COLORS[item.key]} strokeOpacity=".37" strokeWidth="71" fill="none"/>}
-              <Path d={arc(item.from+.9,item.to-.9,RADIUS)}
-                stroke={'url(#fill-'+item.key+')'}
-                strokeWidth={index===selectedIndex?63:58} fill="none"/>
-              <Path d={arc(item.from+2,item.to-2,169)}
-                stroke={index===selectedIndex?'#FFE9B7':'#F9F2DC'}
-                strokeOpacity={index===selectedIndex?.94:.37}
-                strokeWidth={index===selectedIndex?4.3:1.8} fill="none"/>
-              <Path d={arc(item.from+2,item.to-2,114)}
-                stroke={index===selectedIndex?'#FFF6DC':'#F8E9C8'}
-                strokeOpacity={index===selectedIndex?.42:.18}
-                strokeWidth={index===selectedIndex?4.2:2.1} fill="none"/>
-              <Path d={arc(item.from+2,item.to-2,149)}
-                stroke="#FFF9E4"
-                strokeOpacity={index===selectedIndex?.15:.07}
-                strokeWidth="11" fill="none"/>
-            </G>)}
-            {/* 24 civil-hour divisions, each coloured by its actual
-                prayer interval. Render above wedges, below kerahet warnings. */}
-            {clockTicks.map(item=>{
-              const major=item.hour%3===0;
-              const start=polar(item.angle,major?167:170);
-              const end=polar(item.angle,major?177:175);
-              return <Line key={'hour-'+item.hour}
-                x1={start.x} y1={start.y}
-                x2={end.x} y2={end.y}
-                stroke={blendHex(PRAYER_COLORS[item.sector.key],'#E9D09B',.54)}
-                strokeWidth={major?1.75:1.05}
-                strokeOpacity={major?.95:.73}/>;
-            })}
-            <Circle cx="180" cy="180" r="106" stroke={rim} strokeWidth="2.2"
-              strokeOpacity=".7" fill="url(#dialInner)"/>
-            <Circle cx="180" cy="180" r="101" stroke={rim} strokeWidth=".8"
-              strokeOpacity=".28" fill="none"/>
-            {sectors.map(item => {
-              const p1=polar(item.from,108),p2=polar(item.from,169);
-              return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                stroke={colors.isDark?'#071E2D':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
-            })}
-            {/* Approximate kerahet arcs share the SAME angular coordinates
-                on two concentric tracks. Outer = warning, inner = interval.
-                Both rotate WITH the physical dial, never with elapsed progress.
-                Active: deep burgundy; next 20min: warm amber; otherwise muted. */}
-            {kerahatArcs.length>0
-              ?<Circle cx="180" cy="180" r="112" fill="none"
-                stroke={rim} strokeOpacity=".62" strokeWidth="3.2"/>:null}
-            {kerahatArcs.map(window=><G key={'kerahat-'+window.kind+'-'+window.sectorKey}>
-              {window.state!=='inactive'?<Path
-                d={arc(window.from,window.to,112)}
-                stroke={window.state==='active'?'#AE4054':'#D49A55'}
-                strokeOpacity={window.state==='active'?.55:.40}
-                strokeWidth={window.state==='active'?22:19} fill="none"
-                strokeLinecap="round"/>:null}
-              <Path d={arc(window.from,window.to,112)}
-                stroke={window.state==='active'?'#B82B4C'
-                  :window.state==='approaching'?'#E3A94E':'#A74F58'}
-                strokeOpacity={window.state==='inactive'?.91:1}
-                strokeWidth={window.state==='active'?15.5
-                  :window.state==='approaching'?13.2:9.6}
-                fill="none" strokeLinecap="round"/>
-              <Path d={arc(window.from,window.to,112)}
-                stroke="#FFE1AC"
-                strokeOpacity={window.state==='inactive'?.55:.95}
-                strokeWidth={window.state==='active'?2.3:1.7}
-                fill="none"/>
-              {window.state!=='inactive'?<Path
-                d={arc(window.from,window.to,161)}
-                stroke={window.state==='active'?'#8E2639':'#B97032'}
-                strokeOpacity={window.state==='active'?.48:.34}
-                strokeWidth={window.state==='active'?21:18}
-                fill="none" strokeLinecap="butt"/>:null}
-              <Path d={arc(window.from,window.to,161)}
-                stroke={window.state==='active'?'#B32E49'
-                  :window.state==='approaching'?'#E3A34E':'#A15B5E'}
-                strokeOpacity={window.state==='inactive'?.82:1}
-                strokeWidth={window.state==='active'?14
-                  :window.state==='approaching'?12:8.5}
-                fill="none" strokeLinecap="butt"/>
-              {window.state==='active'?<Path
-                d={arc(window.from,window.to,158.5)}
-                stroke="#FFE2CA" strokeOpacity="1"
-                strokeWidth="2.2" fill="none"/>:null}
-            </G>)}
-          </Svg>
-          {sectors.map(item=><SectorIcon key={'icon-'+item.key}
-             sector={item} size={size} rotation={rotation} dark={colors.isDark}/>)} 
-          {sectors.map(item=><SectorStartClock key={'clock-'+item.key}
-            sector={item} size={size} rotation={rotation} preview={preview}/>)}
-        </Animated.View>
-      </View>
-    </GestureDetector>
+    {/* The turning dial. Touches pass through it, so scrolling the page
+        never turns it. */}
+    <View style={{width: size, height: size}} pointerEvents="none">
+      <Animated.View style={[{width: size, height: size}, ringStyle]}>
+        <Svg width={size} height={size} viewBox="0 0 360 360" pointerEvents="none">
+          <Defs>
+            <RadialGradient id="dialInner" cx="46%" cy="40%" rx="72%" ry="72%">
+              <Stop offset="0%" stopColor={colors.isDark ? '#264F6B' : '#FFFFFF'}/>
+              <Stop offset="100%" stopColor={centerFill}/>
+            </RadialGradient>
+            {sectors.map(item => <LinearGradient id={'fill-'+item.key} key={item.key}
+              x1="12%" y1="5%" x2="92%" y2="98%">
+              <Stop offset="0%" stopColor={blendHex(PRAYER_COLORS[item.key],'#FFFFFF',colors.isDark?.29:.44)}/>
+              <Stop offset="28%" stopColor={PRAYER_COLORS[item.key]}/>
+              <Stop offset="72%" stopColor={blendHex(PRAYER_COLORS[item.key],colors.isDark?'#061A2C':'#061B1C',colors.isDark?.29:.12)}/>
+              <Stop offset="100%" stopColor={blendHex(PRAYER_COLORS[item.key],colors.isDark?'#061A2C':'#061B1C',colors.isDark?.48:.26)}/>
+            </LinearGradient>)}
+          </Defs>
+          {warningTint?<Circle cx="180" cy="180" r="173"
+            stroke={warningTint} strokeWidth={kerahatActive?9:6}
+            strokeOpacity={kerahatActive?.42:.30} fill="none"/>:null}
+          <Circle cx="180" cy="180" r="176" stroke={warningTint??rim}
+            strokeWidth={kerahatActive?3.5:kerahatApproaching?2.6:.8}
+            strokeOpacity={warningTint?1:.55} fill="none"/>
+          <Circle cx="180" cy="180" r="169" stroke={rim} strokeWidth="1" strokeOpacity=".36" fill="none"/>
+          <Circle cx="180" cy="180" r={RADIUS} stroke={baseStroke} strokeWidth="65" fill="none"/>
+          {sectors.map((item,index) => <G key={item.key}>
+            {!preview && item.key===nextKey && <>
+              <Path d={arc(item.from+.6,item.to-.6,RADIUS)}
+                stroke={warningTint??PRAYER_COLORS[item.key]}
+                strokeOpacity={nextGlowStrength*.46}
+                strokeWidth={urgency==='normal'?80:88} fill="none"/>
+              <Path d={arc(item.from+.6,item.to-.6,RADIUS)}
+                stroke={warningTint??blendHex(PRAYER_COLORS[item.key],'#FCECCB',.25)}
+                strokeOpacity={nextGlowStrength}
+                strokeWidth={urgency==='normal'?71:77} fill="none"/>
+            </>}
+            {index === selectedIndex && <Path d={arc(item.from+.85,item.to-.85,RADIUS)}
+              stroke={PRAYER_COLORS[item.key]} strokeOpacity=".37" strokeWidth="71" fill="none"/>}
+            <Path d={arc(item.from+.9,item.to-.9,RADIUS)}
+              stroke={'url(#fill-'+item.key+')'}
+              strokeWidth={index===selectedIndex?63:58} fill="none"/>
+            <Path d={arc(item.from+2,item.to-2,169)}
+              stroke={index===selectedIndex?'#FFE9B7':'#F9F2DC'}
+              strokeOpacity={index===selectedIndex?.94:.37}
+              strokeWidth={index===selectedIndex?4.3:1.8} fill="none"/>
+            <Path d={arc(item.from+2,item.to-2,114)}
+              stroke={index===selectedIndex?'#FFF6DC':'#F8E9C8'}
+              strokeOpacity={index===selectedIndex?.42:.18}
+              strokeWidth={index===selectedIndex?4.2:2.1} fill="none"/>
+            <Path d={arc(item.from+2,item.to-2,149)}
+              stroke="#FFF9E4"
+              strokeOpacity={index===selectedIndex?.15:.07}
+              strokeWidth="11" fill="none"/>
+          </G>)}
+          {/* 24 civil-hour divisions, each coloured by its actual
+              prayer interval. Render above wedges, below kerahet warnings. */}
+          {clockTicks.map(item=>{
+            const major=item.hour%3===0;
+            const start=polar(item.angle,major?167:170);
+            const end=polar(item.angle,major?177:175);
+            return <Line key={'hour-'+item.hour}
+              x1={start.x} y1={start.y}
+              x2={end.x} y2={end.y}
+              stroke={blendHex(PRAYER_COLORS[item.sector.key],'#E9D09B',.54)}
+              strokeWidth={major?1.75:1.05}
+              strokeOpacity={major?.95:.73}/>;
+          })}
+          <Circle cx="180" cy="180" r="106" stroke={rim} strokeWidth="2.2"
+            strokeOpacity=".7" fill="url(#dialInner)"/>
+          <Circle cx="180" cy="180" r="101" stroke={rim} strokeWidth=".8"
+            strokeOpacity=".28" fill="none"/>
+          {sectors.map(item => {
+            const p1=polar(item.from,108),p2=polar(item.from,169);
+            return <Line key={'sep-'+item.key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+              stroke={colors.isDark?'#071E2D':'#FFF9EA'} strokeWidth="2.7" opacity=".87"/>;
+          })}
+          {/* Approximate kerahet arcs share the SAME angular coordinates
+              on two concentric tracks. Outer = warning, inner = interval.
+              Both rotate WITH the physical dial, never with elapsed progress.
+              Active: deep burgundy; next 20min: warm amber; otherwise muted. */}
+          {kerahatArcs.length>0
+            ?<Circle cx="180" cy="180" r="112" fill="none"
+              stroke={rim} strokeOpacity=".62" strokeWidth="3.2"/>:null}
+          {kerahatArcs.map(window=><G key={'kerahat-'+window.kind+'-'+window.sectorKey}>
+            {window.state!=='inactive'?<Path
+              d={arc(window.from,window.to,112)}
+              stroke={window.state==='active'?'#AE4054':'#D49A55'}
+              strokeOpacity={window.state==='active'?.55:.40}
+              strokeWidth={window.state==='active'?22:19} fill="none"
+              strokeLinecap="round"/>:null}
+            <Path d={arc(window.from,window.to,112)}
+              stroke={window.state==='active'?'#B82B4C'
+                :window.state==='approaching'?'#E3A94E':'#A74F58'}
+              strokeOpacity={window.state==='inactive'?.91:1}
+              strokeWidth={window.state==='active'?15.5
+                :window.state==='approaching'?13.2:9.6}
+              fill="none" strokeLinecap="round"/>
+            <Path d={arc(window.from,window.to,112)}
+              stroke="#FFE1AC"
+              strokeOpacity={window.state==='inactive'?.55:.95}
+              strokeWidth={window.state==='active'?2.3:1.7}
+              fill="none"/>
+            {window.state!=='inactive'?<Path
+              d={arc(window.from,window.to,161)}
+              stroke={window.state==='active'?'#8E2639':'#B97032'}
+              strokeOpacity={window.state==='active'?.48:.34}
+              strokeWidth={window.state==='active'?21:18}
+              fill="none" strokeLinecap="butt"/>:null}
+            <Path d={arc(window.from,window.to,161)}
+              stroke={window.state==='active'?'#B32E49'
+                :window.state==='approaching'?'#E3A34E':'#A15B5E'}
+              strokeOpacity={window.state==='inactive'?.82:1}
+              strokeWidth={window.state==='active'?14
+                :window.state==='approaching'?12:8.5}
+              fill="none" strokeLinecap="butt"/>
+            {window.state==='active'?<Path
+              d={arc(window.from,window.to,158.5)}
+              stroke="#FFE2CA" strokeOpacity="1"
+              strokeWidth="2.2" fill="none"/>:null}
+          </G>)}
+        </Svg>
+        {sectors.map(item=><SectorIcon key={'icon-'+item.key}
+           sector={item} size={size} rotation={rotation} dark={colors.isDark}/>)} 
+        {sectors.map(item=><SectorStartClock key={'clock-'+item.key}
+          sector={item} size={size} rotation={rotation} preview={preview}/>)}
+      </Animated.View>
+    </View>
 
     <View pointerEvents="none" style={{
       position:'absolute',alignSelf:'center',
