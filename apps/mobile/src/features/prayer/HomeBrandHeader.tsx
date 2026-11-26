@@ -69,8 +69,12 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
             :'Konum alınamadı'
     :place?.stateName??'Konum';
 
-  const actionSize=small?42:45;
-  const timeSize=small?67:76;
+  // One tile for the whole row: location, local time, theme and alerts share
+  // the same height, corner, border and surface, and sit on one baseline.
+  const tile={height:small?54:58,borderRadius:16,borderWidth:1} as const;
+  const tileSurface=dark?'rgba(13,47,72,.93)':'rgba(255,255,255,.88)';
+  const actionWidth=small?42:46;
+  const timeWidth=small?67:76;
   return <View style={{gap:compact?6:7,paddingTop:compact?0:2,marginBottom:2}}>
     {/* The mark's three heads reach the top of its image, so their room is
         explicit padding (not a centred fixed-height box) and nothing clips:
@@ -83,9 +87,8 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
 
     <View style={{flexDirection:'row',alignItems:'center',gap:small?5:7}}>
       <View style={{
-        flex:1,minWidth:0,minHeight:61,borderRadius:18,borderWidth:1,
-        borderColor:colors.border,
-        backgroundColor:dark?'rgba(13,47,72,.93)':'rgba(255,255,255,.88)',
+        ...tile,flex:1,minWidth:0,
+        borderColor:colors.border,backgroundColor:tileSurface,
         paddingHorizontal:small?6:8,alignItems:'center',flexDirection:'row',
         gap:small?5:7,
       }}>
@@ -114,7 +117,7 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
             });
           }}
           hitSlop={6}
-          style={{width:small?32:36,height:40,borderRadius:12,
+          style={{width:small?32:36,height:small?38:40,borderRadius:12,
             alignItems:'center',justifyContent:'center',
             backgroundColor:locationMode==='auto'
               ?(dark?'rgba(28,103,145,.75)':'#E1F4E9'):colors.soft}}>
@@ -129,7 +132,7 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
           onPress={onOpenLocation}
           hitSlop={{top:7,bottom:7,right:4}}
           style={{flex:1,minWidth:0,flexDirection:'row',
-            alignItems:'center',minHeight:58,gap:3}}>
+            alignItems:'center',alignSelf:'stretch',gap:3}}>
           <View style={{flex:1,minWidth:0,gap:3}}>
             <Text style={{fontSize:small?10:10.5,lineHeight:small?12.5:13,
               fontWeight:'800',letterSpacing:.1,
@@ -145,7 +148,7 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
 
       <View accessible accessibilityLabel={'Yerel saat '+localClock}
         style={{
-          width:timeSize,minHeight:61,borderRadius:17,borderWidth:1,
+          ...tile,width:timeWidth,
           borderColor:dark?'rgba(212,185,126,.46)':'#D6B97E',
           backgroundColor:dark?'rgba(16,48,71,.94)':'#FBF2DE',
           alignItems:'center',justifyContent:'center',gap:4,
@@ -168,16 +171,16 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
       <Pressable accessibilityRole="button"
         accessibilityLabel={dark?'Açık temaya geç':'Koyu temaya geç'}
         onPress={()=>setMode(dark?'light':'dark')}
-        style={{width:actionSize,height:actionSize,borderRadius:15,
-          borderWidth:1,backgroundColor:colors.surface,borderColor:colors.border,
+        style={{...tile,width:actionWidth,
+          backgroundColor:tileSurface,borderColor:colors.border,
           alignItems:'center',justifyContent:'center'}}>
         <Feather name={dark?'sun':'moon'} size={19} color={colors.gold}/>
       </Pressable>
       <Pressable accessibilityRole="button"
         accessibilityLabel="Widget ve bildirim ayarları"
         onPress={()=>router.push('/companion')}
-        style={{width:actionSize,height:actionSize,borderRadius:15,
-          borderWidth:1,backgroundColor:colors.surface,borderColor:colors.border,
+        style={{...tile,width:actionWidth,
+          backgroundColor:tileSurface,borderColor:colors.border,
           alignItems:'center',justifyContent:'center'}}>
         <Feather name="bell" size={19} color={colors.text}/>
       </Pressable>

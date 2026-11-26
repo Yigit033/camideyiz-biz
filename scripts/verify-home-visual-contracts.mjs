@@ -41,6 +41,13 @@ assert.doesNotMatch(header,/<CamideyizBrandLogo[^>]*horizontal/);
 assert.match(header,/<View style=\{\{alignItems:'center',overflow:'visible',\s*paddingTop:compact\?5:7,paddingBottom:compact\?3:4\}\}>\s*<CamideyizBrandLogo compact=\{compact\}\/>/);
 assert.doesNotMatch(header,/height:compact\?78:92|marginTop:-/);
 assert.match(header,/return <View style=\{\{gap:compact\?6:7,paddingTop:compact\?0:2,marginBottom:2\}\}>/);
+// Owner (26.11.2026): location, local time, theme and alerts are one row of
+// equal tiles: same height, corner, border and surface.
+assert.match(header,/const tile=\{height:small\?54:58,borderRadius:16,borderWidth:1\} as const;/);
+assert.equal((header.match(/\.\.\.tile,/g)??[]).length,4,'all four header tiles share one size');
+assert.equal((header.match(/backgroundColor:tileSurface/g)??[]).length,3,
+  'location, theme and alerts share one surface (the clock keeps its gold tint)');
+assert.doesNotMatch(header,/minHeight:6\d|actionSize|height:actionSize/,'no tile sizes itself');
 assert.match(home,/contentContainerStyle=\{\[styles\.content,\{paddingTop:compact\?7:11\}\]\}/);
 assert.equal((home.match(/<SafeAreaView edges=\{\['top'\]\}/g)??[]).length,2,'both home states sit under the status bar inset');
 
