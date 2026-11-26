@@ -117,6 +117,45 @@ export function withCentralDistricts<T extends LocationDirectoryRow>(
       b.name.toLocaleLowerCase('tr-TR'),'tr-TR'));
 }
 
+/**
+ * Foreground auto-location (no background permission). While the app is
+ * open the phone reports a fix after every ~100 m (at most every 15 s); the
+ * district is looked up again after a 250 m walk, so crossing into the next
+ * district (Kadıköy → Üsküdar) switches the calendar within a street or two,
+ * while GPS jitter never does. A fix vaguer than 1.2 km cannot tell
+ * neighbouring districts apart and is never used.
+ */
+export const AUTO_LOCATION={
+  watchDistanceMeters:100,
+  watchIntervalMs:15_000,
+  recheckMeters:250,
+  maxAccuracyMeters:1200,
+  /** The phone's own recent fix answers at once on launch/return. */
+  lastKnownMaxAgeMs:10*60_000,
+  /** Back-off for a failed lookup while the app stays open. */
+  retryDelaysMs:[15_000,60_000,180_000],
+} as const;
+
+export type GeoPoint={latitude:number;longitude:number};
+/** Whether a fix is precise enough to name a district (unknown = trusted,
+ * as Android reports no accuracy only for exact providers). */
+export function usableLocationFix(accuracyMeters:number|null|undefined):boolean{
+  if(accuracyMeters===null||accuracyMeters===undefined)return true;
+  return Number.isFinite(accuracyMeters)&&accuracyMeters>=0&&
+    accuracyMeters<=AUTO_LOCATION.maxAccuracyMeters;
+}
+/** Look the district up again only after a real walk from where the current
+ * one was confirmed (or when none is confirmed yet). */
+export function needsDistrictCheck(confirmedAt:GeoPoint|null,fix:GeoPoint):boolean{
+  return confirmedAt===null||
+    locationTravelMeters(confirmedAt,fix)>=AUTO_LOCATION.recheckMeters;
+}
+/** n-th retry delay (0-based), capped at the last step. */
+export function autoLocationRetryDelay(attempt:number):number{
+  const steps=AUTO_LOCATION.retryDelaysMs;
+  return steps[Math.min(Math.max(0,Math.floor(attempt)),steps.length-1)];
+}
+
 /** Approximate Haversine distance; ONLY a threshold for reducing Android
  * geocoder and network queries, never used to infer a prayer district.
  */

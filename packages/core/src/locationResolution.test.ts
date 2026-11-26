@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normaliseTurkishPlace,findExactTurkishPlace,locationTravelMeters,
-  turkishPlaceKey,prettyTurkishPlace,withCentralDistricts,CENTRAL_DISTRICTS}
+  turkishPlaceKey,prettyTurkishPlace,withCentralDistricts,CENTRAL_DISTRICTS,
+  AUTO_LOCATION,needsDistrictCheck,usableLocationFix,autoLocationRetryDelay}
   from './locationResolution.ts';
 test('GPS city and district matching is exact and tolerant of Turkish/transliterated spellings',()=>{
   const provinces=[
@@ -75,6 +76,29 @@ test('central districts use the province-centre calendar and nothing else',()=>{
   for(const [province,list] of Object.entries(CENTRAL_DISTRICTS)){
     assert.equal(new Set(list.map(turkishPlaceKey)).size,list.length,province);
   }
+});
+test('auto-location follows a short walk across a district line, never GPS jitter',()=>{
+  // A district line can be crossed in a few hundred metres; the old 2 km
+  // gate with an 8-minute timer could keep the previous district for a ride.
+  const kadikoy={latitude:40.9906,longitude:29.0237};
+  assert.equal(needsDistrictCheck(null,kadikoy),true,'first fix always looks the district up');
+  const jitter={latitude:40.9913,longitude:29.0244};   // ~95 m
+  assert.equal(needsDistrictCheck(kadikoy,jitter),false);
+  const street={latitude:40.9935,longitude:29.0262};   // ~380 m
+  assert.equal(needsDistrictCheck(kadikoy,street),true);
+  assert.ok(AUTO_LOCATION.recheckMeters<=300&&AUTO_LOCATION.watchDistanceMeters<AUTO_LOCATION.recheckMeters,
+    'the watcher reports before the district check is due');
+  assert.ok(AUTO_LOCATION.watchIntervalMs<=15_000);
+  // Precise and network fixes pass; approximate (~2-3 km) fixes never name a district.
+  assert.equal(usableLocationFix(null),true);
+  assert.equal(usableLocationFix(35),true);
+  assert.equal(usableLocationFix(1200),true);
+  assert.equal(usableLocationFix(2400),false);
+  assert.equal(usableLocationFix(Number.NaN),false);
+  assert.equal(usableLocationFix(-1),false);
+  // Bounded back-off while the app stays open.
+  assert.deepEqual([0,1,2,3,9].map(autoLocationRetryDelay),[15_000,60_000,180_000,180_000,180_000]);
+  assert.equal(autoLocationRetryDelay(-4),15_000);
 });
 test('GPS geocoding movement threshold is geographically bounded',()=>{
   const a={latitude:40.817,longitude:29.3};

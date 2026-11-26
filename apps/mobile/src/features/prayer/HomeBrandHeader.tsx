@@ -66,7 +66,11 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
           ?'Konum izni gerekli'
           :autoLocationStatus==='unlisted'
             ?'İlçeni listeden seç'
-            :'Konum alınamadı'
+            :autoLocationStatus==='location-off'
+              ?'Konum kapalı'
+              :autoLocationStatus==='precise-needed'
+                ?'Hassas konum gerekli'
+                :'Konum alınamadı'
     :place?.stateName??'Konum';
 
   // One tile for the whole row: location, local time, theme and alerts share
@@ -95,6 +99,8 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
         <Pressable accessibilityRole="button"
           accessibilityLabel={locationMode==='auto'
             ?autoLocationStatus==='unlisted'?'İlçeni listeden seç'
+              :autoLocationStatus==='location-off'?'Konumu aç'
+              :autoLocationStatus==='precise-needed'?'Hassas konuma izin ver'
               :'Otomatik konumu yeniden bul'
             :'GPS ile konumumu otomatik bul'}
           onPress={()=>{
@@ -111,6 +117,20 @@ export const HomeBrandHeader=memo(function HomeBrandHeader({
                  }}]);
               return;
             }
+            if(locationMode==='auto'&&autoLocationStatus==='precise-needed'){
+              Alert.alert('Hassas konum gerekli',
+                'İlçeni doğru bulabilmek için konum izninde hassas konumu aç.',
+                [{text:'İlçeyi elle seç',onPress:onOpenLocation},
+                 {text:'Ayarları aç',onPress:()=>{
+                   void Linking.openSettings().catch(()=>undefined);
+                 }},
+                 {text:'İzin ver',onPress:()=>{
+                   void Promise.resolve(onEnableAutoLocation()).catch(()=>undefined);
+                 }}]);
+              return;
+            }
+            // Location off: the tap restarts auto-location, which shows the
+            // system "turn on location" sheet.
             void Promise.resolve(onEnableAutoLocation()).catch(()=>{
               Alert.alert('Konum başlatılamadı',
                 'Tekrar deneyebilir veya il ve ilçeyi elle seçebilirsin.');
