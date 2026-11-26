@@ -9,7 +9,9 @@ import {
   MINARET_ART_BOTTOM,MINARET_ART_TOP,MINARET_DETAIL,MINARET_FILLS,MINARET_PALETTE,MINARET_SHAPES,
 } from '../apps/mobile/src/features/prayer/ottomanMinaret.ts';
 
-const read=(relative)=>readFileSync(new URL('../'+relative,import.meta.url),'utf8');
+// Windows checkouts (core.autocrlf) carry CRLF: every contract reads LF text.
+const read=(relative)=>readFileSync(new URL('../'+relative,import.meta.url),'utf8')
+  .replace(/\r\n/g,'\n');
 const logo=read('apps/mobile/src/components/CamideyizBrandLogo.tsx');
 const header=read('apps/mobile/src/features/prayer/HomeBrandHeader.tsx');
 const wheel=read('apps/mobile/src/features/prayer/PrayerWheel.tsx');
