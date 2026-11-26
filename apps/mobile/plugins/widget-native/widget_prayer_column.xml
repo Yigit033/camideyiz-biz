@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Six-prayer column, 1×4 and resizable to 1×5 / 1×6. One layout, three
      size buckets chosen by the scheduler: logo + six prayers; + remaining
-     time; + Hijri and Gregorian dates under the logo. -->
+     time; + a calendar leaf under the logo: gold rule, the Hijri day over
+     its month (gold), the Gregorian day over its month, the weekday. Both
+     day numerals share one size and the three captions another, fitted
+     by the scheduler (WidgetTypeScale.column). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_col_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg" android:padding="6dp" android:orientation="vertical" android:gravity="center_horizontal">
@@ -9,13 +12,16 @@
   android:layout_weight="1.5" android:src="@drawable/widget_brand_mark_dark" android:scaleType="fitCenter"
   android:contentDescription="Camideyiz.biz"/>
  <LinearLayout android:id="@+id/widget_col_brand" android:layout_width="match_parent" android:layout_height="0dp"
-  android:layout_weight="2.6" android:orientation="vertical" android:gravity="center" android:visibility="gone">
+  android:layout_weight="3.0" android:paddingStart="2dp" android:paddingEnd="2dp" android:orientation="vertical"
+  android:gravity="center" android:visibility="gone">
  <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
   android:src="@drawable/widget_brand_mark_dark" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
- <TextView android:id="@+id/widget_col_hijri_day" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.2" android:text="" android:textSize="9sp" android:textColor="#8FDCF8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
- <TextView android:id="@+id/widget_col_hijri_year" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.2" android:text="" android:textSize="9sp" android:textColor="#8FDCF8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
- <TextView android:id="@+id/widget_col_date" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.2" android:text="" android:textSize="9sp" android:textColor="#8FDCF8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
- <TextView android:id="@+id/widget_col_weekday" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.2" android:text="" android:textSize="9sp" android:textColor="#8FDCF8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:layout_width="16dp" android:layout_height="1dp" android:layout_marginTop="2dp" android:layout_marginBottom="2dp" android:background="#F4D392" android:alpha="0.75" android:text=""/>
+ <TextView android:id="@+id/widget_col_hijri_day" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.38" android:text="" android:textSize="16sp" android:textColor="#F4D392" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
+ <TextView android:id="@+id/widget_col_hijri_month" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.22" android:text="" android:textSize="9sp" android:textColor="#F4D392" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
+ <TextView android:id="@+id/widget_col_day" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.38" android:text="" android:textSize="16sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
+ <TextView android:id="@+id/widget_col_month" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.22" android:text="" android:textSize="9sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
+ <TextView android:id="@+id/widget_col_weekday" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.22" android:text="" android:textSize="9sp" android:textColor="#AFC5D4" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_col_cell_0" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="1" android:layout_marginTop="4dp" android:paddingStart="3dp" android:paddingEnd="3dp"

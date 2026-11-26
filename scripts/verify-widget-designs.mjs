@@ -1,6 +1,6 @@
 /**
- * Widget Design 7.0–10.0 — native launcher first, countdown-first, one
- * system typeface, exactly centred box text.
+ * Widget Design 7.0–11.0 — native launcher first, countdown-first, one
+ * system typeface, exactly centred box text, one fitted size per text group.
  * Structural QA only: physical launcher scaling and UI jank require APK tests.
  */
 import assert from 'node:assert/strict';
@@ -171,7 +171,7 @@ for(const [name,id] of Object.entries(clocks)){
 for(const token of ['widget_ring_square_root','widget_ring_square_art',
     'installedSquareRing','widget_day_footer','widget_day_countdown'])
   assert.match(scheduler,new RegExp(token));
-assert.match(scheduler,/updateRing\(manager,squareRing,/);
+assert.match(scheduler,/updateSized\(manager,squareRing,/);
 assert.match(scheduler,/nextInCurrentDay\?label\.equals\(next\):i==5/,
   'After Yatsı do not highlight today’s expired İmsak');
 assert.match(scheduler,/BRAND_VERSION=6;/);
@@ -291,8 +291,14 @@ assert.match(read(p+'widget_prayer_column_info.xml'),/resizeMode="vertical"/);
 assert.match(scheduler,/setInt\(R\.id\.widget_compact_remaining_row,"setBackgroundResource",kerahat/);
 assert.match(scheduler,/boolean kerahat=ready&&props\.optBoolean\("kerahat",false\)/);
 assert.match(scheduler,/next\+"\|"\+kerahat/,'1×1 repaints when kerahet starts or ends');
-// Responsive buckets: Android 12+ size map, options fallback below it.
-assert.match(scheduler,/new RemoteViews\(sizes\)/);
+// Responsive: Android 12+ gets one card per launcher-reported size (text
+// fitted to that size), the bucket map when no size is reported, and the
+// options size below Android 12.
+assert.match(scheduler,/for\(SizeF size:reported\)views\.put\(size,rowCard\(context,look,data,\s*bucketFor\(\(int\)size\.getWidth\(\),ROW_WIDTHS\),size\)\)/);
+assert.match(scheduler,/for\(SizeF size:reported\)views\.put\(size,columnCard\(context,look,data,\s*bucketFor\(\(int\)size\.getHeight\(\),COLUMN_HEIGHTS\),size\)\)/);
+assert.match(scheduler,/views\.put\(new SizeF\(ROW_WIDTHS\[bucket\],40f\),rowCard\(/);
+assert.match(scheduler,/views\.put\(new SizeF\(40f,COLUMN_HEIGHTS\[bucket\]\),columnCard\(/);
+assert.match(scheduler,/new RemoteViews\(views\)/);
 assert.match(scheduler,/OPTION_APPWIDGET_MIN_WIDTH/);
 assert.match(scheduler,/OPTION_APPWIDGET_MAX_HEIGHT/);
 // The row/column highlight the CURRENT period, like the home screen.
@@ -399,6 +405,180 @@ for(const kind of variants){
 }
 assert.equal(blueCountdowns,variants.length*2,'one countdown per widget and theme');
 assert.ok(blueLabels>=variants.length*2,'every widget names its countdown');
+// Widget Design 11.0 — owner (26.11.2026): "the calendar parts more elegant
+// and professional; all fonts the same size". Per-view autosize gave every
+// TextView its own size ("Öğle" larger than "İkindi", "1448" larger than
+// "17 Cemaziyelahir"). Sibling groups now take ONE size that the scheduler
+// fits to the real launcher size (WidgetTypeScale): the widest member is
+// measured in the system face and decides for all. The date blocks are
+// calendar leaves under a gold rule: gold Hijri, white Gregorian, muted weekday.
+const scale=read(p+'WidgetTypeScale.java');
+assert.ok(plugin.includes("'WidgetTypeScale.java'"),'CNG missing WidgetTypeScale.java');
+const k=name=>{
+  const m=scale.match(new RegExp('\\b'+name+'=([\\d.]+)f?[,;]'));
+  assert.ok(m,'Missing WidgetTypeScale.'+name);
+  return Number(m[1]);
+};
+const byId=(root,id)=>{
+  const node=[...walk(root)].find(x=>attr(x,'id')==='@+id/'+id);
+  assert.ok(node,'Missing '+id);
+  return node;
+};
+const weight=node=>Number(attr(node,'layout_weight')??0);
+const near=(a,b,label)=>assert.ok(Math.abs(a-b)<1e-6,label+': layout '+a+' ≠ WidgetTypeScale '+b);
+const ruleDp=node=>dp(node,'layout_height')+dp(node,'layout_marginTop')+dp(node,'layout_marginBottom');
+/** Siblings render alike: the same attributes apart from id, text and (where
+ * the design colours them apart) the ink. */
+const alike=(nodes,label,ignore=[])=>{
+  const norm=n=>n.attrs.replace(new RegExp('android:('+['id','text',...ignore].join('|')+')="[^"]*"','g'),'')
+    .replace(/\s+/g,' ').trim();
+  assert.equal(new Set(nodes.map(norm)).size,1,label+': siblings differ');
+};
+const LIGHT={'#F4D392':'#91652D','#F1F7F8':'#163045','#AFC5D4':'#607481'};
+let fittedViews=0;
+for(const suffix of ['','_light']){
+  const ink=hex=>suffix?LIGHT[hex]:hex;
+  const leaf=(nodes,inks,label)=>nodes.forEach((n,i)=>{
+    assert.equal(attr(n,'textColor'),ink(inks[i]),label+' ink '+i);
+    assert.equal(attr(n,'textStyle'),'bold',label+' must be bold');
+    assert.equal(attr(n,'autoSizeTextType'),undefined,label+' takes the fitted size');
+    assert.equal(attr(n,'maxLines'),'1');
+    fittedViews++;
+  });
+  // 6×1 row: mark, gold rule, "17 Cemaziyelahir", "26 Kasım", "Perşembe".
+  const row=tree(read(p+'widget_prayer_row'+suffix+'.xml'));
+  const brand=byId(row,'widget_row_brand');
+  const [mark,rule,...lines]=brand.children;
+  assert.equal(mark.tag,'ImageView');
+  assert.equal(attr(rule,'background'),ink('#F4D392'),'gold rule over the row dates');
+  assert.deepEqual(lines.map(n=>attr(n,'id')),
+    ['@+id/widget_row_hijri','@+id/widget_row_date','@+id/widget_row_weekday']);
+  leaf(lines,['#F4D392','#F1F7F8','#AFC5D4'],'row date line');
+  alike(lines,'row date lines',['textColor']);
+  const names=[0,1,2,3,4,5].map(i=>byId(row,'widget_row_label_'+i));
+  names.forEach(n=>{assert.equal(attr(n,'autoSizeTextType'),undefined,'row names take the fitted size');fittedViews++;});
+  alike(names,'row names');
+  // 1×6 column calendar leaf: mark, rule, 17 / Cemaziyelahir / 26 / Kasım / Perşembe.
+  const col=tree(read(p+'widget_prayer_column'+suffix+'.xml'));
+  const leafNode=byId(col,'widget_col_brand');
+  const [cmark,crule,...rows]=leafNode.children;
+  assert.equal(cmark.tag,'ImageView');
+  assert.equal(attr(crule,'background'),ink('#F4D392'),'gold rule over the column leaf');
+  assert.deepEqual(rows.map(n=>attr(n,'id')),['@+id/widget_col_hijri_day','@+id/widget_col_hijri_month',
+    '@+id/widget_col_day','@+id/widget_col_month','@+id/widget_col_weekday']);
+  const numerals=[rows[0],rows[2]],captions=[rows[1],rows[3],rows[4]];
+  leaf(numerals,['#F4D392','#F1F7F8'],'column day numeral');
+  leaf(captions,['#F4D392','#F1F7F8','#AFC5D4'],'column caption');
+  alike(numerals,'column numerals',['textColor']);
+  alike(captions,'column captions',['textColor']);
+  // Strip and premium footers: six names, one fitted size.
+  const strip=tree(read(p+'widget_prayer_strip'+suffix+'.xml'));
+  const stripNames=[0,1,2,3,4,5].map(i=>byId(strip,'widget_strip_label_'+i));
+  const ring=tree(read(p+'widget_ring_premium'+suffix+'.xml'));
+  const ringNames=[0,1,2,3,4,5].map(i=>byId(ring,'widget_ring_premium_label_'+i));
+  for(const [group,label] of [[stripNames,'strip names'],[ringNames,'premium names']]){
+    group.forEach(n=>{assert.equal(attr(n,'autoSizeTextType'),undefined,label+' take the fitted size');fittedViews++;});
+    alike(group,label);
+  }
+  if(suffix)continue;
+  // The scheduler's geometry is the dark layouts' geometry.
+  const cell=byId(row,'widget_row_cell_0'),remaining=byId(row,'widget_row_remaining');
+  near(pad(row,'Start'),k('ROW_PAD'),'row padding');
+  near(weight(byId(row,'widget_row_logo')),k('ROW_LOGO'),'row logo weight');
+  near(weight(brand),k('ROW_BRAND'),'row date block weight');
+  near(weight(remaining),k('ROW_REMAINING'),'row remaining weight');
+  near(dp(cell,'layout_marginStart'),k('ROW_GAP'),'row cell gap');
+  near(dp(remaining,'layout_marginStart'),k('ROW_GAP'),'row remaining gap');
+  near(pad(cell,'Start'),k('ROW_CELL_PAD'),'row cell padding');
+  near(pad(cell,'Top'),k('ROW_CELL_PAD'),'row cell padding (top)');
+  near(weight(byId(row,'widget_row_label_0'))/cell.children.reduce((s,n)=>s+weight(n),0),
+    k('ROW_LABEL_SHARE'),'row name share of a cell');
+  near(ruleDp(rule),k('ROW_RULE'),'row rule');
+  near(weight(mark),k('ROW_MARK'),'row mark weight');
+  lines.forEach(n=>near(weight(n),k('ROW_LINE'),'row date line weight'));
+  near(lines.length,k('ROW_LINES'),'row date line count');
+  const ccell=byId(col,'widget_col_cell_0'),cremaining=byId(col,'widget_col_remaining');
+  near(pad(col,'Start'),k('COL_PAD'),'column padding');
+  near(weight(byId(col,'widget_col_logo')),k('COL_LOGO'),'column logo weight');
+  near(weight(leafNode),k('COL_BRAND'),'column leaf weight');
+  near(weight(cremaining),k('COL_REMAINING'),'column remaining weight');
+  near(dp(ccell,'layout_marginTop'),k('COL_GAP'),'column cell gap');
+  near(dp(cremaining,'layout_marginTop'),k('COL_GAP'),'column remaining gap');
+  near(pad(leafNode,'Start'),k('COL_BRAND_PAD'),'column leaf side padding');
+  near(pad(leafNode,'End'),k('COL_BRAND_PAD'),'column leaf side padding (end)');
+  near(ruleDp(crule),k('COL_RULE'),'column rule');
+  near(weight(cmark),k('COL_MARK'),'column mark weight');
+  numerals.forEach(n=>near(weight(n),k('COL_NUMERAL'),'column numeral weight'));
+  captions.forEach(n=>near(weight(n),k('COL_CAPTION'),'column caption weight'));
+  const [header,stripRule,cells]=strip.children;
+  const stripCell=byId(strip,'widget_strip_cell_0'),stripTime=byId(strip,'widget_strip_time_0');
+  const footer=byId(strip,'widget_strip_remaining_row');
+  near(pad(strip,'Start'),k('STRIP_PAD'),'strip padding');
+  near(dp(header,'layout_height'),k('STRIP_HEADER'),'strip header');
+  near(ruleDp(stripRule),k('STRIP_RULE'),'strip rule');
+  near(dp(cells,'layout_marginBottom'),k('STRIP_CELLS_BOTTOM'),'strip cells margin');
+  near(weight(cells),1,'strip cells weight');
+  near(dp(footer,'layout_height'),k('STRIP_FOOTER'),'strip footer');
+  near(weight(footer),k('STRIP_FOOTER_WEIGHT'),'strip footer weight');
+  near(pad(stripCell,'Start'),k('STRIP_CELL_PAD_X'),'strip cell padding');
+  near(pad(stripCell,'Top'),k('STRIP_CELL_PAD_Y'),'strip cell padding (top)');
+  near(dp(stripTime,'layout_marginTop'),k('STRIP_TIME_GAP'),'strip clock gap');
+  near(weight(stripNames[0])/(weight(stripNames[0])+weight(stripTime)),0.8/1.8,'strip name share');
+  assert.match(scale,/NAME_SHARE=0\.8f\/1\.8f;/);
+  const ringCell=byId(ring,'widget_ring_premium_cell_0'),chip=ringCell.parent;
+  const ringClock=byId(ring,'widget_ring_premium_clock_0');
+  near(pad(ring,'Start'),k('PREMIUM_PAD'),'premium padding');
+  near(dp(chip,'layout_height'),k('PREMIUM_CHIP'),'premium footer chip');
+  near(pad(chip,'Start'),k('PREMIUM_CHIP_PAD'),'premium chip padding');
+  near(pad(ringCell,'Start'),k('PREMIUM_CELL_PAD_X'),'premium cell padding');
+  near(pad(ringCell,'Top'),k('PREMIUM_CELL_PAD_Y'),'premium cell padding (top)');
+  near(dp(ringClock,'layout_marginTop'),k('PREMIUM_TIME_GAP'),'premium clock gap');
+  near(weight(ringNames[0])/(weight(ringNames[0])+weight(ringClock)),0.8/1.8,'premium name share');
+}
+// The scheduler applies the fitted size to EVERY member of every group.
+for(const pattern of [
+  /for\(int label:ROW_LABELS\)\s*card\.setTextViewTextSize\(label,TypedValue\.COMPLEX_UNIT_PX,type\.caption\)/,
+  /for\(int line:ROW_DATE_LINES\)\s*card\.setTextViewTextSize\(line,TypedValue\.COMPLEX_UNIT_PX,type\.caption\)/,
+  /for\(int numeral:COL_NUMERALS\)\s*card\.setTextViewTextSize\(numeral,TypedValue\.COMPLEX_UNIT_PX,type\.numeral\)/,
+  /for\(int caption:COL_CAPTIONS\)\s*card\.setTextViewTextSize\(caption,TypedValue\.COMPLEX_UNIT_PX,type\.caption\)/,
+  /float labelSize=WidgetTypeScale\.strip\(context,size,stripNames\(times\)\);\s*for\(int label:labels\)card\.setTextViewTextSize\(label,TypedValue\.COMPLEX_UNIT_PX,labelSize\)/,
+  /float labelSize=WidgetTypeScale\.premium\(context,size,stripNames\(times\)\);\s*for\(int label:hourLabels\)\s*card\.setTextViewTextSize\(label,TypedValue\.COMPLEX_UNIT_PX,labelSize\)/,
+  /ROW_DATE_LINES=\{R\.id\.widget_row_hijri,R\.id\.widget_row_date,\s*R\.id\.widget_row_weekday\}/,
+  /COL_NUMERALS=\{R\.id\.widget_col_hijri_day,R\.id\.widget_col_day\}/,
+  /COL_CAPTIONS=\{R\.id\.widget_col_hijri_month,R\.id\.widget_col_month,\s*R\.id\.widget_col_weekday\}/,
+  /WidgetTypeScale\.row\(context,size,bucket,remaining,\s*data\.labels,data\.hijriLine\(\),data\.dayLine\(\),data\.weekday\)/,
+  /WidgetTypeScale\.column\(context,size,remaining,\s*new String\[\]\{data\.hijriDay,data\.day\},data\.hijriMonth,data\.month,data\.weekday\)/,
+])assert.match(scheduler,pattern);
+// One measured size for the whole group: the widest member decides.
+assert.match(scale,/widest=Math\.max\(widest,paint\.measureText\(text\)\)/);
+assert.match(scale,/return Math\.max\(min,Math\.min\(max,Math\.min\(byWidth,byHeight\)\)\)/);
+// Resizing the strip refits its names (the row, column and rings already repaint).
+assert.match(read(p+'PrayerStripWidgetProvider.java'),
+  /onAppWidgetOptionsChanged[\s\S]*"launcher:update:strip"/,'a resized strip refits its names');
+// Calendar-leaf dates: day and month without years.
+assert.match(scheduler,/new SimpleDateFormat\("d",turkish\)/);
+assert.match(scheduler,/new SimpleDateFormat\("MMMM",turkish\)/);
+assert.match(scheduler,/static String\[\] hijriParts\(String hijri\)/);
+// The daily list keeps per-view autosize, so all six names must fit their
+// box at the group maximum even at 130% system font on the smallest 4×2
+// (300dp): then all six render at the same size. Widths in em of the
+// system regular face (Roboto metrics, as on ColorOS's OPPO Sans).
+{
+  const em={'İ':.28,k:.5,i:.24,n:.55,d:.56,m:.87,s:.5,a:.54,G:.67,'ü':.55,e:.53,'ş':.5,
+    'Ö':.68,'ğ':.56,l:.24,A:.65,Y:.61,t:.33,'ı':.24};
+  const width=word=>[...word].reduce((sum,c)=>{assert.ok(em[c],'no width for '+c);return sum+em[c];},0);
+  const day=tree(read(p+'widget_prayer_day.xml'));
+  const label=byId(day,'widget_day_label_0'),dayRow=label.parent,time=byId(day,'widget_day_time_0');
+  const columnWidth=(300-2*pad(day,'Start')-1-5)/2;
+  const box=(columnWidth-pad(dayRow,'Start')-pad(dayRow,'End')-dp(byId(day,'widget_day_icon_0'),'layout_width'))*
+    weight(label)/(weight(label)+weight(time));
+  const max=Number(attr(label,'autoSizeMaxTextSize').replace('sp',''));
+  const widest=Math.max(...['İmsak','Güneş','Öğle','İkindi','Akşam','Yatsı'].map(width));
+  assert.ok(widest*max*1.3<=box,'daily names diverge at 130% font: '+(widest*max*1.3).toFixed(1)+' > '+box.toFixed(1));
+  alike([0,1,2,3,4,5].map(i=>byId(day,'widget_day_label_'+i)),'daily names');
+}
+console.log('Widget Design 11.0: '+fittedViews+' texts in row, column, strip and premium groups take one '+
+  'fitted size each, calendar-leaf dates under a gold rule, scheduler geometry follows the layouts');
 console.log('Widget Design 10.1: '+blueCountdowns+' countdowns and '+blueLabels+
   ' "Kalan" labels blue in both themes');
 console.log('Widget Design 10.0: one system typeface in every widget, '+boxes+

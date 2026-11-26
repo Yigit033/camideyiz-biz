@@ -14,6 +14,7 @@ const FILES=[
   'WidgetBoundaryAsyncRefresh.java',
   'WidgetRenderPipeline.java',
   'PrayerRingBitmapRenderer.java',
+  'WidgetTypeScale.java',
   'WidgetBoundaryReceiver.java',
   'CamideyizWidgetBridge.java',
   'CamideyizWidgetPackage.java',

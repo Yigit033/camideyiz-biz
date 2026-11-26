@@ -52,8 +52,8 @@
   android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
   android:background="@drawable/widget_row_clear">
   <TextView android:id="@+id/widget_ring_premium_label_0" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.8" android:text="İmsak" android:textColor="#AFC5D4" android:textSize="9sp"
-   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+   android:layout_weight="0.8" android:text="İmsak" android:textColor="#AFC5D4" android:textSize="11sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false"/>
   <TextView android:id="@+id/widget_ring_premium_clock_0" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
    android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
@@ -64,8 +64,8 @@
   android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
   android:background="@drawable/widget_row_clear">
   <TextView android:id="@+id/widget_ring_premium_label_1" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.8" android:text="Güneş" android:textColor="#AFC5D4" android:textSize="9sp"
-   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+   android:layout_weight="0.8" android:text="Güneş" android:textColor="#AFC5D4" android:textSize="11sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false"/>
   <TextView android:id="@+id/widget_ring_premium_clock_1" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
    android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
@@ -76,8 +76,8 @@
   android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
   android:background="@drawable/widget_row_clear">
   <TextView android:id="@+id/widget_ring_premium_label_2" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.8" android:text="Öğle" android:textColor="#AFC5D4" android:textSize="9sp"
-   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+   android:layout_weight="0.8" android:text="Öğle" android:textColor="#AFC5D4" android:textSize="11sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false"/>
   <TextView android:id="@+id/widget_ring_premium_clock_2" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
    android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
@@ -88,8 +88,8 @@
   android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
   android:background="@drawable/widget_row_clear">
   <TextView android:id="@+id/widget_ring_premium_label_3" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.8" android:text="İkindi" android:textColor="#AFC5D4" android:textSize="9sp"
-   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+   android:layout_weight="0.8" android:text="İkindi" android:textColor="#AFC5D4" android:textSize="11sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false"/>
   <TextView android:id="@+id/widget_ring_premium_clock_3" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
    android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
@@ -100,8 +100,8 @@
   android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
   android:background="@drawable/widget_row_clear">
   <TextView android:id="@+id/widget_ring_premium_label_4" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.8" android:text="Akşam" android:textColor="#AFC5D4" android:textSize="9sp"
-   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+   android:layout_weight="0.8" android:text="Akşam" android:textColor="#AFC5D4" android:textSize="11sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false"/>
   <TextView android:id="@+id/widget_ring_premium_clock_4" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
    android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"
@@ -112,8 +112,8 @@
   android:paddingTop="4dp" android:paddingBottom="4dp" android:paddingStart="1dp" android:paddingEnd="1dp"
   android:background="@drawable/widget_row_clear">
   <TextView android:id="@+id/widget_ring_premium_label_5" android:layout_width="match_parent" android:layout_height="0dp"
-   android:layout_weight="0.8" android:text="Yatsı" android:textColor="#AFC5D4" android:textSize="9sp"
-   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="13sp" android:autoSizeStepGranularity="1sp"/>
+   android:layout_weight="0.8" android:text="Yatsı" android:textColor="#AFC5D4" android:textSize="11sp"
+   android:gravity="center_horizontal|bottom" android:maxLines="1" android:includeFontPadding="false"/>
   <TextView android:id="@+id/widget_ring_premium_clock_5" android:layout_width="match_parent" android:layout_height="0dp"
    android:layout_weight="1" android:layout_marginTop="3dp" android:text="--:--" android:textColor="#F1F7F8"
    android:textSize="10sp" android:textStyle="bold" android:gravity="center_horizontal|top" android:maxLines="1"

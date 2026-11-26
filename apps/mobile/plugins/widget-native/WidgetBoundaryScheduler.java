@@ -778,47 +778,52 @@ public final class WidgetBoundaryScheduler {
     // countdown (also usable on four-column launchers where 6×2 is impossible).
     int[] strip=widgetIds[4];
     if(strip.length>0&&dirty[4]&&isCurrentGeneration(generation)){
-      RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
-          R.layout.widget_prayer_strip_light,R.layout.widget_prayer_strip,
-          R.layout.widget_prayer_strip_auto));
-      int[] cells={R.id.widget_strip_cell_0,R.id.widget_strip_cell_1,
-        R.id.widget_strip_cell_2,R.id.widget_strip_cell_3,
-        R.id.widget_strip_cell_4,R.id.widget_strip_cell_5};
-      int[] labels={R.id.widget_strip_label_0,R.id.widget_strip_label_1,
-        R.id.widget_strip_label_2,R.id.widget_strip_label_3,
-        R.id.widget_strip_label_4,R.id.widget_strip_label_5};
-      int[] clocks={R.id.widget_strip_time_0,R.id.widget_strip_time_1,
-        R.id.widget_strip_time_2,R.id.widget_strip_time_3,
-        R.id.widget_strip_time_4,R.id.widget_strip_time_5};
-      int ordinaryLight=Color.parseColor("#1B415B"),ordinaryDark=Color.parseColor("#F2F7FB");
-      int subduedLight=Color.parseColor("#365C78"),subduedDark=Color.parseColor("#B2C6D6");
-      int selectedLight=Color.parseColor("#152821"),selectedDark=Color.parseColor("#E5C88C");
-      int selectedCell=look.pick(R.drawable.widget_strip_selected_light,
-          R.drawable.widget_strip_selected_dark,R.drawable.widget_strip_selected_auto);
-      for(int i=0;i<6;i++){
-        JSONObject value=i<times.length()?times.getJSONObject(i):null;
-        String label=value==null?"—":value.optString("label","—");
-        String hour=value==null?"--:--":value.optString("time","--:--");
-        // The next-day İmsak should not be highlighted in today's list;
-        // visually emphasize the currently running Yatsı interval instead.
-        boolean selected=ready && (nextInCurrentDay?label.equals(next):i==5);
-        card.setTextViewText(labels[i],label);
-        card.setTextViewText(clocks[i],hour);
-        ink(card,look,labels[i],selected?selectedLight:subduedLight,
-            selected?selectedDark:subduedDark);
-        ink(card,look,clocks[i],selected?selectedLight:ordinaryLight,
-            selected?selectedDark:ordinaryDark);
-        card.setInt(cells[i],"setBackgroundResource",
-            selected?selectedCell:R.drawable.widget_row_clear);
-      }
-      card.setTextViewText(R.id.widget_strip_city,ready?city:"");
-      card.setTextViewText(R.id.widget_strip_next,
-          ready?next+" vaktine kalan":"Takvim bekleniyor");
-      // Keep the footer visible even before the validated calendar arrives:
-      // show "Takvim bekleniyor" and a neutral dash rather than an empty area.
-      setCountdown(card,R.id.widget_strip_countdown,nextAt,now);
-      card.setOnClickPendingIntent(R.id.widget_strip_root,launchAction(context,41022));
-      manager.updateAppWidget(strip,card);
+      updateSized(manager,strip,size->{
+        RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
+            R.layout.widget_prayer_strip_light,R.layout.widget_prayer_strip,
+            R.layout.widget_prayer_strip_auto));
+        int[] cells={R.id.widget_strip_cell_0,R.id.widget_strip_cell_1,
+          R.id.widget_strip_cell_2,R.id.widget_strip_cell_3,
+          R.id.widget_strip_cell_4,R.id.widget_strip_cell_5};
+        int[] labels={R.id.widget_strip_label_0,R.id.widget_strip_label_1,
+          R.id.widget_strip_label_2,R.id.widget_strip_label_3,
+          R.id.widget_strip_label_4,R.id.widget_strip_label_5};
+        int[] clocks={R.id.widget_strip_time_0,R.id.widget_strip_time_1,
+          R.id.widget_strip_time_2,R.id.widget_strip_time_3,
+          R.id.widget_strip_time_4,R.id.widget_strip_time_5};
+        int ordinaryLight=Color.parseColor("#1B415B"),ordinaryDark=Color.parseColor("#F2F7FB");
+        int subduedLight=Color.parseColor("#365C78"),subduedDark=Color.parseColor("#B2C6D6");
+        int selectedLight=Color.parseColor("#152821"),selectedDark=Color.parseColor("#E5C88C");
+        int selectedCell=look.pick(R.drawable.widget_strip_selected_light,
+            R.drawable.widget_strip_selected_dark,R.drawable.widget_strip_selected_auto);
+        for(int i=0;i<6;i++){
+          JSONObject value=i<times.length()?times.getJSONObject(i):null;
+          String label=value==null?"—":value.optString("label","—");
+          String hour=value==null?"--:--":value.optString("time","--:--");
+          // The next-day İmsak should not be highlighted in today's list;
+          // visually emphasize the currently running Yatsı interval instead.
+          boolean selected=ready && (nextInCurrentDay?label.equals(next):i==5);
+          card.setTextViewText(labels[i],label);
+          card.setTextViewText(clocks[i],hour);
+          ink(card,look,labels[i],selected?selectedLight:subduedLight,
+              selected?selectedDark:subduedDark);
+          ink(card,look,clocks[i],selected?selectedLight:ordinaryLight,
+              selected?selectedDark:ordinaryDark);
+          card.setInt(cells[i],"setBackgroundResource",
+              selected?selectedCell:R.drawable.widget_row_clear);
+        }
+        // The six names: one size, fitted to this card.
+        float labelSize=WidgetTypeScale.strip(context,size,stripNames(times));
+        for(int label:labels)card.setTextViewTextSize(label,TypedValue.COMPLEX_UNIT_PX,labelSize);
+        card.setTextViewText(R.id.widget_strip_city,ready?city:"");
+        card.setTextViewText(R.id.widget_strip_next,
+            ready?next+" vaktine kalan":"Takvim bekleniyor");
+        // Keep the footer visible even before the validated calendar arrives:
+        // show "Takvim bekleniyor" and a neutral dash rather than an empty area.
+        setCountdown(card,R.id.widget_strip_countdown,nextAt,now);
+        card.setOnClickPendingIntent(R.id.widget_strip_root,launchAction(context,41022));
+        return card;
+      });
       count+=strip.length;
     }
 
@@ -831,7 +836,7 @@ public final class WidgetBoundaryScheduler {
     int[] miniRing=widgetIds[5];
     int[] premiumRing=widgetIds[6];
     if(miniRing.length>0&&dirty[5]&&isCurrentGeneration(generation)){
-      updateRing(manager,miniRing,size->{
+      updateSized(manager,miniRing,size->{
         RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
             R.layout.widget_ring_mini_light,R.layout.widget_ring_mini,
             R.layout.widget_ring_mini_auto));
@@ -846,7 +851,7 @@ public final class WidgetBoundaryScheduler {
       count+=miniRing.length;
     }
     if(premiumRing.length>0&&dirty[6]&&isCurrentGeneration(generation)){
-      updateRing(manager,premiumRing,size->{
+      updateSized(manager,premiumRing,size->{
         RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
             R.layout.widget_ring_premium_light,R.layout.widget_ring_premium,
             R.layout.widget_ring_premium_auto));
@@ -874,6 +879,10 @@ public final class WidgetBoundaryScheduler {
         int activeLight=Color.parseColor("#91652D"),activeDark=Color.parseColor("#E5C88C");
         int activeCell=look.pick(R.drawable.widget_strip_selected_light,
             R.drawable.widget_strip_selected_dark,R.drawable.widget_strip_selected_auto);
+        // The six names: one size, fitted to this card.
+        float labelSize=WidgetTypeScale.premium(context,size,stripNames(times));
+        for(int label:hourLabels)
+          card.setTextViewTextSize(label,TypedValue.COMPLEX_UNIT_PX,labelSize);
         for(int i=0;i<6;i++){
           JSONObject value=i<times.length()?times.getJSONObject(i):null;
           String prayer=value==null?"—":value.optString("label","—");
@@ -915,7 +924,7 @@ public final class WidgetBoundaryScheduler {
     // Reuses the small ring bitmap (no extra JS timer or duplicate allocation).
     int[] squareRing=widgetIds[8];
     if(squareRing.length>0&&dirty[8]&&isCurrentGeneration(generation)){
-      updateRing(manager,squareRing,size->{
+      updateSized(manager,squareRing,size->{
         RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
             R.layout.widget_ring_square_light,R.layout.widget_ring_square,
             R.layout.widget_ring_square_auto));
@@ -932,21 +941,35 @@ public final class WidgetBoundaryScheduler {
     }
 
     // Six-prayer row (4×1 → 6×1) and column (1×4 → 1×6): one layout per
-    // theme and three size buckets. Android 12+ launchers pick the bucket
-    // that fits from a responsive map; older launchers get it from options.
+    // theme and three size buckets. Text sizes are fitted to the real
+    // launcher size (WidgetTypeScale), so Android 12+ gets one card per size
+    // the launcher reported for THIS widget; without reported sizes the
+    // bucket map (12+) or the options size (older) is used.
     int[] row=widgetIds[9];
     if(row.length>0&&dirty[9]&&isCurrentGeneration(generation)){
       Strip data=new Strip(props,times,ready,next,nextInCurrentDay,nextAt,now);
-      if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
-        Map<SizeF,RemoteViews> sizes=new HashMap<>();
-        for(int bucket=0;bucket<3;bucket++)
-          sizes.put(new SizeF(ROW_WIDTHS[bucket],40f),rowCard(context,look,data,bucket));
-        manager.updateAppWidget(row,new RemoteViews(sizes));
-      }else{
-        for(int id:row){
+      for(int id:row){
+        List<SizeF> reported=Build.VERSION.SDK_INT>=Build.VERSION_CODES.S
+            ?reportedSizes(manager,id):new ArrayList<>();
+        if(!reported.isEmpty()){
+          Map<SizeF,RemoteViews> views=new HashMap<>();
+          for(SizeF size:reported)views.put(size,rowCard(context,look,data,
+              bucketFor((int)size.getWidth(),ROW_WIDTHS),size));
+          manager.updateAppWidget(id,new RemoteViews(views));
+        }else if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
+          Map<SizeF,RemoteViews> views=new HashMap<>();
+          for(int bucket=0;bucket<3;bucket++)
+            views.put(new SizeF(ROW_WIDTHS[bucket],40f),rowCard(context,look,data,bucket,
+                new SizeF(ROW_WIDTHS[bucket],WidgetTypeScale.NOMINAL_ROW_HEIGHT)));
+          manager.updateAppWidget(id,new RemoteViews(views));
+        }else{
           Bundle options=manager.getAppWidgetOptions(id);
           int width=options==null?0:options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,0);
-          manager.updateAppWidget(id,rowCard(context,look,data,bucketFor(width,ROW_WIDTHS)));
+          int height=options==null?0:options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,0);
+          int bucket=bucketFor(width,ROW_WIDTHS);
+          manager.updateAppWidget(id,rowCard(context,look,data,bucket,new SizeF(
+              width>0?width:ROW_WIDTHS[bucket],
+              height>0?height:WidgetTypeScale.NOMINAL_ROW_HEIGHT)));
         }
       }
       count+=row.length;
@@ -954,16 +977,28 @@ public final class WidgetBoundaryScheduler {
     int[] column=widgetIds[10];
     if(column.length>0&&dirty[10]&&isCurrentGeneration(generation)){
       Strip data=new Strip(props,times,ready,next,nextInCurrentDay,nextAt,now);
-      if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
-        Map<SizeF,RemoteViews> sizes=new HashMap<>();
-        for(int bucket=0;bucket<3;bucket++)
-          sizes.put(new SizeF(40f,COLUMN_HEIGHTS[bucket]),columnCard(context,look,data,bucket));
-        manager.updateAppWidget(column,new RemoteViews(sizes));
-      }else{
-        for(int id:column){
+      for(int id:column){
+        List<SizeF> reported=Build.VERSION.SDK_INT>=Build.VERSION_CODES.S
+            ?reportedSizes(manager,id):new ArrayList<>();
+        if(!reported.isEmpty()){
+          Map<SizeF,RemoteViews> views=new HashMap<>();
+          for(SizeF size:reported)views.put(size,columnCard(context,look,data,
+              bucketFor((int)size.getHeight(),COLUMN_HEIGHTS),size));
+          manager.updateAppWidget(id,new RemoteViews(views));
+        }else if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.S){
+          Map<SizeF,RemoteViews> views=new HashMap<>();
+          for(int bucket=0;bucket<3;bucket++)
+            views.put(new SizeF(40f,COLUMN_HEIGHTS[bucket]),columnCard(context,look,data,bucket,
+                new SizeF(WidgetTypeScale.NOMINAL_COLUMN_WIDTH,COLUMN_HEIGHTS[bucket])));
+          manager.updateAppWidget(id,new RemoteViews(views));
+        }else{
           Bundle options=manager.getAppWidgetOptions(id);
+          int width=options==null?0:options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,0);
           int height=options==null?0:options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,0);
-          manager.updateAppWidget(id,columnCard(context,look,data,bucketFor(height,COLUMN_HEIGHTS)));
+          int bucket=bucketFor(height,COLUMN_HEIGHTS);
+          manager.updateAppWidget(id,columnCard(context,look,data,bucket,new SizeF(
+              width>0?width:WidgetTypeScale.NOMINAL_COLUMN_WIDTH,
+              height>0?height:COLUMN_HEIGHTS[bucket])));
         }
       }
       count+=column.length;
@@ -980,15 +1015,16 @@ public final class WidgetBoundaryScheduler {
   /** Launcher sizes may round; keep the ring stroke off the stage edge. */
   private static final float RING_SAFETY_DP=3f;
 
-  private interface RingCard{RemoteViews build(SizeF size)throws JSONException;}
+  private interface SizedCard{RemoteViews build(SizeF size)throws JSONException;}
 
-  /** Android 12+: one RemoteViews per launcher-reported size of THIS widget,
-   * each with an exact-square ring frame. Older launchers (and launchers that
-   * report no size) keep the weighted layout. */
-  private static void updateRing(AppWidgetManager manager,int[] ids,RingCard card)
+  /** Android 12+: one RemoteViews per launcher-reported size of THIS widget
+   * (exact-square ring frames, text fitted to the size). Older launchers get
+   * one card for the smallest size in their options; a launcher that reports
+   * no size gets the card built for null (weighted layout, nominal text). */
+  private static void updateSized(AppWidgetManager manager,int[] ids,SizedCard card)
       throws JSONException{
     if(Build.VERSION.SDK_INT<Build.VERSION_CODES.S){
-      manager.updateAppWidget(ids,card.build(null));
+      for(int id:ids)manager.updateAppWidget(id,card.build(smallestReported(manager,id)));
       return;
     }
     for(int id:ids){
@@ -1031,6 +1067,16 @@ public final class WidgetBoundaryScheduler {
     return sizes;
   }
 
+  /** The smallest launcher-reported size of a widget, or null. */
+  private static SizeF smallestReported(AppWidgetManager manager,int id){
+    SizeF smallest=null;
+    for(SizeF size:reportedSizes(manager,id)){
+      smallest=smallest==null?size:new SizeF(Math.min(smallest.getWidth(),size.getWidth()),
+          Math.min(smallest.getHeight(),size.getHeight()));
+    }
+    return smallest;
+  }
+
   /** Sizes the ring frame to the largest square inside its stage. */
   private static void squareRingFrame(RemoteViews card,int frameId,SizeF size,
       float chromeX,float chromeY){
@@ -1057,6 +1103,11 @@ public final class WidgetBoundaryScheduler {
     R.id.widget_row_label_2,R.id.widget_row_label_3,R.id.widget_row_label_4,R.id.widget_row_label_5};
   private static final int[] ROW_TIMES={R.id.widget_row_time_0,R.id.widget_row_time_1,
     R.id.widget_row_time_2,R.id.widget_row_time_3,R.id.widget_row_time_4,R.id.widget_row_time_5};
+  private static final int[] ROW_DATE_LINES={R.id.widget_row_hijri,R.id.widget_row_date,
+    R.id.widget_row_weekday};
+  private static final int[] COL_NUMERALS={R.id.widget_col_hijri_day,R.id.widget_col_day};
+  private static final int[] COL_CAPTIONS={R.id.widget_col_hijri_month,R.id.widget_col_month,
+    R.id.widget_col_weekday};
   private static final int[] COL_CELLS={R.id.widget_col_cell_0,R.id.widget_col_cell_1,
     R.id.widget_col_cell_2,R.id.widget_col_cell_3,R.id.widget_col_cell_4,R.id.widget_col_cell_5};
   private static final int[] COL_ICONS={R.id.widget_col_icon_0,R.id.widget_col_icon_1,
@@ -1077,7 +1128,9 @@ public final class WidgetBoundaryScheduler {
     final boolean ready;
     final int current;
     final String[] labels=new String[6],clocks=new String[6];
-    final String title,hijri,date,weekday;
+    /** "17" "Cemaziyelahir" and "26" "Kasım" "Perşembe": widgets show the
+     * day and month (no years, as on a calendar leaf). */
+    final String title,hijriDay,hijriMonth,day,month,weekday;
     final long nextAt,now;
     Strip(JSONObject props,JSONArray times,boolean ready,String next,
         boolean nextInCurrentDay,long nextAt,long now){
@@ -1093,10 +1146,42 @@ public final class WidgetBoundaryScheduler {
       // After Yatsı the next İmsak is tomorrow, so the period is Yatsı.
       current=!ready?-1:!nextInCurrentDay?5:nextIndex<0?-1:(nextIndex+5)%6;
       title=remainingTitle(ready?next:"");
-      hijri=ready?props.optString("hijriDate","").trim():"";
-      String[] day=gregorian(props.optString("dateISO",""));
-      date=day[0];weekday=day[1];
+      String[] hijri=hijriParts(ready?props.optString("hijriDate",""):"");
+      hijriDay=hijri[0];hijriMonth=hijri[1];
+      String[] civil=gregorian(props.optString("dateISO",""));
+      day=civil[0];month=civil[1];weekday=civil[2];
     }
+    String hijriLine(){return join(hijriDay,hijriMonth);}
+    String dayLine(){return join(day,month);}
+  }
+
+  /** The six names a strip or premium footer shows (defaults before data). */
+  private static String[] stripNames(JSONArray times){
+    String[] names=new String[6];
+    for(int i=0;i<6;i++){
+      JSONObject value=i<times.length()?times.optJSONObject(i):null;
+      names[i]=value==null?DEFAULT_LABELS[i]:value.optString("label",DEFAULT_LABELS[i]);
+    }
+    return names;
+  }
+
+  private static String join(String first,String second){
+    return first.isEmpty()?second:second.isEmpty()?first:first+" "+second;
+  }
+
+  /** "17 Cemaziyelahir 1448" → {"17","Cemaziyelahir"}; anything else stays
+   * whole as the month line. */
+  static String[] hijriParts(String hijri){
+    String text=hijri.trim();
+    String[] words=text.split("\\s+");
+    if(words.length<2||!words[0].matches("\\d{1,2}"))return new String[]{"",text};
+    int end=words[words.length-1].matches("\\d{3,4}")?words.length-1:words.length;
+    StringBuilder month=new StringBuilder();
+    for(int i=1;i<end;i++){
+      if(month.length()>0)month.append(' ');
+      month.append(words[i]);
+    }
+    return month.length()==0?new String[]{"",text}:new String[]{words[0],month.toString()};
   }
 
   private static String remainingTitle(String next){
@@ -1111,7 +1196,7 @@ public final class WidgetBoundaryScheduler {
     }
   }
 
-  /** "22 Kasım 2026" and "Pazar" for a published Europe/Istanbul date. */
+  /** "22", "Kasım" and "Pazar" for a published Europe/Istanbul date. */
   private static String[] gregorian(String dateISO){
     try{
       TimeZone zone=TimeZone.getTimeZone("Europe/Istanbul");
@@ -1119,12 +1204,13 @@ public final class WidgetBoundaryScheduler {
       parse.setTimeZone(zone);
       Date day=parse.parse(dateISO);
       Locale turkish=Locale.forLanguageTag("tr-TR");
-      SimpleDateFormat date=new SimpleDateFormat("d MMMM yyyy",turkish);
+      SimpleDateFormat date=new SimpleDateFormat("d",turkish);
+      SimpleDateFormat month=new SimpleDateFormat("MMMM",turkish);
       SimpleDateFormat week=new SimpleDateFormat("EEEE",turkish);
-      date.setTimeZone(zone);week.setTimeZone(zone);
-      return new String[]{date.format(day),week.format(day)};
+      date.setTimeZone(zone);month.setTimeZone(zone);week.setTimeZone(zone);
+      return new String[]{date.format(day),month.format(day),week.format(day)};
     }catch(Exception invalid){
-      return new String[]{"",""};
+      return new String[]{"","",""};
     }
   }
 
@@ -1157,19 +1243,28 @@ public final class WidgetBoundaryScheduler {
     }
   }
 
-  private static RemoteViews rowCard(Context context,Look look,Strip data,int bucket){
+  private static RemoteViews rowCard(Context context,Look look,Strip data,int bucket,
+      SizeF size){
     RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
         R.layout.widget_prayer_row_light,R.layout.widget_prayer_row,
         R.layout.widget_prayer_row_auto));
+    boolean remaining=bucket>=1&&data.ready;
     card.setViewVisibility(R.id.widget_row_logo,bucket==2?View.GONE:View.VISIBLE);
     card.setViewVisibility(R.id.widget_row_brand,bucket==2?View.VISIBLE:View.GONE);
-    card.setViewVisibility(R.id.widget_row_remaining,
-        bucket>=1&&data.ready?View.VISIBLE:View.GONE);
+    card.setViewVisibility(R.id.widget_row_remaining,remaining?View.VISIBLE:View.GONE);
+    // The six names and the date lines: one size, fitted to this card.
+    WidgetTypeScale.RowType type=WidgetTypeScale.row(context,size,bucket,remaining,
+        data.labels,data.hijriLine(),data.dayLine(),data.weekday);
+    for(int label:ROW_LABELS)
+      card.setTextViewTextSize(label,TypedValue.COMPLEX_UNIT_PX,type.caption);
     if(bucket==2){
-      card.setTextViewText(R.id.widget_row_hijri,data.hijri);
-      card.setViewVisibility(R.id.widget_row_hijri,data.hijri.isEmpty()?View.GONE:View.VISIBLE);
-      card.setTextViewText(R.id.widget_row_date,
-          data.weekday.isEmpty()?data.date:data.date+" "+data.weekday);
+      card.setTextViewText(R.id.widget_row_hijri,data.hijriLine());
+      card.setViewVisibility(R.id.widget_row_hijri,
+          data.hijriLine().isEmpty()?View.GONE:View.VISIBLE);
+      card.setTextViewText(R.id.widget_row_date,data.dayLine());
+      card.setTextViewText(R.id.widget_row_weekday,data.weekday);
+      for(int line:ROW_DATE_LINES)
+        card.setTextViewTextSize(line,TypedValue.COMPLEX_UNIT_PX,type.caption);
     }
     paintCells(card,look,data,ROW_CELLS,ROW_ICONS,ROW_LABELS,ROW_TIMES);
     card.setTextViewText(R.id.widget_row_next,data.title);
@@ -1178,25 +1273,32 @@ public final class WidgetBoundaryScheduler {
     return card;
   }
 
-  private static RemoteViews columnCard(Context context,Look look,Strip data,int bucket){
+  private static RemoteViews columnCard(Context context,Look look,Strip data,int bucket,
+      SizeF size){
     RemoteViews card=new RemoteViews(context.getPackageName(),look.pick(
         R.layout.widget_prayer_column_light,R.layout.widget_prayer_column,
         R.layout.widget_prayer_column_auto));
+    boolean remaining=bucket>=1&&data.ready;
     card.setViewVisibility(R.id.widget_col_logo,bucket==2?View.GONE:View.VISIBLE);
     card.setViewVisibility(R.id.widget_col_brand,bucket==2?View.VISIBLE:View.GONE);
-    card.setViewVisibility(R.id.widget_col_remaining,
-        bucket>=1&&data.ready?View.VISIBLE:View.GONE);
+    card.setViewVisibility(R.id.widget_col_remaining,remaining?View.VISIBLE:View.GONE);
     if(bucket==2){
-      // A one-column card is narrow: "13 Cemaziyelahir" / "1448".
-      int split=data.hijri.lastIndexOf(' ');
-      String hijriDay=split>0?data.hijri.substring(0,split):data.hijri;
-      String hijriYear=split>0?data.hijri.substring(split+1):"";
-      card.setTextViewText(R.id.widget_col_hijri_day,hijriDay);
-      card.setTextViewText(R.id.widget_col_hijri_year,hijriYear);
-      card.setViewVisibility(R.id.widget_col_hijri_day,hijriDay.isEmpty()?View.GONE:View.VISIBLE);
-      card.setViewVisibility(R.id.widget_col_hijri_year,hijriYear.isEmpty()?View.GONE:View.VISIBLE);
-      card.setTextViewText(R.id.widget_col_date,data.date);
+      // Calendar leaf: the day numerals share one size, the captions another.
+      WidgetTypeScale.ColumnType type=WidgetTypeScale.column(context,size,remaining,
+          new String[]{data.hijriDay,data.day},data.hijriMonth,data.month,data.weekday);
+      card.setTextViewText(R.id.widget_col_hijri_day,data.hijriDay);
+      card.setTextViewText(R.id.widget_col_hijri_month,data.hijriMonth);
+      card.setViewVisibility(R.id.widget_col_hijri_day,
+          data.hijriDay.isEmpty()?View.GONE:View.VISIBLE);
+      card.setViewVisibility(R.id.widget_col_hijri_month,
+          data.hijriMonth.isEmpty()?View.GONE:View.VISIBLE);
+      card.setTextViewText(R.id.widget_col_day,data.day);
+      card.setTextViewText(R.id.widget_col_month,data.month);
       card.setTextViewText(R.id.widget_col_weekday,data.weekday);
+      for(int numeral:COL_NUMERALS)
+        card.setTextViewTextSize(numeral,TypedValue.COMPLEX_UNIT_PX,type.numeral);
+      for(int caption:COL_CAPTIONS)
+        card.setTextViewTextSize(caption,TypedValue.COMPLEX_UNIT_PX,type.caption);
     }
     paintCells(card,look,data,COL_CELLS,COL_ICONS,COL_LABELS,COL_TIMES);
     card.setTextViewText(R.id.widget_col_next,data.title.endsWith(" Kalan")

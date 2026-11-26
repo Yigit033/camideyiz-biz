@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Six-prayer row, 4×1 and resizable to 5×1 / 6×1. One layout, three
      size buckets chosen by the scheduler: logo + six prayers; + remaining
-     time; + Hijri and Gregorian dates under the logo. All text autosizes. -->
+     time; + a date block under the logo (gold rule, Hijri day and month,
+     Gregorian day and month, weekday). The six names and the date lines
+     share ONE size the scheduler fits to the launcher size
+     (WidgetTypeScale.row); clocks and the countdown autosize. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/widget_row_root" android:layout_width="match_parent" android:layout_height="match_parent"
  android:background="@drawable/widget_bg" android:padding="6dp" android:orientation="horizontal" android:gravity="center_vertical">
@@ -9,11 +12,13 @@
   android:layout_weight="1.2" android:src="@drawable/widget_brand_mark_dark" android:scaleType="fitCenter"
   android:contentDescription="Camideyiz.biz"/>
  <LinearLayout android:id="@+id/widget_row_brand" android:layout_width="0dp" android:layout_height="match_parent"
-  android:layout_weight="1.9" android:orientation="vertical" android:gravity="center" android:visibility="gone">
+  android:layout_weight="2.2" android:orientation="vertical" android:gravity="center" android:visibility="gone">
  <ImageView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
   android:src="@drawable/widget_brand_mark_dark" android:scaleType="fitCenter" android:contentDescription="Camideyiz.biz"/>
- <TextView android:id="@+id/widget_row_hijri" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.24" android:text="" android:textSize="9sp" android:textColor="#8FDCF8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
- <TextView android:id="@+id/widget_row_date" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.24" android:text="" android:textSize="9sp" android:textColor="#8FDCF8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="6sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:layout_width="16dp" android:layout_height="1dp" android:layout_marginTop="2dp" android:layout_marginBottom="2dp" android:background="#F4D392" android:alpha="0.75" android:text=""/>
+ <TextView android:id="@+id/widget_row_hijri" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text="" android:textSize="9sp" android:textColor="#F4D392" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
+ <TextView android:id="@+id/widget_row_date" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text="" android:textSize="9sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
+ <TextView android:id="@+id/widget_row_weekday" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.3" android:text="" android:textSize="9sp" android:textColor="#AFC5D4" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_row_cell_0" android:layout_width="0dp" android:layout_height="match_parent"
   android:layout_weight="1" android:layout_marginStart="4dp" android:padding="2dp" android:orientation="vertical"
@@ -21,7 +26,7 @@
  <ImageView android:id="@+id/widget_row_icon_0" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="0.28" android:src="@drawable/widget_ic_imsak" android:tint="#F0C97F"
   android:scaleType="fitCenter" android:contentDescription="İmsak"/>
- <TextView android:id="@+id/widget_row_label_0" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="İmsak" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_row_label_0" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="İmsak" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
  <TextView android:id="@+id/widget_row_time_0" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.40" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_row_cell_1" android:layout_width="0dp" android:layout_height="match_parent"
@@ -30,7 +35,7 @@
  <ImageView android:id="@+id/widget_row_icon_1" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="0.28" android:src="@drawable/widget_ic_gunes" android:tint="#F0C97F"
   android:scaleType="fitCenter" android:contentDescription="Güneş"/>
- <TextView android:id="@+id/widget_row_label_1" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="Güneş" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_row_label_1" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="Güneş" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
  <TextView android:id="@+id/widget_row_time_1" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.40" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_row_cell_2" android:layout_width="0dp" android:layout_height="match_parent"
@@ -39,7 +44,7 @@
  <ImageView android:id="@+id/widget_row_icon_2" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="0.28" android:src="@drawable/widget_ic_ogle" android:tint="#F0C97F"
   android:scaleType="fitCenter" android:contentDescription="Öğle"/>
- <TextView android:id="@+id/widget_row_label_2" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="Öğle" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_row_label_2" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="Öğle" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
  <TextView android:id="@+id/widget_row_time_2" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.40" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_row_cell_3" android:layout_width="0dp" android:layout_height="match_parent"
@@ -48,7 +53,7 @@
  <ImageView android:id="@+id/widget_row_icon_3" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="0.28" android:src="@drawable/widget_ic_ikindi" android:tint="#F0C97F"
   android:scaleType="fitCenter" android:contentDescription="İkindi"/>
- <TextView android:id="@+id/widget_row_label_3" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="İkindi" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_row_label_3" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="İkindi" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
  <TextView android:id="@+id/widget_row_time_3" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.40" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_row_cell_4" android:layout_width="0dp" android:layout_height="match_parent"
@@ -57,7 +62,7 @@
  <ImageView android:id="@+id/widget_row_icon_4" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="0.28" android:src="@drawable/widget_ic_aksam" android:tint="#F0C97F"
   android:scaleType="fitCenter" android:contentDescription="Akşam"/>
- <TextView android:id="@+id/widget_row_label_4" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="Akşam" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_row_label_4" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="Akşam" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
  <TextView android:id="@+id/widget_row_time_4" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.40" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_row_cell_5" android:layout_width="0dp" android:layout_height="match_parent"
@@ -66,7 +71,7 @@
  <ImageView android:id="@+id/widget_row_icon_5" android:layout_width="match_parent" android:layout_height="0dp"
   android:layout_weight="0.28" android:src="@drawable/widget_ic_yatsi" android:tint="#F0C97F"
   android:scaleType="fitCenter" android:contentDescription="Yatsı"/>
- <TextView android:id="@+id/widget_row_label_5" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="Yatsı" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="7sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+ <TextView android:id="@+id/widget_row_label_5" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.32" android:text="Yatsı" android:textSize="12sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false"/>
  <TextView android:id="@+id/widget_row_time_5" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0.40" android:text="--:--" android:textSize="14sp" android:textColor="#F1F7F8" android:textStyle="bold" android:gravity="center" android:maxLines="1" android:includeFontPadding="false" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="8sp" android:autoSizeMaxTextSize="18sp" android:autoSizeStepGranularity="1sp"/>
  </LinearLayout>
  <LinearLayout android:id="@+id/widget_row_remaining" android:layout_width="0dp" android:layout_height="match_parent"

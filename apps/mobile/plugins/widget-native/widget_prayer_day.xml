@@ -28,7 +28,7 @@
   <TextView android:id="@+id/widget_day_label_0" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="1" android:text="İmsak" android:textSize="10sp" android:textColor="#F1F7F8"
    android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
-   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_day_time_0" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
    android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
@@ -44,7 +44,7 @@
   <TextView android:id="@+id/widget_day_label_1" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="1" android:text="Güneş" android:textSize="10sp" android:textColor="#F1F7F8"
    android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
-   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_day_time_1" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
    android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
@@ -60,7 +60,7 @@
   <TextView android:id="@+id/widget_day_label_2" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="1" android:text="Öğle" android:textSize="10sp" android:textColor="#F1F7F8"
    android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
-   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_day_time_2" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
    android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
@@ -81,7 +81,7 @@
   <TextView android:id="@+id/widget_day_label_3" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="1" android:text="İkindi" android:textSize="10sp" android:textColor="#F1F7F8"
    android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
-   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_day_time_3" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
    android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
@@ -97,7 +97,7 @@
   <TextView android:id="@+id/widget_day_label_4" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="1" android:text="Akşam" android:textSize="10sp" android:textColor="#F1F7F8"
    android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
-   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_day_time_4" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
    android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
@@ -113,7 +113,7 @@
   <TextView android:id="@+id/widget_day_label_5" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="1" android:text="Yatsı" android:textSize="10sp" android:textColor="#F1F7F8"
    android:gravity="start|center_vertical" android:maxLines="1" android:includeFontPadding="false"
-   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="15sp" android:autoSizeStepGranularity="1sp"/>
+   android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="14sp" android:autoSizeStepGranularity="1sp"/>
   <TextView android:id="@+id/widget_day_time_5" android:layout_width="0dp" android:layout_height="match_parent"
    android:layout_weight="0.9" android:text="--:--" android:textSize="11sp" android:textStyle="bold"
    android:textColor="#F1F7F8" android:gravity="end|center_vertical" android:maxLines="1"
